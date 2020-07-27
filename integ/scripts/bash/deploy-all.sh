@@ -17,10 +17,6 @@ if [ -z ${INTEG_STACK_TAG+x} ]; then
     export INTEG_STACK_TAG="$(date +%s%N)"
 fi
 
-if [ -n ${DEADLINE_REPOSITORY_INSTALLER_PATH+x} ]; then
-    export DEADLINE_REPOSITORY_INSTALLER_PATH="${root}/${DEADLINE_REPOSITORY_INSTALLER_PATH}"
-fi
-
 # Run preflight checks to make sure necessary variables, etc. are set
 jest --passWithNoTests --silent "preflight"
 

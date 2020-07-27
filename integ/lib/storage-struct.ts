@@ -4,25 +4,15 @@
  */
 
 import { DatabaseCluster } from '@aws-cdk/aws-docdb';
-import { InstanceClass, InstanceSize, InstanceType, Vpc } from '@aws-cdk/aws-ec2';
+import { InstanceClass, InstanceSize, InstanceType, Vpc, SubnetType } from '@aws-cdk/aws-ec2';
 import { FileSystem } from '@aws-cdk/aws-efs';
-import { Bucket, IBucket } from '@aws-cdk/aws-s3';
-import { Asset } from '@aws-cdk/aws-s3-assets';
-import { Construct, RemovalPolicy, Stack } from '@aws-cdk/core';
+import { Construct, Duration, RemovalPolicy, Stack } from '@aws-cdk/core';
 import { MountableEfs } from 'aws-rfdk';
-import { DatabaseConnection, IVersion, Repository } from 'aws-rfdk/deadline';
-
-export interface DeadlineRepositoryInstallationConfig {
-  readonly deadlineVersion: string;
-  readonly deadlineRepositoryInstallerPath: string | undefined;
-  readonly deadlineRepositoryInstallerBucketName: string | undefined;
-  readonly deadlineRepositoryInstallerObjectKey: string | undefined;
-}
+import { DatabaseConnection, Repository, Stage, ThinkboxDockerRecipes } from 'aws-rfdk/deadline';
 
 export interface StorageStructProps {
   readonly integStackTag: string;
   readonly provideDocdbEfs: string;
-  readonly deadlineRepositoryInstallationConfig: DeadlineRepositoryInstallationConfig;
 }
 
 export class StorageStruct extends Construct {
@@ -34,50 +24,14 @@ export class StorageStruct extends Construct {
     super(scope, id);
 
     const infrastructureStackName = 'RFDKIntegInfrastructure' + props.integStackTag;
+    const stagePath = process.env.DEADLINE_STAGING_PATH!.toString();
+
     const vpc = Vpc.fromLookup(this, 'Vpc', { tags: { StackName: infrastructureStackName }}) as Vpc;
 
-    const deadlineInstallConfig = props.deadlineRepositoryInstallationConfig;
-    const deadlineVersionString = deadlineInstallConfig.deadlineVersion;
-    const deadlineVersionRegex = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(deadlineVersionString) as string[];
-
-    let deadlineInstallerBucketName: string;
-    let deadlineInstallerBucket: IBucket;
-    let deadlineInstallerObjectKey: string;
-
-    switch (deadlineInstallConfig.deadlineRepositoryInstallerPath){
-      case undefined:
-        deadlineInstallerBucketName = deadlineInstallConfig.deadlineRepositoryInstallerBucketName as string;
-        deadlineInstallerObjectKey = deadlineInstallConfig.deadlineRepositoryInstallerObjectKey as string;
-        break;
-      default:
-        const installerAsset = new Asset(this, 'installerAsset', {
-          path: deadlineInstallConfig.deadlineRepositoryInstallerPath,
-        });
-        deadlineInstallerBucketName = installerAsset.s3BucketName;
-        deadlineInstallerObjectKey = installerAsset.s3ObjectKey;
-        break;
-    }
-    deadlineInstallerBucket = Bucket.fromBucketName(this, 'InstallerBucket', deadlineInstallerBucketName);
-
-    const versionInts: number[] = [
-      parseInt(deadlineVersionRegex[1], 10),
-      parseInt(deadlineVersionRegex[2], 10),
-      parseInt(deadlineVersionRegex[3], 10),
-      parseInt(deadlineVersionRegex[4], 10),
-    ];
-    const deadlineVersion: IVersion = {
-      majorVersion: versionInts[0],
-      minorVersion: versionInts[1],
-      releaseVersion: versionInts[2],
-      linuxInstallers: {
-        patchVersion: versionInts[3],
-        repository: {
-          s3Bucket: deadlineInstallerBucket,
-          objectKey: deadlineInstallerObjectKey,
-        },
-      },
-      linuxFullVersionString: () => deadlineVersionString,
-    };
+    const recipes = new ThinkboxDockerRecipes(this, 'DockerRecipes', {
+      stage: Stage.fromDirectory(stagePath),
+    });
+    const version = recipes.version;
 
     let deadlineDatabase;
     let deadlineDatabaseConnection;
@@ -91,6 +45,10 @@ export class StorageStruct extends Construct {
         instanceProps: {
           instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
           vpc,
+          vpcSubnets: {
+            onePerAz: true,
+            subnetType: SubnetType.PRIVATE,
+          },
         },
         masterUser: {
           username: 'DocDBUser',
@@ -112,7 +70,9 @@ export class StorageStruct extends Construct {
     else {
       // Otherwise the repository installer will handle creating the docDB and EFS
       deadlineDatabase = undefined;
+      deadlineDatabaseConnection = undefined;
       deadlineEfs = undefined;
+      deadlineMountableEfs = undefined;
     }
 
     // Define properties for Deadline installer. A unique log group name is created so that logstreams are not assigned
@@ -121,7 +81,8 @@ export class StorageStruct extends Construct {
       vpc,
       database: deadlineDatabaseConnection,
       fileSystem: deadlineMountableEfs,
-      version: deadlineVersion,
+      version: version,
+      repositoryInstallationTimeout: Duration.minutes(20),
       logGroupProps: {
         logGroupPrefix: Stack.of(this).stackName + '-' + id,
       },
