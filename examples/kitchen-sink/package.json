@@ -1,0 +1,111 @@
+{
+  "name": "kitchen-sink",
+  "version": "0.15.0",
+  "private": false,
+  "description": "RFDK kitchen sink example application that demonstrates the RFDK constructs",
+  "main": "bin/index.js",
+  "types": "bin/index.d.ts",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Amazon Web Services",
+    "url": "https://aws.amazon.com",
+    "organization": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aws/aws-rfdk.git",
+    "directory": "examples/kitchen-sink"
+  },
+  "config": {
+    "deadline_ver": "10.1.9.2",
+    "stage_path": "stage"
+  },
+  "pkglint": {
+    "exclude": [
+      "dependencies/cdk-point-dependencies",
+      "ignore/strong-name-key",
+      "package-info/homepage",
+      "package-info/scripts/compat",
+      "package-info/stability"
+    ]
+  },
+  "scripts": {
+    "build": "tsc",
+    "build+test": "npm run build && npm test",
+    "build+test+package": "npm run build+test && npm run package",
+    "clean": "tsc --build --clean && bash ./clean.sh",
+    "package": "bash pack.sh",
+    "pkglint": "pkglint -f",
+    "stage": "stage-deadline -d s3://thinkbox-installers/Deadline/${npm_package_config_deadline_ver}/Linux/DeadlineClient-${npm_package_config_deadline_ver}-linux-x64-installer.run -c s3://thinkbox-installers/DeadlineDocker/${npm_package_config_deadline_ver}/DeadlineDocker-${npm_package_config_deadline_ver}.tar.gz -o ${npm_package_config_stage_path}",
+    "test": "jest",
+    "watch": "tsc -w"
+  },
+  "keywords": [
+    "aws",
+    "cdk",
+    "rfdk",
+    "rfdk-core"
+  ],
+  "jest": {
+    "moduleFileExtensions": [
+      "js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 0,
+        "statements": 0
+      }
+    }
+  },
+  "devDependencies": {
+    "jest": "^26.1.0",
+    "lerna": "^3.22.1",
+    "ts-jest": "^26.1.3",
+    "typescript": "~3.9.6"
+  },
+  "dependencies": {
+    "@aws-cdk/aws-cloudwatch": "1.52.0",
+    "@aws-cdk/aws-codeguruprofiler": "1.52.0",
+    "@aws-cdk/aws-docdb": "1.52.0",
+    "@aws-cdk/aws-ec2": "1.52.0",
+    "@aws-cdk/aws-efs": "1.52.0",
+    "@aws-cdk/aws-events": "1.52.0",
+    "@aws-cdk/aws-iam": "1.52.0",
+    "@aws-cdk/aws-kms": "1.52.0",
+    "@aws-cdk/aws-lambda": "1.52.0",
+    "@aws-cdk/aws-logs": "1.52.0",
+    "@aws-cdk/aws-s3": "1.52.0",
+    "@aws-cdk/aws-sqs": "1.52.0",
+    "@aws-cdk/aws-ssm": "1.52.0",
+    "@aws-cdk/core": "1.52.0",
+    "@aws-cdk/cx-api": "1.52.0",
+    "@aws-cdk/region-info": "1.52.0",
+    "aws-cdk": "1.52.0",
+    "aws-rfdk": "0.15.0"
+  },
+  "peerDependencies": {
+    "@aws-cdk/aws-cloudwatch": "1.52.0",
+    "@aws-cdk/aws-codeguruprofiler": "1.52.0",
+    "@aws-cdk/aws-docdb": "1.52.0",
+    "@aws-cdk/aws-ec2": "1.52.0",
+    "@aws-cdk/aws-efs": "1.52.0",
+    "@aws-cdk/aws-events": "1.52.0",
+    "@aws-cdk/aws-iam": "1.52.0",
+    "@aws-cdk/aws-kms": "1.52.0",
+    "@aws-cdk/aws-lambda": "1.52.0",
+    "@aws-cdk/aws-logs": "1.52.0",
+    "@aws-cdk/aws-s3": "1.52.0",
+    "@aws-cdk/aws-sqs": "1.52.0",
+    "@aws-cdk/aws-ssm": "1.52.0",
+    "@aws-cdk/core": "1.52.0",
+    "@aws-cdk/cx-api": "1.52.0",
+    "@aws-cdk/region-info": "1.52.0",
+    "aws-cdk": "1.52.0",
+    "aws-rfdk": "0.15.0"
+  },
+  "engines": {
+    "node": ">= 10.13.0 <13 || >=13.7.0"
+  },
+  "stability": "experimental",
+  "maturity": "experimental"
+}

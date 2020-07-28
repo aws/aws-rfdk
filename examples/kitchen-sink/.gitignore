@@ -1,0 +1,23 @@
+*.d.ts
+*.js
+cdk.out
+cdk.context.json
+
+# Ignore package tarball
+kitchen-sink-*.tgz
+
+# Used by nyc
+.nyc_output
+coverage
+.nycrc
+
+# Exclude package artifacts
+dist
+*.tgz
+.LAST_PACKAGE
+
+#Defines license that must be present
+!license-header.js
+
+# The staged files for Deadline
+stage

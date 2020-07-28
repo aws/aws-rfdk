@@ -1,0 +1,99 @@
+{
+  "name": "integ",
+  "version": "0.15.0",
+  "private": false,
+  "description": "Integration tests for RFDK constructs",
+  "bin": {
+    "infrastructure": "components/_infrastructure/bin/_infrastructure.js",
+    "repository": "components/deadline/repository/bin/deadline-repository.js"
+  },
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Amazon Web Services",
+    "url": "https://aws.amazon.com",
+    "organization": true
+  },
+  "keywords": [
+    "aws",
+    "cdk",
+    "rfdk"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aws/aws-rfdk.git",
+    "directory": "integ"
+  },
+  "pkglint": {
+    "exclude": [
+      "dependencies/cdk-point-dependencies",
+      "dependencies/node-version",
+      "ignore/strong-name-key",
+      "package-info/homepage",
+      "package-info/scripts/build",
+      "package-info/scripts/watch",
+      "dependencies/build-tools",
+      "package-info/scripts/package",
+      "package-info/scripts/compat",
+      "package-info/stability",
+      "jsii/dotnet/icon-url",
+      "jsii/dotnet/strong-name",
+      "fast-failing-build-scripts"
+    ]
+  },
+  "scripts": {
+    "build": "tsc && pkglint && eslint . --ext=.ts",
+    "build+test": "yarn run build",
+    "build+test+package": "yarn run build+test",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk",
+    "e2e": "./scripts/bash/rfdk-integ-e2e.sh",
+    "clean": "./scripts/bash/cleanup.sh",
+    "deploy-all": "./scripts/bash/deploy-all.sh",
+    "tear-down": "./scripts/bash/tear-down.sh",
+    "pkglint": "pkglint -f"
+  },
+  "devDependencies": {
+    "@aws-cdk/assert": "1.52.0",
+    "@types/jest": "^26.0.4",
+    "@types/node": "^14.0.14",
+    "@typescript-eslint/eslint-plugin": "^3.5.0",
+    "@typescript-eslint/parser": "^3.5.0",
+    "aws-cdk": "1.52.0",
+    "eslint": "^7.4.0",
+    "eslint-import-resolver-node": "^0.3.4",
+    "eslint-import-resolver-typescript": "^2.0.0",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-license-header": "^0.2.0",
+    "jest": "^26.1.0",
+    "pkglint": "0.15.0",
+    "ts-jest": "^26.1.3"
+  },
+  "dependencies": {
+    "@aws-cdk/aws-docdb": "1.52.0",
+    "@aws-cdk/aws-ec2": "1.52.0",
+    "@aws-cdk/aws-efs": "1.52.0",
+    "@aws-cdk/aws-iam": "1.52.0",
+    "@aws-cdk/aws-logs": "1.52.0",
+    "@aws-cdk/aws-s3": "1.52.0",
+    "@aws-cdk/aws-s3-assets": "1.52.0",
+    "@aws-cdk/core": "1.52.0",
+    "aws-rfdk": "0.15.0",
+    "aws-sdk": "^2.709.0"
+  },
+  "peerDependencies": {
+    "@aws-cdk/aws-docdb": "1.52.0",
+    "@aws-cdk/aws-ec2": "1.52.0",
+    "@aws-cdk/aws-efs": "1.52.0",
+    "@aws-cdk/aws-iam": "1.52.0",
+    "@aws-cdk/aws-logs": "1.52.0",
+    "@aws-cdk/aws-s3": "1.52.0",
+    "@aws-cdk/aws-s3-assets": "1.52.0",
+    "@aws-cdk/core": "1.52.0",
+    "aws-rfdk": "0.15.0",
+    "aws-sdk": "^2.709.0"
+  },
+  "engines": {
+    "node": ">= 10.13.0 <13 || >=13.7.0"
+  }
+}

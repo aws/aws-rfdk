@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+# Run a given test against the packages found in the RFDK distribution.
+#
+# - Set up verdaccio and publish all NPM tarballs found in the given directory to it.
+# - Install the CLI from that Verdaccio fixture somewhere and put it
+#   on the PATH.
+# - Prepare the various package managers to take their packages from dist/ as well.
+#
+# Parameter: DIST_ROOT, if different than the current directory.
+set -euo pipefail
+scriptdir=$(cd $(dirname $0) && pwd)
+source $scriptdir/run-against-dist.bash
+
+# If DIST_ROOT is not given, go up two levels out of examples/kitchen-sink and check if the 
+# build.json is there. Then we know we're in the root of the project
+if [[ "${DIST_ROOT:-}" == "" && -f $scriptdir/../../build.json ]]; then
+  DIST_ROOT=$scriptdir/../..
+fi
+
+dist_root=$(cd ${DIST_ROOT:-.} && pwd)
+
+if [[ ! -f $dist_root/build.json ]]; then
+  echo "$dist_root does not seem to be a built RFDK distribution (change directory or use DIST_ROOT)" >&2
+  exit 1
+fi
+
+tempdir=$(mktempdir)
+
+serve_npm_packages $tempdir
+
+# Install the CLI and put it on the path
+(cd $npmws && npm install aws-cdk)
+export PATH=$npmws/node_modules/.bin:$PATH
+
+# Install additional tool wrappers before running the target script
+export PATH="$scriptdir/run-wrappers/dist:$PATH"
+hash -r
+
+# Run target script
+# NOTE: no 'exec' because we need to shutdown verdaccio only AFTER we've
+# run the subscript.
+"$@"

@@ -1,0 +1,38 @@
+{
+  "name": "lambda-layers",
+  "version": "0.15.0",
+  "private": false,
+  "description": "Package containing scripts for building and publishing Lambda Layers",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Amazon Web Services",
+    "url": "https://aws.amazon.com",
+    "organization": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aws/aws-rfdk.git",
+    "directory": "lambda_layers"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build+test": "yarn run build && echo 'no tests in package'",
+    "clean": "tsc --build --clean && rm -rf node_modules",
+    "test": "echo 'no tests in package'",
+    "watch": "tsc -w"
+  },
+  "engines": {
+    "node": ">= 10.13.0 <13 || >=13.7.0"
+  },
+  "stability": "experimental",
+  "maturity": "experimental",
+  "devDependencies": {
+    "@types/node": "^14.0.12",
+    "typescript": "~3.9.6"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.693.0"
+  }
+}

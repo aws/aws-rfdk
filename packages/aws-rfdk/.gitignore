@@ -1,0 +1,41 @@
+*.d.ts
+*.js
+
+# Ignore package tarball
+aws-rfdk-core-*.tgz
+
+# Used by nyc
+.nyc_output
+coverage
+.nycrc
+nyc.config.js
+
+# Used by openssl
+.rnd
+
+# Exclude package artifacts
+dist
+*.tgz
+.LAST_PACKAGE
+
+# Exclude cdk-build artifacts
+.LAST_BUILD
+
+# Exclude jsii artifacts
+.jsii
+tsconfig.json
+
+# Include eslint config
+!.eslintrc.js
+
+# Include jest config
+!jest.config.js
+
+#Include License Header
+!license-header.js
+
+# Required by pkglint
+junit.xml
+
+# Include Mongo support scripts
+!lib/core/scripts/mongodb/**/*.js

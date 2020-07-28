@@ -1,0 +1,9 @@
+*.js
+*.js.map
+*.d.ts
+dist
+
+*.snk
+!license-header.js
+!.eslintrc.js
+junit.xml

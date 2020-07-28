@@ -1,0 +1,22 @@
+version: 0.2
+
+# This buildspec is intended to be run by CodePipeline builds.
+
+phases:
+  install:
+    commands:
+      # Install yarn if it wasn't already present in the image
+      - yarn --version || npm -g install yarn
+      - yarn install --frozen-lockfile
+  build:
+    commands:
+      - /bin/bash ./build.sh
+      - chmod a+x examples/kitchen-sink/end-to-end-test.sh
+      - chmod a+x examples/kitchen-sink/scripts/*
+  post_build:
+    commands:
+      - "[ -f .BUILD_COMPLETED ] && /bin/bash ./pack.sh"
+artifacts:
+  files:
+    - "**/*"
+  base-directory: dist

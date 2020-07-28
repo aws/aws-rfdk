@@ -1,0 +1,32 @@
+#!/bin/bash
+# builds the current module and all of its **dependencies** (in topological order).
+# $ yarn install
+# $ cd packages/@aws-rfdk/deadline
+# $ ../../../scripts/buildup
+
+set -euo pipefail
+scriptdir=$(cd $(dirname $0) && pwd)
+
+echo "************************************************************"
+echo " buildup usage:"
+echo " - execute 'buildup --resume' to resume after failure"
+echo " - execute 'buildup' to restart the build from the start"
+echo ""
+echo " for advanced usage, see ${scriptdir}/foreach.sh"
+echo "************************************************************"
+
+if [ "$#" -eq 0 ]; then
+  ${scriptdir}/foreach.sh --reset
+else
+  if [ "$1" != "--resume" ]; then
+    echo "Unknown option: $1"
+    exit 1
+  fi
+fi
+
+${scriptdir}/foreach.sh --up yarn build+test
+${scriptdir}/foreach.sh --reset
+
+echo "************************************************************"
+echo "buildup done"
+echo "************************************************************"

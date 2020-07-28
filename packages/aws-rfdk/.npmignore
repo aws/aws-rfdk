@@ -1,0 +1,45 @@
+################################################
+# if .npmignore exists, NPM ignores .gitignore #
+################################################
+
+# Exclude typescript source
+*.ts
+
+# Include typescript declarations
+!*.d.ts
+
+# Include js files
+!*.js
+
+# Include jsii
+!.jsii
+
+# Exclude ts build artifacts
+*.tsbuildinfo
+tsconfig.json
+
+# Exclude cdk build artifacts
+.LAST_BUILD
+
+# Exclude eslint config
+.eslintrc.js
+
+# Exclude jest config
+jest.config.js
+
+# Exclude nyc
+.nyc_output
+coverage
+.nycrc
+nyc.config.js
+
+# Exclude package artifacts
+dist
+*.tgz
+.LAST_PACKAGE
+
+# exclude cdk artifacts
+**/cdk.out
+
+# Required by pkglint
+junit.xml

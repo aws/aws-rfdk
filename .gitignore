@@ -1,0 +1,14 @@
+# TypeScript incremental build states
+*.tsbuildinfo
+# Root tsconfig.json (this gets auto-generated)
+/tsconfig.json
+# Dist folder used during build
+/dist
+
+node_modules/
+.tools/
+.BUILD_COMPLETED
+yarn-error.log
+
+#Defines license that must be present
+!license-header.js

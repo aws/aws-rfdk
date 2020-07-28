@@ -1,61 +1,130 @@
-# Contributing Guidelines
+# Adding packages to the project
 
-Thank you for your interest in contributing to our project. Whether it's a bug report, new feature, correction, or additional
-documentation, we greatly value feedback and contributions from our community.
+We have a template package located in the folder [pkg-template/](pkg-template/).
 
-Please read through this document before submitting any issues or pull requests to ensure we have all the necessary
-information to effectively respond to your bug report or contribution.
+1.  Copy the template package from the root to the desired location in the
+    packages directory.
+    -  Construct packages should be put inside the `packages/@aws-rfdk` directory.
+    -  Dev/build tool packages belong in `tools/`
+1.  Follow the directions from the copied [pkg-template/README.md](pkg-template/README.md)
+1.  Run `yarn install` from the root directory to update `yarn.lock`
+    - if you get similar warnings as below, please go to the 
+    [Dependencies](#Dependencies) section
+    ```
+    warning " > (yourPackage)" has unmet peer dependency "(somePackage)"
+    ```
 
+1.  The new package directory and the updated `yarn.lock` should be added in the
+    same commit
 
-## Reporting Bugs/Feature Requests
+# Build the packages
 
-We welcome you to use the GitHub issue tracker to report bugs or suggest features.
+The [`buildspec.yaml`](buildspec.yaml) is used by CodePipeline to build the
+packages. To build the packages locally, simply run the same commands listed in
+`buildspec.yaml`.
 
-When filing an issue, please check existing open, or recently closed, issues to make sure somebody else hasn't already
-reported the issue. Please try to include as much information as you can. Details like these are incredibly useful:
+It’s recommended you build the packages within a docker container. You can use the 
+[jsii/superchain docker container](https://hub.docker.com/r/jsii/superchain).
+The `-v` flag below is to bind mount a volume
 
-* A reproducible test case or series of steps
-* The version of our code being used
-* Any modifications you've made relevant to the bug
-* Anything unusual about your environment or deployment
+```
+docker pull jsii/superchain
+docker run -d -it -v <local/path/to/mount/folder>:</docker/path/to/mount> <docker name>
+docker exec -it <container name> /bin/bash
+>>> bash-4.2#
+cd /docker/path/to/mount
+```
+Now that you're in the docker container, you can run the build commands.
 
+# Dependencies
 
-## Contributing via Pull Requests
-Contributions via pull requests are much appreciated. Before sending us a pull request, please ensure that:
+## Package versioning
 
-1. You are working against the latest source on the *master* branch.
-2. You check existing open, and recently merged, pull requests to make sure someone else hasn't addressed the problem already.
-3. You open an issue to discuss any significant work - we would hate for your time to be wasted.
+Current best practices is to always used a fixed version for dependencies — `"@aws-rfdk/core": "1.0.0"`.
 
-To send us a pull request, please:
+Unfortunately allowing any kind of nonfixed type) dependencies causes build
+errors. CDK is using fixed dependencies for all their packages so we have no
+reasonable way to allow nonfixed dependencies as well.
 
-1. Fork the repository.
-2. Modify the source; please focus on the specific change you are contributing. If you also reformat all the code, it will be hard for us to focus on your change.
-3. Ensure local tests pass.
-4. Commit to your fork using clear commit messages.
-5. Send us a pull request, answering any default questions in the pull request interface.
-6. Pay attention to any automated CI failures reported in the pull request, and stay involved in the conversation.
+If you want to learn more about dependencies you can read the
+[yarn docs](https://yarnpkg.com/lang/en/docs/dependency-types/).
 
-GitHub provides additional document on [forking a repository](https://help.github.com/articles/fork-a-repo/) and
-[creating a pull request](https://help.github.com/articles/creating-a-pull-request/).
+## A package's `package.json`
 
+You will need to put the package's dependencies in the `dependencies` and
+`peerDependencies`. For example, if you wanted to use [aws-sqs](https://github.com/aws/aws-cdk/blob/v1.18.0/packages/%40aws-cdk/aws-sqs/package.json),
+you would need to have this in **your package's** `package.json`
+```
+# packages/@aws-rfdk/<your package>/package.json
+"dependencies": {
+  "@aws-cdk/aws-sqs": "1.18.0"
+},
+"peerDependencies": {
+  "@aws-cdk/aws-sqs": "1.18.0"
+},
+```
 
-## Finding contributions to work on
-Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any 'help wanted' issues is a great place to start.
+## In the root `package.json`
 
+For each dependency you specified, you will need to include its dependencies in
+the root `package.json`. For example, if you wanted to use [aws-sqs](https://github.com/aws/aws-cdk/blob/v1.18.0/packages/%40aws-cdk/aws-sqs/package.json),
+you would need to have this in your **root** `package.json`
 
-## Code of Conduct
-This project has adopted the [Amazon Open Source Code of Conduct](https://aws.github.io/code-of-conduct).
-For more information see the [Code of Conduct FAQ](https://aws.github.io/code-of-conduct-faq) or contact
-opensource-codeofconduct@amazon.com with any additional questions or comments.
+```
+"devDependencies": {
+    "@aws-cdk/aws-cloudwatch": "1.18.0",
+    "@aws-cdk/aws-iam": "1.18.0",
+    "@aws-cdk/aws-kms": "1.18.0",
+    "@aws-cdk/core": "1.18.0"
+}
+```
 
+### Linking against this repository
 
-## Security issue notifications
-If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
+The script `./link-all.sh` can be used to generate symlinks to all modules in this repository under some `node_module`
+directory. This can be used to develop against this repo as a local dependency.
 
+One can use the `postinstall` script to symlink this repo:
 
-## Licensing
+```json
+{
+  "scripts": {
+    "postinstall": "../AWS-RFDK/link-all.sh"
+  }
+}
+```
 
-See the [LICENSE](LICENSE) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
+This assumes this repo is a sibling of the target repo and will install the CDK as a linked dependency during
+__yarn install__.
 
-We may ask you to sign a [Contributor License Agreement (CLA)](http://en.wikipedia.org/wiki/Contributor_License_Agreement) for larger changes.
+# Bumping the RFDK Version Number
+
+Bumping the version of RFDK is done by creating a bump commit. This process has been scripted. To bump the version,
+check out the commit that will become the parent of the bump commit. The working directory must be clean with no
+uncommitted or staged changes. Run the following command from the root of the repository:
+
+```bash
+./bump.sh
+```
+
+By default, this will bump the minor version of RFDK. You can bump the following other components of the version number:
+
+*   `major`
+*   `minor`
+*   `patch`
+*   `premajor`
+*   `preminor`
+*   `prepatch`
+*   `prerelease`
+
+To do this, run:
+
+```bash
+./bump.sh <COMPONENT>
+```
+
+For example:
+
+```bash
+./bump.sh major
+```

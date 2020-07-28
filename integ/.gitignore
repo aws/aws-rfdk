@@ -1,0 +1,24 @@
+node_modules/
+.tools/
+.BUILD_COMPLETED
+yarn-error.log
+
+# Integ testing tool artifacts
+**/*.d.ts
+**/*.js
+**/*.run
+**/cdk.out/
+**/cdk.context.json
+test-output/
+
+# Include eslint config
+!.eslintrc.js
+
+# Include jest config
+!jest.config.js
+
+# Include license header
+!license-header.js
+
+# Required by pkglint
+junit.xml

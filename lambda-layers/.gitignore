@@ -1,0 +1,7 @@
+*.d.ts
+*.js
+layers/**/*.txt
+layers/**/*.zip
+
+#Include License Header
+!license-header.js
