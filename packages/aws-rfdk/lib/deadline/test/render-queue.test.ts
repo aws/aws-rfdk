@@ -11,6 +11,7 @@ import {
   haveResource,
   haveResourceLike,
   objectLike,
+  ResourcePart,
 } from '@aws-cdk/assert';
 import {
   Certificate,
@@ -77,6 +78,8 @@ describe('RenderQueue', () => {
   let repository: Repository;
   let version: IVersion;
 
+  let renderQueueCommon: RenderQueue;
+
   // GIVEN
   beforeEach(() => {
     app = new App();
@@ -97,7 +100,7 @@ describe('RenderQueue', () => {
     images = {
       remoteConnectionServer: rcsImage,
     };
-    new RenderQueue(stack, 'RenderQueueCommon', {
+    renderQueueCommon = new RenderQueue(stack, 'RenderQueueCommon', {
       images,
       repository,
       version,
@@ -217,6 +220,29 @@ describe('RenderQueue', () => {
         }),
       ],
     }));
+  });
+
+  test('child dependencies added', () => {
+    // GIVEN
+    const host = new Instance(stack, 'Host', {
+      vpc,
+      instanceType: InstanceType.of(
+        InstanceClass.R4,
+        InstanceSize.LARGE,
+      ),
+      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+    });
+
+    // WHEN
+    renderQueueCommon.addChildDependency(host);
+
+    // THEN
+    expectCDK(stack).to(haveResourceLike('AWS::EC2::Instance', {
+      DependsOn: arrayWith(
+        'RenderQueueCommonAlbEc2ServicePatternLBPublicListenerD9F03D67',
+        'RenderQueueCommonRCSTask2A4D5EA5',
+      ),
+    }, ResourcePart.CompleteDefinition));
   });
 
   describe('renderQueueSize.min', () => {
@@ -908,6 +934,13 @@ describe('RenderQueue', () => {
             ],
           },
         }));
+
+        expectCDK(isolatedStack).to(haveResourceLike('AWS::EC2::Instance', {
+          DependsOn: arrayWith(
+            'RenderQueueAlbEc2ServicePatternLBPublicListener1A04056A',
+            'RenderQueueRCSTaskA9AE70D3',
+          ),
+        }, ResourcePart.CompleteDefinition));
       });
 
       test('Linux Instance can connect', () => {
@@ -1079,6 +1112,13 @@ describe('RenderQueue', () => {
             ],
           },
         }));
+
+        expectCDK(isolatedStack).to(haveResourceLike('AWS::EC2::Instance', {
+          DependsOn: arrayWith(
+            'RenderQueueAlbEc2ServicePatternLBPublicListener1A04056A',
+            'RenderQueueRCSTaskA9AE70D3',
+          ),
+        }, ResourcePart.CompleteDefinition));
       });
 
       test('Windows Instance can connect', () => {
@@ -1253,6 +1293,13 @@ describe('RenderQueue', () => {
             ],
           },
         }));
+
+        expectCDK(isolatedStack).to(haveResourceLike('AWS::EC2::Instance', {
+          DependsOn: arrayWith(
+            'RenderQueueAlbEc2ServicePatternLBPublicListener1A04056A',
+            'RenderQueueRCSTaskA9AE70D3',
+          ),
+        }, ResourcePart.CompleteDefinition));
       });
     });
 
