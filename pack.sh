@@ -63,19 +63,15 @@ if [ -z "${commit}" ]; then
   commit="$(git rev-parse --verify HEAD)"
 fi
 
-# TODO, change the name to aws-rfdk
-# currently cannot do that as it will break document generation
 cat > ${distdir}/build.json <<HERE
 {
-  "name": "aws-cdk",
+  "name": "aws-rfdk",
   "version": "${version}",
   "commit": "${commit}"
 }
 HERE
 
-# commenting out so we don't forget to include this
-# copy CHANGELOG.md to dist/ for github releases
-# cp CHANGELOG.md ${distdir}/
+cp CHANGELOG.md ${distdir}/
 
 # for posterity, print all files in dist
 echo "=============================================================================================="
