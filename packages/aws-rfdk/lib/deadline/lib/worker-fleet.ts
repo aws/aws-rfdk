@@ -62,7 +62,7 @@ export interface IWorkerFleet extends IResource, IConnectable, IGrantable {
 /**
  * Properties for the Deadline Worker Fleet.
  */
-export interface WorkerFleetProps {
+export interface WorkerInstanceFleetProps {
   /**
    * VPC to launch the worker fleet in.
    */
@@ -170,7 +170,7 @@ export interface WorkerFleetProps {
 
   /**
    * Properties for setting up the Deadline Worker's LogGroup
-   * @default - LogGroup will be created with all properties' default values and a prefix of "deadline".
+   * @default - LogGroup will be created with all properties' default values and a prefix of "/renderfarm/".
    */
   readonly logGroupProps?: LogGroupFactoryProps;
 
@@ -207,7 +207,7 @@ export interface WorkerFleetProps {
 /**
  *  A new or imported Deadline Worker Fleet.
  */
-abstract class WorkerFleetBase extends Construct implements IWorkerFleet, IMonitorableFleet {
+abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet, IMonitorableFleet {
 
   /**
    * The security groups/rules used to allow network connections to the file system.
@@ -287,7 +287,7 @@ abstract class WorkerFleetBase extends Construct implements IWorkerFleet, IMonit
  * The Following Security Group changes are made by this construct:
  * - TCP access to the Render Queue's Load Balancer
  */
-export class WorkerFleet extends WorkerFleetBase {
+export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
 
   /**
    * The min limit for spot price.
@@ -309,7 +309,7 @@ export class WorkerFleet extends WorkerFleetBase {
   /**
    * Default prefix for a LogGroup if one isn't provided in the props.
    */
-  private static readonly DEFAULT_LOG_GROUP_PREFIX: string = 'deadline';
+  private static readonly DEFAULT_LOG_GROUP_PREFIX: string = '/renderfarm/';
 
   /**
    * Setting the default signal timeout to 15 min. This is the max time, a single instance is expected
@@ -373,7 +373,7 @@ export class WorkerFleet extends WorkerFleetBase {
    */
   public readonly targetScope: Construct;
 
-  constructor(scope: Construct, id: string, props: WorkerFleetProps) {
+  constructor(scope: Construct, id: string, props: WorkerInstanceFleetProps) {
     super(scope, id);
     this.stack = Stack.of(scope);
 
@@ -391,9 +391,9 @@ export class WorkerFleet extends WorkerFleetBase {
       minCapacity: props.minCapacity,
       maxCapacity: props.maxCapacity,
       desiredCapacity: props.desiredCapacity,
-      resourceSignalTimeout: WorkerFleet.RESOURCE_SIGNAL_TIMEOUT,
+      resourceSignalTimeout: WorkerInstanceFleet.RESOURCE_SIGNAL_TIMEOUT,
       healthCheck: HealthCheck.elb({
-        grace: WorkerFleet.DEFAULT_HEALTH_CHECK_INTERVAL,
+        grace: WorkerInstanceFleet.DEFAULT_HEALTH_CHECK_INTERVAL,
       }),
       role: props.role,
       spotPrice: props.spotPrice?.toString(),
@@ -467,7 +467,7 @@ export class WorkerFleet extends WorkerFleetBase {
   }
 
   private configureCloudWatchLogStream(fleetInstance: AutoScalingGroup, id: string, logGroupProps?: LogGroupFactoryProps) {
-    const prefix = logGroupProps?.logGroupPrefix ? logGroupProps.logGroupPrefix : WorkerFleet.DEFAULT_LOG_GROUP_PREFIX;
+    const prefix = logGroupProps?.logGroupPrefix ? logGroupProps.logGroupPrefix : WorkerInstanceFleet.DEFAULT_LOG_GROUP_PREFIX;
     const defaultedLogGroupProps = {
       ...logGroupProps,
       logGroupPrefix: prefix,
@@ -503,7 +503,7 @@ export class WorkerFleet extends WorkerFleetBase {
     });
   }
 
-  private configureWorkerScript(fleetInstance: AutoScalingGroup, props: WorkerFleetProps, healthCheckPort: number) {
+  private configureWorkerScript(fleetInstance: AutoScalingGroup, props: WorkerInstanceFleetProps, healthCheckPort: number) {
     const configureWorkerScriptAsset = ScriptAsset.fromPathConvention(this, 'WorkerConfigurationScript', {
       osType: fleetInstance.osType,
       baseName: 'configureWorker',
@@ -529,7 +529,7 @@ export class WorkerFleet extends WorkerFleetBase {
     });
   }
 
-  private validateProps(props: WorkerFleetProps) {
+  private validateProps(props: WorkerInstanceFleetProps) {
     this.validateSpotPrice(props.spotPrice);
     this.validateArrayGroupsPoolsSyntax(props.groups, /^(?!none$)[a-zA-Z0-9-_]+$/i, 'groups');
     this.validateArrayGroupsPoolsSyntax(props.pools, /^(?!none$)[a-zA-Z0-9-_]+$/i, 'pools');
@@ -537,8 +537,8 @@ export class WorkerFleet extends WorkerFleetBase {
   }
 
   private validateSpotPrice(spotPrice: number | undefined) {
-    if (spotPrice && !(spotPrice >= WorkerFleet.SPOT_PRICE_MIN_LIMIT && spotPrice <= WorkerFleet.SPOT_PRICE_MAX_LIMIT)) {
-      throw new Error(`Invalid value: ${spotPrice} for property 'spotPrice'. Valid values can be any decimal between ${WorkerFleet.SPOT_PRICE_MIN_LIMIT} and ${WorkerFleet.SPOT_PRICE_MAX_LIMIT}.`);
+    if (spotPrice && !(spotPrice >= WorkerInstanceFleet.SPOT_PRICE_MIN_LIMIT && spotPrice <= WorkerInstanceFleet.SPOT_PRICE_MAX_LIMIT)) {
+      throw new Error(`Invalid value: ${spotPrice} for property 'spotPrice'. Valid values can be any decimal between ${WorkerInstanceFleet.SPOT_PRICE_MIN_LIMIT} and ${WorkerInstanceFleet.SPOT_PRICE_MAX_LIMIT}.`);
     }
   }
 
@@ -558,7 +558,7 @@ export class WorkerFleet extends WorkerFleetBase {
     }
   }
 
-  private configureHealthMonitor(props: WorkerFleetProps, healthCheckPort: number) {
+  private configureHealthMonitor(props: WorkerInstanceFleetProps, healthCheckPort: number) {
     if (props.healthMonitor) {
       props.healthMonitor.registerFleet(this, props.healthCheckConfig || {
         port: healthCheckPort,
