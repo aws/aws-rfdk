@@ -65,6 +65,7 @@ export class StorageStruct extends Construct {
 
       deadlineEfs = new FileSystem(this, 'FileSystem', {
         vpc,
+        removalPolicy: RemovalPolicy.DESTROY,
       });
       deadlineMountableEfs = new MountableEfs(this, {
         filesystem: deadlineEfs,
@@ -89,7 +90,10 @@ export class StorageStruct extends Construct {
       logGroupProps: {
         logGroupPrefix: Stack.of(this).stackName + '-' + id,
       },
-      databaseRemovalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: {
+        database: RemovalPolicy.DESTROY,
+        filesystem: RemovalPolicy.DESTROY,
+      },
     });
 
     this.docdb = ( deadlineDatabase || this.repo.node.findChild('DocumentDatabase') as DatabaseCluster );
