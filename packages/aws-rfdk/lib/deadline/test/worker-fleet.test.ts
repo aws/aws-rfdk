@@ -26,7 +26,7 @@ import {
   RenderQueue,
   Repository,
   VersionQuery,
-  WorkerFleet,
+  WorkerInstanceFleet,
 } from '../lib';
 import {
   CONFIG_WORKER_ASSET_LINUX,
@@ -74,7 +74,7 @@ beforeEach(() => {
 
 test('default worker fleet is created correctly', () => {
   // WHEN
-  const fleet = new WorkerFleet(wfstack, 'workerFleet', {
+  const fleet = new WorkerInstanceFleet(wfstack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericWindowsImage({
       'us-east-1': 'ami-any',
@@ -103,7 +103,7 @@ test('default worker fleet is created correctly', () => {
   }));
   expectCDK(wfstack).to(haveResource('Custom::LogRetention', {
     RetentionInDays: 3,
-    LogGroupName: 'deadlineworkerFleet',
+    LogGroupName: '/renderfarm/workerFleet',
   }));
   expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
   expect(fleet.node.metadata[0].data).toContain('being created without a health monitor attached to it. This means that the fleet will not automatically scale-in to 0 if the workers are unhealthy');
@@ -111,7 +111,7 @@ test('default worker fleet is created correctly', () => {
 
 test('security group is added to fleet after its creation', () => {
   // WHEN
-  const fleet = new WorkerFleet(stack, 'workerFleet', {
+  const fleet = new WorkerInstanceFleet(stack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericWindowsImage({
       'us-east-1': 'ami-any',
@@ -139,7 +139,7 @@ test('security group is added to fleet after its creation', () => {
 
 test('default worker fleet is created correctly with linux image', () => {
   // WHEN
-  new WorkerFleet(stack, 'workerFleet', {
+  new WorkerInstanceFleet(stack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericLinuxImage({
       'us-east-1': '123',
@@ -154,7 +154,7 @@ test('default worker fleet is created correctly with linux image', () => {
 
 test('default worker fleet is created correctly with spot config', () => {
   // WHEN
-  new WorkerFleet(wfstack, 'workerFleet', {
+  new WorkerInstanceFleet(wfstack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericLinuxImage({
       'us-east-1': '123',
@@ -173,32 +173,32 @@ test('default worker fleet is created correctly with spot config', () => {
 test('default worker fleet is not created with incorrect spot config', () => {
   // WHEN
   expect(() => {
-    new WorkerFleet(wfstack, 'workerFleet', {
+    new WorkerInstanceFleet(wfstack, 'workerFleet', {
       vpc,
       workerMachineImage: new GenericLinuxImage({
         'us-east-1': '123',
       }),
       renderQueue,
-      spotPrice: WorkerFleet.SPOT_PRICE_MAX_LIMIT + 1,
+      spotPrice: WorkerInstanceFleet.SPOT_PRICE_MAX_LIMIT + 1,
     });
   }).toThrowError(/Invalid value: 256 for property 'spotPrice'. Valid values can be any decimal between 0.001 and 255./);
 
   // WHEN
   expect(() => {
-    new WorkerFleet(wfstack, 'workerFleet2', {
+    new WorkerInstanceFleet(wfstack, 'workerFleet2', {
       vpc,
       workerMachineImage: new GenericLinuxImage({
         'us-east-1': '123',
       }),
       renderQueue,
-      spotPrice: WorkerFleet.SPOT_PRICE_MIN_LIMIT / 2,
+      spotPrice: WorkerInstanceFleet.SPOT_PRICE_MIN_LIMIT / 2,
     });
   }).toThrowError(/Invalid value: 0.0005 for property 'spotPrice'. Valid values can be any decimal between 0.001 and 255./);
 });
 
 test('default worker fleet is created correctly custom Instance type', () => {
   // WHEN
-  new WorkerFleet(stack, 'workerFleet', {
+  new WorkerInstanceFleet(stack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericLinuxImage({
       'us-east-1': '123',
@@ -215,7 +215,7 @@ test('default worker fleet is created correctly custom Instance type', () => {
 
 test('default worker fleet is created correctly with custom LogGroup prefix', () => {
   // WHEN
-  new WorkerFleet(stack, 'workerFleet', {
+  new WorkerInstanceFleet(stack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericLinuxImage({
       'us-east-1': '123',
@@ -236,7 +236,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
   });
 
   // WHEN
-  const workers = new WorkerFleet(stack, 'workerFleet', {
+  const workers = new WorkerInstanceFleet(stack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericLinuxImage({
       'us-east-1': '123',
@@ -647,7 +647,7 @@ test('default worker fleet is created correctly with groups, pools and region', 
   });
 
   // WHEN
-  const workers = new WorkerFleet(stack, 'workerFleet', {
+  const workers = new WorkerInstanceFleet(stack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericLinuxImage({
       'us-east-1': '123',
@@ -1047,7 +1047,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
 
   // group name as 'none'
   expect(() => {
-    new WorkerFleet(stack, 'workerFleet', {
+    new WorkerInstanceFleet(stack, 'workerFleet', {
       vpc,
       workerMachineImage: new GenericLinuxImage({
         'us-east-1': '123',
@@ -1059,7 +1059,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
 
   // group name with whitespace
   expect(() => {
-    new WorkerFleet(stack, 'workerFleet1', {
+    new WorkerInstanceFleet(stack, 'workerFleet1', {
       vpc,
       workerMachineImage: new GenericLinuxImage({
         'us-east-1': '123',
@@ -1071,7 +1071,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
 
   // pool name with whitespace
   expect(() => {
-    new WorkerFleet(stack, 'workerFleet2', {
+    new WorkerInstanceFleet(stack, 'workerFleet2', {
       vpc,
       workerMachineImage: new GenericLinuxImage({
         'us-east-1': '123',
@@ -1083,7 +1083,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
 
   // pool name as 'none'
   expect(() => {
-    new WorkerFleet(stack, 'workerFleet3', {
+    new WorkerInstanceFleet(stack, 'workerFleet3', {
       vpc,
       workerMachineImage: new GenericLinuxImage({
         'us-east-1': '123',
@@ -1095,7 +1095,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
 
   // region as 'none'
   expect(() => {
-    new WorkerFleet(stack, 'workerFleet4', {
+    new WorkerInstanceFleet(stack, 'workerFleet4', {
       vpc,
       workerMachineImage: new GenericLinuxImage({
         'us-east-1': '123',
@@ -1107,7 +1107,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
 
   // region as 'all'
   expect(() => {
-    new WorkerFleet(stack, 'workerFleet5', {
+    new WorkerInstanceFleet(stack, 'workerFleet5', {
       vpc,
       workerMachineImage: new GenericLinuxImage({
         'us-east-1': '123',
@@ -1119,7 +1119,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
 
   // region as 'unrecognized'
   expect(() => {
-    new WorkerFleet(stack, 'workerFleet6', {
+    new WorkerInstanceFleet(stack, 'workerFleet6', {
       vpc,
       workerMachineImage: new GenericLinuxImage({
         'us-east-1': '123',
@@ -1131,7 +1131,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
 
   // region with invalid characters
   expect(() => {
-    new WorkerFleet(stack, 'workerFleet7', {
+    new WorkerInstanceFleet(stack, 'workerFleet7', {
       vpc,
       workerMachineImage: new GenericLinuxImage({
         'us-east-1': '123',
@@ -1143,7 +1143,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
 
   // region with reserved name as substring
   expect(() => {
-    new WorkerFleet(stack, 'workerFleet8', {
+    new WorkerInstanceFleet(stack, 'workerFleet8', {
       vpc,
       workerMachineImage: new GenericLinuxImage({
         'us-east-1': '123',
@@ -1155,7 +1155,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
 
   // region with case-insensitive name
   expect(() => {
-    new WorkerFleet(stack, 'workerFleet9', {
+    new WorkerInstanceFleet(stack, 'workerFleet9', {
       vpc,
       workerMachineImage: new GenericLinuxImage({
         'us-east-1': '123',
@@ -1173,7 +1173,7 @@ test('worker fleet is created correctly with the specified encrypted EBS block d
 
   // WHEN
   const gibibytes = 123;
-  new WorkerFleet(stack, 'workerFleet', {
+  new WorkerInstanceFleet(stack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericLinuxImage({
       'us-east-1': '123',
@@ -1201,7 +1201,7 @@ test('worker fleet creation fails when the specified EBS block device size must 
   });
 
   expect(() => {
-    new WorkerFleet(stack, 'workerFleet', {
+    new WorkerInstanceFleet(stack, 'workerFleet', {
       vpc,
       workerMachineImage: new GenericLinuxImage({
         'us-east-1': '123',

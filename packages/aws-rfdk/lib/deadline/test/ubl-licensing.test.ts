@@ -42,7 +42,7 @@ import {
   UBLLicensing,
   UBLLicensingImages,
   VersionQuery,
-  WorkerFleet,
+  WorkerInstanceFleet,
 } from '../lib';
 
 let stack: Stack;
@@ -98,7 +98,7 @@ beforeEach(() => {
     licenseForwarder: ContainerImage.fromDockerImageAsset(dockerContainer),
   };
 
-  workerFleet = new WorkerFleet(stack, 'workerFleet', {
+  workerFleet = new WorkerInstanceFleet(stack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericWindowsImage({
       'us-east-1': 'ami-any',
