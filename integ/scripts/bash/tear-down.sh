@@ -19,10 +19,6 @@ if [ -z ${INTEG_STACK_TAG+x} ]; then
     exit 1
 fi
 
-if [ -n ${DEADLINE_REPOSITORY_INSTALLER_PATH+x} ]; then
-    export DEADLINE_REPOSITORY_INSTALLER_PATH="${root}/${DEADLINE_REPOSITORY_INSTALLER_PATH}"
-fi
-
 for component in **/cdk.json; do
     component_root="$(dirname "$component")"
     # Use a pattern match to exclude the infrastructure app from the results

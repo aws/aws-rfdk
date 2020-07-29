@@ -23,10 +23,6 @@ if [ -z ${INTEG_STACK_TAG+x} ]; then
     export INTEG_STACK_TAG="$(date +%s%N)"
 fi
 
-if [ -n ${DEADLINE_REPOSITORY_INSTALLER_PATH+x} ]; then
-    export DEADLINE_REPOSITORY_INSTALLER_PATH="${root}/${DEADLINE_REPOSITORY_INSTALLER_PATH}"
-fi
-
 # Set location of output file
 mkdir -p "test-output"
 export OUTPUT_FILE="${root}/test-output/output-${INTEG_STACK_TAG}.txt"
