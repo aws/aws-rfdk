@@ -38,9 +38,9 @@ import {
   IWorkerFleet,
   RenderQueue,
   Repository,
-  UBLLicense,
-  UBLLicensing,
-  UBLLicensingImages,
+  UsageBasedLicense,
+  UsageBasedLicensing,
+  UsageBasedLicensingImages,
   VersionQuery,
   WorkerInstanceFleet,
 } from '../lib';
@@ -54,7 +54,7 @@ let certSecret: ISecret;
 let workerFleet: IWorkerFleet;
 let dockerContainer: DockerImageAsset;
 let deadlineVersion: IVersion;
-let images: UBLLicensingImages;
+let images: UsageBasedLicensingImages;
 
 beforeEach(() => {
   stack = new Stack(undefined, undefined, {
@@ -112,12 +112,12 @@ beforeEach(() => {
 
 test('default ECS stack for License Forwarder is created correctly', () => {
   // WHEN
-  new UBLLicensing(stack, 'licenseForwarder', {
+  new UsageBasedLicensing(stack, 'licenseForwarder', {
     vpc,
     images,
     certificateSecret: certSecret,
     memoryLimitMiB: 3 * 1024,
-    licenses: [UBLLicense.forVray()],
+    licenses: [UsageBasedLicense.forVray()],
     renderQueue,
   });
 
@@ -183,12 +183,12 @@ test('default ECS stack for License Forwarder is created correctly', () => {
 
 test('License Forwarder capacity is set correctly', () => {
   // WHEN
-  new UBLLicensing(stack, 'licenseForwarder', {
+  new UsageBasedLicensing(stack, 'licenseForwarder', {
     vpc,
     images,
     certificateSecret: certSecret,
     memoryLimitMiB: 3 * 1024,
-    licenses: [UBLLicense.forVray()],
+    licenses: [UsageBasedLicense.forVray()],
     desiredCount: 2,
     renderQueue,
   });
@@ -202,12 +202,12 @@ test('License Forwarder capacity is set correctly', () => {
 
 test('License Forwarder subnet selection', () => {
   // WHEN
-  new UBLLicensing(stack, 'licenseForwarder', {
+  new UsageBasedLicensing(stack, 'licenseForwarder', {
     vpc,
     images,
     certificateSecret: certSecret,
     memoryLimitMiB: 3 * 1024,
-    licenses: [UBLLicense.forVray()],
+    licenses: [UsageBasedLicense.forVray()],
     vpcSubnets: { subnetType: SubnetType.PUBLIC },
     renderQueue,
   });
@@ -227,7 +227,7 @@ test('License Forwarder subnet selection', () => {
 
 test('test license limits', () => {
   // WHEN
-  new UBLLicensing(stack, 'licenseForwarder', {
+  new UsageBasedLicensing(stack, 'licenseForwarder', {
     vpc,
     images,
     memoryLimitMiB: 2 * 1024,
@@ -236,8 +236,8 @@ test('test license limits', () => {
     logGroupProps: {logGroupPrefix: 'licenseForwarderTest', bucketName: 'logS3Bucket'},
     renderQueue,
     licenses: [
-      UBLLicense.forMaya(10),
-      UBLLicense.forVray(10),
+      UsageBasedLicense.forMaya(10),
+      UsageBasedLicense.forVray(10),
     ],
   });
 
@@ -266,25 +266,25 @@ test('test license limits', () => {
 });
 
 test.each([
-  [UBLLicense.for3dsMax(10), [27002]],
-  [UBLLicense.forArnold(10), [5056, 7056]],
-  [UBLLicense.forCinema4D(10), [5057, 7057]],
-  [UBLLicense.forClarisse(10), [40500]],
-  [UBLLicense.forHoudini(10), [1715]],
-  [UBLLicense.forKatana(10), [4101, 6101]],
-  [UBLLicense.forKeyShot(10), [27003, 2703]],
-  [UBLLicense.forKrakatoa(10), [27000, 2700]],
-  [UBLLicense.forMantra(10), [1716]],
-  [UBLLicense.forMaxwell(10), [5055, 7055]],
-  [UBLLicense.forMaya(10), [27002, 2702]],
-  [UBLLicense.forNuke(10), [4101, 6101]],
-  [UBLLicense.forRealFlow(10), [5055, 7055]],
-  [UBLLicense.forRedShift(10), [5054, 7054]],
-  [UBLLicense.forVray(10), [30306]],
-  [UBLLicense.forYeti(10), [5053, 7053]],
-])('Test open port for license type', ( license: UBLLicense, ports: number[]) => {
+  [UsageBasedLicense.for3dsMax(10), [27002]],
+  [UsageBasedLicense.forArnold(10), [5056, 7056]],
+  [UsageBasedLicense.forCinema4D(10), [5057, 7057]],
+  [UsageBasedLicense.forClarisse(10), [40500]],
+  [UsageBasedLicense.forHoudini(10), [1715]],
+  [UsageBasedLicense.forKatana(10), [4101, 6101]],
+  [UsageBasedLicense.forKeyShot(10), [27003, 2703]],
+  [UsageBasedLicense.forKrakatoa(10), [27000, 2700]],
+  [UsageBasedLicense.forMantra(10), [1716]],
+  [UsageBasedLicense.forMaxwell(10), [5055, 7055]],
+  [UsageBasedLicense.forMaya(10), [27002, 2702]],
+  [UsageBasedLicense.forNuke(10), [4101, 6101]],
+  [UsageBasedLicense.forRealFlow(10), [5055, 7055]],
+  [UsageBasedLicense.forRedShift(10), [5054, 7054]],
+  [UsageBasedLicense.forVray(10), [30306]],
+  [UsageBasedLicense.forYeti(10), [5053, 7053]],
+])('Test open port for license type', ( license: UsageBasedLicense, ports: number[]) => {
   // WHEN
-  const licenseForwarder = new UBLLicensing(stack, 'licenseForwarder', {
+  const licenseForwarder = new UsageBasedLicensing(stack, 'licenseForwarder', {
     vpc,
     certificateSecret: certSecret,
     instanceType: InstanceType.of(InstanceClass.C5, InstanceSize.LARGE),
@@ -309,7 +309,7 @@ test.each([
 
 // Without any licenses
 expect(() => {
-  new UBLLicensing(stack, 'licenseForwarder', {
+  new UsageBasedLicensing(stack, 'licenseForwarder', {
     vpc,
     images,
     memoryLimitMiB: 2 * 1024,

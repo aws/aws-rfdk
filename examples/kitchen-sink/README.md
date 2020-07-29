@@ -27,7 +27,7 @@ constructor properties argument.
 ### Staging Deadline
 
 Certain Deadline RFDK constructs, such as the `RenderQueue` and the
-`UBLLicensing` constructs, require a Deadline installer and Docker image recipes
+`UsageBasedLicensing` constructs, require a Deadline installer and Docker image recipes
 to be staged into a local directory on the deployment machine.
 
 RFDK includes a `stage-deadline` command that can be used to automate this. The
