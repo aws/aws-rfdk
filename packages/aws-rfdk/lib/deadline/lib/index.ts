@@ -4,7 +4,7 @@
  */
 
 export * from './database-connection';
-export * from './ubl-licensing';
+export * from './usage-based-licensing';
 export * from './host-ref';
 export * from './repository';
 export * from './worker-fleet';

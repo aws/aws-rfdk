@@ -11,7 +11,7 @@ import {
   IVersion,
   RenderQueueImages,
   Stage,
-  UBLLicensingImages,
+  UsageBasedLicensingImages,
 } from '.';
 
 /**
@@ -45,7 +45,7 @@ export interface ThinkboxDockerRecipesProps {
  * This provides container images as required by RFDK's Deadline constructs such as
  *
  * * {@link @aws-rfdk/deadline#RenderQueue}
- * * {@link @aws-rfdk/deadline#UBLLicensing}
+ * * {@link @aws-rfdk/deadline#UsageBasedLicensing}
  *
  * @example Construct a RenderQueue
  *
@@ -92,9 +92,9 @@ export class ThinkboxDockerRecipes extends Construct {
   public readonly renderQueueImages: RenderQueueImages;
 
   /**
-   * Docker images staged locally for use with the {@link UBLLicensing} construct.
+   * Docker images staged locally for use with the {@link UsageBasedLicensing} construct.
    */
-  public readonly ublLicensingImages: UBLLicensingImages;
+  public readonly ublImages: UsageBasedLicensingImages;
 
   /**
    * The version of Deadline in the stage directory.
@@ -128,7 +128,7 @@ export class ThinkboxDockerRecipes extends Construct {
       remoteConnectionServer: ContainerImage.fromDockerImageAsset(this.remoteConnectionServer),
     };
 
-    this.ublLicensingImages = {
+    this.ublImages = {
       licenseForwarder: ContainerImage.fromDockerImageAsset(this.licenseForwarder),
     };
   }

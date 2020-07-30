@@ -43,9 +43,11 @@ import {IRenderQueue} from './render-queue';
 import {IWorkerFleet} from './worker-fleet';
 
 /**
- * UBL License class
+ * Instances of this class represent a usage-based license for a particular product.
+ * It encapsulates all of the information specific to a product that the UsageBasedLicensing
+ * construct requires to interoperate with that product.
  */
-export class UBLLicense {
+export class UsageBasedLicense {
 
   /**
    * Constant used to signify unlimited overage.
@@ -53,25 +55,31 @@ export class UBLLicense {
   public static readonly UNLIMITED: number = 2147483647;
 
   /**
-   * Method for 3dsMax license limit
+   * Method for 3dsMax license limit.
+   *
+   * @remark 3ds-Max usage-based licenses are not available with the UsageBasedLicensing
+   * construct that deploys Deadline 10.1.9.
    *
    * @param limit - The maximum number of rendering tasks that can have this UBL license checked out at the same time.
    *
    * @default - limit will be set to unlimited
    */
-  public static for3dsMax(limit?: number): UBLLicense {
-    return new UBLLicense('max', [Port.tcp(27002)], limit);
+  public static for3dsMax(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('max', [Port.tcp(27002)], limit);
   }
 
   /**
    * Method for Arnold license limit
    *
+   * @remark 3ds-Max usage-based licenses are not available with the UsageBasedLicensing
+   * construct that deploys Deadline 10.1.9.
+   *
    * @param limit - The maximum number of rendering tasks that can have this UBL license checked out at the same time.
    *
    * @default - limit will be set to unlimited
    */
-  public static forArnold(limit?: number): UBLLicense {
-    return new UBLLicense('arnold', [Port.tcp(5056), Port.tcp(7056)], limit);
+  public static forArnold(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('arnold', [Port.tcp(5056), Port.tcp(7056)], limit);
   }
 
   /**
@@ -81,8 +89,8 @@ export class UBLLicense {
    *
    * @default - limit will be set to unlimited
    */
-  public static forCinema4D(limit?: number): UBLLicense {
-    return new UBLLicense('cinema4d', [Port.tcp(5057), Port.tcp(7057)], limit);
+  public static forCinema4D(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('cinema4d', [Port.tcp(5057), Port.tcp(7057)], limit);
   }
 
   /**
@@ -92,8 +100,8 @@ export class UBLLicense {
    *
    * @default - limit will be set to unlimited
    */
-  public static forClarisse(limit?: number): UBLLicense {
-    return new UBLLicense('clarisse', [Port.tcp(40500)], limit);
+  public static forClarisse(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('clarisse', [Port.tcp(40500)], limit);
   }
 
   /**
@@ -103,8 +111,8 @@ export class UBLLicense {
    *
    * @default - limit will be set to unlimited
    */
-  public static forHoudini(limit?: number): UBLLicense {
-    return new UBLLicense('houdini', [Port.tcp(1715)], limit);
+  public static forHoudini(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('houdini', [Port.tcp(1715)], limit);
   }
 
   /**
@@ -114,8 +122,8 @@ export class UBLLicense {
    *
    * @default - limit will be set to unlimited
    */
-  public static forKatana(limit?: number): UBLLicense {
-    return new UBLLicense('katana', [Port.tcp(4101), Port.tcp(6101)], limit);
+  public static forKatana(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('katana', [Port.tcp(4101), Port.tcp(6101)], limit);
   }
 
   /**
@@ -125,8 +133,8 @@ export class UBLLicense {
    *
    * @default - limit will be set to unlimited
    */
-  public static forKeyShot(limit?: number): UBLLicense {
-    return new UBLLicense('keyshot', [Port.tcp(27003), Port.tcp(2703)], limit);
+  public static forKeyShot(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('keyshot', [Port.tcp(27003), Port.tcp(2703)], limit);
   }
 
   /**
@@ -136,8 +144,8 @@ export class UBLLicense {
    *
    * @default - limit will be set to unlimited
    */
-  public static forKrakatoa(limit?: number): UBLLicense {
-    return new UBLLicense('krakatoa', [Port.tcp(27000), Port.tcp(2700)], limit);
+  public static forKrakatoa(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('krakatoa', [Port.tcp(27000), Port.tcp(2700)], limit);
   }
 
   /**
@@ -147,8 +155,8 @@ export class UBLLicense {
    *
    * @default - limit will be set to unlimited
    */
-  public static forMantra(limit?: number): UBLLicense {
-    return new UBLLicense('mantra', [Port.tcp(1716)], limit);
+  public static forMantra(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('mantra', [Port.tcp(1716)], limit);
   }
 
   /**
@@ -158,19 +166,22 @@ export class UBLLicense {
    *
    * @default - limit will be set to unlimited
    */
-  public static forMaxwell(limit?: number): UBLLicense {
-    return new UBLLicense('maxwell', [Port.tcp(5055), Port.tcp(7055)], limit);
+  public static forMaxwell(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('maxwell', [Port.tcp(5055), Port.tcp(7055)], limit);
   }
 
   /**
    * Method for Maya license limit
    *
+   * @remark 3ds-Max usage-based licenses are not available with the UsageBasedLicensing
+   * construct that deploys Deadline 10.1.9.
+   *
    * @param limit - The maximum number of rendering tasks that can have this UBL license checked out at the same time.
    *
    * @default - limit will be set to unlimited
    */
-  public static forMaya(limit?: number): UBLLicense {
-    return new UBLLicense('maya', [Port.tcp(27002), Port.tcp(2702)], limit);
+  public static forMaya(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('maya', [Port.tcp(27002), Port.tcp(2702)], limit);
   }
 
   /**
@@ -180,8 +191,8 @@ export class UBLLicense {
    *
    * @default - limit will be set to unlimited
    */
-  public static forNuke(limit?: number): UBLLicense {
-    return new UBLLicense('nuke', [Port.tcp(4101), Port.tcp(6101)], limit);
+  public static forNuke(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('nuke', [Port.tcp(4101), Port.tcp(6101)], limit);
   }
 
   /**
@@ -191,8 +202,8 @@ export class UBLLicense {
    *
    * @default - limit will be set to unlimited
    */
-  public static forRealFlow(limit?: number): UBLLicense {
-    return new UBLLicense('realflow', [Port.tcp(5055), Port.tcp(7055)], limit);
+  public static forRealFlow(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('realflow', [Port.tcp(5055), Port.tcp(7055)], limit);
   }
 
   /**
@@ -202,8 +213,8 @@ export class UBLLicense {
    *
    * @default - limit will be set to unlimited
    */
-  public static forRedShift(limit?: number): UBLLicense {
-    return new UBLLicense('redshift', [Port.tcp(5054), Port.tcp(7054)], limit);
+  public static forRedShift(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('redshift', [Port.tcp(5054), Port.tcp(7054)], limit);
   }
 
   /**
@@ -213,8 +224,8 @@ export class UBLLicense {
    *
    * @default - limit will be set to unlimited
    */
-  public static forVray(limit?: number): UBLLicense {
-    return new UBLLicense('vray', [Port.tcp(30306)], limit);
+  public static forVray(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('vray', [Port.tcp(30306)], limit);
   }
 
   /**
@@ -224,8 +235,8 @@ export class UBLLicense {
    *
    * @default - limit will be set to unlimited
    */
-  public static forYeti(limit?: number): UBLLicense {
-    return new UBLLicense('yeti', [Port.tcp(5053), Port.tcp(7053)], limit);
+  public static forYeti(limit?: number): UsageBasedLicense {
+    return new UsageBasedLicense('yeti', [Port.tcp(5053), Port.tcp(7053)], limit);
   }
 
   /**
@@ -251,9 +262,9 @@ export class UBLLicense {
 }
 
 /**
- * Set of container images used to serve the {@link UBLLicensing} construct
+ * Set of container images used to serve the {@link UsageBasedLicensing} construct
  */
-export interface UBLLicensingImages {
+export interface UsageBasedLicensingImages {
   /**
    * The container image for the Deadline License Forwarder
    */
@@ -261,9 +272,9 @@ export interface UBLLicensingImages {
 }
 
 /**
- * Properties for the UBLLicensing construct
+ * Properties for the UsageBasedLicensing construct
  */
-export interface UBLLicensingProps {
+export interface UsageBasedLicensingProps {
   /**
    * VPC to launch the License Forwarder In
    */
@@ -291,7 +302,7 @@ export interface UBLLicensingProps {
   /**
    * Docker Image for License Forwarder
    */
-  readonly images: UBLLicensingImages;
+  readonly images: UsageBasedLicensingImages;
 
   /**
    * A secret with with 3rd Party Licensing Certificates.
@@ -312,7 +323,7 @@ export interface UBLLicensingProps {
   /**
    * License limits that will be set in repository configuration
    */
-  readonly licenses: UBLLicense[];
+  readonly licenses: UsageBasedLicense[];
 
   /**
    * The amount (in MiB) of memory to present to the License Forwarder container.
@@ -378,7 +389,7 @@ export interface UBLLicensingProps {
  *   to allow only ingress from the machines that require it
  * - Docker container has permissions to read a secret with 3rd Party Licensing Certificates
  */
-export class UBLLicensing extends Construct implements IGrantable {
+export class UsageBasedLicensing extends Construct implements IGrantable {
   /**
    * The port that the License Forwarder listens on
    */
@@ -406,16 +417,16 @@ export class UBLLicensing extends Construct implements IGrantable {
 
   private readonly service: Ec2Service;
 
-  constructor(scope: Construct, id: string, props: UBLLicensingProps) {
+  constructor(scope: Construct, id: string, props: UsageBasedLicensingProps) {
     super(scope, id);
 
-    const ublLicenses = new Array();
+    const usageBasedLicenses = new Array();
 
     props.licenses.forEach(license => {
-      ublLicenses.push(`${license.licenseName}:${license.limit ? license.limit : UBLLicense.UNLIMITED}`);
+      usageBasedLicenses.push(`${license.licenseName}:${license.limit ? license.limit : UsageBasedLicense.UNLIMITED}`);
     });
 
-    if (ublLicenses.length < 1) {
+    if (usageBasedLicenses.length < 1) {
       throw new Error('Should be specified at least one license with defined limit.');
     }
 
@@ -441,7 +452,7 @@ export class UBLLicensing extends Construct implements IGrantable {
 
     const containerEnv = {
       UBL_CERTIFICATES_URI: '',
-      UBL_LIMITS: ublLicenses.join(';'),
+      UBL_LIMITS: usageBasedLicenses.join(';'),
       ...props.renderQueue.configureClientECS({
         hosts: [this.asg],
         grantee: this,
@@ -449,8 +460,9 @@ export class UBLLicensing extends Construct implements IGrantable {
     };
 
     containerEnv.UBL_CERTIFICATES_URI = props.certificateSecret.secretArn;
+    props.certificateSecret.grantRead(taskDefinition.taskRole);
 
-    const prefix = props.logGroupProps?.logGroupPrefix ? props.logGroupProps.logGroupPrefix : UBLLicensing.DEFAULT_LOG_GROUP_PREFIX;
+    const prefix = props.logGroupProps?.logGroupPrefix ? props.logGroupProps.logGroupPrefix : UsageBasedLicensing.DEFAULT_LOG_GROUP_PREFIX;
     const defaultedLogGroupProps: LogGroupFactoryProps = {
       ...props.logGroupProps,
       logGroupPrefix: prefix,
@@ -497,13 +509,13 @@ export class UBLLicensing extends Construct implements IGrantable {
    * @param workerFleet - worker fleet
    * @param licenses - UBL licenses
    */
-  public grantPortAccess(workerFleet: IWorkerFleet, licenses: UBLLicense[]) {
+  public grantPortAccess(workerFleet: IWorkerFleet, licenses: UsageBasedLicense[]) {
     licenses.forEach(license => {
       license.ports.forEach(port => {
         this.connections.allowFrom(workerFleet, port);
       });
     });
-    this.connections.allowFrom(workerFleet, Port.tcp(UBLLicensing.LF_PORT));
+    this.connections.allowFrom(workerFleet, Port.tcp(UsageBasedLicensing.LF_PORT));
   }
 
   /**
