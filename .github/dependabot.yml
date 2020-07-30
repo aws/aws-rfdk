@@ -13,5 +13,6 @@ updates:
     ignore:
       - dependency-name: "@types/node"
         versions: ">=11.0.0-0"
+      - dependency-name: "@aws-cdk/*"
     commit-message:
       prefix: "chore(deps):"
