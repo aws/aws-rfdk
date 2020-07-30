@@ -1359,14 +1359,7 @@
     "@types/yargs" "^15.0.0"
     chalk "^4.0.0"
 
-"@jsii/spec@^1.5.0":
-  version "1.5.0"
-  resolved "https://registry.yarnpkg.com/@jsii/spec/-/spec-1.5.0.tgz#55a6d7395862c287cff18cf6cf8d166b715d1e49"
-  integrity sha512-gmqCGiAuXd8XFwy2uqqwoA0VBhADbrPuuowK7Qfy44ZIzv2gm0txlSkKA5elwRFdqlYHCAl6GYcimZemm6x/rQ==
-  dependencies:
-    jsonschema "^1.2.6"
-
-"@jsii/spec@^1.9.0":
+"@jsii/spec@^1.5.0", "@jsii/spec@^1.9.0":
   version "1.9.0"
   resolved "https://registry.yarnpkg.com/@jsii/spec/-/spec-1.9.0.tgz#6aad644f106f77aa757b005a744d0d17c24a34a5"
   integrity sha512-UrRjk4F+HPr3MtttgbxwJ9AG2hhZCjxsPOuqGQl+8iJ7C1nVNLOAbxZKKbQKd8vu6B04Gl1I/9yu2iTiF2Zr5w==
