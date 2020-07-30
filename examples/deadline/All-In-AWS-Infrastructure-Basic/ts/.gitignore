@@ -3,9 +3,6 @@
 cdk.out
 cdk.context.json
 
-# Ignore package tarball
-kitchen-sink-*.tgz
-
 # Used by nyc
 .nyc_output
 coverage
