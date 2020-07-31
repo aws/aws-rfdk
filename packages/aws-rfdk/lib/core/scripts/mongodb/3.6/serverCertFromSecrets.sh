@@ -40,12 +40,14 @@ get_secret_string "${CHAIN_ID}"
 printenv RET_VALUE > ./ca.crt
 get_secret_string "${KEY_ID}" 
 printenv RET_VALUE > ./encrypted_key.pem
+
+# Note: We must get the private key passphrase **LAST**. We use the returned
+# environment variable to securely invoke openssl to decrypt the private key.
 get_secret_string "${KEY_PW_ID}"
-export KEY_PW=$(printenv RET_VALUE)
 
 # Decrypt the private key.
-openssl rsa -in ./encrypted_key.pem -passin env:KEY_PW -out ./decrypted_key.pem
-unset KEY_PW
+openssl rsa -in ./encrypted_key.pem -passin env:RET_VALUE -out ./decrypted_key.pem
+unset RET_VALUE
 
 cat key.crt decrypted_key.pem > key.pem
 
