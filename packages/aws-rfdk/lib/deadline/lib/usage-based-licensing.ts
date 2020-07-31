@@ -497,6 +497,12 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
       taskDefinition,
       desiredCount: props.desiredCount,
       placementConstraints: [PlacementConstraint.distinctInstances()],
+      // This is required to right-size our host capacity and not have the ECS service block on updates. We set a memory
+      // reservation, but no memory limit on the container. This allows the container's memory usage to grow unbounded.
+      // We want 1:1 container to container instances to not over-spend, but this comes at the price of down-time during
+      // cloudformation updates.
+      minHealthyPercent: 0,
+      maxHealthyPercent: 100,
     });
 
     this.node.defaultChild = this.service;

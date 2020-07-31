@@ -110,6 +110,26 @@ beforeEach(() => {
   });
 });
 
+test('configures deployment configuration', () => {
+  // WHEN
+  new UsageBasedLicensing(stack, 'licenseForwarder', {
+    vpc,
+    images,
+    certificateSecret: certSecret,
+    memoryLimitMiB: 1024,
+    licenses: [UsageBasedLicense.forVray()],
+    renderQueue,
+  });
+
+  // THEN
+  expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
+    DeploymentConfiguration: {
+      MaximumPercent: 100,
+      MinimumHealthyPercent: 0,
+    },
+  }));
+});
+
 test('default ECS stack for License Forwarder is created correctly', () => {
   // WHEN
   new UsageBasedLicensing(stack, 'licenseForwarder', {
