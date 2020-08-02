@@ -332,6 +332,7 @@ class LoadBalancerManager {
       port: HealthMonitor.LOAD_BALANCER_LISTENING_PORT + this.listenerMap.size, // dummy port for load balancing
       protocol: ApplicationProtocol.HTTP,
       loadBalancer,
+      open: false,
     });
   }
 }
