@@ -24,7 +24,7 @@ function cleanup() {
   exit ${RC}
 }
 
-trap cleanup EXIT
+trap cleanup EXIT ERR SIGQUIT SIGKILL SIGTERM SIGPIPE
 
 SCRIPT_DIR=$(dirname $0)
 source "${SCRIPT_DIR}/secretsFunction.sh"
@@ -39,3 +39,4 @@ cat temp.js | tr -d '\n' > ./adminCredentials.js
 rm -f ./temp.js
 
 mongo --port 27017 --host localhost ./createAdminUser.js --quiet
+rm -f ./adminCredentials.js
