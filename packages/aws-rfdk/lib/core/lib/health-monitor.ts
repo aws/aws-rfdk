@@ -262,7 +262,7 @@ export class HealthMonitor extends HealthMonitorBase {
   /**
    * Default health check listening port
    */
-  public static readonly DEFAULT_HEALTH_CHECK_PORT: number = 63415;
+  public static readonly DEFAULT_HEALTH_CHECK_PORT: number = 17004;
 
   /**
    * Resource Tracker in Deadline currently publish health status every 5 min, hence keeping this same
