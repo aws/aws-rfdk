@@ -15,10 +15,13 @@ const cloudformation = new AWS.CloudFormation();
 const ssm = new AWS.SSM();
 const logs = new AWS.CloudWatchLogs();
 
-const testCases: Array<number> = [1,2];
+const testCases: Array<Array<any>> = [
+  [ 'RFDK-created DB and EFS', 1 ],
+  [ 'User-created DB and EFS', 2 ],
+]
 let bastionId: string;
-let secretARNs: Array<string> = [];
-let logGroupNames: Array<string> = [];
+let secretARNs: Array<any> = [];
+let logGroupNames: Array<any> = [];
 
 beforeAll( () => {
   // Query the TestingStack and await its outputs to use as test inputs
@@ -38,17 +41,17 @@ beforeAll( () => {
             case 'bastionId':
               bastionId = stackOutput[i].OutputValue;
               break;
-            case 'logGroupNameDL1':
-              logGroupNames[1] = stackOutput[i].OutputValue;
-              break;
             case 'secretARNDL1':
               secretARNs[1] = stackOutput[i].OutputValue;
               break;
-            case 'logGroupNameDL2':
-              logGroupNames[2] = stackOutput[i].OutputValue;
+            case 'logGroupNameDL1':
+              logGroupNames[1] = stackOutput[i].OutputValue;
               break;
             case 'secretARNDL2':
               secretARNs[2] = stackOutput[i].OutputValue;
+              break;
+            case 'logGroupNameDL2':
+              logGroupNames[2] = stackOutput[i].OutputValue;
               break;
             default:
               break;
@@ -60,15 +63,17 @@ beforeAll( () => {
   });
 });
 
-describe('DocDB tests', () => {
+describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
+  
+  describe('DocumentDB tests', () => {
 
-  let ssmResponses: Array<any>;
-
-  beforeAll( () => {
-    // Send an SSM command to the Bastion to execute the test script for the DocDB tests, then wait for its result
-    let ssmPromises = Array<any>();
-
-    testCases.forEach( testCase => {
+    test(`DL-${id}-1: Deadline DB is initialized`, async () => {
+      /**********************************************************************************************************
+       * TestID:          DL-1
+       * Description:     Confirm that Deadline database is initialized on render farm
+       * Input:           Output from mongo CLI "listDatabases" call delivered via SSM command
+       * Expected result: Database list returned from bastion contains "deadline10db"
+      **********************************************************************************************************/  
       var params = {
         DocumentName: 'AWS-RunShellScript',
         Comment: 'Execute Test Script DL-read-docdb-response.sh',
@@ -78,40 +83,24 @@ describe('DocDB tests', () => {
             'sudo -i',
             'su - ec2-user >/dev/null',
             'cd ~ec2-user',
-            './testScripts/DL-read-docdb-response.sh \'' + AWS.config.region + '\' \'' + secretARNs[testCase] + '\'',
+            './testScripts/DL-read-docdb-response.sh \'' + AWS.config.region + '\' \'' + secretARNs[id] + '\'',
           ],
         },
       };
-      ssmPromises[testCase] = awaitSsmCommand(params);
-    });
-
-    return Promise.all(ssmPromises).then( values => {
-      ssmResponses = values;
+      return awaitSsmCommand(params).then( response => {
+        var output = response.CommandPlugins![0].Output!
+        var json = JSON.parse(<string> output);
+        expect(json.databases[0].name).toBe('deadline10db');
+      });
     });
   });
 
-  test.each(testCases)('DL-%i-1: Deadline DB is initialized', async (testCase) => {
-    /**********************************************************************************************************
-     * TestID:          DL-1
-     * Description:     Confirm that Deadline database is initialized on render farm
-     * Input:           Output from mongo CLI "listDatabases" call delivered via SSM command
-     * Expected result: Database list returned from bastion contains "deadline10db"
-    **********************************************************************************************************/
-    var output: any = ssmResponses[testCase].CommandPlugins[0].Output;
-    var json = JSON.parse(<string> output);
-    expect(json.databases[0].name).toBe('deadline10db');
-  });
-});
+  describe( 'EFS tests', () => {
+    
+    let responseCode: number;
+    let output: string;
 
-describe( 'EFS tests', () => {
-
-  let ssmResponses: Array<any>;
-
-  beforeAll( () => {
-    // Send an SSM command to the Bastion to execute the test script for the DocDB tests, then wait for its result
-    let ssmPromises = Array<any>();
-
-    testCases.forEach( testCase => {
+    beforeAll( () => {
       var params = {
         DocumentName: 'AWS-RunShellScript',
         Comment: 'Execute Test Script DL-read-repository-settings.sh',
@@ -121,176 +110,181 @@ describe( 'EFS tests', () => {
             'sudo -i',
             'su - ec2-user >/dev/null',
             'cd ~ec2-user',
-            './testScripts/DL-read-repository-settings.sh "' + testCase.toString() + '"',
+            './testScripts/DL-read-repository-settings.sh "' + id.toString() + '"',
           ],
         },
       };
-      ssmPromises[testCase] = awaitSsmCommand(params);
+      return awaitSsmCommand(params).then( response => {
+        responseCode = response.CommandPlugins![0].ResponseCode!;
+        output = response.CommandPlugins![0].Output!;
+      });
     });
 
-    return Promise.all(ssmPromises).then( values => {
-      ssmResponses = values;
+    test(`DL-${id}-2: EFS is initialized`, () => {
+      /**********************************************************************************************************
+       * TestID:          DL-2
+       * Description:     Confirm that EFS is initialized on render farm and contains files
+       * Input:           Response code from command to print contents of repository.ini delivered via SSM command
+       * Expected result: Response code 0, i.e. the script execution was successfuld and repository.ini exists
+      **********************************************************************************************************/
+        expect(responseCode).toEqual(0);
+    });
+
+    test(`DL-${id}-3: repository.ini version matches Deadline installer`, () => {
+      /**********************************************************************************************************
+       * TestID:          DL-3
+       * Description:     Confirm that the Deadline version installed matches the version of the passed-in installer
+       * Input:           Output from command to print contents of repository.ini delivered via SSM command
+       * Expected result: Contents of repository.ini matches a regex string indicating the correct version number
+      **********************************************************************************************************/
+      var regex = new RegExp('\\[DeadlineRepository\\]\nVersion=' + deadlineVersion);
+      expect(output).toEqual(expect.stringMatching(regex));
     });
   });
 
-  test.each(testCases)('DL-%i-2: EFS is initialized', async (testCase) => {
-    /**********************************************************************************************************
-     * TestID:          DL-2
-     * Description:     Confirm that EFS is initialized on render farm and contains files
-     * Input:           Response code from command to print contents of repository.ini delivered via SSM command
-     * Expected result: Response code 0, i.e. the script execution was successfuld and repository.ini exists
-    **********************************************************************************************************/
-    var responseCode = ssmResponses[testCase].CommandPlugins[0].ResponseCode;
-    expect(responseCode).toEqual(0);
-  });
+  describe('CloudWatch LogGroup tests', () => {
 
-  test.each(testCases)('DL-%i-3: repository.ini version matches Deadline installer', async (testCase) => {
-    /**********************************************************************************************************
-     * TestID:          DL-3
-     * Description:     Confirm that the Deadline version installed matches the version of the passed-in installer
-     * Input:           Output from command to print contents of repository.ini delivered via SSM command
-     * Expected result: Contents of repository.ini matches a regex string indicating the correct version number
-    **********************************************************************************************************/
-    var output = ssmResponses[testCase].CommandPlugins[0].Output;
-    var regex = new RegExp('\\[DeadlineRepository\\]\nVersion=' + deadlineVersion);
-    expect(output).toEqual(expect.stringMatching(regex));
-  });
-});
+    let logStreamCount: number;
+    let cloudInitLogName: string;
+    let deadlineLogName: string;
 
-describe('CloudWatch LogGroup tests', () => {
+    beforeAll( () => {
 
-  interface CloudWatchOutput {
-    logStreamCount: number;
-    cloudInitLogName: string;
-    deadlineLogName: string;
-  }
-  let logResponses: Array<CloudWatchOutput> = [];
-
-  beforeAll( () => {
-
-    let logPromises = Array<any>();
-
-    testCases.forEach(testCase => {
-      logPromises[testCase] = new Promise( async (res,rej) => {
-        var params = {
-          logGroupName: logGroupNames[testCase],
-        };
+      var params = {
+        logGroupName: logGroupNames[id],
+      };
+      return new Promise( (res,rej) => {
         logs.describeLogStreams(params, (err, data) => {
           if (err) {
             rej(err);
           }
           else {
-            res(data);
+            var logStreams = data.logStreams!;
+            logStreamCount = logStreams.length;
+            logStreams.forEach( logStream => {
+              var logStreamName = logStream.logStreamName!;
+              if(/cloud-init-output/.test(logStreamName)) {
+                cloudInitLogName = logStreamName;
+              }
+              else if( /deadlineRepositoryInstallationLogs/.test(logStreamName)) {
+                deadlineLogName = logStreamName;
+              }
+            });
           }
+          res();
+        });
+      })
+    });
+
+    test(`DL-${id}-4: CloudWatch LogGroup contains two LogStreams`, () => {
+      /**********************************************************************************************************
+       * TestID:          DL-4
+       * Description:     Confirm that CloudWatch LogGroup has been created with two LogStreams
+       * Input:           Output from cli call to describe LogGroup created during cdk deploy
+       * Expected result: LogGroup contains exactly two LogStreams
+      **********************************************************************************************************/
+      expect(logStreamCount).toEqual(2);
+    });
+
+    describe('cloud-init-output LogStream tests', () => {
+
+      let logEvents: Object;
+
+      beforeAll( () => {
+        return new Promise( (res, rej) => {
+          var params = {
+            logGroupName: logGroupNames[id],
+            logStreamName: cloudInitLogName,
+          };
+          logs.getLogEvents(params, (err,data) => {
+            if (err) {
+              rej(err);
+            }
+            else {
+              logEvents = data.events!;
+            }
+            res();
+          });
         });
       });
+
+      test(`DL-${id}-5: cloud-init-output is initialized`, () => {
+        /**********************************************************************************************************
+         * TestID:          DL-5
+         * Description:     Confirm that cloud-init-output contains log events from cdk initizialization
+         * Input:           Output from sdk call to describe cloud-init-output LogStream created during cdk deploy
+         * Expected result: Event log contains at least one entry where the message property matches a regex string
+         *                  indicating the cloud-init version used
+        **********************************************************************************************************/
+        expect(logEvents).toContainEqual(
+          {
+            ingestionTime: expect.anything(),
+            message: expect.stringMatching( /Cloud-init v. / ),
+            timestamp: expect.anything(),
+          },
+        );
+      });
+    
+      test(`DL-${id}-6: cloud-init-output does not contain INSTALLER_DB_ARGS`, () => {
+        /**********************************************************************************************************
+         * TestID:          DL-6
+         * Description:     Confirm that cloud-init-output does not contain INSTALLER_DB_ARGS; this environment
+         *                  variable contains sensitive info that should not be exposed. 
+         * Input:           Output from sdk call to describe cloud-init-output LogStream created during cdk deploy
+         * Expected result: There is one expected instance of the INSTALLER_DB_ARGS variable so the test will fail
+         *                  if the variable appears outside of the specificed string
+        **********************************************************************************************************/
+       expect(logEvents).toContainEqual(
+          {
+            ingestionTime: expect.anything(),
+            message: expect.not.stringMatching( /\w*(?<!declare -A )INSTALLER_DB_ARGS/ ),
+            timestamp: expect.anything(),
+          }
+        );
+      });
     });
 
-    return Promise.all(logPromises).then( values => {
-      testCases.forEach( testCase => {
+    describe('DeadlineRepositoryInstallationLogs LogStream tests', () => {
 
-        var response = values[testCase];
-        let cloudInitLogName: any;
-        let deadlineLogName: any;
+      let logEvents: Object;
 
-        response.logStreams.forEach( (logStream: any) => {
-
-          var logStreamName = logStream.logStreamName;
-
-          if (/cloud-init-output/.test(logStreamName)) {
-            cloudInitLogName = logStreamName;
-          }
-          else if( /deadlineRepositoryInstallationLogs/.test(logStreamName) ) {
-            deadlineLogName = logStreamName;
-          }
+      beforeAll( () => {
+        return new Promise( (res, rej) => {
+          var params = {
+            logGroupName: logGroupNames[id],
+            logStreamName: deadlineLogName,
+          };
+          logs.getLogEvents(params, (err,data) => {
+            if (err) {
+              rej(err);
+            }
+            else {
+              logEvents = data.events!;
+            }
+            res();
+          });
         });
-
-        logResponses[testCase] = {
-          logStreamCount: response.logStreams.length,
-          cloudInitLogName,
-          deadlineLogName,
-        };
       });
-    });
-  });
 
-  test.each(testCases)('DL-%i-4: Verify CloudWatch LogGroup contains two LogStreams', async (testCase) => {
-    /**********************************************************************************************************
-     * TestID:          DL-4
-     * Description:     Confirm that CloudWatch LogGroup has been created with two LogStreams
-     * Input:           Output from cli call to describe LogGroup created during cdk deploy
-     * Expected result: LogGroup contains exactly two LogStreams
-    **********************************************************************************************************/
-    expect(logResponses[testCase].logStreamCount).toEqual(2);
-  });
-
-  test.each(testCases)('DL-%i-5: Verify cloud-init-output LogStream', (testCase) => {
-    /**********************************************************************************************************
-     * TestID:          DL-5
-     * Description:     Confirm that cloud-init-output contains log events from cdk initizialization
-     * Input:           Output from sdk call to describe cloud-init-output LogStream created during cdk deploy
-     * Expected result: Event log contains at least one entry where the message property matches a regex string
-     *                  indicating the cloud-init version used
-    **********************************************************************************************************/
-    return new Promise( (res, rej) => {
-      var params = {
-        logGroupName: logGroupNames[testCase],
-        logStreamName: logResponses[testCase].cloudInitLogName,
-      };
-      logs.getLogEvents(params, (err,data) => {
-        if (err) {
-          rej(err);
-        }
-        else {
-          const cloudInitLogEvents = data;
-          res(cloudInitLogEvents.events);
-        }
+      test(`DL-${id}-7: DeadlineRepositoryInstallationLogs is initialized`, () => {
+        /**********************************************************************************************************
+         * TestID:          DL-7
+         * Description:     Confirm that deadlineRepositoryInstallationLogs contains log events from Deadline installation
+         * Input:           Output from cli call to describe deadlineRepositoryInstallationLogs LogStream created during cdk deploy
+         * Expected result: Event log contains at least one entry where the message property matches a regex string
+         *                  indicating that the deadlinecommand.exe command was run during installation
+        **********************************************************************************************************/
+        expect(logEvents).toContainEqual(
+          {
+            ingestionTime: expect.anything(),
+            message: expect.stringMatching( /Executing \/tmp\/repoinstalltemp\/deadlinecommand.exe/ ),
+            timestamp: expect.anything(),
+          }
+        );
       });
-    }).then( data => {
-      expect(data).toContainEqual(
-        {
-          ingestionTime: expect.anything(),
-          message: expect.stringMatching( /Cloud-init v. / ),
-          timestamp: expect.anything(),
-        },
-      );
-    });
-  });
-
-  test.each(testCases)('DL-%i-6: Verify DeadlineRepositoryInstallationLogs LogStream', (testCase) => {
-    /**********************************************************************************************************
-     * TestID:          DL-6
-     * Description:     Confirm that deadlineRepositoryInstallationLogs contains log events from Deadline installation
-     * Input:           Output from cli call to describe deadlineRepositoryInstallationLogs LogStream created during cdk deploy
-     * Expected result: Event log contains at least one entry where the message property matches a regex string
-     *                  indicating that the deadlinecommand.exe command was run during installation
-    **********************************************************************************************************/
-    return new Promise( (res, rej) => {
-      var params = {
-        logGroupName: logGroupNames[testCase],
-        logStreamName: logResponses[testCase].deadlineLogName,
-      };
-      logs.getLogEvents(params, (err,data) => {
-        if (err) {
-          rej(err);
-        }
-        else {
-          const deadlineLogEvents = data;
-          res(deadlineLogEvents.events);
-        }
-      });
-    }).then( data => {
-      expect(data).toContainEqual(
-        {
-          ingestionTime: expect.anything(),
-          message: expect.stringMatching( /Executing \/tmp\/repoinstalltemp\/deadlinecommand.exe/ ),
-          timestamp: expect.anything(),
-        },
-      );
     });
   });
 });
-
 /*
   Custom function to send SSM command to run a particular script on the bastion instance,
   wait for it to finish executing, then return the response.
