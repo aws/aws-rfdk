@@ -234,15 +234,20 @@ abstract class X509CertificateBase extends Construct {
  * The cost of four AWS SecretsManager Secrets in the deployed region.
  * The other resources created by this construct have negligible ongoing costs.
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) DynamoDB Table - Used for tracking resources created by the Custom Resource.
  * 2) Secrets - 4 in total, for the certificate, it's private key, the passphrase to the key, and the cert chain.
  * 3) Lambda Function, with role - Used to create/update/delete the Custom Resource
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * - The Lambda role's policy gives it full access to the DynamoDB Table and access to get the passphrase Secret.
  *   It also has permission to create/delete/put Secrets with a resource tag that is generated uniquely for each
  *   instance of this Construct.
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class X509CertificatePem extends X509CertificateBase implements IX509CertificatePem {
   public readonly cert: ISecret;
@@ -379,15 +384,20 @@ export interface IX509CertificatePkcs12 extends IConstruct {
  * the result is stored in a Secret. The PKCS #12 file is password protected with a passphrase that is randomly
  * generated and stored in a Secret.
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) DynamoDB Table - Used for tracking resources created by the CustomResource.
  * 2) Secrets - 2 in total, The binary of the PKCS #12 certificate and its passphrase.
  * 3) Lambda Function, with role - Used to create/update/delete the CustomResource.
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * - The Lambda role's policy gives it full access to the DynamoDB Table and access to get the passphrase secret.
  *   It also has permission to create/delete/put Secrets with a resource tag that is uniquely generated for each
  *   instance of this Construct.
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class X509CertificatePkcs12 extends X509CertificateBase implements IX509CertificatePkcs12 {
 

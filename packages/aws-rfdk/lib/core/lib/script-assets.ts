@@ -123,12 +123,17 @@ export interface ScriptAssetProps extends AssetProps {}
  *
  * The script asset is placed into and fetched from the CDK bootstrap S3 bucket.
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) An Asset which is uploaded to the bootstrap S3 bucket.
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * - Every principal that has permissions to read this script asset,
  *   also has permissions to read ***everything*** in the bootstrap bucket.
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class ScriptAsset extends Asset {
   /**

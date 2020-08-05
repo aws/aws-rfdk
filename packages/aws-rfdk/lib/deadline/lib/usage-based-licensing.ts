@@ -377,17 +377,22 @@ export interface UsageBasedLicensingProps {
  * Note: This construct does not currently implement the Deadline License Forwarder's Web Forwarding functionality.
  * This construct is not usable in any China region.
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) The Auto Scaling Group (ASG) added to the Amazon ECS cluster that is hosting the Deadline License Forwarder for UBL.
  *    By default, creates one instance. The default instance type is C5 Large.
  * 2) Elastic Block Store device(s) associated with the EC2 instance(s) in the ASG. The default volume size is 30 GiB.
  * 3) The LogGroup if it doesn't exist already.
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * - Any machine that has ingress network access to the License Forwarder is able to receive the licenses.
  *   Make sure the security group of the license forwarder is tightly restricted
  *   to allow only ingress from the machines that require it
  * - Docker container has permissions to read a secret with 3rd Party Licensing Certificates
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class UsageBasedLicensing extends Construct implements IGrantable {
   /**

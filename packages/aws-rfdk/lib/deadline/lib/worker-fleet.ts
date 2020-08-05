@@ -274,18 +274,23 @@ abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet
  * When the worker fleet is deployed if it has been provided a HealthMonitor the Worker fleet will register itself against the Monitor
  * to ensure that the fleet remains healthy.
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) An AutoScalingGroup to maintain the number of instances;
  * 2) An Instance Role and corresponding IAM Policy;
  * 3) A script asset which is uploaded to your deployment bucket used to configure the worker so it can connect to the Render Queue
  * 4) An aws-rfdk.CloudWatchAgent to configure sending logs to cloudwatch.
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * The instance in the AutoScaling group is given a role with the following permissions:
  * - Read permissions to the bucket containing the S3 Assets
  *
  * The Following Security Group changes are made by this construct:
  * - TCP access to the Render Queue's Load Balancer
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
 

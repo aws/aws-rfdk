@@ -45,12 +45,17 @@ export interface CloudWatchAgentProps {
  * WARNING: Only use this if your deployments are failing due to a validation failure,
  * but you have verified that the failure is benign.
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) String SSM Parameter in Systems Manager Parameter Store to store the cloudwatch agent configuration;
  * 2) A script Asset which is uploaded to S3 bucket.
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * - Grants read permission to the host instance/ASG/fleet on the assets bucket and parameter store.
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class CloudWatchAgent extends Construct {
 

@@ -83,15 +83,20 @@ export abstract class DatabaseConnection {
   /**
    * Creates a DatabaseConnection which allows Deadline to connect to Amazon DocumentDB.
    *
-   * @ResourcesDeployed
+   * Resources Deployed
+   * ------------------------
    * This construct does not deploy any resources
    *
-   * @ResidualRisk
+   * Residual Risk
+   * ------------------------
    * This construct is used to grant the following IAM permissions:
    * - Read permissions to the DocumentDB's Login Secret
    *
    * The following security group changes are made by this construct
    *  - TCP access to the DocumentDB Cluster over it's default port
+   *
+   * @ResourcesDeployed
+   * @ResidualRisk
    */
   public static forDocDB(options: DocDBConnectionOptions): DatabaseConnection {
     return new DocDBDatabaseConnection(options);
@@ -100,16 +105,21 @@ export abstract class DatabaseConnection {
   /**
    * Creates a DatabaseConnection which allows Deadline to connect to MongoDB.
    *
-   * @ResourcesDeployed
+   * Resources Deployed
+   * ------------------------
    * This construct does not deploy any resources
    *
-   * @ResidualRisk
+   * Residual Risk
+   * ------------------------
    * This construct is used to grant the following IAM permissions:
    * - Read permissions to the MongoDB's Login Secret
    * - Read permissions to the client PKCS#12 certificate and its password.
    *
    * The following security group changes are made by this construct
    *  - TCP access to the MongoDB over it's default port
+   *
+   * @ResourcesDeployed
+   * @ResidualRisk
    */
   public static forMongoDbInstance(options: MongoDbInstanceConnectionOptions): DatabaseConnection {
     return new MongoDbInstanceDatabaseConnection(options);
