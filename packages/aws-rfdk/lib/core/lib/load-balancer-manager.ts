@@ -195,11 +195,14 @@ export class LoadBalancerFactory {
     loadBalancerindex: number,
     healthMonitorProps: HealthMonitorProps,
   ): ApplicationLoadBalancer {
-    return new ApplicationLoadBalancer(scope, `ALB_${loadBalancerindex}`, {
+    const loadBalancer = new ApplicationLoadBalancer(scope, `ALB_${loadBalancerindex}`, {
       vpc: this.vpc,
       internetFacing: false,
       deletionProtection: healthMonitorProps.deletionProtection ?? true,
     });
+    // Enabling dropping of invalid HTTP header fields on the load balancer to prevent http smuggling attacks.
+    loadBalancer.setAttribute('routing.http.drop_invalid_header_fields.enabled', 'true');
+    return loadBalancer;
   }
 }
 

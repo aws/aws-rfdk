@@ -353,6 +353,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     this.pattern.service.node.addDependency(this.asg);
 
     this.loadBalancer = this.pattern.loadBalancer;
+    // Enabling dropping of invalid HTTP header fields on the load balancer to prevent http smuggling attacks.
+    this.loadBalancer.setAttribute('routing.http.drop_invalid_header_fields.enabled', 'true');
 
     if (props.accessLogs) {
       const accessLogsBucket = props.accessLogs.destinationBucket;
