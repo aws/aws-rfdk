@@ -17,6 +17,7 @@ import {
   HealthMonitor,
   IMonitorableFleet,
   Limit,
+  HealthMonitorProps,
 } from './health-monitor';
 
 /**
@@ -108,7 +109,7 @@ export class LoadBalancerFactory {
   public registerWorkerFleet(
     fleet: IMonitorableFleet,
     healthCheckConfig: HealthCheckConfig,
-    elbAccountLimits?: Limit[]): {
+    healthMonitorProps: HealthMonitorProps): {
       loadBalancer: ApplicationLoadBalancer,
       listener: ApplicationListener,
       targetGroup: ApplicationTargetGroup
@@ -126,7 +127,7 @@ export class LoadBalancerFactory {
           loadBalancer,
           fleet,
           healthCheckConfig,
-          elbAccountLimits);
+          healthMonitorProps);
 
         loadBalancerParent = loadBalancer;
         listenerParent = listener;
@@ -149,7 +150,8 @@ export class LoadBalancerFactory {
       // accommodate fleet, create a new one and register
       loadBalancerParent = this.createLoadBalancer(
         this.healthMonitorScope,
-        this.loadBalancerMap.size);
+        this.loadBalancerMap.size,
+        healthMonitorProps);
       const loadBalancerManager = new LoadBalancerManager();
 
       // Add it to the map
@@ -161,7 +163,7 @@ export class LoadBalancerFactory {
           loadBalancerParent,
           fleet,
           healthCheckConfig,
-          elbAccountLimits);
+          healthMonitorProps);
 
         listenerParent = listener;
         targetGroupParent = targetGroup;
@@ -189,10 +191,14 @@ export class LoadBalancerFactory {
    * @param scope
    * @param loadBalancerindex
    */
-  private createLoadBalancer(scope: Construct, loadBalancerindex: number): ApplicationLoadBalancer {
+  private createLoadBalancer(scope: Construct,
+    loadBalancerindex: number,
+    healthMonitorProps: HealthMonitorProps,
+  ): ApplicationLoadBalancer {
     return new ApplicationLoadBalancer(scope, `ALB_${loadBalancerindex}`, {
       vpc: this.vpc,
       internetFacing: false,
+      deletionProtection: healthMonitorProps.deletionProtection ?? true,
     });
   }
 }
@@ -222,7 +228,7 @@ class LoadBalancerManager {
     loadBalancer: ApplicationLoadBalancer,
     fleet: IMonitorableFleet,
     healthCheckConfig: HealthCheckConfig,
-    elbAccountLimits?: Limit[]) {
+    healthMonitorProps: HealthMonitorProps) {
 
     // this initializes with 0 and keeps the track of all components
     // newly added down the hierarchy.
@@ -233,7 +239,7 @@ class LoadBalancerManager {
     // check for target limit in load balancer
     const targetPerLoadBalancerLimit = LoadBalancerFactory.getAccountLimit('targets-per-application-load-balancer',
       LoadBalancerFactory.DEFAULT_TARGETS_PER_APPLICATION_LOAD_BALANCER,
-      elbAccountLimits);
+      healthMonitorProps.elbAccountLimits);
     if ((this.loadBalancerComponentCount.targetCount + fleet.targetCapacity) > targetPerLoadBalancerLimit) {
       throw new AWSLimitExhaustedError('AWS service limit "targets-per-application-load-balancer" reached. Limit: ' +
         targetPerLoadBalancerLimit);
@@ -242,7 +248,7 @@ class LoadBalancerManager {
     // check for target group limit in load balancer
     const targetGroupsPerLoadBalancerLimit = LoadBalancerFactory.getAccountLimit('target-groups-per-application-load-balancer',
       LoadBalancerFactory.DEFAULT_TARGET_GROUPS_PER_APPLICATION_LOAD_BALANCER,
-      elbAccountLimits);
+      healthMonitorProps.elbAccountLimits);
     if ((this.loadBalancerComponentCount.targetGroupCount + 1) > targetGroupsPerLoadBalancerLimit) {
       throw new AWSLimitExhaustedError('AWS service limit "target-groups-per-application-load-balancer" reached. Limit: ' +
         targetGroupsPerLoadBalancerLimit);
@@ -260,7 +266,7 @@ class LoadBalancerManager {
           listener,
           fleet,
           healthCheckConfig,
-          elbAccountLimits);
+          healthMonitorProps);
 
         statsDelta.add(componentsAdded);
         listenerParent = listener;
@@ -283,7 +289,7 @@ class LoadBalancerManager {
 
       const listenersPerLoadBalancerLimit = LoadBalancerFactory.getAccountLimit('listeners-per-application-load-balancer',
         LoadBalancerFactory.DEFAULT_LISTENERS_PER_APPLICATION_LOAD_BALANCER,
-        elbAccountLimits);
+        healthMonitorProps.elbAccountLimits);
       if ((this.loadBalancerComponentCount.listenerCount + 1) > listenersPerLoadBalancerLimit) {
         throw new AWSLimitExhaustedError('AWS service limit "listeners-per-application-load-balancer" reached. Limit: ' +
           listenersPerLoadBalancerLimit);
@@ -301,7 +307,7 @@ class LoadBalancerManager {
           listenerParent,
           fleet,
           healthCheckConfig,
-          elbAccountLimits);
+          healthMonitorProps);
 
         targetGroupParent = targetGroup;
         statsDelta.add(componentsAdded);
@@ -364,7 +370,7 @@ class ListenerManager {
     listener: ApplicationListener,
     fleet: IMonitorableFleet,
     healthCheckConfig: HealthCheckConfig,
-    elbAccountLimits?: Limit[]) {
+    healthMonitorProps: HealthMonitorProps) {
 
     const componentsAdded = new LoadBalancerComponentStats();
 
@@ -373,7 +379,7 @@ class ListenerManager {
     // check for target limit in listener
     const targetGroupPerLoadBalancerLimit = LoadBalancerFactory.getAccountLimit('target-groups-per-action-on-application-load-balancer',
       LoadBalancerFactory.DEFAULT_TARGET_GROUPS_PER_ACTION_ON_APPLICATION_LOAD_BALANCER,
-      elbAccountLimits);
+      healthMonitorProps.elbAccountLimits);
     if ((this.listenerComponentCount.targetGroupCount + 1) > targetGroupPerLoadBalancerLimit) {
       throw new AWSLimitExhaustedError('AWS service limit "target-groups-per-action-on-application-load-balancer" reached. Limit: ' +
         targetGroupPerLoadBalancerLimit);

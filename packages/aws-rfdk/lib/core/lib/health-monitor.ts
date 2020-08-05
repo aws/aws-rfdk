@@ -175,7 +175,7 @@ export interface HealthMonitorProps {
 
   /**
    * Describes the current Elastic Load Balancing resource limits for your AWS account.
-   * This object should be the output of 'describeAccountLimits' API
+   * This object should be the output of 'describeAccountLimits' API.
    *
    * @default default account limits for ALB is used
    *
@@ -189,6 +189,17 @@ export interface HealthMonitorProps {
    * @default A new Key will be created and used.
    */
   readonly encryptionKey?: IKey;
+
+  /**
+   * Indicates whether deletion protection is enabled for the LoadBalancer.
+   *
+   * @default true
+   *
+   * Note: This value is true by default which means that the deletion protection is enabled for the
+   * load balancer. Hence, user needs to disable it using AWS Console or CLI before deleting the stack.
+   * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection
+   */
+  readonly deletionProtection?: boolean;
 }
 
 /**
@@ -389,7 +400,7 @@ export class HealthMonitor extends HealthMonitorBase {
     const {loadBalancer, targetGroup} = this.lbFactory.registerWorkerFleet(
       monitorableFleet,
       healthCheckConfig,
-      this.props.elbAccountLimits);
+      this.props);
 
     this.createFleetAlarms(monitorableFleet, healthCheckConfig, loadBalancer, targetGroup);
   }

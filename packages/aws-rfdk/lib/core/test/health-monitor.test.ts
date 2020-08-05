@@ -11,6 +11,7 @@ import {
   expect as expectCDK,
   haveResource,
   haveResourceLike,
+  ABSENT,
 } from '@aws-cdk/assert';
 import {
   AutoScalingGroup,
@@ -319,7 +320,15 @@ test('2 ASG gets registered to same LB', () => {
   healthMonitor.registerFleet(fleet2, {port: 7171});
 
   // THEN
-  expectCDK(hmStack).to(countResources('AWS::ElasticLoadBalancingV2::LoadBalancer', 1));
+  expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 1, {
+    LoadBalancerAttributes: [
+      {
+        Key: 'deletion_protection.enabled',
+        Value: 'true',
+      },
+    ],
+    Scheme: 'internal',
+  }));
   expectCDK(wfStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 2));
   expectCDK(wfStack).to(haveResource('AWS::ElasticLoadBalancingV2::Listener'));
   expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
@@ -372,6 +381,12 @@ test('validating LB target limit', () => {
 
   // THEN
   expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 2, {
+    LoadBalancerAttributes: [
+      {
+        Key: 'deletion_protection.enabled',
+        Value: 'true',
+      },
+    ],
     Scheme: 'internal',
     Type: 'application',
   }));
@@ -407,6 +422,12 @@ test('validating LB listener limit', () => {
 
   // THEN
   expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 2, {
+    LoadBalancerAttributes: [
+      {
+        Key: 'deletion_protection.enabled',
+        Value: 'true',
+      },
+    ],
     Scheme: 'internal',
     Type: 'application',
   }));
@@ -466,4 +487,24 @@ test('validating target limit exhaustion', () => {
   expect(() => {
     healthMonitor.registerFleet(fleet, {});
   }).toThrowError(/AWS service limit \"targets-per-application-load-balancer\" reached. Limit: 1/);
+});
+
+test('validating deletion protection', () => {
+  // WHEN
+  healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
+    vpc,
+    deletionProtection: false,
+  });
+
+  const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
+    vpc,
+  });
+  healthMonitor.registerFleet(fleet, {});
+
+  // THEN
+  expectCDK(hmStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+    LoadBalancerAttributes: ABSENT,
+    Scheme: 'internal',
+    Type: 'application',
+  }));
 });
