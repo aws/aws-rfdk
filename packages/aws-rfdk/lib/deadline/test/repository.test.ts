@@ -385,6 +385,32 @@ test('repository creates deadlineDatabase if none provided', () => {
   // THEN
   expectCDK(stack).to(haveResource('AWS::DocDB::DBCluster'));
   expectCDK(stack).to(haveResource('AWS::DocDB::DBInstance'));
+  expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBCluster', {
+    EnableCloudwatchLogsExports: [ 'audit' ],
+  }, ResourcePart.Properties));
+});
+
+test('audit log is disabled when it required', () => {
+  const testEFS = new EfsFileSystem(stack, 'TestEfsFileSystem', {
+    vpc,
+  });
+  const testFS = new MountableEfs(stack, {
+    filesystem: testEFS,
+  });
+
+  // WHEN
+  new Repository(stack, 'repositoryInstaller', {
+    vpc,
+    fileSystem: testFS,
+    version: deadlineVersion,
+    databaseAuditLogging: false,
+  });
+
+  // THEN
+  expectCDK(stack).to(haveResource('AWS::DocDB::DBCluster'));
+  expectCDK(stack).notTo(haveResourceLike('AWS::DocDB::DBCluster', {
+    EnableCloudwatchLogsExports: [ 'audit' ],
+  }, ResourcePart.Properties));
 });
 
 test('repository honors database removal policy', () => {

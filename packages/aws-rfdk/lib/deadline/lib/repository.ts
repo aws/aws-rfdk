@@ -14,6 +14,8 @@ import {
 } from '@aws-cdk/aws-autoscaling';
 import {
   DatabaseCluster,
+  CfnDBCluster,
+  ClusterParameterGroup,
 } from '@aws-cdk/aws-docdb';
 import {
   AmazonLinuxGeneration,
@@ -255,6 +257,17 @@ export interface RepositoryProps {
    * @default RemovalPolicy.RETAIN
    */
   readonly databaseRemovalPolicy?: RemovalPolicy;
+
+  /**
+   * If this Repository is creating its own DocumentDB database, then this specifies if audit logging will be enabled
+   *
+   * Audit logs are a security best-practice. They record connection, data definition language (DDL), user management,
+   * and authorization events within the database, and are useful for post-incident auditing. That is, they can help you
+   * figure out what an unauthorized user, who gained access to your database, has done with that access.
+   *
+   * @default true
+   */
+  readonly databaseAuditLogging?: boolean;
 }
 
 /**
@@ -355,14 +368,39 @@ export class Repository extends Construct implements IRepository {
     if (props.database) {
       this.databaseConnection = props.database;
     } else {
+      const databaseAuditLogging = props.databaseAuditLogging ?? true;
+
+      /**
+       * This option is part of enabling audit logging for DocumentDB; the other required part is the enabling of the CloudWatch exports below.
+       *
+       * For more information about audit logging in DocumentDB, see:  https://docs.aws.amazon.com/documentdb/latest/developerguide/event-auditing.html
+       */
+      const parameterGroup = databaseAuditLogging ? new ClusterParameterGroup(this, 'ParameterGroup', {
+        description: 'DocDB cluster parameter group with enabled audit logs',
+        family: 'docdb3.6',
+        parameters: {
+          audit_logs: 'enabled',
+        },
+      }) : undefined;
+
       const dbCluster = new DatabaseCluster(this, 'DocumentDatabase', {
         masterUser: {username: 'DocDBUser'},
         instanceProps: {
           instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
           vpc: props.vpc,
         },
+        parameterGroup: parameterGroup,
         removalPolicy: props.databaseRemovalPolicy ?? RemovalPolicy.RETAIN,
       });
+
+      if (databaseAuditLogging) {
+        /**
+         * This option enable export audit logs to Amazon CloudWatch.
+         * This is second options that required for enable audit log.
+         */
+        const cfnDB = dbCluster.node.findChild('Resource') as CfnDBCluster;
+        cfnDB.enableCloudwatchLogsExports = ['audit'];
+      }
       /* istanbul ignore next */
       if (!dbCluster.secret) {
         /* istanbul ignore next */
