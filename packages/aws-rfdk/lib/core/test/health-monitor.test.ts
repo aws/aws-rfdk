@@ -4,8 +4,10 @@
  */
 
 import {
+  arrayWith,
   countResources,
   countResourcesLike,
+  deepObjectLike,
   expect as expectCDK,
   haveResource,
   haveResourceLike,
@@ -255,6 +257,14 @@ test('validating the target with default health config', () => {
 
   // THEN
   expectCDK(wfStack).to(haveResource('AWS::ElasticLoadBalancingV2::Listener'));
+  expectCDK(hmStack).notTo((haveResourceLike('AWS::EC2::SecurityGroup', {
+    SecurityGroupIngress: arrayWith(deepObjectLike({
+      CidrIp: '0.0.0.0/0',
+      FromPort: 8081,
+      IpProtocol: 'tcp',
+      ToPort: 8081,
+    })),
+  })));
   expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
     HealthCheckIntervalSeconds: 300,
     HealthCheckPort: '8081',
