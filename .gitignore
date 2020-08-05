@@ -10,5 +10,10 @@ node_modules/
 .BUILD_COMPLETED
 yarn-error.log
 
-#Defines license that must be present
+# Defines license that must be present
 !license-header.js
+
+# Python Sample App
+cdk.out
+__pycache__
+*.egg-info
