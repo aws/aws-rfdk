@@ -460,6 +460,65 @@ test('repository honors database removal policy', () => {
   }, ResourcePart.CompleteDefinition));
 });
 
+test('repository honors database retention period', () => {
+  // GIVEN
+  const period = 20;
+
+  // WHEN
+  new Repository(stack, 'repositoryInstaller', {
+    vpc,
+    version: deadlineVersion,
+    backupOptions: {
+      databaseRetention: Duration.days(period),
+    },
+  });
+
+  // THEN
+  expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBCluster', {
+    BackupRetentionPeriod: period,
+  }));
+});
+
+test('warns if both retention period and database provided', () => {
+  // GIVEN
+  const fsDatabase = new DatabaseCluster(stack, 'TestDbCluster', {
+    masterUser: {
+      username: 'master',
+    },
+    instanceProps: {
+      instanceType: InstanceType.of(
+        InstanceClass.R4,
+        InstanceSize.LARGE,
+      ),
+      vpc,
+      vpcSubnets: {
+        onePerAz: true,
+        subnetType: SubnetType.PRIVATE,
+      },
+    },
+  });
+
+  // WHEN
+  const repo = new Repository(stack, 'repositoryInstaller', {
+    vpc,
+    database: DatabaseConnection.forDocDB({ database: fsDatabase, login: fsDatabase.secret! }),
+    version: deadlineVersion,
+    backupOptions: {
+      databaseRetention: Duration.days(20),
+    },
+  });
+
+  // THEN
+  expect(repo.node.metadata).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        type: 'aws:cdk:warning',
+        data: 'Backup retention for database will not be applied since a database is not being created by this construct',
+      }),
+    ]),
+  );
+});
+
 test('repository creates filesystem if none provided', () => {
 
   const fsDatabase = new DatabaseCluster(stack, 'TestDbCluster', {
@@ -476,6 +535,9 @@ test('repository creates filesystem if none provided', () => {
         onePerAz: true,
         subnetType: SubnetType.PRIVATE,
       },
+    },
+    backup: {
+      retention: Duration.days(15),
     },
   });
 

@@ -32,6 +32,7 @@ import {
   PrivateHostedZone,
 } from '@aws-cdk/aws-route53';
 import {
+  Duration,
   Stack,
 } from '@aws-cdk/core';
 
@@ -72,6 +73,9 @@ describe('DocumentDB', () => {
           onePerAz: true,
           subnetType: SubnetType.PRIVATE,
         },
+      },
+      backup: {
+        retention: Duration.days(15),
       },
     });
 
