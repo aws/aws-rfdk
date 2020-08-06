@@ -12,6 +12,7 @@ import {
   haveResourceLike,
   objectLike,
   ResourcePart,
+  countResourcesLike,
 } from '@aws-cdk/assert';
 import {
   Certificate,
@@ -127,6 +128,19 @@ describe('RenderQueue', () => {
     expectCDK(stack).to(haveResource('AWS::ECS::TaskDefinition'));
   });
 
+  test('creates load balancer with default values', () => {
+    // THEN
+    expectCDK(stack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 1, {
+      LoadBalancerAttributes: [
+        {
+          Key: 'deletion_protection.enabled',
+          Value: 'true',
+        },
+      ],
+      Scheme: 'internal',
+    }));
+  });
+
   test('creates a log group with default prefix of "/renderfarm/"', () => {
     // GIVEN
     function mockLogGroupFactory() {
@@ -239,7 +253,7 @@ describe('RenderQueue', () => {
     // THEN
     expectCDK(stack).to(haveResourceLike('AWS::EC2::Instance', {
       DependsOn: arrayWith(
-        'RenderQueueCommonAlbEc2ServicePatternLBPublicListenerD9F03D67',
+        'RenderQueueCommonLBPublicListener935F5635',
         'RenderQueueCommonRCSTask2A4D5EA5',
       ),
     }, ResourcePart.CompleteDefinition));
@@ -937,7 +951,7 @@ describe('RenderQueue', () => {
 
         expectCDK(isolatedStack).to(haveResourceLike('AWS::EC2::Instance', {
           DependsOn: arrayWith(
-            'RenderQueueAlbEc2ServicePatternLBPublicListener1A04056A',
+            'RenderQueueLBPublicListenerBBF15D5F',
             'RenderQueueRCSTaskA9AE70D3',
           ),
         }, ResourcePart.CompleteDefinition));
@@ -1065,7 +1079,7 @@ describe('RenderQueue', () => {
               '" --render-queue "http://',
               {
                 'Fn::GetAtt': [
-                  'RenderQueueAlbEc2ServicePatternLB57F38E61',
+                  'RenderQueueLB235D35F4',
                   'DNSName',
                 ],
               },
@@ -1115,7 +1129,7 @@ describe('RenderQueue', () => {
 
         expectCDK(isolatedStack).to(haveResourceLike('AWS::EC2::Instance', {
           DependsOn: arrayWith(
-            'RenderQueueAlbEc2ServicePatternLBPublicListener1A04056A',
+            'RenderQueueLBPublicListenerBBF15D5F',
             'RenderQueueRCSTaskA9AE70D3',
           ),
         }, ResourcePart.CompleteDefinition));
@@ -1243,7 +1257,7 @@ describe('RenderQueue', () => {
               '" --render-queue "http://',
               {
                 'Fn::GetAtt': [
-                  'RenderQueueAlbEc2ServicePatternLB57F38E61',
+                  'RenderQueueLB235D35F4',
                   'DNSName',
                 ],
               },
@@ -1296,7 +1310,7 @@ describe('RenderQueue', () => {
 
         expectCDK(isolatedStack).to(haveResourceLike('AWS::EC2::Instance', {
           DependsOn: arrayWith(
-            'RenderQueueAlbEc2ServicePatternLBPublicListener1A04056A',
+            'RenderQueueLBPublicListenerBBF15D5F',
             'RenderQueueRCSTaskA9AE70D3',
           ),
         }, ResourcePart.CompleteDefinition));
@@ -1494,7 +1508,7 @@ describe('RenderQueue', () => {
               '" --render-queue "https://',
               {
                 'Fn::GetAtt': [
-                  'RenderQueueAlbEc2ServicePatternLB57F38E61',
+                  'RenderQueueLB235D35F4',
                   'DNSName',
                 ],
               },
@@ -1665,7 +1679,7 @@ describe('RenderQueue', () => {
               '" --render-queue "https://',
               {
                 'Fn::GetAtt': [
-                  'RenderQueueAlbEc2ServicePatternLB57F38E61',
+                  'RenderQueueLB235D35F4',
                   'DNSName',
                 ],
               },
@@ -1770,6 +1784,28 @@ describe('RenderQueue', () => {
     // THEN
     expectCDK(isolatedStack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
       InstanceType: 'c5.large',
+    }));
+  });
+
+  test('no deletion protection', () => {
+    // GIVEN
+    const props: RenderQueueProps = {
+      images,
+      repository,
+      version,
+      vpc,
+      deletionProtection: false,
+    };
+    const isolatedStack = new Stack(app, 'IsolatedStack');
+
+    // WHEN
+    new RenderQueue(isolatedStack, 'RenderQueue', props);
+
+    // THEN
+    expectCDK(isolatedStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+      LoadBalancerAttributes: ABSENT,
+      Scheme: 'internal',
+      Type: 'application',
     }));
   });
 

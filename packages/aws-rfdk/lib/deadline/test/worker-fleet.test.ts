@@ -98,7 +98,7 @@ test('default worker fleet is created correctly', () => {
       ],
     },
     GroupId: {
-      'Fn::ImportValue': 'infraStack:ExportsOutputFnGetAttRQAlbEc2ServicePatternLBSecurityGroupCA2B91D3GroupId1AAC6AC8',
+      'Fn::ImportValue': 'infraStack:ExportsOutputFnGetAttRQLBSecurityGroupAC643AEDGroupId8F9F7830',
     },
   }));
   expectCDK(wfstack).to(haveResource('Custom::LogRetention', {
@@ -486,7 +486,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
         '" --render-queue "http://',
         {
           'Fn::GetAtt': [
-            'RQAlbEc2ServicePatternLB29395F99',
+            'RQLB3B7B1CBC',
             'DNSName',
           ],
         },
@@ -886,7 +886,7 @@ test('default worker fleet is created correctly with groups, pools and region', 
       '" --render-queue "http://',
       {
         'Fn::GetAtt': [
-          'RQAlbEc2ServicePatternLB29395F99',
+          'RQLB3B7B1CBC',
           'DNSName',
         ],
       },

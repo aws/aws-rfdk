@@ -318,6 +318,12 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       loadBalancerFQDN = `${label}.${props.hostname.zone.zoneName}`;
     }
 
+    const loadBalancer = new ApplicationLoadBalancer(this, 'LB', {
+      vpc: this.cluster.vpc,
+      internetFacing: false,
+      deletionProtection: props.deletionProtection ?? true,
+    });
+
     this.pattern = new ApplicationLoadBalancedEc2Service(this, 'AlbEc2ServicePattern', {
       certificate: this.clientCert,
       cluster: this.cluster,
@@ -325,7 +331,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       domainZone: props.hostname?.zone,
       domainName: loadBalancerFQDN,
       listenerPort: externalPortNumber,
-      publicLoadBalancer: false,
+      loadBalancer,
       protocol: externalProtocol,
       taskDefinition,
       // This is required to right-size our host capacity and not have the ECS service block on updates. We set a memory
