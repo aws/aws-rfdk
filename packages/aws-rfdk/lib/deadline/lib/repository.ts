@@ -13,6 +13,7 @@ import {
   UpdateType,
 } from '@aws-cdk/aws-autoscaling';
 import {
+  CfnDBInstance,
   DatabaseCluster,
 } from '@aws-cdk/aws-docdb';
 import {
@@ -23,6 +24,7 @@ import {
   InstanceType,
   IVpc,
   OperatingSystemType,
+  SubnetSelection,
   SubnetType,
 } from '@aws-cdk/aws-ec2';
 import {
@@ -255,6 +257,22 @@ export interface RepositoryProps {
    * @default RemovalPolicy.RETAIN
    */
   readonly databaseRemovalPolicy?: RemovalPolicy;
+
+  /**
+   * If this Repository is creating its own Amazon DocumentDB database, then this specifies the number of
+   * compute instances to be created.
+   *
+   * @default 1
+   */
+  readonly documentDbInstanceCount?: number;
+
+  /**
+   * If this Repository is creating its own Amazon DocumentDB database and/or Amazon Elastic File System (EFS),
+   * then this specifies to which subnets they are deployed.
+   *
+   * @default: Private subnets in the VPC
+   */
+  readonly vpcSubnets?: SubnetSelection;
 }
 
 /**
@@ -314,6 +332,11 @@ export class Repository extends Construct implements IRepository {
   private static ECS_VOLUME_NAME = 'RepositoryFilesystem';
 
   /**
+   * The default number of DocDB instances if one isn't provided in the props.
+   */
+  private static DEFAULT_NUM_DOCDB_INSTANCES: number = 1;
+
+  /**
    * @inheritdoc
    */
   public readonly rootPrefix: string;
@@ -347,6 +370,7 @@ export class Repository extends Construct implements IRepository {
     this.fileSystem = props.fileSystem ?? new MountableEfs(this, {
       filesystem: new EfsFileSystem(this, 'FileSystem', {
         vpc: props.vpc,
+        vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
         encrypted: true,
         lifecyclePolicy: EfsLifecyclePolicy.AFTER_14_DAYS,
       }),
@@ -355,12 +379,15 @@ export class Repository extends Construct implements IRepository {
     if (props.database) {
       this.databaseConnection = props.database;
     } else {
+      const instances = props.documentDbInstanceCount ?? Repository.DEFAULT_NUM_DOCDB_INSTANCES;
       const dbCluster = new DatabaseCluster(this, 'DocumentDatabase', {
         masterUser: {username: 'DocDBUser'},
         instanceProps: {
           instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
           vpc: props.vpc,
+          vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
         },
+        instances,
         removalPolicy: props.databaseRemovalPolicy ?? RemovalPolicy.RETAIN,
       });
       /* istanbul ignore next */
@@ -368,6 +395,15 @@ export class Repository extends Construct implements IRepository {
         /* istanbul ignore next */
         throw new Error('DBCluster failed to get set up properly -- missing login secret.');
       }
+
+      // This is a workaround because of the bug in CDK implementation:
+      // autoMinorVersionUpgrade should be true by default but it's not.
+      // This code can be removed once fixed in CDK.
+      for (let i = 1; i <= instances; i++) {
+        const docdbInstance = dbCluster.node.tryFindChild(`Instance${ i }`) as CfnDBInstance;
+        docdbInstance.autoMinorVersionUpgrade = true;
+      }
+
       this.databaseConnection = DatabaseConnection.forDocDB({
         database: dbCluster,
         login: dbCluster.secret,
