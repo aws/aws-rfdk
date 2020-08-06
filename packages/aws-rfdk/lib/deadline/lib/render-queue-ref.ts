@@ -262,6 +262,17 @@ export interface RenderQueueProps {
    * @default - LogGroup will be created with all properties' default values and a prefix of "/renderfarm/".
    */
   readonly logGroupProps?: LogGroupFactoryProps;
+
+  /**
+   * Indicates whether deletion protection is enabled for the LoadBalancer.
+   *
+   * @default true
+   *
+   * Note: This value is true by default which means that the deletion protection is enabled for the
+   * load balancer. Hence, user needs to disable it using AWS Console or CLI before deleting the stack.
+   * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection
+   */
+  readonly deletionProtection?: boolean;
 }
 
 /**
