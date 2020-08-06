@@ -30,6 +30,7 @@ import {
   ApplicationLoadBalancedEc2Service,
 } from '@aws-cdk/aws-ecs-patterns';
 import {
+  ApplicationListener,
   ApplicationLoadBalancer,
   ApplicationProtocol,
   ApplicationTargetGroup,
@@ -207,6 +208,16 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    */
   private readonly certChain?: ISecret;
 
+  /**
+   * The listener on the ALB that is redirecting traffic to the RCS.
+   */
+  private readonly listener: ApplicationListener;
+
+  /**
+   * The ECS task for the RCS.
+   */
+  private readonly taskDefinition: Ec2TaskDefinition;
+
   constructor(scope: Construct, id: string, props: RenderQueueProps) {
     super(scope, id);
 
@@ -295,6 +306,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       protocol: internalProtocol,
       repository: props.repository,
     });
+    this.taskDefinition = taskDefinition;
 
     // The fully-qualified domain name to use for the ALB
     let loadBalancerFQDN: string | undefined;
@@ -344,6 +356,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
      * validation, but at least traffic is encrypted and terminated at the application layer.
      */
     const listener = this.loadBalancer.node.findChild('PublicListener');
+    this.listener = listener as ApplicationListener;
     const targetGroup = listener.node.findChild('ECSGroup') as ApplicationTargetGroup;
     const targetGroupResource = targetGroup.node.defaultChild as CfnTargetGroup;
     targetGroupResource.protocol = ApplicationProtocol[internalProtocol];
@@ -374,12 +387,14 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       });
     }
 
+    this.node.defaultChild = taskDefinition;
   }
 
   /**
    * @inheritdoc
    */
   public configureClientECS(param: ECSConnectOptions): { [name: string]: string } {
+    param.hosts.forEach( host => this.addChildDependency(host) );
     return this.rqConnection.configureClientECS(param);
   }
 
@@ -387,7 +402,24 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    * @inheritdoc
    */
   public configureClientInstance(param: InstanceConnectOptions): void {
+    this.addChildDependency(param.host);
     this.rqConnection.configureClientInstance(param);
+  }
+
+  /**
+   * Add an ordering dependency to another Construct.
+   *
+   * All constructs in the child's scope will be deployed after the RenderQueue has been deployed and is ready to recieve traffic.
+   *
+   * This can be used to ensure that the RenderQueue is fully up and serving queries before a client attempts to connect to it.
+   *
+   * @param child The child to make dependent upon this RenderQueue.
+   */
+  public addChildDependency(child: IConstruct): void {
+    // Narrowly define the dependencies to reduce the probability of cycles
+    // ex: cycles that involve the security group of the RenderQueue & child.
+    child.node.addDependency(this.listener);
+    child.node.addDependency(this.taskDefinition);
   }
 
   private createTaskDefinition(props: {
