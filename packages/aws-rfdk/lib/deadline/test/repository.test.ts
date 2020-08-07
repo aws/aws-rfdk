@@ -21,6 +21,7 @@ import {
   InstanceType,
   IVpc,
   MachineImage,
+  Subnet,
   SubnetType,
   Vpc,
   WindowsVersion,
@@ -32,6 +33,7 @@ import {
   Bucket,
 } from '@aws-cdk/aws-s3';
 import {
+  App,
   Duration,
   RemovalPolicy,
   Stack,
@@ -384,7 +386,64 @@ test('repository creates deadlineDatabase if none provided', () => {
 
   // THEN
   expectCDK(stack).to(haveResource('AWS::DocDB::DBCluster'));
-  expectCDK(stack).to(haveResource('AWS::DocDB::DBInstance'));
+  expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBInstance', {
+    AutoMinorVersionUpgrade: true,
+  }));
+});
+
+test('honors subnet specification', () => {
+  // GIVEN
+  const app = new App();
+  const dependencyStack = new Stack(app, 'DepStack');
+  const dependencyVpc = new Vpc(dependencyStack, 'DepVpc');
+
+  const subnets = [
+    Subnet.fromSubnetAttributes(dependencyStack, 'Subnet1', {
+      subnetId: 'SubnetID1',
+      availabilityZone: 'us-west-2a',
+    }),
+    Subnet.fromSubnetAttributes(dependencyStack, 'Subnet2', {
+      subnetId: 'SubnetID2',
+      availabilityZone: 'us-west-2b',
+    }),
+  ];
+  const isolatedStack = new Stack(app, 'IsolatedStack');
+
+  // WHEN
+  new Repository(isolatedStack, 'repositoryInstaller', {
+    vpc: dependencyVpc,
+    version: deadlineVersion,
+    vpcSubnets: {
+      subnets,
+    },
+  });
+
+  // THEN
+  expectCDK(isolatedStack).to(haveResourceLike('AWS::DocDB::DBSubnetGroup', {
+    SubnetIds: [
+      'SubnetID1',
+      'SubnetID2',
+    ],
+  }));
+  expectCDK(isolatedStack).to(haveResourceLike('AWS::EFS::MountTarget', { SubnetId: 'SubnetID1' }));
+  expectCDK(isolatedStack).to(haveResourceLike('AWS::EFS::MountTarget', { SubnetId: 'SubnetID2' }));
+});
+
+test('repository honors database instance count', () => {
+  // GIVEN
+  const instanceCount = 2;
+
+  // WHEN
+  new Repository(stack, 'repositoryInstaller', {
+    vpc,
+    version: deadlineVersion,
+    documentDbInstanceCount: instanceCount,
+  });
+
+  // THEN
+  expectCDK(stack).to(countResourcesLike('AWS::DocDB::DBInstance', instanceCount, {
+    AutoMinorVersionUpgrade: true,
+  }));
 });
 
 test('repository honors database removal policy', () => {
