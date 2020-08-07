@@ -24,6 +24,9 @@ import {
   IPrivateHostedZone,
 } from '@aws-cdk/aws-route53';
 import {
+  IBucket,
+} from '@aws-cdk/aws-s3';
+import {
   ISecret,
 } from '@aws-cdk/aws-secretsmanager';
 import { Duration } from '@aws-cdk/core';
@@ -189,6 +192,26 @@ export interface RenderQueueImages {
 }
 
 /**
+ * Properties for enabling access logs for the Render Queue's load balancer. See
+ * https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html
+ * for more information on what gets logged and how to access them.
+ */
+export interface RenderQueueAccessLogProps {
+  /**
+   * The S3 Bucket that the access logs should be stored in. It is recommended to set a lifecycle rule on
+   * this Bucket to avoid having it grow indefinitely. Costs will be incurred for
+   * requests made to put logs in the Bucket as well as storage.
+   */
+  readonly destinationBucket: IBucket;
+  /**
+   * The prefix to be used for the access logs when they are stored in S3.
+   *
+   * @default None
+   */
+  readonly prefix?: string;
+}
+
+/**
  * Properties for the Render Queue
  */
 export interface RenderQueueProps {
@@ -256,6 +279,15 @@ export interface RenderQueueProps {
    * @default The values outlined in {@link RenderQueueHealthCheckConfiguration}
    */
   readonly healthCheckConfig?: RenderQueueHealthCheckConfiguration;
+
+  /**
+   * Properties for configuring access logging for the load balancer used by the Render
+   * Queue. This is disabled by default, but it is highly recommended to enable it to
+   * allow engineers to identify and root cause incidents such as unauthorized access.
+   *
+   * @default - Access logging is disabled
+   */
+  readonly accessLogs?: RenderQueueAccessLogProps;
 
   /**
    * Properties for setting up the Render Queue's LogGroup

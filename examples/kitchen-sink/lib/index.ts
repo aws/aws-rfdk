@@ -214,6 +214,8 @@ export class KitchenSinkApp extends App {
       signingCertificate: caCert,
     });
 
+    const rqLogBucket = new Bucket(rqStack, 'RQAccessBucket');
+
     /**
      * Create a render queue. This is the service that backs the REST API for clients connecting to the render farm.
      */
@@ -231,7 +233,10 @@ export class KitchenSinkApp extends App {
           rfdkCertificate: rqCertPem,
         },
         internalProtocol: ApplicationProtocol.HTTP,
-      }
+      },
+      accessLogs: {
+        destinationBucket: rqLogBucket,
+      },
     });
 
     // Add the AWS Managed SSM role to the ASG container instances.

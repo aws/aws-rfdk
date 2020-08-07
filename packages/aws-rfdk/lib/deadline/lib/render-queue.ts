@@ -39,6 +39,8 @@ import {
 import {
   IGrantable,
   IPrincipal,
+  PolicyStatement,
+  ServicePrincipal,
 } from '@aws-cdk/aws-iam';
 import {
   ILogGroup,
@@ -353,6 +355,32 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     this.pattern.service.node.addDependency(this.asg);
 
     this.loadBalancer = this.pattern.loadBalancer;
+
+    if (props.accessLogs) {
+      const accessLogsBucket = props.accessLogs.destinationBucket;
+
+      // Policies are applied according to
+      // https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html
+      accessLogsBucket.addToResourcePolicy( new PolicyStatement({
+        actions: ['s3:PutObject'],
+        principals: [new ServicePrincipal('delivery.logs.amazonaws.com')],
+        resources: [`${accessLogsBucket.bucketArn}/*`],
+        conditions: {
+          StringEquals: {
+            's3:x-amz-acl': 'bucket-owner-full-control',
+          },
+        },
+      }));
+      accessLogsBucket.addToResourcePolicy(new PolicyStatement({
+        actions: [ 's3:GetBucketAcl' ],
+        principals: [ new ServicePrincipal('delivery.logs.amazonaws.com')],
+        resources: [ accessLogsBucket.bucketArn ],
+      }));
+
+      this.loadBalancer.logAccessLogs(
+        accessLogsBucket,
+        props.accessLogs.prefix);
+    }
 
     // Ensure tasks are run on separate container instances
     this.pattern.service.addPlacementConstraints(PlacementConstraint.distinctInstances());
