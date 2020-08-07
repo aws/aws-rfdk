@@ -126,19 +126,24 @@ abstract class RenderQueueBase extends Construct implements IRenderQueue {
  * Most Deadline clients will connect to a Deadline render farm via the the RenderQueue. The API provides Deadline
  * clients access to Deadline's database and repository file-system in a way that is secure, performant, and scalable.
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) An ECS cluster
  * 2) An EC2 auto-scaling group that provides the EC2 container instances that host the ECS service
  * 3) An ECS service with a task definition that deploys the RCS container
  * 4) A CloudWatch bucket for streaming logs from the RCS container
  * 5) An application load balancer, listener and target group that balance incoming traffic among the RCS containers
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * - Grants full read permission to the ASG to CDK's assets bucket.
  * - Care must be taken to secure what can connect to the RenderQueue. The RenderQueue does not authenticate API
  *   requests made against it. Users must take responsibility for limiting access to the RenderQueue endpoint to only
  *   trusted hosts. Those hosts should be governed carefully, as malicious software could use the API to
  *   remotely execute code across the entire render farm.
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class RenderQueue extends RenderQueueBase implements IGrantable {
   /**

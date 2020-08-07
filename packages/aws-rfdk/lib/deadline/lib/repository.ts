@@ -310,7 +310,8 @@ export interface RepositoryProps {
  * and the deployment will continue, otherwise the the deployment will be cancelled.
  * In either case the instance will be cleaned up.
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) Encrypted EFS File System - If no IFileSystem is provided;
  * 2) DocumentDB and DatabaseConnection - If no database connection is provided;
  * 3) Auto Scaling Group (ASG) with min & max capacity of 1 instance;
@@ -318,13 +319,17 @@ export interface RepositoryProps {
  * 5) A Script Asset which is uploaded to your deployment bucket to run the installer
  * 6) An aws-rfdk.CloudWatchAgent to configure sending logs to cloudwatch.
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * The instance in the AutoScaling group is given a role with the following permissions:
  * - Read permissions to the bucket containing the S3 Assets
  *
  * The Following Security Group changes are made by this construct:
  * - TCP access to the DocumentDB Cluster over it's default port
  * - TCP access to the Provided File system over it's default port
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class Repository extends Construct implements IRepository {
   /**

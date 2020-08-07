@@ -139,15 +139,20 @@ export interface MongoDbPostInstallSetupProps {
  * 1. Password-authenticated users -- these users will be created within the 'admin' database.
  * 2. X.509-authenticated users -- these users will be created within the '$external' database.
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * - An AWS Lambda that is used to connect to the MongoDB application, and perform post-installation tasks.
  * - A CloudFormation Custom Resource that triggers execution of the Lambda on stack deployment, update, and deletion.
  * - An Amazon CloudWatch log group that records history of the AWS Lambda's execution.
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * - The AWS Lambda function that is created by this resource has access to both the MongoDB administrator credentials,
  * and the MongoDB application port. An attacker that can find a way to execute this lambda could use it to modify or read
  * any data in the database.
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class MongoDbPostInstallSetup extends Construct {
   constructor(scope: Construct, id: string, props: MongoDbPostInstallSetupProps) {

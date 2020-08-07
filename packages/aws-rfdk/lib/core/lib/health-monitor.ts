@@ -254,7 +254,8 @@ abstract class HealthMonitorBase extends Construct implements IHealthMonitor {
  * being sufficiently unhealthy to warrant termination.
  * This lambda is triggered by CloudWatch alarms via SNS (Simple Notification Service).
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) Application Load Balancer(s) doing frequent pings to the workers;
  * 2) KMS Key to encrypt SNS messages - If no encryption key is provided;
  * 3) SNS topic for all unhealthy fleet notifications;
@@ -262,11 +263,15 @@ abstract class HealthMonitorBase extends Construct implements IHealthMonitor {
  * 5) The Alarm if the healthy host percentage if lower than allowed;
  * 4) A single Lambda function that sets fleet size to 0 when triggered.
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * - CloudWatch has permissions to send encrypted messages
  * - CloudWatch has topic publishing permissions
  * - Lambda has permissions to change min, max and desired size
  *   of all ASGs in the account with the specified tag key and value
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class HealthMonitor extends HealthMonitorBase {
 
