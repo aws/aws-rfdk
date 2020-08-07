@@ -138,7 +138,10 @@ export class KitchenSinkApp extends App {
         vpcSubnets: {
           onePerAz: true,
           subnetType: SubnetType.PRIVATE
-        }
+        },
+      },
+      backup: {
+        retention: Duration.days(15),
       },
       /**
        * Default is to retain the DocDB cluster when deleting the stack. Since this is an example app, we will mark

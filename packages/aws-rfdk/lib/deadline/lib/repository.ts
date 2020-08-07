@@ -198,6 +198,21 @@ export interface IRepository extends IConstruct {
 }
 
 /**
+ * Properties for backups of resources that are created by the Repository.
+ */
+export interface RepositoryBackupOptions {
+  /**
+   * If this Repository is creating its own Amazon DocumentDB database, then this specifies the retention period to
+   * use on the database. If the Repository is not creating a DocumentDB database, because one was given,
+   * then this property is ignored.
+   * Please visit https://aws.amazon.com/documentdb/pricing/ to learn more about DocumentDB backup storage pricing.
+   *
+   * @default Duration.days(15)
+   */
+  readonly databaseRetention?: Duration;
+}
+
+/**
  * Properties for the Deadline repository
  */
 export interface RepositoryProps {
@@ -230,7 +245,7 @@ export interface RepositoryProps {
   readonly repositoryInstallationTimeout?: Duration;
 
   /**
-   * Specify the file system where the deadline repository needs to be intialized.
+   * Specify the file system where the deadline repository needs to be initialized.
    *
    * @default An Encrypted EFS File System will be created
    */
@@ -244,7 +259,7 @@ export interface RepositoryProps {
   readonly repositoryInstallationPrefix?: string;
 
   /**
-   * Specify the database where the deadline schema needs to be intialized.
+   * Specify the database where the deadline schema needs to be initialized.
    *
    * @default A Document DB Cluster will be created with a single db.r5.large instance.
    */
@@ -273,14 +288,21 @@ export interface RepositoryProps {
    * @default: Private subnets in the VPC
    */
   readonly vpcSubnets?: SubnetSelection;
+
+  /**
+   * Define the backup options for the resources that this Repository creates.
+   *
+   * @default Duration.days(15) for the database
+   */
+  readonly backupOptions?: RepositoryBackupOptions;
 }
 
 /**
- * This construct reperesents the main Deadline Repository which contains the central database and file system
+ * This construct represents the main Deadline Repository which contains the central database and file system
  * that Deadline requires.
  *
  * When deployed this construct will start up a single instance which will run the Deadline Repository installer to
- * initialize the file system and database, the logs of which will thenbe  forwarded to Cloudwatch via a CloudWatchAgent.
+ * initialize the file system and database, the logs of which will be forwarded to Cloudwatch via a CloudWatchAgent.
  * After the installation is complete the instance will be shutdown.
  *
  * Whenever the stack is updated if a change is detected in the installer a new instance will be started, which will perform
@@ -337,6 +359,11 @@ export class Repository extends Construct implements IRepository {
   private static DEFAULT_NUM_DOCDB_INSTANCES: number = 1;
 
   /**
+   * Default retention period for DocumentDB automated backups if one isn't provided in the props.
+   */
+  private static DEFAULT_DATABASE_RETENTION_PERIOD: Duration = Duration.days(15);
+
+  /**
    * @inheritdoc
    */
   public readonly rootPrefix: string;
@@ -364,6 +391,10 @@ export class Repository extends Construct implements IRepository {
   constructor(scope: Construct, id: string, props: RepositoryProps) {
     super(scope, id);
 
+    if (props.database && props.backupOptions?.databaseRetention) {
+      this.node.addWarning('Backup retention for database will not be applied since a database is not being created by this construct');
+    }
+
     this.version = props.version;
 
     // Set up the Filesystem and Database components of the repository
@@ -388,6 +419,9 @@ export class Repository extends Construct implements IRepository {
           vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
         },
         instances,
+        backup: {
+          retention: props.backupOptions?.databaseRetention ?? Repository.DEFAULT_DATABASE_RETENTION_PERIOD,
+        },
         removalPolicy: props.databaseRemovalPolicy ?? RemovalPolicy.RETAIN,
       });
       /* istanbul ignore next */
