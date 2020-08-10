@@ -21,6 +21,7 @@ import {
   InstanceType,
   IVpc,
   MachineImage,
+  Subnet,
   SubnetType,
   Vpc,
   WindowsVersion,
@@ -32,6 +33,7 @@ import {
   Bucket,
 } from '@aws-cdk/aws-s3';
 import {
+  App,
   Duration,
   RemovalPolicy,
   Stack,
@@ -388,6 +390,9 @@ test('repository creates deadlineDatabase if none provided', () => {
   expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBCluster', {
     EnableCloudwatchLogsExports: [ 'audit' ],
   }, ResourcePart.Properties));
+  expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBInstance', {
+    AutoMinorVersionUpgrade: true,
+  }));
 });
 
 test('audit log is disabled when it required', () => {
@@ -413,6 +418,61 @@ test('audit log is disabled when it required', () => {
   }, ResourcePart.Properties));
 });
 
+test('honors subnet specification', () => {
+  // GIVEN
+  const app = new App();
+  const dependencyStack = new Stack(app, 'DepStack');
+  const dependencyVpc = new Vpc(dependencyStack, 'DepVpc');
+
+  const subnets = [
+    Subnet.fromSubnetAttributes(dependencyStack, 'Subnet1', {
+      subnetId: 'SubnetID1',
+      availabilityZone: 'us-west-2a',
+    }),
+    Subnet.fromSubnetAttributes(dependencyStack, 'Subnet2', {
+      subnetId: 'SubnetID2',
+      availabilityZone: 'us-west-2b',
+    }),
+  ];
+  const isolatedStack = new Stack(app, 'IsolatedStack');
+
+  // WHEN
+  new Repository(isolatedStack, 'repositoryInstaller', {
+    vpc: dependencyVpc,
+    version: deadlineVersion,
+    vpcSubnets: {
+      subnets,
+    },
+  });
+
+  // THEN
+  expectCDK(isolatedStack).to(haveResourceLike('AWS::DocDB::DBSubnetGroup', {
+    SubnetIds: [
+      'SubnetID1',
+      'SubnetID2',
+    ],
+  }));
+  expectCDK(isolatedStack).to(haveResourceLike('AWS::EFS::MountTarget', { SubnetId: 'SubnetID1' }));
+  expectCDK(isolatedStack).to(haveResourceLike('AWS::EFS::MountTarget', { SubnetId: 'SubnetID2' }));
+});
+
+test('repository honors database instance count', () => {
+  // GIVEN
+  const instanceCount = 2;
+
+  // WHEN
+  new Repository(stack, 'repositoryInstaller', {
+    vpc,
+    version: deadlineVersion,
+    documentDbInstanceCount: instanceCount,
+  });
+
+  // THEN
+  expectCDK(stack).to(countResourcesLike('AWS::DocDB::DBInstance', instanceCount, {
+    AutoMinorVersionUpgrade: true,
+  }));
+});
+
 test('repository honors database removal policy', () => {
   // WHEN
   new Repository(stack, 'repositoryInstaller', {
@@ -425,6 +485,65 @@ test('repository honors database removal policy', () => {
   expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBCluster', {
     DeletionPolicy: 'Delete',
   }, ResourcePart.CompleteDefinition));
+});
+
+test('repository honors database retention period', () => {
+  // GIVEN
+  const period = 20;
+
+  // WHEN
+  new Repository(stack, 'repositoryInstaller', {
+    vpc,
+    version: deadlineVersion,
+    backupOptions: {
+      databaseRetention: Duration.days(period),
+    },
+  });
+
+  // THEN
+  expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBCluster', {
+    BackupRetentionPeriod: period,
+  }));
+});
+
+test('warns if both retention period and database provided', () => {
+  // GIVEN
+  const fsDatabase = new DatabaseCluster(stack, 'TestDbCluster', {
+    masterUser: {
+      username: 'master',
+    },
+    instanceProps: {
+      instanceType: InstanceType.of(
+        InstanceClass.R4,
+        InstanceSize.LARGE,
+      ),
+      vpc,
+      vpcSubnets: {
+        onePerAz: true,
+        subnetType: SubnetType.PRIVATE,
+      },
+    },
+  });
+
+  // WHEN
+  const repo = new Repository(stack, 'repositoryInstaller', {
+    vpc,
+    database: DatabaseConnection.forDocDB({ database: fsDatabase, login: fsDatabase.secret! }),
+    version: deadlineVersion,
+    backupOptions: {
+      databaseRetention: Duration.days(20),
+    },
+  });
+
+  // THEN
+  expect(repo.node.metadata).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        type: 'aws:cdk:warning',
+        data: 'Backup retention for database will not be applied since a database is not being created by this construct',
+      }),
+    ]),
+  );
 });
 
 test('repository creates filesystem if none provided', () => {
@@ -443,6 +562,9 @@ test('repository creates filesystem if none provided', () => {
         onePerAz: true,
         subnetType: SubnetType.PRIVATE,
       },
+    },
+    backup: {
+      retention: Duration.days(15),
     },
   });
 

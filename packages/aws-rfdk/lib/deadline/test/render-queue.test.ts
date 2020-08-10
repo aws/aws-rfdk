@@ -11,6 +11,8 @@ import {
   haveResource,
   haveResourceLike,
   objectLike,
+  ResourcePart,
+  countResourcesLike,
 } from '@aws-cdk/assert';
 import {
   Certificate,
@@ -40,6 +42,9 @@ import {
 import {
   PrivateHostedZone,
 } from '@aws-cdk/aws-route53';
+import {
+  Bucket,
+} from '@aws-cdk/aws-s3';
 import { Secret } from '@aws-cdk/aws-secretsmanager';
 import {
   App,
@@ -77,6 +82,8 @@ describe('RenderQueue', () => {
   let repository: Repository;
   let version: IVersion;
 
+  let renderQueueCommon: RenderQueue;
+
   // GIVEN
   beforeEach(() => {
     app = new App();
@@ -97,7 +104,7 @@ describe('RenderQueue', () => {
     images = {
       remoteConnectionServer: rcsImage,
     };
-    new RenderQueue(stack, 'RenderQueueCommon', {
+    renderQueueCommon = new RenderQueue(stack, 'RenderQueueCommon', {
       images,
       repository,
       version,
@@ -122,6 +129,19 @@ describe('RenderQueue', () => {
   test('creates task definition', () => {
     // THEN
     expectCDK(stack).to(haveResource('AWS::ECS::TaskDefinition'));
+  });
+
+  test('creates load balancer with default values', () => {
+    // THEN
+    expectCDK(stack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 1, {
+      LoadBalancerAttributes: [
+        {
+          Key: 'deletion_protection.enabled',
+          Value: 'true',
+        },
+      ],
+      Scheme: 'internal',
+    }));
   });
 
   test('creates a log group with default prefix of "/renderfarm/"', () => {
@@ -217,6 +237,29 @@ describe('RenderQueue', () => {
         }),
       ],
     }));
+  });
+
+  test('child dependencies added', () => {
+    // GIVEN
+    const host = new Instance(stack, 'Host', {
+      vpc,
+      instanceType: InstanceType.of(
+        InstanceClass.R4,
+        InstanceSize.LARGE,
+      ),
+      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+    });
+
+    // WHEN
+    renderQueueCommon.addChildDependency(host);
+
+    // THEN
+    expectCDK(stack).to(haveResourceLike('AWS::EC2::Instance', {
+      DependsOn: arrayWith(
+        'RenderQueueCommonLBPublicListener935F5635',
+        'RenderQueueCommonRCSTask2A4D5EA5',
+      ),
+    }, ResourcePart.CompleteDefinition));
   });
 
   describe('renderQueueSize.min', () => {
@@ -908,6 +951,13 @@ describe('RenderQueue', () => {
             ],
           },
         }));
+
+        expectCDK(isolatedStack).to(haveResourceLike('AWS::EC2::Instance', {
+          DependsOn: arrayWith(
+            'RenderQueueLBPublicListenerBBF15D5F',
+            'RenderQueueRCSTaskA9AE70D3',
+          ),
+        }, ResourcePart.CompleteDefinition));
       });
 
       test('Linux Instance can connect', () => {
@@ -1032,7 +1082,7 @@ describe('RenderQueue', () => {
               '" --render-queue "http://',
               {
                 'Fn::GetAtt': [
-                  'RenderQueueAlbEc2ServicePatternLB57F38E61',
+                  'RenderQueueLB235D35F4',
                   'DNSName',
                 ],
               },
@@ -1079,6 +1129,13 @@ describe('RenderQueue', () => {
             ],
           },
         }));
+
+        expectCDK(isolatedStack).to(haveResourceLike('AWS::EC2::Instance', {
+          DependsOn: arrayWith(
+            'RenderQueueLBPublicListenerBBF15D5F',
+            'RenderQueueRCSTaskA9AE70D3',
+          ),
+        }, ResourcePart.CompleteDefinition));
       });
 
       test('Windows Instance can connect', () => {
@@ -1203,7 +1260,7 @@ describe('RenderQueue', () => {
               '" --render-queue "http://',
               {
                 'Fn::GetAtt': [
-                  'RenderQueueAlbEc2ServicePatternLB57F38E61',
+                  'RenderQueueLB235D35F4',
                   'DNSName',
                 ],
               },
@@ -1253,6 +1310,13 @@ describe('RenderQueue', () => {
             ],
           },
         }));
+
+        expectCDK(isolatedStack).to(haveResourceLike('AWS::EC2::Instance', {
+          DependsOn: arrayWith(
+            'RenderQueueLBPublicListenerBBF15D5F',
+            'RenderQueueRCSTaskA9AE70D3',
+          ),
+        }, ResourcePart.CompleteDefinition));
       });
     });
 
@@ -1447,7 +1511,7 @@ describe('RenderQueue', () => {
               '" --render-queue "https://',
               {
                 'Fn::GetAtt': [
-                  'RenderQueueAlbEc2ServicePatternLB57F38E61',
+                  'RenderQueueLB235D35F4',
                   'DNSName',
                 ],
               },
@@ -1618,7 +1682,7 @@ describe('RenderQueue', () => {
               '" --render-queue "https://',
               {
                 'Fn::GetAtt': [
-                  'RenderQueueAlbEc2ServicePatternLB57F38E61',
+                  'RenderQueueLB235D35F4',
                   'DNSName',
                 ],
               },
@@ -1726,6 +1790,28 @@ describe('RenderQueue', () => {
     }));
   });
 
+  test('no deletion protection', () => {
+    // GIVEN
+    const props: RenderQueueProps = {
+      images,
+      repository,
+      version,
+      vpc,
+      deletionProtection: false,
+    };
+    const isolatedStack = new Stack(app, 'IsolatedStack');
+
+    // WHEN
+    new RenderQueue(isolatedStack, 'RenderQueue', props);
+
+    // THEN
+    expectCDK(isolatedStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+      LoadBalancerAttributes: ABSENT,
+      Scheme: 'internal',
+      Type: 'application',
+    }));
+  });
+
   describe('hostname', () => {
     // GIVEN
     const zoneName = 'mydomain.local';
@@ -1830,6 +1916,289 @@ describe('RenderQueue', () => {
 
       // THEN
       expect(when).toThrow(/Invalid RenderQueue hostname/);
+    });
+  });
+
+  describe('Access Logs', () => {
+    let isolatedStack: Stack;
+    let isolatedVpc: Vpc;
+    let isolatedRepository: Repository;
+    let isolatedVersion: IVersion;
+    let isolatedimages: RenderQueueImages;
+
+    let accessBucket: Bucket;
+
+    beforeEach(() => {
+      // GIVEN
+      isolatedStack = new Stack(app, 'IsolatedStack', {
+        env: {
+          region: 'us-east-1',
+        },
+      });
+      isolatedVpc = new Vpc(isolatedStack, 'Vpc');
+      isolatedVersion = VersionQuery.exact(isolatedStack, 'Version', {
+        majorVersion: 10,
+        minorVersion: 1,
+        releaseVersion: 9,
+        patchVersion: 1,
+      });
+
+      isolatedRepository = new Repository(isolatedStack, 'Repo', {
+        version: isolatedVersion,
+        vpc: isolatedVpc,
+      });
+
+      isolatedimages = {
+        remoteConnectionServer: rcsImage,
+      };
+
+      accessBucket = new Bucket(isolatedStack, 'AccessBucket');
+
+    });
+
+    test('enabling access logs sets attributes and policies', () => {
+      // GIVEN
+      const props: RenderQueueProps = {
+        images: isolatedimages,
+        repository: isolatedRepository,
+        version: isolatedVersion,
+        vpc: isolatedVpc,
+        accessLogs: {
+          destinationBucket: accessBucket,
+        },
+      };
+
+      // WHEN
+      new RenderQueue(isolatedStack, 'RenderQueue', props);
+
+      // THEN
+      expectCDK(isolatedStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+        LoadBalancerAttributes: arrayWith(
+          {
+            Key: 'access_logs.s3.enabled',
+            Value: 'true',
+          },
+          {
+            Key: 'access_logs.s3.bucket',
+            Value: {
+              Ref: 'AccessBucketE2803D76',
+            },
+          },
+        ),
+      }));
+
+      expectCDK(isolatedStack).to(haveResourceLike('AWS::S3::BucketPolicy', {
+        Bucket: {
+          Ref: 'AccessBucketE2803D76',
+        },
+        PolicyDocument: {
+          Statement: arrayWith(
+            {
+              Action: 's3:PutObject',
+              Condition: {
+                StringEquals: {
+                  's3:x-amz-acl': 'bucket-owner-full-control',
+                },
+              },
+              Effect: 'Allow',
+              Principal: {
+                Service: 'delivery.logs.amazonaws.com',
+              },
+              Resource: {
+                'Fn::Join': [
+                  '',
+                  [
+                    {
+                      'Fn::GetAtt': [
+                        'AccessBucketE2803D76',
+                        'Arn',
+                      ],
+                    },
+                    '/*',
+                  ],
+                ],
+              },
+            },
+            {
+              Action: 's3:GetBucketAcl',
+              Effect: 'Allow',
+              Principal: {
+                Service: 'delivery.logs.amazonaws.com',
+              },
+              Resource: {
+                'Fn::GetAtt': [
+                  'AccessBucketE2803D76',
+                  'Arn',
+                ],
+              },
+            },
+            {
+              Action: [
+                's3:PutObject*',
+                's3:Abort*',
+              ],
+              Effect: 'Allow',
+              Principal: {
+                AWS: {
+                  'Fn::Join': [
+                    '',
+                    [
+                      'arn:',
+                      {
+                        Ref: 'AWS::Partition',
+                      },
+                      ':iam::127311923021:root',
+                    ],
+                  ],
+                },
+              },
+              Resource: {
+                'Fn::Join': [
+                  '',
+                  [
+                    {
+                      'Fn::GetAtt': [
+                        'AccessBucketE2803D76',
+                        'Arn',
+                      ],
+                    },
+                    '/AWSLogs/',
+                    {
+                      Ref: 'AWS::AccountId',
+                    },
+                    '/*',
+                  ],
+                ],
+              },
+            },
+          ),
+        },
+      }));
+    });
+
+    test('enabling access logs works with prefix', () => {
+      // GIVEN
+      const props: RenderQueueProps = {
+        images: isolatedimages,
+        repository: isolatedRepository,
+        version: isolatedVersion,
+        vpc: isolatedVpc,
+        accessLogs: {
+          destinationBucket: accessBucket,
+          prefix: 'PREFIX_STRING',
+        },
+      };
+
+      // WHEN
+      new RenderQueue(isolatedStack, 'RenderQueue', props);
+
+      // THEN
+      expectCDK(isolatedStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+        LoadBalancerAttributes: arrayWith(
+          {
+            Key: 'access_logs.s3.enabled',
+            Value: 'true',
+          },
+          {
+            Key: 'access_logs.s3.bucket',
+            Value: {
+              Ref: 'AccessBucketE2803D76',
+            },
+          },
+          {
+            Key: 'access_logs.s3.prefix',
+            Value: 'PREFIX_STRING',
+          },
+        ),
+      }));
+
+      expectCDK(isolatedStack).to(haveResourceLike('AWS::S3::BucketPolicy', {
+        Bucket: {
+          Ref: 'AccessBucketE2803D76',
+        },
+        PolicyDocument: {
+          Statement: arrayWith(
+            {
+              Action: 's3:PutObject',
+              Condition: {
+                StringEquals: {
+                  's3:x-amz-acl': 'bucket-owner-full-control',
+                },
+              },
+              Effect: 'Allow',
+              Principal: {
+                Service: 'delivery.logs.amazonaws.com',
+              },
+              Resource: {
+                'Fn::Join': [
+                  '',
+                  [
+                    {
+                      'Fn::GetAtt': [
+                        'AccessBucketE2803D76',
+                        'Arn',
+                      ],
+                    },
+                    '/*',
+                  ],
+                ],
+              },
+            },
+            {
+              Action: 's3:GetBucketAcl',
+              Effect: 'Allow',
+              Principal: {
+                Service: 'delivery.logs.amazonaws.com',
+              },
+              Resource: {
+                'Fn::GetAtt': [
+                  'AccessBucketE2803D76',
+                  'Arn',
+                ],
+              },
+            },
+            {
+              Action: [
+                's3:PutObject*',
+                's3:Abort*',
+              ],
+              Effect: 'Allow',
+              Principal: {
+                AWS: {
+                  'Fn::Join': [
+                    '',
+                    [
+                      'arn:',
+                      {
+                        Ref: 'AWS::Partition',
+                      },
+                      ':iam::127311923021:root',
+                    ],
+                  ],
+                },
+              },
+              Resource: {
+                'Fn::Join': [
+                  '',
+                  [
+                    {
+                      'Fn::GetAtt': [
+                        'AccessBucketE2803D76',
+                        'Arn',
+                      ],
+                    },
+                    '/PREFIX_STRING/AWSLogs/',
+                    {
+                      Ref: 'AWS::AccountId',
+                    },
+                    '/*',
+                  ],
+                ],
+              },
+            },
+          ),
+        },
+      }));
     });
   });
 });

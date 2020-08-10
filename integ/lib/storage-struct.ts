@@ -53,6 +53,9 @@ export class StorageStruct extends Construct {
         masterUser: {
           username: 'DocDBUser',
         },
+        backup: {
+          retention: Duration.days(15),
+        },
         removalPolicy: RemovalPolicy.DESTROY,
       });
       deadlineDatabaseConnection = DatabaseConnection.forDocDB({

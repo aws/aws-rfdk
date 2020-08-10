@@ -298,16 +298,21 @@ export interface IMongoDb extends IConnectable, IConstruct {
  * The instance's launch logs and MongoDB logs will be automatically stored in Amazon CloudWatch logs; the
  * default log group name is: /renderfarm/<this construct ID>
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * - {@link StaticPrivateIpServer} that hosts MongoDB.
  * - An A Record in the provided PrivateHostedZone to create a DNS entry for this server's static private IP.
  * - A Secret containing the administrator credentials for MongoDB.
  * - An encrypted EBS Volume on which the MongoDB data is stored.
  * - Amazon CloudWatch log group that contains instance-launch and MongoDB application logs.
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * - The administrator credentials for MongoDB are stored in a Secret within AWS SecretsManager; you must limit access to this secret.
  * - Any risk present in {@link StaticPrivateIpServer} and {@link MongoDbInstaller}.
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class MongoDbInstance extends Construct implements IMongoDb, IGrantable {
   // How often Cloudwatch logs will be flushed.

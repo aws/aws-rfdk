@@ -30,6 +30,7 @@ import {
   ApplicationLoadBalancedEc2Service,
 } from '@aws-cdk/aws-ecs-patterns';
 import {
+  ApplicationListener,
   ApplicationLoadBalancer,
   ApplicationProtocol,
   ApplicationTargetGroup,
@@ -38,6 +39,8 @@ import {
 import {
   IGrantable,
   IPrincipal,
+  PolicyStatement,
+  ServicePrincipal,
 } from '@aws-cdk/aws-iam';
 import {
   ILogGroup,
@@ -123,19 +126,24 @@ abstract class RenderQueueBase extends Construct implements IRenderQueue {
  * Most Deadline clients will connect to a Deadline render farm via the the RenderQueue. The API provides Deadline
  * clients access to Deadline's database and repository file-system in a way that is secure, performant, and scalable.
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) An ECS cluster
  * 2) An EC2 auto-scaling group that provides the EC2 container instances that host the ECS service
  * 3) An ECS service with a task definition that deploys the RCS container
  * 4) A CloudWatch bucket for streaming logs from the RCS container
  * 5) An application load balancer, listener and target group that balance incoming traffic among the RCS containers
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * - Grants full read permission to the ASG to CDK's assets bucket.
  * - Care must be taken to secure what can connect to the RenderQueue. The RenderQueue does not authenticate API
  *   requests made against it. Users must take responsibility for limiting access to the RenderQueue endpoint to only
  *   trusted hosts. Those hosts should be governed carefully, as malicious software could use the API to
  *   remotely execute code across the entire render farm.
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class RenderQueue extends RenderQueueBase implements IGrantable {
   /**
@@ -206,6 +214,16 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    * The secret containing the cert chain for external connections.
    */
   private readonly certChain?: ISecret;
+
+  /**
+   * The listener on the ALB that is redirecting traffic to the RCS.
+   */
+  private readonly listener: ApplicationListener;
+
+  /**
+   * The ECS task for the RCS.
+   */
+  private readonly taskDefinition: Ec2TaskDefinition;
 
   constructor(scope: Construct, id: string, props: RenderQueueProps) {
     super(scope, id);
@@ -295,6 +313,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       protocol: internalProtocol,
       repository: props.repository,
     });
+    this.taskDefinition = taskDefinition;
 
     // The fully-qualified domain name to use for the ALB
     let loadBalancerFQDN: string | undefined;
@@ -306,6 +325,12 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       loadBalancerFQDN = `${label}.${props.hostname.zone.zoneName}`;
     }
 
+    const loadBalancer = new ApplicationLoadBalancer(this, 'LB', {
+      vpc: this.cluster.vpc,
+      internetFacing: false,
+      deletionProtection: props.deletionProtection ?? true,
+    });
+
     this.pattern = new ApplicationLoadBalancedEc2Service(this, 'AlbEc2ServicePattern', {
       certificate: this.clientCert,
       cluster: this.cluster,
@@ -313,7 +338,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       domainZone: props.hostname?.zone,
       domainName: loadBalancerFQDN,
       listenerPort: externalPortNumber,
-      publicLoadBalancer: false,
+      loadBalancer,
       protocol: externalProtocol,
       taskDefinition,
       // This is required to right-size our host capacity and not have the ECS service block on updates. We set a memory
@@ -336,6 +361,32 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
 
     this.loadBalancer = this.pattern.loadBalancer;
 
+    if (props.accessLogs) {
+      const accessLogsBucket = props.accessLogs.destinationBucket;
+
+      // Policies are applied according to
+      // https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html
+      accessLogsBucket.addToResourcePolicy( new PolicyStatement({
+        actions: ['s3:PutObject'],
+        principals: [new ServicePrincipal('delivery.logs.amazonaws.com')],
+        resources: [`${accessLogsBucket.bucketArn}/*`],
+        conditions: {
+          StringEquals: {
+            's3:x-amz-acl': 'bucket-owner-full-control',
+          },
+        },
+      }));
+      accessLogsBucket.addToResourcePolicy(new PolicyStatement({
+        actions: [ 's3:GetBucketAcl' ],
+        principals: [ new ServicePrincipal('delivery.logs.amazonaws.com')],
+        resources: [ accessLogsBucket.bucketArn ],
+      }));
+
+      this.loadBalancer.logAccessLogs(
+        accessLogsBucket,
+        props.accessLogs.prefix);
+    }
+
     // Ensure tasks are run on separate container instances
     this.pattern.service.addPlacementConstraints(PlacementConstraint.distinctInstances());
 
@@ -344,6 +395,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
      * validation, but at least traffic is encrypted and terminated at the application layer.
      */
     const listener = this.loadBalancer.node.findChild('PublicListener');
+    this.listener = listener as ApplicationListener;
     const targetGroup = listener.node.findChild('ECSGroup') as ApplicationTargetGroup;
     const targetGroupResource = targetGroup.node.defaultChild as CfnTargetGroup;
     targetGroupResource.protocol = ApplicationProtocol[internalProtocol];
@@ -374,12 +426,14 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       });
     }
 
+    this.node.defaultChild = taskDefinition;
   }
 
   /**
    * @inheritdoc
    */
   public configureClientECS(param: ECSConnectOptions): { [name: string]: string } {
+    param.hosts.forEach( host => this.addChildDependency(host) );
     return this.rqConnection.configureClientECS(param);
   }
 
@@ -387,7 +441,24 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    * @inheritdoc
    */
   public configureClientInstance(param: InstanceConnectOptions): void {
+    this.addChildDependency(param.host);
     this.rqConnection.configureClientInstance(param);
+  }
+
+  /**
+   * Add an ordering dependency to another Construct.
+   *
+   * All constructs in the child's scope will be deployed after the RenderQueue has been deployed and is ready to recieve traffic.
+   *
+   * This can be used to ensure that the RenderQueue is fully up and serving queries before a client attempts to connect to it.
+   *
+   * @param child The child to make dependent upon this RenderQueue.
+   */
+  public addChildDependency(child: IConstruct): void {
+    // Narrowly define the dependencies to reduce the probability of cycles
+    // ex: cycles that involve the security group of the RenderQueue & child.
+    child.node.addDependency(this.listener);
+    child.node.addDependency(this.taskDefinition);
   }
 
   private createTaskDefinition(props: {

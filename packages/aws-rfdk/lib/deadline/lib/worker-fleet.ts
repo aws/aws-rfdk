@@ -6,7 +6,7 @@
 import * as path from 'path';
 import {
   AutoScalingGroup,
-  BlockDeviceVolume,
+  BlockDevice,
   CfnAutoScalingGroup,
   HealthCheck,
 } from '@aws-cdk/aws-autoscaling';
@@ -36,8 +36,6 @@ import {
   Construct,
   Duration,
   IResource,
-  Size,
-  SizeRoundingBehavior,
   Stack,
 } from '@aws-cdk/core';
 import {
@@ -197,11 +195,11 @@ export interface WorkerInstanceFleetProps {
   readonly spotPrice?: number;
 
   /*
-   * The block device volume size, in Gibibytes (GiB)
+   * The Block devices that will be attached to your workers.
    *
-   * @default 50 GiB
+   * @default The default devices of the provided ami will be used.
    */
-  readonly blockDeviceVolumeSize?: Size
+  readonly blockDevices?: BlockDevice[];
 }
 
 /**
@@ -274,18 +272,23 @@ abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet
  * When the worker fleet is deployed if it has been provided a HealthMonitor the Worker fleet will register itself against the Monitor
  * to ensure that the fleet remains healthy.
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) An AutoScalingGroup to maintain the number of instances;
  * 2) An Instance Role and corresponding IAM Policy;
  * 3) A script asset which is uploaded to your deployment bucket used to configure the worker so it can connect to the Render Queue
  * 4) An aws-rfdk.CloudWatchAgent to configure sending logs to cloudwatch.
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * The instance in the AutoScaling group is given a role with the following permissions:
  * - Read permissions to the bucket containing the S3 Assets
  *
  * The Following Security Group changes are made by this construct:
  * - TCP access to the Render Queue's Load Balancer
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
 
@@ -397,10 +400,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
       }),
       role: props.role,
       spotPrice: props.spotPrice?.toString(),
-      blockDevices: [ {
-        deviceName: '/dev/xvda',
-        volume: BlockDeviceVolume.ebs( props.blockDeviceVolumeSize?.toGibibytes({ rounding: SizeRoundingBehavior.FAIL }) ?? 50, {encrypted: true}),
-      }],
+      blockDevices: props.blockDevices,
     });
 
     this.targetCapacity = parseInt((this.fleet.node.defaultChild as CfnAutoScalingGroup).maxSize, 10);
@@ -534,6 +534,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
     this.validateArrayGroupsPoolsSyntax(props.groups, /^(?!none$)[a-zA-Z0-9-_]+$/i, 'groups');
     this.validateArrayGroupsPoolsSyntax(props.pools, /^(?!none$)[a-zA-Z0-9-_]+$/i, 'pools');
     this.validateRegion(props.region, /^(?!none$|all$|unrecognized$)[a-zA-Z0-9-_]+$/i);
+    this.validateBlockDevices(props.blockDevices);
   }
 
   private validateSpotPrice(spotPrice: number | undefined) {
@@ -553,6 +554,27 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
       array.forEach(value => {
         if (!regex.test(value)) {
           throw new Error(`Invalid value: ${value} for property '${property}'. Valid characters are A-Z, a-z, 0-9, - and _. Also, group 'none' is reserved as the default group.`);
+        }
+      });
+    }
+  }
+
+  private validateBlockDevices(blockDevices: BlockDevice[] | undefined) {
+    if (blockDevices === undefined) {
+      this.node.addWarning(`The worker-fleet ${this.node.id} is being created without being provided any block devices so the Source AMI's devices will be used. ` +
+        'Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
+    } else {
+      blockDevices.forEach(device => {
+        if (device.volume.ebsDevice === undefined) {
+          // Suppressed or Ephemeral Block Device
+          return;
+        }
+
+        // encrypted is not exposed as part of ebsDeviceProps so we need to confirm it exists then access it via [].
+        // eslint-disable-next-line dot-notation
+        if ( ('encrypted' in device.volume.ebsDevice === false) || ('encrypted' in device.volume.ebsDevice && !device.volume.ebsDevice['encrypted'] ) ) {
+          this.node.addWarning(`The BlockDevice "${device.deviceName}" on the worker-fleet ${this.node.id} is not encrypted. ` +
+              'Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.');
         }
       });
     }

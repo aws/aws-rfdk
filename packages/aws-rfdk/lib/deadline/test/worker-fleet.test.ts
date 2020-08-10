@@ -3,7 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {ABSENT, expect as expectCDK, haveResource, haveResourceLike} from '@aws-cdk/assert';
+import {
+  ABSENT,
+  expect as expectCDK,
+  haveResource,
+  haveResourceLike,
+} from '@aws-cdk/assert';
+import {
+  BlockDeviceVolume,
+} from '@aws-cdk/aws-autoscaling';
 import {
   GenericLinuxImage,
   GenericWindowsImage,
@@ -20,7 +28,14 @@ import {
   ContainerImage,
 } from '@aws-cdk/aws-ecs';
 import {ArtifactMetadataEntryType} from '@aws-cdk/cloud-assembly-schema';
-import {App, CfnElement, Size, Stack} from '@aws-cdk/core';
+import {
+  App,
+  CfnElement,
+  Stack,
+} from '@aws-cdk/core';
+import {
+  HealthMonitor,
+} from '../../core/lib';
 import {
   IRenderQueue,
   RenderQueue,
@@ -98,7 +113,7 @@ test('default worker fleet is created correctly', () => {
       ],
     },
     GroupId: {
-      'Fn::ImportValue': 'infraStack:ExportsOutputFnGetAttRQAlbEc2ServicePatternLBSecurityGroupCA2B91D3GroupId1AAC6AC8',
+      'Fn::ImportValue': 'infraStack:ExportsOutputFnGetAttRQLBSecurityGroupAC643AEDGroupId8F9F7830',
     },
   }));
   expectCDK(wfstack).to(haveResource('Custom::LogRetention', {
@@ -106,7 +121,9 @@ test('default worker fleet is created correctly', () => {
     LogGroupName: '/renderfarm/workerFleet',
   }));
   expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-  expect(fleet.node.metadata[0].data).toContain('being created without a health monitor attached to it. This means that the fleet will not automatically scale-in to 0 if the workers are unhealthy');
+  expect(fleet.node.metadata[0].data).toMatch('being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
+  expect(fleet.node.metadata[1].type).toMatch(ArtifactMetadataEntryType.WARN);
+  expect(fleet.node.metadata[1].data).toContain('being created without a health monitor attached to it. This means that the fleet will not automatically scale-in to 0 if the workers are unhealthy');
 });
 
 test('security group is added to fleet after its creation', () => {
@@ -486,7 +503,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
         '" --render-queue "http://',
         {
           'Fn::GetAtt': [
-            'RQAlbEc2ServicePatternLB29395F99',
+            'RQLB3B7B1CBC',
             'DNSName',
           ],
         },
@@ -886,7 +903,7 @@ test('default worker fleet is created correctly with groups, pools and region', 
       '" --render-queue "http://',
       {
         'Fn::GetAtt': [
-          'RQAlbEc2ServicePatternLB29395F99',
+          'RQLB3B7B1CBC',
           'DNSName',
         ],
       },
@@ -1165,49 +1182,184 @@ test('worker fleet does validation correctly with groups, pools and region', () 
     });
   }).toThrowError(/Invalid value: None for property 'region'/);
 });
+describe('Block Device Tests', () => {
+  let healthMonitor: HealthMonitor;
 
-test('worker fleet is created correctly with the specified encrypted EBS block device size', () => {
-  vpc = new Vpc(stack, 'VPC1Az', {
-    maxAzs: 1,
-  });
-
-  // WHEN
-  const gibibytes = 123;
-  new WorkerInstanceFleet(stack, 'workerFleet', {
-    vpc,
-    workerMachineImage: new GenericLinuxImage({
-      'us-east-1': '123',
-    }),
-    renderQueue,
-    blockDeviceVolumeSize: Size.gibibytes(gibibytes),
-  });
-
-  // THEN
-  expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
-    BlockDeviceMappings: [
-      {
-        Ebs: {
-          Encrypted: true,
-          VolumeSize: gibibytes,
-        },
-      },
-    ],
-  }));
-});
-
-test('worker fleet creation fails when the specified EBS block device size must be rounded', () => {
-  vpc = new Vpc(stack, 'VPC1Az', {
-    maxAzs: 1,
-  });
-
-  expect(() => {
-    new WorkerInstanceFleet(stack, 'workerFleet', {
+  beforeEach(() => {
+    // create a health monitor so it does not trigger warnings
+    healthMonitor = new HealthMonitor(wfstack,'healthMonitor', {
       vpc,
-      workerMachineImage: new GenericLinuxImage({
-        'us-east-1': '123',
+    });
+  });
+
+  test('Warning if no BlockDevices provided', () => {
+    const fleet = new WorkerInstanceFleet(wfstack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
       }),
       renderQueue,
-      blockDeviceVolumeSize: Size.kibibytes(1),
+      healthMonitor,
     });
-  }).toThrowError(/'[0-9]+ .*bytes' cannot be converted into a whole number of gibibytes./);
+    expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+    expect(fleet.node.metadata[0].data).toMatch('being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
+  });
+
+  test('No Warnings if Encrypted BlockDevices Provided', () => {
+    const VOLUME_SIZE = 50;
+
+    // WHEN
+    const fleet = new WorkerInstanceFleet(wfstack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
+      }),
+      renderQueue,
+      healthMonitor,
+      blockDevices: [ {
+        deviceName: '/dev/xvda',
+        volume: BlockDeviceVolume.ebs( VOLUME_SIZE, {encrypted: true}),
+      }],
+    });
+
+    //THEN
+    expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+      BlockDeviceMappings: [
+        {
+          Ebs: {
+            Encrypted: true,
+            VolumeSize: VOLUME_SIZE,
+          },
+        },
+      ],
+    }));
+
+    expect(fleet.node.metadata).toHaveLength(0);
+  });
+
+  test('Warnings if non-Encrypted BlockDevices Provided', () => {
+    const VOLUME_SIZE = 50;
+    const DEVICE_NAME = '/dev/xvda';
+
+    // WHEN
+    const fleet = new WorkerInstanceFleet(wfstack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
+      }),
+      renderQueue,
+      healthMonitor,
+      blockDevices: [ {
+        deviceName: DEVICE_NAME,
+        volume: BlockDeviceVolume.ebs( VOLUME_SIZE, {encrypted: false}),
+      }],
+    });
+
+    //THEN
+    expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+      BlockDeviceMappings: [
+        {
+          Ebs: {
+            Encrypted: false,
+            VolumeSize: VOLUME_SIZE,
+          },
+        },
+      ],
+    }));
+
+    expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+    expect(fleet.node.metadata[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the worker-fleet workerFleet is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
+  });
+
+  test('Warnings for BlockDevices without encryption specified', () => {
+    const VOLUME_SIZE = 50;
+    const DEVICE_NAME = '/dev/xvda';
+
+    // WHEN
+    const fleet = new WorkerInstanceFleet(wfstack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
+      }),
+      renderQueue,
+      healthMonitor,
+      blockDevices: [ {
+        deviceName: DEVICE_NAME,
+        volume: BlockDeviceVolume.ebs( VOLUME_SIZE ),
+      }],
+    });
+
+    //THEN
+    expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+      BlockDeviceMappings: [
+        {
+          Ebs: {
+            VolumeSize: VOLUME_SIZE,
+          },
+        },
+      ],
+    }));
+
+    expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+    expect(fleet.node.metadata[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the worker-fleet workerFleet is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
+  });
+
+  test('No warnings for Ephemeral blockDeviceVolumes', () => {
+    const DEVICE_NAME = '/dev/xvda';
+
+    // WHEN
+    const fleet = new WorkerInstanceFleet(wfstack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
+      }),
+      renderQueue,
+      healthMonitor,
+      blockDevices: [ {
+        deviceName: DEVICE_NAME,
+        volume: BlockDeviceVolume.ephemeral( 0 ),
+      }],
+    });
+
+    //THEN
+    expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+      BlockDeviceMappings: [
+        {
+          DeviceName: DEVICE_NAME,
+          VirtualName: 'ephemeral0',
+        },
+      ],
+    }));
+
+    expect(fleet.node.metadata).toHaveLength(0);
+  });
+
+  test('No warnings for Suppressed blockDeviceVolumes', () => {
+    const DEVICE_NAME = '/dev/xvda';
+
+    // WHEN
+    const fleet = new WorkerInstanceFleet(wfstack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
+      }),
+      renderQueue,
+      healthMonitor,
+      blockDevices: [ {
+        deviceName: DEVICE_NAME,
+        volume: BlockDeviceVolume.noDevice(  ),
+      }],
+    });
+
+    //THEN
+    expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+      BlockDeviceMappings: [
+        {
+          DeviceName: DEVICE_NAME,
+        },
+      ],
+    }));
+
+    expect(fleet.node.metadata).toHaveLength(0);
+  });
 });

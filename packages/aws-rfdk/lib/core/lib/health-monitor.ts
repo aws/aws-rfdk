@@ -175,7 +175,7 @@ export interface HealthMonitorProps {
 
   /**
    * Describes the current Elastic Load Balancing resource limits for your AWS account.
-   * This object should be the output of 'describeAccountLimits' API
+   * This object should be the output of 'describeAccountLimits' API.
    *
    * @default default account limits for ALB is used
    *
@@ -189,6 +189,17 @@ export interface HealthMonitorProps {
    * @default A new Key will be created and used.
    */
   readonly encryptionKey?: IKey;
+
+  /**
+   * Indicates whether deletion protection is enabled for the LoadBalancer.
+   *
+   * @default true
+   *
+   * Note: This value is true by default which means that the deletion protection is enabled for the
+   * load balancer. Hence, user needs to disable it using AWS Console or CLI before deleting the stack.
+   * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection
+   */
+  readonly deletionProtection?: boolean;
 }
 
 /**
@@ -243,7 +254,8 @@ abstract class HealthMonitorBase extends Construct implements IHealthMonitor {
  * being sufficiently unhealthy to warrant termination.
  * This lambda is triggered by CloudWatch alarms via SNS (Simple Notification Service).
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) Application Load Balancer(s) doing frequent pings to the workers;
  * 2) KMS Key to encrypt SNS messages - If no encryption key is provided;
  * 3) SNS topic for all unhealthy fleet notifications;
@@ -251,11 +263,15 @@ abstract class HealthMonitorBase extends Construct implements IHealthMonitor {
  * 5) The Alarm if the healthy host percentage if lower than allowed;
  * 4) A single Lambda function that sets fleet size to 0 when triggered.
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * - CloudWatch has permissions to send encrypted messages
  * - CloudWatch has topic publishing permissions
  * - Lambda has permissions to change min, max and desired size
  *   of all ASGs in the account with the specified tag key and value
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class HealthMonitor extends HealthMonitorBase {
 
@@ -389,7 +405,7 @@ export class HealthMonitor extends HealthMonitorBase {
     const {loadBalancer, targetGroup} = this.lbFactory.registerWorkerFleet(
       monitorableFleet,
       healthCheckConfig,
-      this.props.elbAccountLimits);
+      this.props);
 
     this.createFleetAlarms(monitorableFleet, healthCheckConfig, loadBalancer, targetGroup);
   }

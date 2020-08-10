@@ -157,7 +157,8 @@ export interface StaticPrivateIpServerProps {
  * automatically recover from termination. This instance is suitable for use as an application server,
  * such as a license server, that must always be reachable by the same IP address.
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) Auto Scaling Group (ASG) with min & max capacity of 1 instance;
  * 2) Elastic Network Interface (ENI);
  * 3) Security Group for the ASG;
@@ -165,12 +166,16 @@ export interface StaticPrivateIpServerProps {
  * 5) SNS Topic & Role for instance-launch lifecycle events -- max one of each per stack; and
  * 6) Lambda function, with role, to attach the ENI in response to instace-launch lifecycle events -- max one per stack.
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * - The Lambda's Role grants the Lambda permission:
  *    1) The ability to attach **any** Elastic Network Interface to **any** instance.
  *    2) To invoke autoscaling:CompleteLifecycleAction on **any** Auto Scaling Group that is tagged with the
  *       key 'RfdkStaticPrivateIpServerGrantConditionKey' and a unique value derived from this construct's
  *       scope.
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class StaticPrivateIpServer extends Construct implements IConnectable, IGrantable {
 

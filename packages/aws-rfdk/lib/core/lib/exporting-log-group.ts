@@ -58,17 +58,22 @@ export interface ExportingLogGroupProps {
  * Note, that it isn't economical to export logs to S3 if you plan on storing them for less than
  * 7 days total (CloudWatch and S3 combined).
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) The Lambda SingletonFunction that checks for the existence of the LogGroup;
  * 2) The CloudWatch LogGroup (if it didn't exist already);
  * 3) The CloudWatch Alarm watching log exportation failures;
  * 4) The CloudWatch Event Rule to schedule log exportation;
  * 5) The Lambda SingletonFunction, with role, to export log groups to S3 by schedule.
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * - The Lambda's Role grants the Lambda permission:
  *    1) To export the log group that this construct is exporting
  *       to ***any*** S3 bucket that your account has write-access to.
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class ExportingLogGroup extends Construct {
   /**

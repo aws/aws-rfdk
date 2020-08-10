@@ -13,6 +13,7 @@ import {
   UpdateType,
 } from '@aws-cdk/aws-autoscaling';
 import {
+  CfnDBInstance,
   DatabaseCluster,
   CfnDBCluster,
   ClusterParameterGroup,
@@ -25,6 +26,7 @@ import {
   InstanceType,
   IVpc,
   OperatingSystemType,
+  SubnetSelection,
   SubnetType,
 } from '@aws-cdk/aws-ec2';
 import {
@@ -198,6 +200,21 @@ export interface IRepository extends IConstruct {
 }
 
 /**
+ * Properties for backups of resources that are created by the Repository.
+ */
+export interface RepositoryBackupOptions {
+  /**
+   * If this Repository is creating its own Amazon DocumentDB database, then this specifies the retention period to
+   * use on the database. If the Repository is not creating a DocumentDB database, because one was given,
+   * then this property is ignored.
+   * Please visit https://aws.amazon.com/documentdb/pricing/ to learn more about DocumentDB backup storage pricing.
+   *
+   * @default Duration.days(15)
+   */
+  readonly databaseRetention?: Duration;
+}
+
+/**
  * Properties for the Deadline repository
  */
 export interface RepositoryProps {
@@ -230,7 +247,7 @@ export interface RepositoryProps {
   readonly repositoryInstallationTimeout?: Duration;
 
   /**
-   * Specify the file system where the deadline repository needs to be intialized.
+   * Specify the file system where the deadline repository needs to be initialized.
    *
    * @default An Encrypted EFS File System will be created
    */
@@ -244,7 +261,7 @@ export interface RepositoryProps {
   readonly repositoryInstallationPrefix?: string;
 
   /**
-   * Specify the database where the deadline schema needs to be intialized.
+   * Specify the database where the deadline schema needs to be initialized.
    *
    * @default A Document DB Cluster will be created with a single db.r5.large instance.
    */
@@ -268,14 +285,37 @@ export interface RepositoryProps {
    * @default true
    */
   readonly databaseAuditLogging?: boolean;
+
+  /**
+   * If this Repository is creating its own Amazon DocumentDB database, then this specifies the number of
+   * compute instances to be created.
+   *
+   * @default 1
+   */
+  readonly documentDbInstanceCount?: number;
+
+  /**
+   * If this Repository is creating its own Amazon DocumentDB database and/or Amazon Elastic File System (EFS),
+   * then this specifies to which subnets they are deployed.
+   *
+   * @default: Private subnets in the VPC
+   */
+  readonly vpcSubnets?: SubnetSelection;
+
+  /**
+   * Define the backup options for the resources that this Repository creates.
+   *
+   * @default Duration.days(15) for the database
+   */
+  readonly backupOptions?: RepositoryBackupOptions;
 }
 
 /**
- * This construct reperesents the main Deadline Repository which contains the central database and file system
+ * This construct represents the main Deadline Repository which contains the central database and file system
  * that Deadline requires.
  *
  * When deployed this construct will start up a single instance which will run the Deadline Repository installer to
- * initialize the file system and database, the logs of which will thenbe  forwarded to Cloudwatch via a CloudWatchAgent.
+ * initialize the file system and database, the logs of which will be forwarded to Cloudwatch via a CloudWatchAgent.
  * After the installation is complete the instance will be shutdown.
  *
  * Whenever the stack is updated if a change is detected in the installer a new instance will be started, which will perform
@@ -283,7 +323,8 @@ export interface RepositoryProps {
  * and the deployment will continue, otherwise the the deployment will be cancelled.
  * In either case the instance will be cleaned up.
  *
- * @ResourcesDeployed
+ * Resources Deployed
+ * ------------------------
  * 1) Encrypted EFS File System - If no IFileSystem is provided;
  * 2) DocumentDB and DatabaseConnection - If no database connection is provided;
  * 3) Auto Scaling Group (ASG) with min & max capacity of 1 instance;
@@ -291,13 +332,17 @@ export interface RepositoryProps {
  * 5) A Script Asset which is uploaded to your deployment bucket to run the installer
  * 6) An aws-rfdk.CloudWatchAgent to configure sending logs to cloudwatch.
  *
- * @ResidualRisk
+ * Residual Risk
+ * ------------------------
  * The instance in the AutoScaling group is given a role with the following permissions:
  * - Read permissions to the bucket containing the S3 Assets
  *
  * The Following Security Group changes are made by this construct:
  * - TCP access to the DocumentDB Cluster over it's default port
  * - TCP access to the Provided File system over it's default port
+ *
+ * @ResourcesDeployed
+ * @ResidualRisk
  */
 export class Repository extends Construct implements IRepository {
   /**
@@ -327,6 +372,16 @@ export class Repository extends Construct implements IRepository {
   private static ECS_VOLUME_NAME = 'RepositoryFilesystem';
 
   /**
+   * The default number of DocDB instances if one isn't provided in the props.
+   */
+  private static DEFAULT_NUM_DOCDB_INSTANCES: number = 1;
+
+  /**
+   * Default retention period for DocumentDB automated backups if one isn't provided in the props.
+   */
+  private static DEFAULT_DATABASE_RETENTION_PERIOD: Duration = Duration.days(15);
+
+  /**
    * @inheritdoc
    */
   public readonly rootPrefix: string;
@@ -354,12 +409,17 @@ export class Repository extends Construct implements IRepository {
   constructor(scope: Construct, id: string, props: RepositoryProps) {
     super(scope, id);
 
+    if (props.database && props.backupOptions?.databaseRetention) {
+      this.node.addWarning('Backup retention for database will not be applied since a database is not being created by this construct');
+    }
+
     this.version = props.version;
 
     // Set up the Filesystem and Database components of the repository
     this.fileSystem = props.fileSystem ?? new MountableEfs(this, {
       filesystem: new EfsFileSystem(this, 'FileSystem', {
         vpc: props.vpc,
+        vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
         encrypted: true,
         lifecyclePolicy: EfsLifecyclePolicy.AFTER_14_DAYS,
       }),
@@ -383,11 +443,17 @@ export class Repository extends Construct implements IRepository {
         },
       }) : undefined;
 
+      const instances = props.documentDbInstanceCount ?? Repository.DEFAULT_NUM_DOCDB_INSTANCES;
       const dbCluster = new DatabaseCluster(this, 'DocumentDatabase', {
         masterUser: {username: 'DocDBUser'},
         instanceProps: {
           instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
           vpc: props.vpc,
+          vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
+        },
+        instances,
+        backup: {
+          retention: props.backupOptions?.databaseRetention ?? Repository.DEFAULT_DATABASE_RETENTION_PERIOD,
         },
         parameterGroup: parameterGroup,
         removalPolicy: props.databaseRemovalPolicy ?? RemovalPolicy.RETAIN,
@@ -406,6 +472,15 @@ export class Repository extends Construct implements IRepository {
         /* istanbul ignore next */
         throw new Error('DBCluster failed to get set up properly -- missing login secret.');
       }
+
+      // This is a workaround because of the bug in CDK implementation:
+      // autoMinorVersionUpgrade should be true by default but it's not.
+      // This code can be removed once fixed in CDK.
+      for (let i = 1; i <= instances; i++) {
+        const docdbInstance = dbCluster.node.tryFindChild(`Instance${ i }`) as CfnDBInstance;
+        docdbInstance.autoMinorVersionUpgrade = true;
+      }
+
       this.databaseConnection = DatabaseConnection.forDocDB({
         database: dbCluster,
         login: dbCluster.secret,
