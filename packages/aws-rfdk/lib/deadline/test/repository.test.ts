@@ -496,9 +496,88 @@ test('repository creates deadlineDatabase if none provided', () => {
 
   // THEN
   expectCDK(stack).to(haveResource('AWS::DocDB::DBCluster'));
+  expectCDK(stack).to(haveResource('AWS::DocDB::DBInstance'));
+  expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBCluster', {
+    EnableCloudwatchLogsExports: [ 'audit' ],
+  }, ResourcePart.Properties));
+  expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBClusterParameterGroup', {
+    Parameters: {
+      audit_logs: 'enabled',
+    },
+  }, ResourcePart.Properties));
   expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBInstance', {
     AutoMinorVersionUpgrade: true,
   }));
+});
+
+test('disabling Audit logging does not enable Cloudwatch audit logs', () => {
+  const testEFS = new EfsFileSystem(stack, 'TestEfsFileSystem', {
+    vpc,
+  });
+  const testFS = new MountableEfs(stack, {
+    filesystem: testEFS,
+  });
+
+  // WHEN
+  new Repository(stack, 'repositoryInstaller', {
+    vpc,
+    fileSystem: testFS,
+    version: deadlineVersion,
+    databaseAuditLogging: false,
+  });
+
+  // THEN
+  expectCDK(stack).to(haveResource('AWS::DocDB::DBCluster'));
+  expectCDK(stack).notTo(haveResourceLike('AWS::DocDB::DBCluster', {
+    EnableCloudwatchLogsExports: [ 'audit' ],
+  }, ResourcePart.Properties));
+  expectCDK(stack).notTo(haveResourceLike('AWS::DocDB::DBClusterParameterGroup', {
+    Parameters: {
+      audit_logs: 'enabled',
+    },
+  }, ResourcePart.Properties));
+});
+
+test('repository warns if databaseAuditLogging defined and database is specified', () => {
+  // GIVEN
+  const fsDatabase = new DatabaseCluster(stack, 'TestDbCluster', {
+    masterUser: {
+      username: 'master',
+    },
+    instanceProps: {
+      instanceType: InstanceType.of(
+        InstanceClass.R4,
+        InstanceSize.LARGE,
+      ),
+      vpc,
+      vpcSubnets: {
+        onePerAz: true,
+        subnetType: SubnetType.PRIVATE,
+      },
+    },
+  });
+
+  // WHEN
+  const repo = new Repository(stack, 'repositoryInstaller', {
+    vpc,
+    version: deadlineVersion,
+    removalPolicy: {
+      filesystem: RemovalPolicy.DESTROY,
+    },
+    database: DatabaseConnection.forDocDB({ database: fsDatabase, login: fsDatabase.secret! }),
+    databaseAuditLogging: true,
+  });
+
+  // THEN
+  expect(repo.node.metadata).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        type: 'aws:cdk:warning',
+        data: `The parameter databaseAuditLogging only has an effect when the Repository is creating its own database. 
+        Please ensure that the Database provided is configured correctly.`,
+      }),
+    ]),
+  );
 });
 
 test('honors subnet specification', () => {

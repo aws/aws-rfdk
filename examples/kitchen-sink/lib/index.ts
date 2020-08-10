@@ -5,6 +5,8 @@
 
 import {
   DatabaseCluster,
+  ClusterParameterGroup,
+  CfnDBCluster,
 } from '@aws-cdk/aws-docdb';
 import {
   AmazonLinuxImage,
@@ -121,6 +123,23 @@ export class KitchenSinkApp extends App {
       filesystem: fileSystem,
     });
 
+    /**
+     * This option is part of enabling audit logging for DocumentDB; the other required part is the enabling of the CloudWatch exports below.
+     *
+     * Audit logs are a security best-practice. They record connection, data definition language (DDL), user management,
+     * and authorization events within the database, and are useful for post-incident auditing. That is, they can help you
+     * figure out what an unauthorized user, who gained access to your database, has done with that access.
+     *
+     * For more information about audit logging in DocumentDB, see:  https://docs.aws.amazon.com/documentdb/latest/developerguide/event-auditing.html
+     */
+    const parameterGroup = new ClusterParameterGroup(infrastructureStack, 'ParameterGroup', {
+      description: 'DocDB cluster parameter group with enabled audit logs',
+      family: 'docdb3.6',
+      parameters: {
+        audit_logs: 'enabled',
+      },
+    });
+
     /*
      * DocumentDB database cluster for storing the render farm database.
      */
@@ -134,6 +153,7 @@ export class KitchenSinkApp extends App {
           InstanceClass.R4,
           InstanceSize.LARGE
         ),
+        parameterGroup,
         vpc,
         vpcSubnets: {
           onePerAz: true,
@@ -150,6 +170,13 @@ export class KitchenSinkApp extends App {
        */
       removalPolicy: RemovalPolicy.DESTROY
     });
+
+    /**
+     * This option enable export audit logs to Amazon CloudWatch.
+     * This is second options that required for enable audit log.
+     */
+    const cfnDB = database.node.findChild('Resource') as CfnDBCluster;
+    cfnDB.enableCloudwatchLogsExports = ['audit'];
 
     /**
      * Bastion instance.
