@@ -79,6 +79,7 @@
     "@aws-cdk/aws-logs": "1.52.0",
     "@aws-cdk/aws-s3": "1.52.0",
     "@aws-cdk/aws-s3-assets": "1.52.0",
+    "@aws-cdk/aws-secretsmanager": "1.52.0",
     "@aws-cdk/core": "1.52.0",
     "aws-rfdk": "0.15.0",
     "aws-sdk": "^2.709.0"
@@ -93,6 +94,7 @@
     "@aws-cdk/aws-logs": "1.52.0",
     "@aws-cdk/aws-s3": "1.52.0",
     "@aws-cdk/aws-s3-assets": "1.52.0",
+    "@aws-cdk/aws-secretsmanager": "1.52.0",
     "@aws-cdk/core": "1.52.0",
     "aws-rfdk": "0.15.0",
     "aws-sdk": "^2.709.0"

@@ -3,7 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as AWS from 'aws-sdk';
+import * as CloudFormation from 'aws-sdk/clients/cloudformation';
+import * as CloudWatchLogs from 'aws-sdk/clients/cloudwatchlogs';
+import * as AWS from 'aws-sdk/global';
+import awaitSsmCommand from '../../common/functions/awaitSsmCommand';
 
 // Name of testing stack is derived from env variable to ensure uniqueness
 const testingStackName = 'RFDKInteg-DL-TestingTier' + process.env.INTEG_STACK_TAG?.toString();
@@ -11,17 +14,24 @@ const deadlineVersion = process.env.DEADLINE_VERSION?.toString();
 
 jest.setTimeout(10000);
 
-const cloudformation = new AWS.CloudFormation();
-const ssm = new AWS.SSM();
-const logs = new AWS.CloudWatchLogs();
+const cloudformation = new CloudFormation();
+const logs = new CloudWatchLogs();
+
+const bastionRegex = /bastionId/;
+const dbRegex = /secretARNDL(\d)/;
+const logRegex = /logGroupNameDL(\d)/;
+const certRegex = /certSecretARNDL(\d)/;
 
 const testCases: Array<Array<any>> = [
   [ 'RFDK-created DB and EFS', 1 ],
   [ 'User-created DB and EFS', 2 ],
-]
+  [ 'User-created MongoDB', 3],
+];
 let bastionId: string;
-let secretARNs: Array<any> = [];
+let dbSecretARNs: Array<any> = [];
 let logGroupNames: Array<any> = [];
+let certSecretARNs: Array<any> = [];
+
 
 beforeAll( () => {
   // Query the TestingStack and await its outputs to use as test inputs
@@ -34,29 +44,30 @@ beforeAll( () => {
         rej(err);
       }
       else {
-        var stacks = data.Stacks as Array<any>;
-        var stackOutput = stacks[0].Outputs;
-        for(var i = 0; i < stackOutput.length; i++){
-          switch(stackOutput[i].OutputKey){
-            case 'bastionId':
-              bastionId = stackOutput[i].OutputValue;
+        var stackOutput = data.Stacks![0].Outputs!;
+        stackOutput.forEach( output => {
+          var outputKey = output.OutputKey!;
+          var outputValue = output.OutputValue!;
+          switch(true){
+            case bastionRegex.test(outputKey):
+              bastionId = outputValue;
               break;
-            case 'secretARNDL1':
-              secretARNs[1] = stackOutput[i].OutputValue;
+            case dbRegex.test(outputKey):
+              var testId = dbRegex.exec(outputKey)![1];
+              dbSecretARNs[+testId] = outputValue;
               break;
-            case 'logGroupNameDL1':
-              logGroupNames[1] = stackOutput[i].OutputValue;
+            case logRegex.test(outputKey):
+              var testId = logRegex.exec(outputKey)![1];
+              logGroupNames[+testId] = outputValue;
               break;
-            case 'secretARNDL2':
-              secretARNs[2] = stackOutput[i].OutputValue;
-              break;
-            case 'logGroupNameDL2':
-              logGroupNames[2] = stackOutput[i].OutputValue;
+            case certRegex.test(outputKey):
+              var testId = certRegex.exec(outputKey)![1];
+              certSecretARNs[+testId] = outputValue;
               break;
             default:
               break;
           }
-        }
+        });
         res();
       }
     });
@@ -64,8 +75,49 @@ beforeAll( () => {
 });
 
 describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
-  
+
   describe('DocumentDB tests', () => {
+
+    beforeAll( () => {
+      if( certSecretARNs[id]) {
+        //If the secretARN has been provided for the auth certificate, this command will fetch it to the instance before continuing the tests
+        var params = {
+          DocumentName: 'AWS-RunShellScript',
+          Comment: 'Execute Test Script fetch-cert.sh',
+          InstanceIds: [bastionId],
+          Parameters: {
+            commands: [
+              'sudo -i',
+              'su - ec2-user >/dev/null',
+              'cd ~ec2-user',
+              './utilScripts/fetch-cert.sh \'' + AWS.config.region + '\' \'' + certSecretARNs[id] + '\'',
+            ],
+          },
+        };
+        return awaitSsmCommand(bastionId, params);
+      }
+      else {
+        return;
+      }
+    });
+
+    // This removes the certification file used to authenticate to the render queue
+    afterAll( () => {
+      var params = {
+        DocumentName: 'AWS-RunShellScript',
+        Comment: 'Execute Test Script cleanup-cert.sh',
+        InstanceIds: [bastionId],
+        Parameters: {
+          commands: [
+            'sudo -i',
+            'su - ec2-user >/dev/null',
+            'cd ~ec2-user',
+            './utilScripts/cleanup-cert.sh',
+          ],
+        },
+      };
+      return awaitSsmCommand(bastionId, params);
+    });
 
     test(`DL-${id}-1: Deadline DB is initialized`, async () => {
       /**********************************************************************************************************
@@ -73,7 +125,7 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
        * Description:     Confirm that Deadline database is initialized on render farm
        * Input:           Output from mongo CLI "listDatabases" call delivered via SSM command
        * Expected result: Database list returned from bastion contains "deadline10db"
-      **********************************************************************************************************/  
+      **********************************************************************************************************/
       var params = {
         DocumentName: 'AWS-RunShellScript',
         Comment: 'Execute Test Script DL-read-docdb-response.sh',
@@ -83,12 +135,12 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
             'sudo -i',
             'su - ec2-user >/dev/null',
             'cd ~ec2-user',
-            './testScripts/DL-read-docdb-response.sh \'' + AWS.config.region + '\' \'' + secretARNs[id] + '\'',
+            './testScripts/DL-read-docdb-response.sh \'' + AWS.config.region + '\' \'' + dbSecretARNs[id] + '\' \'' + certSecretARNs[id] + '\'',
           ],
         },
       };
-      return awaitSsmCommand(params).then( response => {
-        var output = response.CommandPlugins![0].Output!
+      return awaitSsmCommand(bastionId, params).then( response => {
+        var output = response.output;
         var json = JSON.parse(<string> output);
         expect(json.databases[0].name).toBe('deadline10db');
       });
@@ -96,7 +148,7 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
   });
 
   describe( 'EFS tests', () => {
-    
+
     let responseCode: number;
     let output: string;
 
@@ -114,9 +166,9 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
           ],
         },
       };
-      return awaitSsmCommand(params).then( response => {
-        responseCode = response.CommandPlugins![0].ResponseCode!;
-        output = response.CommandPlugins![0].Output!;
+      return awaitSsmCommand(bastionId, params).then( response => {
+        responseCode = response.responseCode;
+        output = response.output;
       });
     });
 
@@ -127,7 +179,7 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
        * Input:           Response code from command to print contents of repository.ini delivered via SSM command
        * Expected result: Response code 0, i.e. the script execution was successfuld and repository.ini exists
       **********************************************************************************************************/
-        expect(responseCode).toEqual(0);
+      expect(responseCode).toEqual(0);
     });
 
     test(`DL-${id}-3: repository.ini version matches Deadline installer`, () => {
@@ -173,7 +225,7 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
           }
           res();
         });
-      })
+      });
     });
 
     test(`DL-${id}-4: CloudWatch LogGroup contains two LogStreams`, () => {
@@ -224,22 +276,22 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
           },
         );
       });
-    
+
       test(`DL-${id}-6: cloud-init-output does not contain INSTALLER_DB_ARGS`, () => {
         /**********************************************************************************************************
          * TestID:          DL-6
          * Description:     Confirm that cloud-init-output does not contain INSTALLER_DB_ARGS; this environment
-         *                  variable contains sensitive info that should not be exposed. 
+         *                  variable contains sensitive info that should not be exposed.
          * Input:           Output from sdk call to describe cloud-init-output LogStream created during cdk deploy
          * Expected result: There is one expected instance of the INSTALLER_DB_ARGS variable so the test will fail
          *                  if the variable appears outside of the specificed string
         **********************************************************************************************************/
-       expect(logEvents).toContainEqual(
+        expect(logEvents).toContainEqual(
           {
             ingestionTime: expect.anything(),
             message: expect.not.stringMatching( /\w*(?<!declare -A )INSTALLER_DB_ARGS/ ),
             timestamp: expect.anything(),
-          }
+          },
         );
       });
     });
@@ -279,75 +331,9 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
             ingestionTime: expect.anything(),
             message: expect.stringMatching( /Executing \/tmp\/repoinstalltemp\/deadlinecommand.exe/ ),
             timestamp: expect.anything(),
-          }
+          },
         );
       });
     });
   });
 });
-/*
-  Custom function to send SSM command to run a particular script on the bastion instance,
-  wait for it to finish executing, then return the response.
-*/
-function awaitSsmCommand(params:AWS.SSM.SendCommandRequest){
-  return new Promise<AWS.SSM.CommandInvocation>( async (res) => {
-
-    // Send the command
-    // eslint-disable-next-line no-shadow
-    const ssmCommandId = await new Promise<AWS.SSM.CommandId> ( (res, rej) => {
-      ssm.sendCommand(params, (err, data) => {
-        if (err) {
-          rej(err);
-        }
-        else {
-          var command = data.Command as AWS.SSM.Command;
-          res(command.CommandId);
-        }
-      });
-    });
-    await getCommandStatus().then( commandInvocation => {
-      res(commandInvocation);
-    });
-
-    function getCommandStatus() {
-      // eslint-disable-next-line no-shadow
-      return new Promise<AWS.SSM.CommandInvocation>( (res, rej) => {
-        // eslint-disable-next-line no-shadow
-        var params = {
-          CommandId: ssmCommandId,
-          InstanceId: bastionId,
-          Details: true,
-        };
-        ssm.listCommandInvocations(params, (err, data) => {
-          if (err) {
-            rej(err);
-          }
-          else {
-            var commandInvocations: any = data.CommandInvocations as AWS.SSM.CommandInvocationList;
-            if(!commandInvocations[0]) {
-              setTimeout( () => {
-                getCommandStatus().then(res, rej);
-              }, 1000);
-            }
-            else{
-              var commandInvocation: any = commandInvocations[0] as AWS.SSM.CommandInvocation;
-              switch(commandInvocation.Status){
-                case 'Success':
-                  res(commandInvocation);
-                  break;
-                case 'Failed':
-                  rej(commandInvocation);
-                  break;
-                default:
-                  setTimeout( () => {
-                    getCommandStatus().then(res, rej);
-                  }, 1000);
-                  break;
-              }
-            }
-          }
-        });
-      });
-    }
-  });
-}

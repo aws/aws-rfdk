@@ -23,7 +23,8 @@ const componentTier = new Stack(app, 'RFDKInteg-RQ-ComponentTier' + integStackTa
 // Add struct containing Deadline repository (the same repo is used for all test configurations)
 const storage = new StorageStruct(componentTier, 'StorageStruct', {
   integStackTag,
-  provideDocdbEfs: 'true',
+  provideDocdbEfs: true,
+  useMongoDB: false,
 });
 
 // Create test struct for Render Queue in http mode
