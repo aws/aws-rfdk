@@ -369,6 +369,116 @@ test('repository mounts repository filesystem', () => {
   expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 rw')));
 });
 
+test.each([
+  [RemovalPolicy.DESTROY, 'Delete'],
+  [RemovalPolicy.RETAIN, 'Retain'],
+  [RemovalPolicy.SNAPSHOT, 'Snapshot'],
+])('repository honors database removal policy: %p', (policy: RemovalPolicy, expected: string) => {
+  // WHEN
+  new Repository(stack, 'repositoryInstaller', {
+    vpc,
+    version: deadlineVersion,
+    removalPolicy: {
+      database: policy,
+    },
+  });
+
+  // THEN
+  expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBCluster', {
+    DeletionPolicy: expected,
+  }, ResourcePart.CompleteDefinition));
+});
+
+test.each([
+  [RemovalPolicy.DESTROY, 'Delete'],
+  [RemovalPolicy.RETAIN, 'Retain'],
+  [RemovalPolicy.SNAPSHOT, 'Snapshot'],
+])('repository honors filesystem removal policy: %p', (policy: RemovalPolicy, expected: string) => {
+  // WHEN
+  new Repository(stack, 'repositoryInstaller', {
+    vpc,
+    version: deadlineVersion,
+    removalPolicy: {
+      filesystem: policy,
+    },
+  });
+
+  // THEN
+  expectCDK(stack).to(haveResourceLike('AWS::EFS::FileSystem', {
+    DeletionPolicy: expected,
+  }, ResourcePart.CompleteDefinition));
+});
+
+test('repository warns if removal policy for filesystem when filesystem provided', () => {
+  // GIVEN
+  const testEFS = new EfsFileSystem(stack, 'TestEfsFileSystem', {
+    vpc,
+  });
+  const testFS = new MountableEfs(stack, {
+    filesystem: testEFS,
+  });
+
+  // WHEN
+  const repo = new Repository(stack, 'repositoryInstaller', {
+    vpc,
+    fileSystem: testFS,
+    version: deadlineVersion,
+    removalPolicy: {
+      filesystem: RemovalPolicy.DESTROY,
+    },
+  });
+
+  // THEN
+  expect(repo.node.metadata).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        type: 'aws:cdk:warning',
+        data: 'RemovalPolicy for filesystem will not be applied since a filesystem is not being created by this construct',
+      }),
+    ]),
+  );
+});
+
+test('repository warns if removal policy for database when database provided', () => {
+  // GIVEN
+  const fsDatabase = new DatabaseCluster(stack, 'TestDbCluster', {
+    masterUser: {
+      username: 'master',
+    },
+    instanceProps: {
+      instanceType: InstanceType.of(
+        InstanceClass.R4,
+        InstanceSize.LARGE,
+      ),
+      vpc,
+      vpcSubnets: {
+        onePerAz: true,
+        subnetType: SubnetType.PRIVATE,
+      },
+    },
+  });
+
+  // WHEN
+  const repo = new Repository(stack, 'repositoryInstaller', {
+    vpc,
+    database: DatabaseConnection.forDocDB({ database: fsDatabase, login: fsDatabase.secret! }),
+    version: deadlineVersion,
+    removalPolicy: {
+      database: RemovalPolicy.DESTROY,
+    },
+  });
+
+  // THEN
+  expect(repo.node.metadata).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        type: 'aws:cdk:warning',
+        data: 'RemovalPolicy for database will not be applied since a database is not being created by this construct',
+      }),
+    ]),
+  );
+});
+
 test('repository creates deadlineDatabase if none provided', () => {
   const testEFS = new EfsFileSystem(stack, 'TestEfsFileSystem', {
     vpc,
@@ -444,20 +554,6 @@ test('repository honors database instance count', () => {
   expectCDK(stack).to(countResourcesLike('AWS::DocDB::DBInstance', instanceCount, {
     AutoMinorVersionUpgrade: true,
   }));
-});
-
-test('repository honors database removal policy', () => {
-  // WHEN
-  new Repository(stack, 'repositoryInstaller', {
-    vpc,
-    version: deadlineVersion,
-    databaseRemovalPolicy: RemovalPolicy.DESTROY,
-  });
-
-  // THEN
-  expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBCluster', {
-    DeletionPolicy: 'Delete',
-  }, ResourcePart.CompleteDefinition));
 });
 
 test('repository honors database retention period', () => {

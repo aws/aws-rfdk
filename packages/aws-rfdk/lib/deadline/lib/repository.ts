@@ -212,6 +212,29 @@ export interface RepositoryBackupOptions {
   readonly databaseRetention?: Duration;
 }
 
+/*
+ * Properties that define the removal policies of resources that are created by the Repository. These define what happens
+ * to the resources when the stack that defines them is destroyed.
+ */
+export interface RepositoryRemovalPolicies {
+  /**
+   * If this Repository is creating its own Amazon DocumentDB database, then this specifies the retention policy to
+   * use on the database. If the Repository is not creating a DocumentDB database, because one was given,
+   * then this property is ignored.
+   *
+   * @default RemovalPolicy.RETAIN
+   */
+  readonly database?: RemovalPolicy;
+
+  /**
+   * If this Repository is creating its own Amazon Elastic File System (EFS), then this specifies the retention policy to
+   * use on the filesystem. If the Repository is not creating an EFS, because one was given, then this property is ignored.
+   *
+   * @default RemovalPolicy.RETAIN
+   */
+  readonly filesystem?: RemovalPolicy;
+}
+
 /**
  * Properties for the Deadline repository
  */
@@ -266,12 +289,12 @@ export interface RepositoryProps {
   readonly database?: DatabaseConnection;
 
   /**
-   * If this Repository is creating its own DocumentDB database, then this specifies the retention policy to
-   * use on the database.
+   * Define the removal policies for the resources that this Repository creates. These define what happens
+   * to the resoureces when the stack that defines them is destroyed.
    *
-   * @default RemovalPolicy.RETAIN
+   * @default RemovalPolicy.RETAIN for all resources
    */
-  readonly databaseRemovalPolicy?: RemovalPolicy;
+  readonly removalPolicy?: RepositoryRemovalPolicies;
 
   /**
    * If this Repository is creating its own Amazon DocumentDB database, then this specifies the number of
@@ -399,6 +422,12 @@ export class Repository extends Construct implements IRepository {
     if (props.database && props.backupOptions?.databaseRetention) {
       this.node.addWarning('Backup retention for database will not be applied since a database is not being created by this construct');
     }
+    if (props.fileSystem && props.removalPolicy?.filesystem) {
+      this.node.addWarning('RemovalPolicy for filesystem will not be applied since a filesystem is not being created by this construct');
+    }
+    if (props.database && props.removalPolicy?.database) {
+      this.node.addWarning('RemovalPolicy for database will not be applied since a database is not being created by this construct');
+    }
 
     this.version = props.version;
 
@@ -409,6 +438,7 @@ export class Repository extends Construct implements IRepository {
         vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
         encrypted: true,
         lifecyclePolicy: EfsLifecyclePolicy.AFTER_14_DAYS,
+        removalPolicy: props.removalPolicy?.filesystem ?? RemovalPolicy.RETAIN,
       }),
     });
 
@@ -427,7 +457,7 @@ export class Repository extends Construct implements IRepository {
         backup: {
           retention: props.backupOptions?.databaseRetention ?? Repository.DEFAULT_DATABASE_RETENTION_PERIOD,
         },
-        removalPolicy: props.databaseRemovalPolicy ?? RemovalPolicy.RETAIN,
+        removalPolicy: props.removalPolicy?.database ?? RemovalPolicy.RETAIN,
       });
       /* istanbul ignore next */
       if (!dbCluster.secret) {
