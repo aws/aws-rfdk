@@ -54,7 +54,11 @@ cat key.crt decrypted_key.pem > key.pem
 # Validate the certificate and key are valid.
 echo "Validating server key"
 
+set +x # Do not print out key modulus; it's a secret
 KEY_MODULUS=$(openssl rsa -modulus -noout -in ./decrypted_key.pem | openssl md5)
 CA_MODULUS=$(openssl x509 -modulus -noout -in ./key.crt | openssl md5)
 
-test "${KEY_MODULUS}" == "${CA_MODULUS}"
+test "${KEY_MODULUS}" == "${CA_MODULUS}" || exit 1
+set -x
+
+echo "Success - valid key"
