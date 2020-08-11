@@ -240,14 +240,7 @@ abstract class X509CertificateBase extends Construct {
  * 2) Secrets - 4 in total, for the certificate, it's private key, the passphrase to the key, and the cert chain.
  * 3) Lambda Function, with role - Used to create/update/delete the Custom Resource
  *
- * Residual Risk
- * ------------------------
- * - The Lambda role's policy gives it full access to the DynamoDB Table and access to get the passphrase Secret.
- *   It also has permission to create/delete/put Secrets with a resource tag that is generated uniquely for each
- *   instance of this Construct.
- *
  * @ResourcesDeployed
- * @ResidualRisk
  */
 export class X509CertificatePem extends X509CertificateBase implements IX509CertificatePem {
   public readonly cert: ISecret;
@@ -390,14 +383,7 @@ export interface IX509CertificatePkcs12 extends IConstruct {
  * 2) Secrets - 2 in total, The binary of the PKCS #12 certificate and its passphrase.
  * 3) Lambda Function, with role - Used to create/update/delete the CustomResource.
  *
- * Residual Risk
- * ------------------------
- * - The Lambda role's policy gives it full access to the DynamoDB Table and access to get the passphrase secret.
- *   It also has permission to create/delete/put Secrets with a resource tag that is uniquely generated for each
- *   instance of this Construct.
- *
  * @ResourcesDeployed
- * @ResidualRisk
  */
 export class X509CertificatePkcs12 extends X509CertificateBase implements IX509CertificatePkcs12 {
 

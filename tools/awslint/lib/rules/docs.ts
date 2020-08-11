@@ -47,20 +47,6 @@ docsLinter.add({
 });
 
 docsLinter.add({
-  code:'docs-constructs-residualRisk',
-  message: 'Constructs must contain an @ResidualRisk tag',
-  eval: e => {
-    if (e.ctx.kind !== 'type') { return; }
-    if (isCfnType(e.ctx)) { return; }
-    const ConstructClass = e.ctx.assembly.system.findFqn("@aws-cdk/core.Construct");
-    const property = e.ctx.documentable;
-    if (!property.extends(ConstructClass)) { return; }
-  
-    e.assert(property.docs.docs.custom?.['ResidualRisk'], e.ctx.errorKey)
-  }
-});
-
-docsLinter.add({
   code:'docs-constructs-resourcesDeployed',
   message: 'Constructs must contain an @ResourcesDeployed tag',
   eval: e => {

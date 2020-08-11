@@ -263,15 +263,7 @@ abstract class HealthMonitorBase extends Construct implements IHealthMonitor {
  * 5) The Alarm if the healthy host percentage if lower than allowed;
  * 4) A single Lambda function that sets fleet size to 0 when triggered.
  *
- * Residual Risk
- * ------------------------
- * - CloudWatch has permissions to send encrypted messages
- * - CloudWatch has topic publishing permissions
- * - Lambda has permissions to change min, max and desired size
- *   of all ASGs in the account with the specified tag key and value
- *
  * @ResourcesDeployed
- * @ResidualRisk
  */
 export class HealthMonitor extends HealthMonitorBase {
 

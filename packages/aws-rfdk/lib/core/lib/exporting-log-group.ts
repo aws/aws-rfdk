@@ -66,14 +66,7 @@ export interface ExportingLogGroupProps {
  * 4) The CloudWatch Event Rule to schedule log exportation;
  * 5) The Lambda SingletonFunction, with role, to export log groups to S3 by schedule.
  *
- * Residual Risk
- * ------------------------
- * - The Lambda's Role grants the Lambda permission:
- *    1) To export the log group that this construct is exporting
- *       to ***any*** S3 bucket that your account has write-access to.
- *
  * @ResourcesDeployed
- * @ResidualRisk
  */
 export class ExportingLogGroup extends Construct {
   /**

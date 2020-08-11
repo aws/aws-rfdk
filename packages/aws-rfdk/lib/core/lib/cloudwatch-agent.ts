@@ -50,12 +50,7 @@ export interface CloudWatchAgentProps {
  * 1) String SSM Parameter in Systems Manager Parameter Store to store the cloudwatch agent configuration;
  * 2) A script Asset which is uploaded to S3 bucket.
  *
- * Residual Risk
- * ------------------------
- * - Grants read permission to the host instance/ASG/fleet on the assets bucket and parameter store.
- *
  * @ResourcesDeployed
- * @ResidualRisk
  */
 export class CloudWatchAgent extends Construct {
 

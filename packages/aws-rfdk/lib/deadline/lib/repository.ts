@@ -355,17 +355,7 @@ export interface RepositoryProps {
  * 5) A Script Asset which is uploaded to your deployment bucket to run the installer
  * 6) An aws-rfdk.CloudWatchAgent to configure sending logs to cloudwatch.
  *
- * Residual Risk
- * ------------------------
- * The instance in the AutoScaling group is given a role with the following permissions:
- * - Read permissions to the bucket containing the S3 Assets
- *
- * The Following Security Group changes are made by this construct:
- * - TCP access to the DocumentDB Cluster over it's default port
- * - TCP access to the Provided File system over it's default port
- *
  * @ResourcesDeployed
- * @ResidualRisk
  */
 export class Repository extends Construct implements IRepository {
   /**

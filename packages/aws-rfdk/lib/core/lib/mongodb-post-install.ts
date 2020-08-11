@@ -145,14 +145,7 @@ export interface MongoDbPostInstallSetupProps {
  * - A CloudFormation Custom Resource that triggers execution of the Lambda on stack deployment, update, and deletion.
  * - An Amazon CloudWatch log group that records history of the AWS Lambda's execution.
  *
- * Residual Risk
- * ------------------------
- * - The AWS Lambda function that is created by this resource has access to both the MongoDB administrator credentials,
- * and the MongoDB application port. An attacker that can find a way to execute this lambda could use it to modify or read
- * any data in the database.
- *
  * @ResourcesDeployed
- * @ResidualRisk
  */
 export class MongoDbPostInstallSetup extends Construct {
   constructor(scope: Construct, id: string, props: MongoDbPostInstallSetupProps) {

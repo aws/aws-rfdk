@@ -127,13 +127,7 @@ export interface ScriptAssetProps extends AssetProps {}
  * ------------------------
  * 1) An Asset which is uploaded to the bootstrap S3 bucket.
  *
- * Residual Risk
- * ------------------------
- * - Every principal that has permissions to read this script asset,
- *   also has permissions to read ***everything*** in the bootstrap bucket.
- *
  * @ResourcesDeployed
- * @ResidualRisk
  */
 export class ScriptAsset extends Asset {
   /**

@@ -86,17 +86,7 @@ export interface MongoDbInstallerProps {
  * ------------------------
  * - A CDK Asset package containing the installation scripts is deployed to your CDK staging bucket.
  *
- * Residual Risk
- * ------------------------
- * - Since this class installs MongoDB from official sources dynamically during instance start-up, it is succeptable to an attacker compromising
- * the official MongoDB Inc. distribution channel for MongoDB. Such a compromise may result in the installation of unauthorized MongoDB binaries.
- * Executing this attack would require an attacker compromise both the official installation packages and the MongoDB Inc. gpg key with which they are
- * signed.
- * - This installer uses scripts that are deployed to your CDK staging bucket. An attacker that modifies those scripts can cause an instance that
- * uses this installer to perform any actions when it is first launched.
- *
  * @ResourcesDeployed
- * @ResidualRisk
  */
 export class MongoDbInstaller {
 

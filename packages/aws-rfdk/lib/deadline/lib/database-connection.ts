@@ -76,8 +76,6 @@ export interface MongoDbInstanceConnectionOptions {
 
 /**
  * Helper class for connecting Thinkbox's Deadline to a specific Database.
- *
- * Each Database has it's own implementation and provides separate residual risks see the for<Database> methods for more information.
  */
 export abstract class DatabaseConnection {
   /**
@@ -87,16 +85,7 @@ export abstract class DatabaseConnection {
    * ------------------------
    * This construct does not deploy any resources
    *
-   * Residual Risk
-   * ------------------------
-   * This construct is used to grant the following IAM permissions:
-   * - Read permissions to the DocumentDB's Login Secret
-   *
-   * The following security group changes are made by this construct
-   *  - TCP access to the DocumentDB Cluster over it's default port
-   *
    * @ResourcesDeployed
-   * @ResidualRisk
    */
   public static forDocDB(options: DocDBConnectionOptions): DatabaseConnection {
     return new DocDBDatabaseConnection(options);
@@ -109,17 +98,7 @@ export abstract class DatabaseConnection {
    * ------------------------
    * This construct does not deploy any resources
    *
-   * Residual Risk
-   * ------------------------
-   * This construct is used to grant the following IAM permissions:
-   * - Read permissions to the MongoDB's Login Secret
-   * - Read permissions to the client PKCS#12 certificate and its password.
-   *
-   * The following security group changes are made by this construct
-   *  - TCP access to the MongoDB over it's default port
-   *
    * @ResourcesDeployed
-   * @ResidualRisk
    */
   public static forMongoDbInstance(options: MongoDbInstanceConnectionOptions): DatabaseConnection {
     return new MongoDbInstanceDatabaseConnection(options);
