@@ -6,38 +6,46 @@ The `aws-rfdk/core` directory contains general constructs that can be used to de
 import * as core from 'aws-rfdk';
 ```
 
-## ExportingLogGroup
+- [CloudWatchAgent](#cloudwatchagent)
+  * [Generating Configuration String](#generating-configuration-string)
+- [ExportingLogGroup](#exportingloggroup)
+- [HealthMonitor](#healthmonitor)
+  * [Registering A Fleet](#registering-a-fleet)
+  * [Registering Multiple Fleets](#registering-multiple-fleets)
+  * [Sending Encrypted Messages](#sending-encrypted-messages)
+  * [Elastic Load Balancing Limits](#elastic-load-balancing-limits)
+  * [Deletion Protection](#deletion-protection)
+- [MongoDbInstaller](#mongodbinstaller)
+  * [Installing MongoDB On An Instance](#installing-mongodb-on-an-instance)
+- [MongoDbInstance](#mongodbinstance)
+  * [Changing Instance Type](#changing-instance-type)
+  * [Connecting To A MongoDB Instance](#connecting-to-a-mongodb-instance)
+  * [Database Admin User](#database-admin-user)
+  * [Assigning A Security Group](#assigning-a-security-group)
+  * [Associating An IAM Role](#associating-an-iam-role)
+  * [Storing MongoDB Data](#storing-mongodb-data)
+  * [Streaming Logs](#streaming-logs)
+- [MongoDbPostInstallSetup](#mongodbpostinstallsetup)
+  * [Password-Authenticated Users](#password-authenticated-users)
+  * [X509-Authenticated Users](#x509-authenticated-users)
+  * [Creating Users](#creating-users)
+- [ScriptAsset](#scriptasset)
+  * [RFDK Script Directory Structure Convention](#rfdk-script-directory-structure-convention)
+- [StaticPrivateIpServer](#staticprivateipserver)
+  * [Connect To An Instance](#connect-to-an-instance)
+- [X509 Certificates](#x509-certificates)
+  * [X509CertificatePem](#x509certificatepem)
+    + [Self-Signed Certificate](#self-signed-certificate)
+    + [Chain Of Trust](#chain-of-trust)
+    + [Encryption](#encryption)
+    + [Granting Permissions](#granting-permissions)
+  * [X509CertificatePkcs12](#x509certificatepkcs12)
+  * [ImportedAcmCertificate](#importedacmcertificate)
+- [Connecting To An Instance](#connecting-to-an-instance)
+  * [Session Manager](#session-manager)
+  * [SSH Access](#ssh-access)
+  * [Amazon EC2 Instance Connect](#amazon-ec2-instance-connect)
 
-`ExportingLogGroup` is an extension of a standard CloudWatch log group with a feature to automatically export logs older than a specified threshold to an S3 bucket for cost savings.
-
-In order to create an instance of `ExportingLogGroup` you need to provide a name of the log group and a name of the existing S3 bucket that will store archived logs:
-
-```ts
-const exportingLogGroup = new ExportingLogGroup(stack, 'ExportingLogGroup', {
-  bucketName: 'bucketName',
-  logGroupName: 'logGroupName',
-});
-```
-
----
-
-_**Note:** If the LogGroup with a given name doesn't exist, then it will be created._
-
----
-
-_**Note:** The bucket must have read/write privileges enabled for *logs.amazonaws.com*. Please check how to [set permissions on an Amazon S3 bucket](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/S3ExportTasksConsole.html#S3PermissionsConsole) if you want to learn more._
-
----
-
-By default, the `ExportingLogGroup` will keep logs in the CloudWatch for *3 days*. If you would prefer to change this period, specify a different value for the `retention` property, as follows:
-
-```ts
-const exportingLogGroup = new ExportingLogGroup(stack, 'ExportingLogGroup', {
-  bucketName: 'bucketName',
-  logGroupName: 'logGroupName',
-  retention: RetentionDays.ONE_WEEK,
-});
-```
 
 ## CloudWatchAgent
 
@@ -92,69 +100,38 @@ _**Note:** The `CloudWatch Agent` installer is downloaded via the Amazon S3 API,
 
 ---
 
-## ScriptAsset
+## ExportingLogGroup
 
-It is often useful to run commands on your instance at launch. This is done using scripts that are executed through instance [user data](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html).
+`ExportingLogGroup` is an extension of a standard CloudWatch log group with a feature to automatically export logs older than a specified threshold to an S3 bucket for cost savings.
 
-RFDK includes a `ScriptAsset` class that generalizes the concept of the script (bash or powershell) that executes on an instance. `ScriptAsset` is a wrapper around the [CDK's S3 Asset construct](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-s3-assets.Asset.html):
-
-```ts
-const scriptAsset = new ScriptAsset(stack, 'ScriptAsset', {
-  path: path.join(__dirname, '../scripts/bash/scriptName.sh'),
-});
-```
-
-In order to execute the script on the instance use method `executeOn()`:
+In order to create an instance of `ExportingLogGroup` you need to provide a name of the log group and a name of the existing S3 bucket that will store archived logs:
 
 ```ts
-const instance = new Instance(stack, 'Instance', /* ... */);
-scriptAsset.executeOn({ host: instance });
-```
-
-If you need to pass arguments to your script, use `args` property, as follows:
-
-```ts
-scriptAsset.executeOn({
-  host: instance,
-  args: ['arg1'],
+const exportingLogGroup = new ExportingLogGroup(stack, 'ExportingLogGroup', {
+  bucketName: 'bucketName',
+  logGroupName: 'logGroupName',
 });
 ```
 
 ---
 
-_**Note:** The arguments are not escaped in any way and you will have to escape them for the target platform's userdata language (bash/powershell) if needed._
+_**Note:** If the LogGroup with a given name doesn't exist, then it will be created._
 
 ---
 
-### RFDK's Script Directory Structure Convention
+_**Note:** The bucket must have read/write privileges enabled for *logs.amazonaws.com*. Please check how to [set permissions on an Amazon S3 bucket](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/S3ExportTasksConsole.html#S3PermissionsConsole) if you want to learn more._
 
-In RFDK, by convention, scripts are kept in a `scripts` directory in each `aws-rfdk/*` sub-module. The scripts are organized based on target shell (and implicitly target operating system). The directory structure looks like:
+---
 
-```
-scripts/
-  bash/
-    script-one.sh
-    script-two.sh
-  powershell/
-    script-one.ps1
-    script-one.ps1
-```
-
-For such structure, you can use `fromPathConvention()` function to create a `ScriptAsset` instance that automatically selects the appropriate script based on operating system:
+By default, the `ExportingLogGroup` will keep logs in the CloudWatch for *3 days*. If you would prefer to change this period, specify a different value for the `retention` property, as follows:
 
 ```ts
-const scriptAsset = ScriptAsset.fromPathConvention(stack, 'ScriptAsset', {
-  osType: instance.osType,
-  baseName: 'scriptName',
-  rootDir: path.join(
-    __dirname,
-    '..',
-    'scripts',
-  ),
+const exportingLogGroup = new ExportingLogGroup(stack, 'ExportingLogGroup', {
+  bucketName: 'bucketName',
+  logGroupName: 'logGroupName',
+  retention: RetentionDays.ONE_WEEK,
 });
 ```
-
-This will select the script `../scripts/bash/scriptName.sh` if the `osType` is Linux, and `../scripts/powershell/scriptName.ps1` if the `osType` is Windows.
 
 ## HealthMonitor
 
@@ -205,7 +182,6 @@ const fleetTwo: IMonitorableFleet = new /* ... */;
 healthMonitor.registerFleet(fleetOne, {});
 healthMonitor.registerFleet(fleetTwo, {});
 ```
-
 
 ### Sending Encrypted Messages
 
@@ -262,147 +238,57 @@ const healthMonitor = new HealthMonitor(stack, 'HealthMonitor', {
 });
 ```
 
-## X.509 Certificates
+## MongoDbInstaller
 
-RFDK provides the following constructs for working with X509 certificates: `X509CertificatePem`, `X509CertificatePkcs12`, and `ImportedAcmCertificate`.
+To install the specified version of MongoDB during an initial launch of the instance you can use `MongoDbInstaller`.
 
-### X509CertificatePem
+MongoDB is installed from the official sources using the system package manger (yum). It installs the mongodb-org metapackage which will install the following packages:
+ * mongodb-org-mongos
+ * mongodb-org-server
+ * mongodb-org-shell
+ * mongodb-org-tools
 
-`X509CertificatePem` provides a mechanism for generating X.509 certificates. This construct will create the following resources as secrets in Secret Manager:
-1. An X509 certificate in PEM format
-2. A private key in PEM format
-3. A passphrase in plain-text
-4. A chain of trust in PEM format (if the [signingCertificate](#chain-of-trust) is passed)
-
-#### Self-Signed Certificate
-
-In order to generate a sef-signed certificate you need to provide an identification for a self-signed CA ( see [rfc1779](https://tools.ietf.org/html/rfc1779) or [the X.520 specification](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.520) ) using the `subject` property:
+Successful installation of MongoDB with this class requires:
+1) Explicit acceptance of the terms of the SSPL license, under which MongoDB is distributed
+2) The instance on which the installation is being performed is in a subnet that can access the official MongoDB sites: https://repo.mongodb.org/ and https://www.mongodb.org
 
 ```ts
-const cert = new X509CertificatePem(stack, 'X509CertificatePem', {
-  subject: {
-    cn: 'identityName',
-    o: 'organizationName',
-    ou: 'organizationUnit',
-},
-});
+const installer = new MongoDbInstaller(stack, {
+  version: MongoDbVersion.COMMUNITY_3_6,
+  userSsplAcceptance: MongoDbSsplLicenseAcceptance.USER_REJECTS_SSPL,
+};
 ```
-
-#### Chain Of Trust
-
-You can provide another `X509CertificatePem` certificate with `signingCertificate` property to sign the generated certificate forming a chain of trust:
-
-```ts
-const signingCertificate = new X509CertificatePem(/* ... */);
-
-const cert = new X509CertificatePem(stack, 'Cert', {
-  subject: {
-    cn: 'identityName',
-},
-  signingCertificate,
-});
-```
-
-#### Encryption
-
-`X509CertificatePem` will use the default AWS KMS Customer Master Key (CMK) for the account (named aws/secretsmanager) to secure the cert, key, and passphrase.
-
----
-_**Note:** If an AWS KMS CMK with that name doesn't yet exist, then Secrets Manager creates it for you automatically the first time it needs to encrypt a version's SecretString or SecretBinary fields._
 
 ---
 
-You can also provide your own KMS key using `encryptionKey` property if needed:
+_**Note:** MongoDB Community edition is licensed under the terms of the SSPL (see: https://www.mongodb.com/licensing/server-side-public-license ). Users of `MongoDbInstaller` must explicitly signify their acceptance of the terms of the SSPL through `userSsplAcceptance` property. By default, `userSsplAcceptance` is set to rejection._
+
+---
+
+### Installing MongoDB On An Instance
+
+To install MongoDb on the instance you should use `installOnLinuxInstance()` method:
 
 ```ts
-const encryptionKey = new Key(/* ... */);
-
-const cert = new X509CertificatePem(stack, 'Cert', {
-  encryptionKey,
-  /* ... */
-});
-```
-
-#### Granting Permissions
-
-To grant read permissions for the certificate use `grantCertRead()` method:
-
-```ts
-const instance = new Instance(/* ... */);
-cert.grantCertRead(instance.grantPrincipal);
-```
-
-And to grant read permissions for the certificate, key, and passphrase use `grantFullRead()` method instead:
-
-```ts
-const instance = new Instance(/* ... */);
-cert.grantFullRead(instance.grantPrincipal);
-```
-
-### X509CertificatePkcs12
-
-In order to generate a PKCS #12 file from an X.509 certificate in PEM format you can use `X509CertificatePkcs12` construct:
-
-```ts
-const sourceCertificate = new X509CertificatePem(/* ... */);
-const pkcs12Cert = new X509CertificatePkcs12(stack, 'CertPkcs12', {
-  sourceCertificate: sourceCertificate,
-});
-```
-
-Similar to `X509CertificatePem`, you can also provide your own encryption key:
-
-```ts
-const sourceCertificate = new X509CertificatePem(/* ... */);
-const encryptionKey = new Key(/* ... */);
-
-const pkcs12Cert = new X509CertificatePkcs12(stack, 'CertPkcs12', {
-  sourceCertificate,
-  encryptionKey,
-});
-```
-
-### ImportedAcmCertificate
-
-You might need to import your X.509 certificate stored as a Secret into the AWS Certificate Manager. In this case, you can use `ImportedAcmCertificate` to do that:
-
-```ts
-const secretCert = new X509CertificatePem(/* ... */);
-const importedCertificate = new ImportedAcmCertificate(stack, 'ImportedAcmCertificate', {
-  cert: secretCert.cert,
-  certChain: secretCert.certChain,
-  key: secretCert.key,
-  passphrase: secretCert.passphrase,
-});
-```
-
-## StaticPrivateIpServer
-
-If you need to create an instance with an unchanging private IP address that will automatically recover from termination (e.g., a license server, that must always be reachable by the same IP address), then you can use an instance of `StaticPrivateIpServer`:
-
-```ts
-const vpc = new Vpc(/* ... */);
-const server = new StaticPrivateIpServer(stack, 'Instance', {
-  vpc,
+const instance = new Instance(stack, 'Instance', {
   instanceType: new InstanceType('t3.small'),
   machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_}),
+  /* ... */
 });
+
+const installer = new MongoDbInstaller(stack, {
+  version: MongoDbVersion.COMMUNITY_3_6,
+  userSsplAcceptance: MongoDbSsplLicenseAcceptance.USER_ACCEPTS_SSPL,
+});
+
+installer.installOnLinuxInstance(instance);
 ```
 
-There are many useful settings that you can change when creating a new `StaticPrivateIpServer`. For example, by using `resourceSignalTimeout` property, you can set the time to wait for the instance to signal successful deployment during the initial deployment, or update, of your stack:
+---
 
-```ts
-const server = new StaticPrivateIpServer(stack, 'Instance', {
-  resourceSignalTimeout: Duration.hours(12),
-  /* ... */,
-});
-```
+_**Note:** At this time, this method only supports installation onto instances that are running an operating system that is compatible with x86-64 RedHat 7. This includes Amazon Linux 2, RedHat 7, and CentOS 7._
 
-_**Note:** The deployment does not require a success signal from the instance, by default._
-
-### Connect To An Instance
-
-See [Connecting To An Instance](#connecting-to-an-instance) for more details.
+---
 
 ## MongoDbInstance
 
@@ -537,7 +423,7 @@ const instance = new MongoDbInstance(stack, 'MongoDbInstance', {
 
 ---
 
-_**Note** The Volume must not be partitioned. The volume will be mounted to /var/lib/mongo on this instance, and all files on it will be changed to be owned by the mongod user on the instance.._
+_**Note** The Volume must not be partitioned. The volume will be mounted to /var/lib/mongo on this instance, and all files on it will be changed to be owned by the mongod user on the instance._
 
 ---
 
@@ -599,58 +485,6 @@ const instance = new MongoDbInstance(stack, 'MongoDbInstance', {
 };
 ```
 
-## MongoDbInstaller
-
-[MongoDbInstance](#mongodbinstance) internally uses `MongoDbInstaller` to install the specified version of MongoDB during an initial launch of the instance. You can also use `MongoDbInstaller` on its own if you need.
-
-MongoDB is installed from the official sources using the system package manger (yum). It installs the mongodb-org metapackage which will install the following packages:
- * mongodb-org-mongos
- * mongodb-org-server
- * mongodb-org-shell
- * mongodb-org-tools
-
-Successful installation of MongoDB with this class requires:
-1) Explicit acceptance of the terms of the SSPL license, under which MongoDB is distributed
-2) The instance on which the installation is being performed is in a subnet that can access the official MongoDB sites: https://repo.mongodb.org/ and https://www.mongodb.org
-
-```ts
-const installer = new MongoDbInstaller(stack, {
-  version: MongoDbVersion.COMMUNITY_3_6,
-  userSsplAcceptance: MongoDbSsplLicenseAcceptance.USER_REJECTS_SSPL,
-};
-```
-
----
-
-_**Note:** MongoDB Community edition is licensed under the terms of the SSPL (see: https://www.mongodb.com/licensing/server-side-public-license ). Users of `MongoDbInstaller` must explicitly signify their acceptance of the terms of the SSPL through `userSsplAcceptance` property. By default, `userSsplAcceptance` is set to rejection._
-
----
-
-### Installing Mongo On an Instance
-
-To install MongoDb on the instance you should use `installOnLinuxInstance()` method:
-
-```ts
-const instance = new Instance(stack, 'Instance', {
-  instanceType: new InstanceType('t3.small'),
-  machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_}),
-  /* ... */
-});
-
-const installer = new MongoDbInstaller(stack, {
-  version: MongoDbVersion.COMMUNITY_3_6,
-  userSsplAcceptance: MongoDbSsplLicenseAcceptance.USER_ACCEPTS_SSPL,
-});
-
-installer.installOnLinuxInstance(instance);
-```
-
----
-
-_**Note:** At this time, this method only supports installation onto instances that are running an operating system that is compatible with x86-64 RedHat 7. This includes Amazon Linux 2, RedHat 7, and CentOS 7._
-
----
-
 ## MongoDbPostInstallSetup
 
 You can perform post-installation setup on a MongoDB database using `MongoDbPostInstallSetup`.
@@ -679,7 +513,7 @@ const pwUser1 = Secret.fromSecretArn(/* ... */);
 const pwUser2 = Secret.fromSecretArn(/* ... */);
 ```
 
-### X.509-authenticated users
+### X509-Authenticated Users
 
 To create an *X.509-authenticated user* you need to provide a `certificate` of the user used for authentication and a JSON-encoded string with the `roles` this user should be given:
 
@@ -723,6 +557,212 @@ const postInstallSetup = new MongoDbPostInstallSetup(stack, 'MongoPostInstall', 
     passwordAuthUsers: [ pwUser1, pwUser2 ],
     x509AuthUsers: [ x509User1, x509User2 ],
   },
+});
+```
+
+## ScriptAsset
+
+It is often useful to run commands on your instance at launch. This is done using scripts that are executed through instance [user data](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html).
+
+RFDK includes a `ScriptAsset` class that generalizes the concept of the script (bash or powershell) that executes on an instance. `ScriptAsset` is a wrapper around the [CDK's S3 Asset construct](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-s3-assets.Asset.html):
+
+```ts
+const scriptAsset = new ScriptAsset(stack, 'ScriptAsset', {
+  path: path.join(__dirname, '../scripts/bash/scriptName.sh'),
+});
+```
+
+In order to execute the script on the instance use method `executeOn()`:
+
+```ts
+const instance = new Instance(stack, 'Instance', /* ... */);
+scriptAsset.executeOn({ host: instance });
+```
+
+If you need to pass arguments to your script, use `args` property, as follows:
+
+```ts
+scriptAsset.executeOn({
+  host: instance,
+  args: ['arg1'],
+});
+```
+
+---
+
+_**Note:** The arguments are not escaped in any way and you will have to escape them for the target platform's userdata language (bash/powershell) if needed._
+
+---
+
+### RFDK Script Directory Structure Convention
+
+In RFDK, by convention, scripts are kept in a `scripts` directory in each `aws-rfdk/*` sub-module. The scripts are organized based on target shell (and implicitly target operating system). The directory structure looks like:
+
+```
+scripts/
+  bash/
+    script-one.sh
+    script-two.sh
+  powershell/
+    script-one.ps1
+    script-one.ps1
+```
+
+For such structure, you can use `fromPathConvention()` function to create a `ScriptAsset` instance that automatically selects the appropriate script based on operating system:
+
+```ts
+const scriptAsset = ScriptAsset.fromPathConvention(stack, 'ScriptAsset', {
+  osType: instance.osType,
+  baseName: 'scriptName',
+  rootDir: path.join(
+    __dirname,
+    '..',
+    'scripts',
+  ),
+});
+```
+
+This will select the script `../scripts/bash/scriptName.sh` if the `osType` is Linux, and `../scripts/powershell/scriptName.ps1` if the `osType` is Windows.
+
+## StaticPrivateIpServer
+
+If you need to create an instance with an unchanging private IP address that will automatically recover from termination (e.g., a license server, that must always be reachable by the same IP address), then you can use an instance of `StaticPrivateIpServer`:
+
+```ts
+const vpc = new Vpc(/* ... */);
+const server = new StaticPrivateIpServer(stack, 'Instance', {
+  vpc,
+  instanceType: new InstanceType('t3.small'),
+  machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_}),
+});
+```
+
+There are many useful settings that you can change when creating a new `StaticPrivateIpServer`. For example, by using `resourceSignalTimeout` property, you can set the time to wait for the instance to signal successful deployment during the initial deployment, or update, of your stack:
+
+```ts
+const server = new StaticPrivateIpServer(stack, 'Instance', {
+  resourceSignalTimeout: Duration.hours(12),
+  /* ... */,
+});
+```
+
+_**Note:** The deployment does not require a success signal from the instance, by default._
+
+### Connect To An Instance
+
+See [Connecting To An Instance](#connecting-to-an-instance) for more details.
+
+## X509 Certificates
+
+RFDK provides the following constructs for working with X509 certificates: `X509CertificatePem`, `X509CertificatePkcs12`, and `ImportedAcmCertificate`.
+
+### X509CertificatePem
+
+`X509CertificatePem` provides a mechanism for generating X.509 certificates. This construct will create the following resources as secrets in Secret Manager:
+1. An X509 certificate in PEM format
+2. A private key in PEM format
+3. A passphrase in plain-text
+4. A chain of trust in PEM format (if the [signingCertificate](#chain-of-trust) is passed)
+
+#### Self-Signed Certificate
+
+In order to generate a sef-signed certificate you need to provide an identification for a self-signed CA ( see [rfc1779](https://tools.ietf.org/html/rfc1779) or [the X.520 specification](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.520) ) using the `subject` property:
+
+```ts
+const cert = new X509CertificatePem(stack, 'X509CertificatePem', {
+  subject: {
+    cn: 'identityName',
+    o: 'organizationName',
+    ou: 'organizationUnit',
+},
+});
+```
+
+#### Chain Of Trust
+
+You can provide another `X509CertificatePem` certificate with `signingCertificate` property to sign the generated certificate forming a chain of trust:
+
+```ts
+const signingCertificate = new X509CertificatePem(/* ... */);
+
+const cert = new X509CertificatePem(stack, 'Cert', {
+  subject: {
+    cn: 'identityName',
+},
+  signingCertificate,
+});
+```
+
+#### Encryption
+
+`X509CertificatePem` will use the default AWS KMS Customer Master Key (CMK) for the account (named aws/secretsmanager) to secure the cert, key, and passphrase.
+
+---
+_**Note:** If an AWS KMS CMK with that name doesn't yet exist, then Secrets Manager creates it for you automatically the first time it needs to encrypt a version's SecretString or SecretBinary fields._
+
+---
+
+You can also provide your own KMS key using `encryptionKey` property if needed:
+
+```ts
+const encryptionKey = new Key(/* ... */);
+
+const cert = new X509CertificatePem(stack, 'Cert', {
+  encryptionKey,
+  /* ... */
+});
+```
+
+#### Granting Permissions
+
+To grant read permissions for the certificate use `grantCertRead()` method:
+
+```ts
+const instance = new Instance(/* ... */);
+cert.grantCertRead(instance.grantPrincipal);
+```
+
+And to grant read permissions for the certificate, key, and passphrase use `grantFullRead()` method instead:
+
+```ts
+const instance = new Instance(/* ... */);
+cert.grantFullRead(instance.grantPrincipal);
+```
+
+### X509CertificatePkcs12
+
+In order to generate a PKCS #12 file from an X.509 certificate in PEM format you can use `X509CertificatePkcs12` construct:
+
+```ts
+const sourceCertificate = new X509CertificatePem(/* ... */);
+const pkcs12Cert = new X509CertificatePkcs12(stack, 'CertPkcs12', {
+  sourceCertificate: sourceCertificate,
+});
+```
+
+Similar to `X509CertificatePem`, you can also provide your own encryption key:
+
+```ts
+const sourceCertificate = new X509CertificatePem(/* ... */);
+const encryptionKey = new Key(/* ... */);
+
+const pkcs12Cert = new X509CertificatePkcs12(stack, 'CertPkcs12', {
+  sourceCertificate,
+  encryptionKey,
+});
+```
+
+### ImportedAcmCertificate
+
+You might need to import your X.509 certificate stored as a Secret into the AWS Certificate Manager. In this case, you can use `ImportedAcmCertificate` to do that:
+
+```ts
+const secretCert = new X509CertificatePem(/* ... */);
+const importedCertificate = new ImportedAcmCertificate(stack, 'ImportedAcmCertificate', {
+  cert: secretCert.cert,
+  certChain: secretCert.certChain,
+  key: secretCert.key,
+  passphrase: secretCert.passphrase,
 });
 ```
 
