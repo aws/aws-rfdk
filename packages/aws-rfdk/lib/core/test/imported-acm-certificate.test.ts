@@ -51,12 +51,12 @@ test('Import cert', () => {
     },
     Tags: [
       {
-        Key: 'AcmCertImport-0EE07670',
-        Value: '0ee0767063596bd478fd58f232ff43f0',
+        Key: 'AcmCertImport-F4E2ABF9',
+        Value: 'f4e2abf974443234fdb095fafcfa9ee2',
       },
       {
         Key: 'Name',
-        Value: '0ee0767063596bd478fd58f232ff43f0',
+        Value: 'f4e2abf974443234fdb095fafcfa9ee2',
       },
     ],
   }));
@@ -121,7 +121,7 @@ test('Import cert', () => {
           ],
           Condition: {
             StringEquals: {
-              'aws:RequestTag/AcmCertImport-0EE07670': '0ee0767063596bd478fd58f232ff43f0',
+              'aws:RequestTag/AcmCertImport-F4E2ABF9': 'f4e2abf974443234fdb095fafcfa9ee2',
             },
           },
           Resource: '*',

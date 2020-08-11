@@ -49,13 +49,10 @@ import { Secret } from '@aws-cdk/aws-secretsmanager';
 import {
   App,
   CfnElement,
-  Construct,
   Stack,
 } from '@aws-cdk/core';
 
 import {
-  LogGroupFactory,
-  LogGroupFactoryProps,
   X509CertificatePem,
 } from '../..';
 import {
@@ -145,54 +142,11 @@ describe('RenderQueue', () => {
   });
 
   test('creates a log group with default prefix of "/renderfarm/"', () => {
-    // GIVEN
-    function mockLogGroupFactory() {
-      jest.resetModules();
-
-      class MockLogGroupFactory extends LogGroupFactory {
-        public static readonly createOrFetchSpy = jest.fn();
-
-        public static createOrFetch(scope: Construct, id: string, logGroupName: string, props: LogGroupFactoryProps) {
-          this.createOrFetchSpy(scope, id, logGroupName, props);
-
-          return LogGroupFactory.createOrFetch(scope, id, logGroupName, props);
-        }
-      }
-
-      jest.mock('../../core', () => {
-        const rfdk = jest.requireActual('../../core');
-
-        return {
-          ...rfdk,
-          LogGroupFactory: MockLogGroupFactory,
-        };
-      });
-
-      return {
-        MockLogGroupFactory: require('../../core').LogGroupFactory as typeof MockLogGroupFactory, // eslint-disable-line
-        RenderQueue: require('../lib').RenderQueue as typeof RenderQueue, // eslint-disable-line
-      };
-    }
-    const mockModules = mockLogGroupFactory();
-    const cleanStack = new Stack(app, 'CleanStack');
-
-    // WHEN
-    new mockModules.RenderQueue(cleanStack, 'RenderQueue', {
-      images,
-      repository,
-      version,
-      vpc,
-    });
-
     // THEN
-    expect(mockModules.MockLogGroupFactory.createOrFetchSpy).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.stringContaining(''),
-      expect.stringContaining(''),
-      expect.objectContaining({
-        logGroupPrefix: '/renderfarm/',
-      }),
-    );
+    expectCDK(stack).to(haveResourceLike('Custom::LogRetention', {
+      LogGroupName: '/renderfarm/RenderQueueCommon',
+      RetentionInDays: 3,
+    }));
   });
 
   test('configure the container log driver', () => {
