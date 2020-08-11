@@ -347,6 +347,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       // cloudformation updates.
       minHealthyPercent: 0,
       maxHealthyPercent: 100,
+      // This is required to ensure that the ALB listener's security group does not allow any ingress by default.
+      openListener: false,
     });
 
     // An explicit dependency is required from the Service to the Client certificate
