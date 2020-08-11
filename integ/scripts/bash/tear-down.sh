@@ -24,7 +24,7 @@ for component in **/cdk.json; do
     # Use a pattern match to exclude the infrastructure app from the results
     if [[ "$(basename "$component_root")" != _* ]]; then
         # Excecute the e2e test in the component's scripts directory
-        cd "$component_root" && "./scripts/bash/destroy-stacks.sh"
+        cd "${root}/${component_root}" && "./scripts/bash/destroy-stacks.sh"
     fi
 done
 
