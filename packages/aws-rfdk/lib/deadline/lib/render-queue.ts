@@ -134,16 +134,7 @@ abstract class RenderQueueBase extends Construct implements IRenderQueue {
  * 4) A CloudWatch bucket for streaming logs from the RCS container
  * 5) An application load balancer, listener and target group that balance incoming traffic among the RCS containers
  *
- * Residual Risk
- * ------------------------
- * - Grants full read permission to the ASG to CDK's assets bucket.
- * - Care must be taken to secure what can connect to the RenderQueue. The RenderQueue does not authenticate API
- *   requests made against it. Users must take responsibility for limiting access to the RenderQueue endpoint to only
- *   trusted hosts. Those hosts should be governed carefully, as malicious software could use the API to
- *   remotely execute code across the entire render farm.
- *
  * @ResourcesDeployed
- * @ResidualRisk
  */
 export class RenderQueue extends RenderQueueBase implements IGrantable {
   /**

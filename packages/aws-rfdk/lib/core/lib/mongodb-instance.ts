@@ -306,13 +306,7 @@ export interface IMongoDb extends IConnectable, IConstruct {
  * - An encrypted EBS Volume on which the MongoDB data is stored.
  * - Amazon CloudWatch log group that contains instance-launch and MongoDB application logs.
  *
- * Residual Risk
- * ------------------------
- * - The administrator credentials for MongoDB are stored in a Secret within AWS SecretsManager; you must limit access to this secret.
- * - Any risk present in {@link StaticPrivateIpServer} and {@link MongoDbInstaller}.
- *
  * @ResourcesDeployed
- * @ResidualRisk
  */
 export class MongoDbInstance extends Construct implements IMongoDb, IGrantable {
   // How often Cloudwatch logs will be flushed.

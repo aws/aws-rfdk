@@ -78,16 +78,7 @@ export interface ImportedAcmCertificateProps {
  * 2) Lambda Function, with Role - Used to create/update/delete the CustomResource.
  * 3) ACM Certificate - Created by the CustomResource.
  *
- * Residual Risk
- * ------------------------
- * - The Lambda role's policy gives it full access to the DynamoDB Table and access to get the X.509 certificate,
- *   private key, certificate chain, and passphrase Secrets that are taken as input.
- * - The Lambda also has permission to add tags to and import certificates to ACM that have the unique tag generated
- *   in this Construct. The permissions to delete and get certificates are open to all resources as ACM has not
- *   implemented policy conditions to restrict those operations to the unique tag.
- *
  * @ResourcesDeployed
- * @ResidualRisk
  */
 export class ImportedAcmCertificate extends Construct implements ICertificate {
   private static IMPORTER_UUID = '2d20d8f2-7b84-444e-b738-c75b499a9eaa';

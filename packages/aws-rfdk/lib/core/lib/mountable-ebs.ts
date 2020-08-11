@@ -104,11 +104,6 @@ export interface MountableBlockVolumeProps {
  * @remark If using this script with an instance within an AWS Auto Scaling Group (ASG) and you resize
  * the EBS volume, then you can terminate the instance to let the ASG replace the instance and benefit
  * from the larger volume size when this script resizes the filesystem on instance launch.
- *
- * Residual Risk
- * --------------
- *
- * - The instance that is using this scripting will be able to get any object from your CDK bootstrap S3 bucket.
  */
 export class MountableBlockVolume implements IMountableLinuxFilesystem {
   constructor(protected readonly scope: Construct, protected readonly props: MountableBlockVolumeProps) {}

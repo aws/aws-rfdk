@@ -441,15 +441,7 @@ export interface UsageBasedLicensingProps {
  * 2) Elastic Block Store device(s) associated with the EC2 instance(s) in the ASG. The default volume size is 30 GiB.
  * 3) The LogGroup if it doesn't exist already.
  *
- * Residual Risk
- * ------------------------
- * - Any machine that has ingress network access to the License Forwarder is able to receive the licenses.
- *   Make sure the security group of the license forwarder is tightly restricted
- *   to allow only ingress from the machines that require it
- * - Docker container has permissions to read a secret with 3rd Party Licensing Certificates
- *
  * @ResourcesDeployed
- * @ResidualRisk
  */
 export class UsageBasedLicensing extends Construct implements IGrantable {
   /**

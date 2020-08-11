@@ -164,18 +164,9 @@ export interface StaticPrivateIpServerProps {
  * 3) Security Group for the ASG;
  * 4) Instance Role and corresponding IAM Policy
  * 5) SNS Topic & Role for instance-launch lifecycle events -- max one of each per stack; and
- * 6) Lambda function, with role, to attach the ENI in response to instace-launch lifecycle events -- max one per stack.
- *
- * Residual Risk
- * ------------------------
- * - The Lambda's Role grants the Lambda permission:
- *    1) The ability to attach **any** Elastic Network Interface to **any** instance.
- *    2) To invoke autoscaling:CompleteLifecycleAction on **any** Auto Scaling Group that is tagged with the
- *       key 'RfdkStaticPrivateIpServerGrantConditionKey' and a unique value derived from this construct's
- *       scope.
+ * 6) Lambda function, with role, to attach the ENI in response to instance-launch lifecycle events -- max one per stack.
  *
  * @ResourcesDeployed
- * @ResidualRisk
  */
 export class StaticPrivateIpServer extends Construct implements IConnectable, IGrantable {
 
