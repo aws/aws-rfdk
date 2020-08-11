@@ -128,6 +128,15 @@ describe('RenderQueue', () => {
     expectCDK(stack).to(haveResource('AWS::ECS::TaskDefinition'));
   });
 
+  test('closed ingress by default', () => {
+    // THEN
+    expectCDK(stack).notTo(haveResource('AWS::EC2::SecurityGroup', {
+      // The openListener=true option would create an ingress rule in the listener's SG.
+      // make sure that we don't have that.
+      SecurityGroupIngress: arrayWith(objectLike({})),
+    }));
+  });
+
   test('creates load balancer with default values', () => {
     // THEN
     expectCDK(stack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 1, {
