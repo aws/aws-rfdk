@@ -43,6 +43,26 @@ import {IRenderQueue} from './render-queue';
 import {IWorkerFleet} from './worker-fleet';
 
 /**
+ * Properties for constructing a {@link UsageBasedLicense} instance.
+ */
+export interface UsageBasedLicenseProps {
+  /**
+   * The name of the product that the usage-based license applies to.
+   */
+  readonly licenseName: string;
+
+  /**
+   * The set of ports that are used for licensing traffic
+   */
+  readonly ports: Port[];
+
+  /**
+   * The maximum number of usage-based licenses that can be used concurrently.
+   */
+  readonly limit?: number;
+}
+
+/**
  * Instances of this class represent a usage-based license for a particular product.
  * It encapsulates all of the information specific to a product that the UsageBasedLicensing
  * construct requires to interoperate with that product.
@@ -65,7 +85,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static for3dsMax(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('max', [Port.tcp(27002)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'max',
+      ports: [Port.tcp(27002)],
+      limit,
+    });
   }
 
   /**
@@ -79,7 +103,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forArnold(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('arnold', [Port.tcp(5056), Port.tcp(7056)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'arnold',
+      ports: [Port.tcp(5056), Port.tcp(7056)],
+      limit,
+    });
   }
 
   /**
@@ -90,7 +118,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forCinema4D(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('cinema4d', [Port.tcp(5057), Port.tcp(7057)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'cinema4d',
+      ports: [Port.tcp(5057), Port.tcp(7057)],
+      limit,
+    });
   }
 
   /**
@@ -101,7 +133,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forClarisse(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('clarisse', [Port.tcp(40500)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'clarisse',
+      ports: [Port.tcp(40500)],
+      limit,
+    });
   }
 
   /**
@@ -112,7 +148,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forHoudini(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('houdini', [Port.tcp(1715)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'houdini',
+      ports: [Port.tcp(1715)],
+      limit,
+    });
   }
 
   /**
@@ -123,7 +163,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forKatana(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('katana', [Port.tcp(4101), Port.tcp(6101)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'katana',
+      ports: [Port.tcp(4101), Port.tcp(6101)],
+      limit,
+    });
   }
 
   /**
@@ -134,7 +178,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forKeyShot(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('keyshot', [Port.tcp(27003), Port.tcp(2703)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'keyshot',
+      ports: [Port.tcp(27003), Port.tcp(2703)],
+      limit,
+    });
   }
 
   /**
@@ -145,7 +193,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forKrakatoa(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('krakatoa', [Port.tcp(27000), Port.tcp(2700)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'krakatoa',
+      ports: [Port.tcp(27000), Port.tcp(2700)],
+      limit,
+    });
   }
 
   /**
@@ -156,7 +208,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forMantra(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('mantra', [Port.tcp(1716)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'mantra',
+      ports: [Port.tcp(1716)],
+      limit,
+    });
   }
 
   /**
@@ -167,7 +223,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forMaxwell(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('maxwell', [Port.tcp(5055), Port.tcp(7055)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'maxwell',
+      ports: [Port.tcp(5055), Port.tcp(7055)],
+      limit,
+    });
   }
 
   /**
@@ -181,7 +241,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forMaya(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('maya', [Port.tcp(27002), Port.tcp(2702)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'maya',
+      ports: [Port.tcp(27002), Port.tcp(2702)],
+      limit,
+    });
   }
 
   /**
@@ -192,7 +256,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forNuke(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('nuke', [Port.tcp(4101), Port.tcp(6101)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'nuke',
+      ports: [Port.tcp(4101), Port.tcp(6101)],
+      limit,
+    });
   }
 
   /**
@@ -203,7 +271,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forRealFlow(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('realflow', [Port.tcp(5055), Port.tcp(7055)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'realflow',
+      ports: [Port.tcp(5055), Port.tcp(7055)],
+      limit,
+    });
   }
 
   /**
@@ -214,7 +286,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forRedShift(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('redshift', [Port.tcp(5054), Port.tcp(7054)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'redshift',
+      ports: [Port.tcp(5054), Port.tcp(7054)],
+      limit,
+    });
   }
 
   /**
@@ -225,7 +301,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forVray(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('vray', [Port.tcp(30306)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'vray',
+      ports: [Port.tcp(30306)],
+      limit,
+    });
   }
 
   /**
@@ -236,7 +316,11 @@ export class UsageBasedLicense {
    * @default - limit will be set to unlimited
    */
   public static forYeti(limit?: number): UsageBasedLicense {
-    return new UsageBasedLicense('yeti', [Port.tcp(5053), Port.tcp(7053)], limit);
+    return new UsageBasedLicense({
+      licenseName: 'yeti',
+      ports: [Port.tcp(5053), Port.tcp(7053)],
+      limit,
+    });
   }
 
   /**
@@ -254,10 +338,10 @@ export class UsageBasedLicense {
    */
   public readonly limit?: number;
 
-  constructor(licenseName: string, ports: Port[], limit?: number) {
-    this.licenseName = licenseName;
-    this.ports = ports;
-    this.limit = limit;
+  constructor(props: UsageBasedLicenseProps) {
+    this.licenseName = props.licenseName;
+    this.ports = props.ports;
+    this.limit = props.limit;
   }
 }
 
@@ -326,33 +410,6 @@ export interface UsageBasedLicensingProps {
   readonly licenses: UsageBasedLicense[];
 
   /**
-   * The amount (in MiB) of memory to present to the License Forwarder container.
-   *
-   * If your container attempts to exceed the allocated memory, the container
-   * is terminated.
-   *
-   * At least one of memoryLimitMiB and memoryReservationMiB is required for non-Fargate services.
-   *
-   * @default - No memory limit.
-   */
-  readonly memoryLimitMiB?: number;
-
-  /**
-   * The soft limit (in MiB) of memory to reserve for the License Forwarder container.
-   *
-   * When system memory is under heavy contention, Docker attempts to keep the
-   * container memory to this soft limit. However, your container can consume more
-   * memory when it needs to, up to either the hard limit specified with the memory
-   * parameter (if applicable), or all of the available memory on the container
-   * instance, whichever comes first.
-   *
-   * At least one of memoryLimitMiB and memoryReservationMiB is required for non-Fargate services.
-   *
-   * @default - No memory reserved.
-   */
-  readonly memoryReservationMiB?: number;
-
-  /**
    * Properties for setting up the Deadline License Forwarder's LogGroup in CloudWatch
    * @default - LogGroup will be created with all properties' default values to the LogGroup: /renderfarm/<construct id>
    */
@@ -408,19 +465,22 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
   /**
    * The Amazon ECS cluster that is hosting the Deadline License Forwarder for UBL.
    */
-  public cluster: Cluster;
+  public readonly cluster: Cluster;
 
   /**
    * Autoscaling group for license forwarder instances
    */
-  public asg: AutoScalingGroup;
+  public readonly asg: AutoScalingGroup;
 
   /**
    * The principal to grant permissions to.
    */
   public readonly grantPrincipal: IPrincipal;
 
-  private readonly service: Ec2Service;
+  /**
+   * The ECS service that serves usage based licensing.
+   */
+  public readonly service: Ec2Service;
 
   constructor(scope: Construct, id: string, props: UsageBasedLicensingProps) {
     super(scope, id);
@@ -437,7 +497,7 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
 
     this.cluster = new Cluster(this, 'Cluster', { vpc: props.vpc });
 
-    this.asg = this.cluster.addCapacity('ClusterCapacity', {
+    this.asg = this.cluster.addCapacity('ASG', {
       vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
       instanceType: props.instanceType ? props.instanceType : InstanceType.of(InstanceClass.C5, InstanceSize.LARGE),
       minCapacity: props.desiredCount ?? 1,
@@ -448,7 +508,7 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
       }],
     });
 
-    const taskDefinition = new TaskDefinition(this, 'TaskDef', {
+    const taskDefinition = new TaskDefinition(this, 'TaskDefinition', {
       compatibility: Compatibility.EC2,
       networkMode: NetworkMode.HOST,
     });
@@ -472,17 +532,16 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
       ...props.logGroupProps,
       logGroupPrefix: prefix,
     };
-    const logGroup = LogGroupFactory.createOrFetch(this, 'LogGroupWrapper', `${id}`, defaultedLogGroupProps);
+    const logGroup = LogGroupFactory.createOrFetch(this, 'LogGroupWrapper', id, defaultedLogGroupProps);
     logGroup.grantWrite(this.asg);
 
-    const container = taskDefinition.addContainer('Container', {
+    const container = taskDefinition.addContainer('LicenseForwarderContainer', {
       image: props.images.licenseForwarder,
       environment: containerEnv,
-      memoryLimitMiB: props.memoryLimitMiB,
-      memoryReservationMiB: props.memoryReservationMiB,
+      memoryReservationMiB: 1024,
       logging: LogDriver.awsLogs({
         logGroup,
-        streamPrefix: 'docker',
+        streamPrefix: 'LicenseForwarder',
       }),
     });
 
@@ -510,6 +569,10 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
       maxHealthyPercent: 100,
     });
 
+    // An explicit dependency is required from the service to the ASG providing its capacity.
+    // See: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-dependson.html
+    this.service.node.addDependency(this.asg);
+
     this.node.defaultChild = this.service;
     this.connections.allowToDefaultPort(props.renderQueue);
   }
@@ -530,7 +593,7 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
   }
 
   /**
-   * The connections object that allows you to control network egress/ingress to the Licence Forwarder.
+   * The connections object that allows you to control network egress/ingress to the License Forwarder.
    */
   public get connections() {
     return this.service.connections;
