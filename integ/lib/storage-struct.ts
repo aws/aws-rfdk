@@ -6,42 +6,64 @@
 import { DatabaseCluster } from '@aws-cdk/aws-docdb';
 import { InstanceClass, InstanceSize, InstanceType, Vpc, SubnetType } from '@aws-cdk/aws-ec2';
 import { FileSystem } from '@aws-cdk/aws-efs';
+import { PrivateHostedZone } from '@aws-cdk/aws-route53';
+import { ISecret } from '@aws-cdk/aws-secretsmanager';
 import { Construct, Duration, RemovalPolicy, Stack } from '@aws-cdk/core';
-import { MountableEfs } from 'aws-rfdk';
+import { MongoDbInstance, MongoDbPostInstallSetup, MongoDbSsplLicenseAcceptance, MongoDbVersion, MountableEfs, X509CertificatePem, X509CertificatePkcs12 } from 'aws-rfdk';
 import { DatabaseConnection, Repository, Stage, ThinkboxDockerRecipes } from 'aws-rfdk/deadline';
+
+
+// Interface for supplying database connection and accompanying secret for credentials
+export interface IRenderFarmDb {
+  db: DatabaseCluster | MongoDbInstance,
+  secret: ISecret,
+  cert?: X509CertificatePem,
+}
 
 export interface StorageStructProps {
   readonly integStackTag: string;
-  readonly provideDocdbEfs: string;
+  readonly provideDocdbEfs: boolean;
+  readonly useMongoDB: boolean;
 }
 
 export class StorageStruct extends Construct {
   public readonly repo: Repository;
-  public readonly docdb: DatabaseCluster;
+  public readonly database: IRenderFarmDb;
   public readonly efs: FileSystem;
 
   constructor(scope: Construct, id: string, props: StorageStructProps) {
     super(scope, id);
 
+    // Confirm that user has accepted SSPL license to use mongoDB
+    const userAcceptsSSPL = process.env.USER_ACCEPTS_SSPL_FOR_RFDK_TESTS!.toString();
+    const userSsplAcceptance =
+      userAcceptsSSPL === 'true' ? MongoDbSsplLicenseAcceptance.USER_ACCEPTS_SSPL : MongoDbSsplLicenseAcceptance.USER_REJECTS_SSPL;
+
     const infrastructureStackName = 'RFDKIntegInfrastructure' + props.integStackTag;
     const stagePath = process.env.DEADLINE_STAGING_PATH!.toString();
 
+    // Get farm VPC from lookup
     const vpc = Vpc.fromLookup(this, 'Vpc', { tags: { StackName: infrastructureStackName }}) as Vpc;
 
+    // Create recipes object used to prepare the Deadline installers
     const recipes = new ThinkboxDockerRecipes(this, 'DockerRecipes', {
       stage: Stage.fromDirectory(stagePath),
     });
     const version = recipes.version;
 
-    let deadlineDatabase;
-    let deadlineDatabaseConnection;
+    let cacert;
+    let database;
+    let databaseConnection;
+    let databaseSecret: ISecret;
     let deadlineEfs;
     let deadlineMountableEfs;
 
-    // Check the configuration for the test for provideDocdbEfs...
-    if (props.provideDocdbEfs === 'true') {
-      // If true, create a docDB and efs for the repository to use
-      deadlineDatabase = new DatabaseCluster(this, 'DocumentDatabase', {
+    // Check the configuration for the test for provideDocdbEfs
+    // If true, create a docDB and efs for the repository to use
+    if (props.provideDocdbEfs) {
+
+      // Create a DocDB database cluster on the VPC
+      database = new DatabaseCluster(this, 'DocumentDatabase', {
         instanceProps: {
           instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
           vpc,
@@ -58,11 +80,15 @@ export class StorageStruct extends Construct {
         },
         removalPolicy: RemovalPolicy.DESTROY,
       });
-      deadlineDatabaseConnection = DatabaseConnection.forDocDB({
-        database: deadlineDatabase,
-        login: deadlineDatabase.secret!,
+      databaseSecret = database.secret!;
+
+      // Create a database connection for the DocDB
+      databaseConnection = DatabaseConnection.forDocDB({
+        database: database,
+        login: databaseSecret,
       });
 
+      // Create EFS file system
       deadlineEfs = new FileSystem(this, 'FileSystem', {
         vpc,
         removalPolicy: RemovalPolicy.DESTROY,
@@ -71,10 +97,84 @@ export class StorageStruct extends Construct {
         filesystem: deadlineEfs,
       });
     }
+    // If useMongoDB is true, a mongoDB instance is created in place of the DocDB
+    else if (props.useMongoDB) {
+
+      // Create CA signing certificate
+      cacert = new X509CertificatePem(this, 'CaCert', {
+        subject: {
+          cn: 'ca.renderfarm.local',
+        },
+      });
+
+      // Create server-side certificate signed with the CA cert
+      const serverCert = new X509CertificatePem(this, 'MongoCert', {
+        subject: {
+          cn: 'mongo.renderfarm.local',
+          o: 'RFDK-Integ',
+          ou: 'MongoServer',
+        },
+        signingCertificate: cacert,
+      });
+
+      // Create client-side certificate signed with the CA cert
+      const clientCert = new X509CertificatePem(this, 'DeadlineMongoCert', {
+        subject: {
+          cn: 'MongoUser',
+          o: 'RFDK-Integ',
+          ou: 'MongoClient',
+        },
+        signingCertificate: cacert,
+      });
+
+      // Create PKCS12 certificate from the client certificate
+      const clientPkcs12 = new X509CertificatePkcs12(this, 'DeadlineMongoPkcs12', {
+        sourceCertificate: clientCert,
+      });
+
+      // Create the mongoDB instance
+      database = new MongoDbInstance(this, 'MongoDB', {
+        mongoDb: {
+          userSsplAcceptance,
+          version: MongoDbVersion.COMMUNITY_3_6,
+          dnsZone: new PrivateHostedZone(this, 'Zone', {
+            zoneName: 'renderfarm.local',
+            vpc,
+          }),
+          hostname: 'mongo',
+          serverCertificate: serverCert,
+        },
+        vpc,
+      });
+      databaseSecret = database.adminUser!;
+
+      new MongoDbPostInstallSetup(this, 'MongoDbPostInstall', {
+        vpc,
+        vpcSubnets: { subnetType: SubnetType.PRIVATE },
+        mongoDb: database,
+        users: {
+          x509AuthUsers: [
+            {
+              certificate: clientCert.cert,
+              roles: JSON.stringify([ { role: 'readWriteAnyDatabase', db: 'admin' }, {role: 'clusterMonitor', db: 'admin' }]),
+            },
+          ],
+        },
+      });
+
+      databaseConnection = DatabaseConnection.forMongoDbInstance({
+        database,
+        clientCertificate: clientPkcs12,
+      });
+
+      // EFS for the mongoDB will be created by the repository
+      deadlineEfs = undefined;
+      deadlineMountableEfs = undefined;
+    }
     else {
-      // Otherwise the repository installer will handle creating the docDB and EFS
-      deadlineDatabase = undefined;
-      deadlineDatabaseConnection = undefined;
+      // Otherwise the repository installer will handle creating a DocDB and EFS
+      database = undefined;
+      databaseConnection = undefined;
       deadlineEfs = undefined;
       deadlineMountableEfs = undefined;
     }
@@ -83,7 +183,7 @@ export class StorageStruct extends Construct {
     // to the same log group across tests
     this.repo = new Repository(this, 'Repository', {
       vpc,
-      database: deadlineDatabaseConnection,
+      database: databaseConnection,
       fileSystem: deadlineMountableEfs,
       version: version,
       repositoryInstallationTimeout: Duration.minutes(20),
@@ -96,7 +196,15 @@ export class StorageStruct extends Construct {
       },
     });
 
-    this.docdb = ( deadlineDatabase || this.repo.node.findChild('DocumentDatabase') as DatabaseCluster );
+    if( !database ) {
+      database = this.repo.node.findChild('DocumentDatabase') as DatabaseCluster;
+      databaseSecret = database.secret!;
+    }
+    this.database = {
+      db: database,
+      secret: databaseSecret!,
+      cert: cacert,
+    };
     this.efs = ( deadlineEfs || this.repo.node.findChild('FileSystem') as FileSystem );
   }
 }

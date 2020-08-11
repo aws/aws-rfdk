@@ -4,13 +4,12 @@
  */
 
 import * as path from 'path';
-import { BastionHostLinux, InstanceType, SubnetType, Vpc } from '@aws-cdk/aws-ec2';
+import { BastionHostLinux, InstanceType, Port, SubnetType, Vpc } from '@aws-cdk/aws-ec2';
 import { ILogGroup } from '@aws-cdk/aws-logs';
 import { Asset } from '@aws-cdk/aws-s3-assets';
 import { CfnOutput, Construct, Duration, Stack, StackProps } from '@aws-cdk/core';
 import { MongoDbInstaller, MongoDbSsplLicenseAcceptance, MongoDbVersion } from 'aws-rfdk';
 import { StorageStruct } from '../../../../lib/storage-struct';
-
 
 // Params object for TestingTier
 export interface TestingTierProps extends StackProps {
@@ -52,21 +51,30 @@ export class TestingTier extends Stack {
     props.structs.forEach( struct => {
       var testSuiteId = 'DL' + (props.structs.indexOf(struct) + 1).toString();
       var repo = struct.repo;
-      var docdb = struct.docdb;
-      var efs = struct.efs;
+      var database = struct.database.db;
+      var dbSecret = struct.database.secret!;
+      var cert = struct.database.cert;
+      var efs = struct.efs!;
       var logGroup = struct.repo.node.findChild('RepositoryLogGroup') as ILogGroup;
       var logGroupName = logGroup.logGroupName;
 
+      testInstance.connections.allowTo(database, Port.tcp(27017));
       testInstance.connections.allowToDefaultPort(efs);
-      testInstance.connections.allowToDefaultPort(docdb);
-      docdb.secret?.grantRead(testInstance);
+      dbSecret.grantRead(testInstance);
 
       repo.fileSystem.mountToLinuxInstance(testInstance.instance, {
         location: '/mnt/efs/fs' + (props.structs.indexOf(struct) + 1).toString(),
       });
 
+      if(cert) {
+        cert.cert?.grantRead(testInstance);
+        new CfnOutput(this, 'certSecretARN' + testSuiteId, {
+          value: cert.cert.secretArn,
+        });
+      }
+
       new CfnOutput(this, 'secretARN' + testSuiteId, {
-        value: docdb.secret!.secretArn,
+        value: dbSecret.secretArn,
       });
 
       new CfnOutput(this, 'logGroupName' + testSuiteId, {
@@ -84,9 +92,14 @@ export class TestingTier extends Stack {
 
     // Set up user data to install scripts and other functionality on the Bastion instance
     const instanceSetupScripts = new Asset(this, 'SetupScripts', {
-      path: path.join(__dirname, '..', 'scripts', 'bastion', 'setup'),
+      path: path.join(__dirname, '..', '..', 'common', 'scripts', 'bastion', 'setup'),
     });
     instanceSetupScripts.grantRead(testInstance);
+
+    const instanceUtilScripts = new Asset(this, 'UtilScripts', {
+      path: path.join(__dirname, '..', '..', 'common', 'scripts', 'bastion', 'utils'),
+    });
+    instanceUtilScripts.grantRead(testInstance);
 
     const testingScripts = new Asset(this, 'TestingScripts', {
       path: path.join(__dirname, '..', 'scripts', 'bastion', 'testing'),
@@ -96,6 +109,10 @@ export class TestingTier extends Stack {
     const setupZipPath: string = testInstance.instance.userData.addS3DownloadCommand({
       bucket: instanceSetupScripts.bucket,
       bucketKey: instanceSetupScripts.s3ObjectKey,
+    });
+    const utilZipPath: string = testInstance.instance.userData.addS3DownloadCommand({
+      bucket: instanceUtilScripts.bucket,
+      bucketKey: instanceUtilScripts.s3ObjectKey,
     });
     const testsZipPath: string = testInstance.instance.userData.addS3DownloadCommand({
       bucket: testingScripts.bucket,
@@ -118,11 +135,17 @@ export class TestingTier extends Stack {
       'chmod +x *.sh',
       // Put the DocDB CA certificate in the testing directory.
       'wget https://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem',
+      // Unzip the utility scripts to: ~ec2-user/utilScripts/
+      'cd ~ec2-user',
+      'mkdir utilScripts',
+      'cd utilScripts',
+      `unzip ${utilZipPath}`,
+      'chmod +x *.sh',
       // Everything will be owned by root, by default (UserData runs as root)
       'chown ec2-user.ec2-user -R *',
       // Cleanup
       'rm -rf "${TMPDIR}"',
-      `rm -f ${setupZipPath} ${testsZipPath}`,
+      `rm -f ${setupZipPath} ${testsZipPath} ${utilZipPath}`,
     );
     const mongodbInstaller = new MongoDbInstaller(this, {
       version: MongoDbVersion.COMMUNITY_3_6,
