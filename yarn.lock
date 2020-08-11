@@ -2216,10 +2216,10 @@
   resolved "https://registry.yarnpkg.com/@sinonjs/text-encoding/-/text-encoding-0.7.1.tgz#8da5c6530915653f3a1f38fd5f101d8c3f8079c5"
   integrity sha512-+iTbntw2IZPb/anVDbypzfQa+ay64MW0Zo8aJ8gZPWMMK6/OubMVb6lUPMagqjOPnmtauXnFCACVl3O7ogjeqQ==
 
-"@types/aws-lambda@^8.10.57":
-  version "8.10.57"
-  resolved "https://registry.yarnpkg.com/@types/aws-lambda/-/aws-lambda-8.10.57.tgz#39ca3bbe52c5b4e27dc83c2a3b5ed434834568b9"
-  integrity sha512-LMOA9bJLerYoe2KvzHugfaLTa0jUPWrqwxq5VUZ/ZuAMKLJm6oNdCio38vw8jWEIAkPR3P6mBIwnU1DPgelAKg==
+"@types/aws-lambda@^8.10.60":
+  version "8.10.60"
+  resolved "https://registry.yarnpkg.com/@types/aws-lambda/-/aws-lambda-8.10.60.tgz#98c620bf45ba0698fc50b1cb7d989ea0c2f29e70"
+  integrity sha512-zce8DXLRcBJ3ZAJBsNGkobIdXb34whTtZaGCaauRaDI9ZfleZk/x9wNeIcyvDy4m5w5SJSCZ3yFo3xreOgWowA==
 
 "@types/babel__core@^7.0.0":
   version "7.1.9"
