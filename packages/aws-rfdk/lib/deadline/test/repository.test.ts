@@ -811,7 +811,7 @@ test('validate instance self-termination', () => {
   });
 
   // THEN
-  const expectedString = 'function exitTrap(){\nexitCode=$?\nsleep 1m\nINSTANCE=\"$(curl http://169.254.169.254/latest/meta-data/instance-id)\"\nASG=\"$(aws --region ${Token[AWS::Region.4]} ec2 describe-tags --filters \"Name=resource-id,Values=${INSTANCE}\" \"Name=key,Values=aws:autoscaling:groupName\" --query \"Tags[0].Value\" --output text)\"\naws --region ${Token[AWS::Region.4]} autoscaling update-auto-scaling-group --auto-scaling-group-name ${ASG} --min-size 0 --max-size 0 --desired-capacity 0\n/opt/aws/bin/cfn-signal --stack Stack --resource repositoryInstallerASG7A08DC6A --region ${Token[AWS::Region.4]} -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n}';
+  const expectedString = 'function exitTrap(){\nexitCode=$?\nsleep 1m\nINSTANCE=\"$(curl http://169.254.169.254/latest/meta-data/instance-id)\"\nASG=\"$(aws --region ${Token[AWS::Region.4]} ec2 describe-tags --filters \"Name=resource-id,Values=${INSTANCE}\" \"Name=key,Values=aws:autoscaling:groupName\" --query \"Tags[0].Value\" --output text)\"\naws --region ${Token[AWS::Region.4]} autoscaling update-auto-scaling-group --auto-scaling-group-name ${ASG} --min-size 0 --max-size 0 --desired-capacity 0\n/opt/aws/bin/cfn-signal --stack Default --resource repositoryInstallerASG7A08DC6A --region ${Token[AWS::Region.4]} -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n}';
   expect((repo.node.defaultChild as AutoScalingGroup).userData.render()).toMatch(expectedString);
   expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
     PolicyDocument: {

@@ -81,7 +81,7 @@ test('Generate cert', () => {
           ],
           Condition: {
             StringEquals: {
-              'secretsmanager:ResourceTag/X509SecretGrant-B2B09A60': 'b2b09a6086e87fe14005f4e0b800e4f0',
+              'secretsmanager:ResourceTag/X509SecretGrant-F53F5427': 'f53f5427b2e9eb4739661fcc0b249b6e',
             },
           },
         },
@@ -478,8 +478,8 @@ test('Convert to PKCS #12', () => {
       Ref: 'CertPkcs12Passphrase1E3DF360',
     },
     Secret: {
-      NamePrefix: 'CertPkcs12',
-      Description: 'CertPkcs12',
+      NamePrefix: 'Default/CertPkcs12',
+      Description: 'Default/CertPkcs12',
       Tags: [
         {
           Key: 'X509SecretGrant-71090F78',
@@ -626,8 +626,8 @@ test('Convert to PKCS #12, use KMS', () => {
       Ref: 'CertPkcs12Passphrase1E3DF360',
     },
     Secret: {
-      NamePrefix: 'CertPkcs12',
-      Description: 'CertPkcs12',
+      NamePrefix: 'Default/CertPkcs12',
+      Description: 'Default/CertPkcs12',
       Tags: [
         {
           Key: 'X509SecretGrant-71090F78',
