@@ -48,6 +48,10 @@ fi
 "$DEADLINE_COMMAND" -SetIniFileSetting ResourceTrackerVersion V2
 # health check port
 "$DEADLINE_COMMAND" -SetIniFileSetting LauncherHealthCheckPort $HEALTH_CHECK_PORT
+# Disable S3Backed Cache
+"$DEADLINE_COMMAND" -SetIniFileSetting UseS3BackedCache False
+# Blank the S3BackedCache Url
+"$DEADLINE_COMMAND" -SetIniFileSetting S3BackedCacheUrl ""
 
 # setting the group, pool and region for this worker
 

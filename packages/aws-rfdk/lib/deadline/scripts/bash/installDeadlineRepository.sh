@@ -26,37 +26,40 @@ declare -A INSTALLER_DB_ARGS
 configure_database_installation_args
 
 if test -f "$REPOSITORY_FILE_PATH"; then
-    echo "File $REPOSITORY_FILE_PATH exists. Comparing versions..."
-    # File exist, validate the version
+    echo "File $REPOSITORY_FILE_PATH exists. Validating Database Connection"
+    # File Exists
 
+    INSTALLER_DB_HOSTNAME=${INSTALLER_DB_ARGS["--dbhost"]}
+    INSTALLER_DB_PORT=${INSTALLER_DB_ARGS["--dbport"]}
+
+    # Additionally, vadlidate the DB endpoint.
+    source $CONNECTION_FILE_PATH > /dev/null 2>&1 || true
+    if [ "$Hostname" != "$INSTALLER_DB_HOSTNAME" ] || [ "$Port" != "$INSTALLER_DB_PORT" ]; then
+        echo "ERROR: Repository pre-exists but configured database endpoint($Hostname:$Port) does not match with provided database endpoint($INSTALLER_DB_HOSTNAME:$INSTALLER_DB_PORT)."
+        exit 1
+    fi
+    echo "Database Connection is valid.  Validating Deadline Version."
+    
     # Following runs the .ini file as a script while suppressing all the errors. This creates bash variables with
     # the key's name and sets its value to the value specified in .ini file.
     # This is a quick way to read the .ini values but is not a full-proof way. Since we dont have common keys in
     # multiple sections of the config files, this approach will work correctly.
     # The proper way to achieve this is to use a ini config manager tool to get the value of required key.
     source $REPOSITORY_FILE_PATH > /dev/null 2>&1 || true
+    if [[ "$Version" = "$DEADLINE_REPOSITORY_VERSION" ]]; then
+        echo "Repository version $DEADLINE_REPOSITORY_VERSION already exists at path $REPOSITORY_FILE_PATH. Not proceeding with Repository installation."
+        exit 0
+    else
+        SplitVersion=(${Version//./ })
+        SplitRepoVersion=(${DEADLINE_REPOSITORY_VERSION//./ })
 
-    if [ "$Version" = "$DEADLINE_REPOSITORY_VERSION" ]; then
-        # Version matches. Dont install repository.
-        echo "Version matches. Comparing database endpoints..."
+        echo "SplitVersion Length = ${#SplitVersion[@]}"
+        echo "SplitVersion Length = ${SplitVersion[1]}"
 
-        INSTALLER_DB_HOSTNAME=${INSTALLER_DB_ARGS["--dbhost"]}
-        INSTALLER_DB_PORT=${INSTALLER_DB_ARGS["--dbport"]}
-
-        # Additionally, vadlidate the DB endpoint.
-        source $CONNECTION_FILE_PATH > /dev/null 2>&1 || true
-        if [ "$Hostname" = "$INSTALLER_DB_HOSTNAME" ] && [ "$Port" = "$INSTALLER_DB_PORT" ]; then
-            # DB endpoints matches. Safe to exit
-            echo "Repository version $DEADLINE_REPOSITORY_VERSION already exists at path $REPOSITORY_FILE_PATH. Not proceeding with Repository installation."
-            exit 0
-        else
-            echo "ERROR: Repository pre-exists but configured database endpoint($Hostname:$Port) does not match with provided database endpoint($INSTALLER_DB_HOSTNAME:$INSTALLER_DB_PORT)."
+        if [[ ${SplitVersion[0]} != ${SplitRepoVersion[0]} ]] || [[ ${SplitVersion[1]} != ${SplitRepoVersion[1]} ]]; then
+            echo "ERROR: Repository pre-exists but configured Repository has a different Major or Minor Version."
             exit 1
         fi
-    else
-        echo "ERROR: Repository pre-exists but the configured repository version($Version) does not match with provided version($DEADLINE_REPOSITORY_VERSION)."
-        echo "Terminating the deployment..."
-        exit 1
     fi
 fi
 
