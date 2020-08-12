@@ -3,23 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+const AWS_REGION = process.env.AWS_REGION?.toString();
 const DEADLINE_VERSION = process.env.DEADLINE_VERSION?.toString();
 const DEADLINE_STAGING_PATH = process.env.DEADLINE_STAGING_PATH?.toString();
 
-const runRepositoryTests = process.env.EXECUTE_DEADLINE_REPOSITORY_TEST_SUITE?.toString();
+test('AWS_REGION is set', () => {
+  expect(AWS_REGION).toBeTruthy();
+});
 
-if (runRepositoryTests === 'true') {
+test('DEADLINE_VERSION is set', () => {
+  expect(DEADLINE_VERSION).toBeTruthy();
+});
 
-  test('DEADLINE_VERSION is set', () => {
-    expect(DEADLINE_VERSION).toBeTruthy();
-  });
-
-  test('DEADLINE_STAGING_PATH is set', () => {
-    expect(DEADLINE_STAGING_PATH).toBeTruthy();
-  });
-}
-else {
-  test('Skipping test suite; preflight not run', () =>{
-    expect(1).toEqual(1);
-  });
-}
+test('DEADLINE_STAGING_PATH is set', () => {
+  expect(DEADLINE_STAGING_PATH).toBeTruthy();
+});

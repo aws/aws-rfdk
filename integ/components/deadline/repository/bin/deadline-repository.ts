@@ -18,11 +18,18 @@ const integStackTag = process.env.INTEG_STACK_TAG!.toString();
 const componentTier = new Stack(app, 'RFDKInteg-DL-ComponentTier' + integStackTag, {env});
 const storage1 = new StorageStruct(componentTier, 'StorageStruct1', {
   integStackTag,
-  provideDocdbEfs: 'false',
+  provideDocdbEfs: false,
+  useMongoDB: false,
 });
 const storage2 = new StorageStruct(componentTier, 'StorageStruct2', {
   integStackTag,
-  provideDocdbEfs: 'true',
+  provideDocdbEfs: true,
+  useMongoDB: false,
+});
+const storage3 = new StorageStruct(componentTier, 'StorageStruct3', {
+  integStackTag,
+  provideDocdbEfs: false,
+  useMongoDB: true,
 });
 
-new TestingTier(app, 'RFDKInteg-DL-TestingTier' + integStackTag, { env, integStackTag, structs: [storage1, storage2] });
+new TestingTier(app, 'RFDKInteg-DL-TestingTier' + integStackTag, { env, integStackTag, structs: [storage1, storage2, storage3] });
