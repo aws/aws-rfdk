@@ -11,8 +11,6 @@ phases:
   build:
     commands:
       - /bin/bash ./build.sh
-      - chmod a+x examples/kitchen-sink/end-to-end-test.sh
-      - chmod a+x examples/kitchen-sink/scripts/*
   post_build:
     commands:
       - "[ -f .BUILD_COMPLETED ] && /bin/bash ./pack.sh"
