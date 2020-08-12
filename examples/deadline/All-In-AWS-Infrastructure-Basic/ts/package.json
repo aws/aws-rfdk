@@ -1,0 +1,31 @@
+{
+  "name": "all-in-farm-basic",
+  "version": "0.15.0",
+  "bin": {
+    "app": "bin/app.js"
+  },
+  "config": {
+    "deadline_ver": "10.1.9.2",
+    "stage_path": "stage"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build+test": "yarn build && yarn test",
+    "cdk": "cdk",
+    "clean": "tsc --build --clean && bash ./clean.sh",
+    "stage": "stage-deadline --deadlineInstallerURI s3://thinkbox-installers/Deadline/${npm_package_config_deadline_ver}/Linux/DeadlineClient-${npm_package_config_deadline_ver}-linux-x64-installer.run --dockerRecipesURI s3://thinkbox-installers/DeadlineDocker/${npm_package_config_deadline_ver}/DeadlineDocker-${npm_package_config_deadline_ver}.tar.gz --output ${npm_package_config_stage_path}",
+    "test": "echo 'no tests to run'",
+    "watch": "tsc -w"
+  },
+  "devDependencies": {
+    "@types/node": "10.17.5",
+    "aws-cdk": "1.57.0",
+    "ts-node": "^8.1.0",
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "@aws-cdk/core": "1.57.0",
+    "aws-rfdk": "0.15.0",
+    "source-map-support": "^0.5.16"
+  }
+}

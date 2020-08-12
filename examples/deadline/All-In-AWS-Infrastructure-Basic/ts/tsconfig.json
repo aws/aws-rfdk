@@ -24,9 +24,12 @@
   "include": [
     "**/*.ts"
   ],
+  "files": [
+    "package.json"
+  ],
   "references": [
     {
-      "path": "../../packages/aws-rfdk"
+      "path": "../../../../packages/aws-rfdk"
     }
   ]
 }

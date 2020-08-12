@@ -103,7 +103,7 @@
   },
   "workspaces": {
     "packages": [
-      "examples/*",
+      "examples/**",
       "lambda-layers/",
       "packages/*",
       "packages/aws-rfdk/*",

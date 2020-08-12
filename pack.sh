@@ -43,12 +43,6 @@ for dir in $(find packages -name dist | grep -v node_modules | grep -v run-wrapp
   rsync -av $dir/ ${distdir}/
 done
 
-# Copy example distribution packages
-for dir in $(find examples -name dist | grep -v node_modules | grep -v run-wrappers); do
-  echo "Merging ${dir} into ${distdir}"
-  rsync -av $dir/ ${distdir}/
-done
-
 # Remove a JSII aggregate POM that may have snuck past
 rm -rf dist/java/software/amazon/jsii
 
