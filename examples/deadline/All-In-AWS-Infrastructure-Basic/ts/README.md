@@ -107,6 +107,11 @@ The Health Monitor component contains a [Network Load Balancer](https://docs.aws
 
 The Bastion Host is a `BastionHostLinux` construct that allows you to connect to the Render Queue and Worker Fleet if you would like to take a look at the state of these components. It is not an essential component to the render farm, so it can be omitted without side effects, if desired. To connect to it, please refer to [Bastion Hosts CDK documentation](https://docs.aws.amazon.com/cdk/api/latest/docs/aws-ec2-readme.html#bastion-hosts).
 
+## Best Practices
+
+### VPC Flow Logs
+We recommend enabling VPC Flow Logs for networks containing sensitive information. For example, in this application, we have enabled flow logs on the VPC created in the Network Tier. These logs capture information about the IP traffic going in and out of your VPC, which can be useful to detect malicious activity. For more information, see [VPC Flow Logs documentation](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html).
+
 ## Prerequisites
 
 - You have an EC2 Amazon Machine Image (AMI) with the Deadline Worker application to run the worker nodes in the compute tier. Make note of the AMI ID as it will be used in this guide. You can use AWS Portal AMIs which can be found in Deadline's amis.json file (see https://awsportal.s3.amazonaws.com/10.1.9/Release/amis.json). **Note:** The link to the amis.json file contains the Deadline version (10.1.9), which you should change if you are using a different version of Deadline.

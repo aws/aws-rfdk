@@ -4,6 +4,8 @@
  */
 
 import {
+  FlowLogDestination,
+  FlowLogTrafficType,
   GatewayVpcEndpointAwsService,
   IInterfaceVpcEndpointService,
   IGatewayVpcEndpointService,
@@ -80,6 +82,15 @@ export class NetworkTier extends cdk.Stack {
           cidrMask: 18, // 16,382 IP addresses
         },
       ],
+      // VPC flow logs are a security best-practice as they allow us
+      // to capture information about the traffic going in and out of
+      // the VPC. For more information, see the README for this app.
+      flowLogs: {
+        'NetworkTierFlowLogs': {
+          trafficType: FlowLogTrafficType.ALL,
+          destination: FlowLogDestination.toCloudWatchLogs(),
+        },
+      },
     });
 
     // Add the required VPC Endpoints
