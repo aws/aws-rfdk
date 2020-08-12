@@ -93,6 +93,26 @@ export class NetworkTier extends cdk.Stack {
       },
     });
 
+    // TODO - Create a NetworkAcl for your VPC that only allows
+    // network traffic required for your render farm. This is a
+    // security best-practice to ensure the safety of your farm.
+    // The default network ACLs allow all traffic by default,
+    // whereas custom network ACLs deny all traffic by default.
+    // For more information, see the README for this app.
+    //
+    // Example code to create a custom network ACL:
+    // const acl = new NetworkAcl(this, 'ACL' {
+    //   vpc: this.vpc,
+    //   subnetSelection: { subnets: this.vpc.publicSubnets }
+    // });
+    //
+    // You can optionally add rules to allow traffic (e.g. SSH):
+    // acl.addEntry('SSH', {
+    //   cidr: AclCidr.ipv4(/* some-ipv4-address-cidr */),
+    //   traffic: AclTraffic.tcpPort(22),
+    //   ruleNumber: 1
+    // });
+
     // Add the required VPC Endpoints
     // -------------
     // Subnets to add the VPC endpoints to

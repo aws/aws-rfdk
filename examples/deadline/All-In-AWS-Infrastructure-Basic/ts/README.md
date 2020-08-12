@@ -14,6 +14,12 @@ to save costs while keeping the earlier tiers. For instance, we could destroy th
 reduce the cost to maintain the farm when we know it will be idle while retaining all of our data;
 we could re-deploy the Service & Compute tiers at a later date to restore service to exactly the same state we left it in.
 
+---
+
+_**Note:** This application is an illustrative example to showcase some of the capabilities of the RFDK. **It is not intended to be used for production render farms**, which should be built with more consideration of the security and operational needs of the system._
+
+---
+
 ## Architecture
 
 This sample application deploys a basic Deadline Render farm using Usage-Based Licensing. Below is a diagram of the architecture.
@@ -111,6 +117,10 @@ The Bastion Host is a `BastionHostLinux` construct that allows you to connect to
 
 ### VPC Flow Logs
 We recommend enabling VPC Flow Logs for networks containing sensitive information. For example, in this application, we have enabled flow logs on the VPC created in the Network Tier. These logs capture information about the IP traffic going in and out of your VPC, which can be useful to detect malicious activity. For more information, see [VPC Flow Logs documentation](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html).
+
+### VPC Network ACLs
+
+Network ACLs act as a firewall for controlling traffic in or out of your VPC subnets. We recommend creating custom network ACLs on your VPC to restrict traffic so that only necessary traffic is allowed. The default network ACLs that are created with a new VPC allow all inbound and outbound traffic, whereas custom network ACLs deny all inbound and outbound traffic by default, unless rules are added that explicitly allow traffic. This is a security best-practice to help defend against malicious actions against your render farm. For more information, see [Network ACLs documentation](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-network-acls.html).
 
 ## Prerequisites
 
