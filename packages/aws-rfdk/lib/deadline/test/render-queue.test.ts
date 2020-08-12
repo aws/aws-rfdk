@@ -6,6 +6,7 @@
 import {
   ABSENT,
   arrayWith,
+  not,
   deepObjectLike,
   expect as expectCDK,
   haveResource,
@@ -1768,10 +1769,39 @@ describe('RenderQueue', () => {
     new RenderQueue(isolatedStack, 'RenderQueue', props);
 
     // THEN
+    expectCDK(isolatedStack).to(not(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+      LoadBalancerAttributes: arrayWith(
+        {
+          Key: 'deletion_protection.enabled',
+          Value: 'true',
+        },
+      ),
+      Scheme: ABSENT,
+      Type: ABSENT,
+    })));
+  });
+
+  test('drop invalid http header fields enabled', () => {
+    // GIVEN
+    const props: RenderQueueProps = {
+      images,
+      repository,
+      version,
+      vpc,
+    };
+    const isolatedStack = new Stack(app, 'IsolatedStack');
+
+    // WHEN
+    new RenderQueue(isolatedStack, 'RenderQueue', props);
+
+    // THEN
     expectCDK(isolatedStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
-      LoadBalancerAttributes: ABSENT,
-      Scheme: 'internal',
-      Type: 'application',
+      LoadBalancerAttributes: arrayWith(
+        {
+          Key: 'routing.http.drop_invalid_header_fields.enabled',
+          Value: 'true',
+        },
+      ),
     }));
   });
 

@@ -11,6 +11,7 @@ import {
   expect as expectCDK,
   haveResource,
   haveResourceLike,
+  not,
   ABSENT,
 } from '@aws-cdk/assert';
 import {
@@ -502,9 +503,36 @@ test('validating deletion protection', () => {
   healthMonitor.registerFleet(fleet, {});
 
   // THEN
+  expectCDK(hmStack).to(not(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+    LoadBalancerAttributes: arrayWith(
+      {
+        Key: 'deletion_protection.enabled',
+        Value: 'true',
+      },
+    ),
+    Scheme: ABSENT,
+    Type: ABSENT,
+  })));
+});
+
+test('drop invalid http header fields enabled', () => {
+  // WHEN
+  healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
+    vpc,
+  });
+
+  const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
+    vpc,
+  });
+  healthMonitor.registerFleet(fleet, {});
+
+  // THEN
   expectCDK(hmStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
-    LoadBalancerAttributes: ABSENT,
-    Scheme: 'internal',
-    Type: 'application',
+    LoadBalancerAttributes: arrayWith(
+      {
+        Key: 'routing.http.drop_invalid_header_fields.enabled',
+        Value: 'true',
+      },
+    ),
   }));
 });
