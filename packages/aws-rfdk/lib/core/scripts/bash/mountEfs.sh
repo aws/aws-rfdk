@@ -56,6 +56,13 @@ function use_nfs_mount() {
 
 # Attempt to mount the EFS file system
 
+# fstab may be missing a newline at end of file.
+if test $(tail -c 1 /etc/fstab | wc -l) -eq 0
+then
+  # Newline was missing, so add one.
+  echo "" | sudo tee -a /etc/fstab
+fi
+
 if use_amazon_efs_mount
 then
   echo "${FILESYSTEM_ID}:/ ${MOUNT_PATH} efs defaults,tls,_netdev,${MOUNT_OPTIONS}" | sudo tee -a /etc/fstab
