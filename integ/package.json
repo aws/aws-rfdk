@@ -1,6 +1,6 @@
 {
   "name": "integ",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "private": false,
   "description": "Integration tests for RFDK constructs",
   "bin": {
@@ -66,37 +66,37 @@
     "eslint-plugin-import": "^2.22.0",
     "eslint-plugin-license-header": "^0.2.0",
     "jest": "^26.1.0",
-    "pkglint": "0.15.0",
+    "pkglint": "0.16.0",
     "ts-jest": "^26.1.3"
   },
   "dependencies": {
-    "@aws-cdk/aws-route53": "1.57.0",
     "@aws-cdk/aws-docdb": "1.57.0",
     "@aws-cdk/aws-ec2": "1.57.0",
     "@aws-cdk/aws-efs": "1.57.0",
     "@aws-cdk/aws-elasticloadbalancingv2": "1.57.0",
     "@aws-cdk/aws-iam": "1.57.0",
     "@aws-cdk/aws-logs": "1.57.0",
+    "@aws-cdk/aws-route53": "1.57.0",
     "@aws-cdk/aws-s3": "1.57.0",
     "@aws-cdk/aws-s3-assets": "1.57.0",
     "@aws-cdk/aws-secretsmanager": "1.57.0",
     "@aws-cdk/core": "1.57.0",
-    "aws-rfdk": "0.15.0",
+    "aws-rfdk": "0.16.0",
     "aws-sdk": "^2.709.0"
   },
   "peerDependencies": {
-    "@aws-cdk/aws-route53": "1.57.0",
     "@aws-cdk/aws-docdb": "1.57.0",
     "@aws-cdk/aws-ec2": "1.57.0",
     "@aws-cdk/aws-efs": "1.57.0",
     "@aws-cdk/aws-elasticloadbalancingv2": "1.57.0",
     "@aws-cdk/aws-iam": "1.57.0",
     "@aws-cdk/aws-logs": "1.57.0",
+    "@aws-cdk/aws-route53": "1.57.0",
     "@aws-cdk/aws-s3": "1.57.0",
     "@aws-cdk/aws-s3-assets": "1.57.0",
     "@aws-cdk/aws-secretsmanager": "1.57.0",
     "@aws-cdk/core": "1.57.0",
-    "aws-rfdk": "0.15.0",
+    "aws-rfdk": "0.16.0",
     "aws-sdk": "^2.709.0"
   },
   "engines": {
