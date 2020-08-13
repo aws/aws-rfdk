@@ -54,7 +54,7 @@ if test -f "$REPOSITORY_FILE_PATH"; then
         SplitRepoVersion=(${DEADLINE_REPOSITORY_VERSION//./ })
 
         if [[ ${SplitVersion[0]} != ${SplitRepoVersion[0]} ]] || [[ ${SplitVersion[1]} != ${SplitRepoVersion[1]} ]]; then
-            echo "ERROR: Repository pre-exists but configured Repository has a different Major or Minor Version."
+            echo "ERROR: Repository pre-exists but configured Repository Version (${Version}) has a different Major or Minor Version than the provided installer (${DEADLINE_REPOSITORY_VERSION})."
             exit 1
         fi
     fi
