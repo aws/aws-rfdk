@@ -224,6 +224,13 @@ function mount_volume() {
     VOL_UUID=$(identify_volume ${DEVICE_NAME})
     VOL_TYPE=$(identify_filesystem ${DEVICE_NAME})
 
+    # fstab may be missing a newline at end of file.
+    if test $(tail -c 1 /etc/fstab | wc -l) -eq 0
+    then
+        # Newline was missing, so add one.
+        echo "" | sudo tee -a /etc/fstab
+    fi
+
     echo "UUID=${VOL_UUID} ${MOUNT_POINT} ${VOL_TYPE} defaults,nofail,${EXTRA_MOUNT_OPTIONS} 0 2" | sudo tee -a /etc/fstab
     sudo mount "${MOUNT_POINT}"
 }

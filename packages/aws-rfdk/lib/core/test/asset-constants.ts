@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { stringLike } from '@aws-cdk/assert';
+
 // ConfigureCloudWatchAgent.sh
 export const CWA_ASSET_LINUX = {
   Bucket: 'AssetParameters3793207e75b2a1b5dd4ebe458ab7a5cc20154224e846267d2c22da1d0631f94fS3Bucket352E624B',
@@ -17,7 +19,7 @@ export const CWA_ASSET_WINDOWS = {
 
 // mountEbsBlockVolume.sh + metadataUtilities.sh
 export const MOUNT_EBS_SCRIPT_LINUX = {
-  Bucket: 'AssetParameters1856f943f329125e99ad6da55707ea210edc1fd0eef29bd399044e7855a37aadS3BucketEDE8B69C',
+  Bucket: stringLike('AssetParameters*S3BucketE9BCAE61'),
 };
 
 export const INSTALL_MONGODB_3_6_SCRIPT_LINUX = {
