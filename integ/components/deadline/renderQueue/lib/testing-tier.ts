@@ -4,7 +4,7 @@
  */
 
 import * as path from 'path';
-import { BastionHostLinux, InstanceType, SubnetType, Vpc } from '@aws-cdk/aws-ec2';
+import { BastionHostLinux, InstanceType, Port, SubnetType, Vpc } from '@aws-cdk/aws-ec2';
 import { Asset } from '@aws-cdk/aws-s3-assets';
 import { CfnOutput, Construct, Duration, Stack, StackProps } from '@aws-cdk/core';
 import { RenderStruct } from '../../../../lib/render-struct';
@@ -63,6 +63,8 @@ export class TestingTier extends Stack {
           break;
       }
       var renderQueueEndpoint = `${address}:${port}`;
+
+      testInstance.connections.allowTo(renderQueue, Port.tcp(+port));
 
       if(cert) {
         cert?.cert.grantRead(testInstance);
