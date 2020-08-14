@@ -82,8 +82,10 @@ export class RenderStruct extends Construct {
       },
       hostname,
       trafficEncryption,
+      deletionProtection: false,
     };
     this.renderQueue = new RenderQueue(this, 'RenderQueue', renderQueueProps);
+
     this.cert = cacert;
 
   }
