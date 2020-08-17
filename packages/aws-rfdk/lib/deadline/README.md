@@ -1,13 +1,5 @@
 # AWS Thinkbox Deadline Construct Library
 
-<!--BEGIN STABILITY BANNER-->
----
-
-![cdk-constructs: Experimental](https://img.shields.io/static/v1?label=CDK-CONSTRUCTS&message=EXPERIMENTAL&color=orange&style=for-the-badge)
-
----
-<!--END STABILITY BANNER-->
-
 The `aws-rfdk/deadline` sub-module contains Deadline-specific constructs that can be used to deploy and manage a Deadline render farm in the cloud.
 
 ```ts nofixture
