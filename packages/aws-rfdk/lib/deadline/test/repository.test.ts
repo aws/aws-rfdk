@@ -101,6 +101,14 @@ test('repository installer instance is created correctly', () => {
     Properties: {
       MaxSize: '1',
       MinSize: '1',
+      VPCZoneIdentifier: [
+        {
+          Ref: 'VPCPrivateSubnet1Subnet8BCA10E0',
+        },
+        {
+          Ref: 'VPCPrivateSubnet2SubnetCFCDAA7A',
+        },
+      ],
     },
     CreationPolicy: {
       AutoScalingCreationPolicy: {
@@ -142,6 +150,30 @@ test('repository installer instance is created correctly', () => {
         'GroupId',
       ],
     },
+  }));
+});
+
+test('repository installer honors vpcSubnet', () => {
+  // Note: Default is private subnets, so it's sufficient to test something other than
+  // private subnets.
+
+  // WHEN
+  new Repository(stack, 'repositoryInstaller', {
+    vpc,
+    version: deadlineVersion,
+    vpcSubnets: { subnetType: SubnetType.PUBLIC },
+  });
+
+  // THEN
+  expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+    VPCZoneIdentifier: [
+      {
+        Ref: 'VPCPublicSubnet1SubnetB4246D30',
+      },
+      {
+        Ref: 'VPCPublicSubnet2Subnet74179F39',
+      },
+    ],
   }));
 });
 
