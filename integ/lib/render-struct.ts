@@ -35,6 +35,9 @@ export class RenderStruct extends Construct {
       stage: Stage.fromDirectory(stagePath),
     });
 
+    const host = 'renderqueue';
+    const zoneName = Stack.of(this).stackName + '.local';
+
     let trafficEncryption: any;
     let hostname: any;
     let cacert: any;
@@ -51,7 +54,7 @@ export class RenderStruct extends Construct {
         externalTLS: {
           rfdkCertificate: new X509CertificatePem(this, 'RenderQueueCertPEM' + props.integStackTag, {
             subject: {
-              cn: 'renderqueue.renderfarm.local',
+              cn: host + '.' + zoneName,
             },
             signingCertificate: cacert,
           }),
@@ -61,7 +64,7 @@ export class RenderStruct extends Construct {
       hostname = {
         zone: new PrivateHostedZone(this, 'Zone', {
           vpc,
-          zoneName: 'renderfarm.local',
+          zoneName: zoneName,
         }),
         hostname: 'renderqueue',
       };

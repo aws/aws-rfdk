@@ -51,13 +51,14 @@ export class TestingTier extends Stack {
       var renderQueue = struct.renderQueue;
       var cert = struct.cert;
       var port = renderQueue.endpoint.portAsString();
+      var zoneName = Stack.of(renderQueue).stackName + '.local';
       var address;
       switch(port) {
         case '8080':
           address = renderQueue.endpoint.hostname;
           break;
         case '4433':
-          address = 'renderqueue.renderfarm.local';
+          address = 'renderqueue.' + zoneName;
           break;
         default:
           break;
