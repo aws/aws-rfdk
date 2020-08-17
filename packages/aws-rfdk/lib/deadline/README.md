@@ -23,7 +23,7 @@ import * as deadline from 'aws-rfdk/deadline';
   - [Configuring Deadline Client Connections](#configuring-deadline-client-connections)
 - [Stage](#stage)
   - [Staging Docker Recipes](#staging-docker-recipes)
-- [Usage Based Licensing](#usage-based-licensing-(ubl))
+- [Usage Based Licensing](#usage-based-licensing-ubl)
   - [Docker Container Images](#usage-based-licensing-docker-container-images)
   - [Uploading Binary Secrets to SecretsManager](#uploading-binary-secrets-to-secretsmanager)
 - [VersionQuery](#versionquery)
