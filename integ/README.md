@@ -6,7 +6,7 @@ To run all test suites:
 
 1. Configure AWS credentials (tests will use the default AWS profile, so either set up a default profile in .aws/credentials or use temporary credentials).
 
-1. Set the AWS_REGION environment variable to `us-west-2`. The AWS Portal AMI used for the worker fleet tests currently only exists in that region.
+1. If your AWS profile has a different default region fromw here the test app will be deployed, set the AWS_REGION variable to the desired region.
 
 1. Configure test-config.sh. This script sets environment variables which are necessary for the tests. Currently this includes:
     * Options required for all Deadline test components:
@@ -15,7 +15,8 @@ To run all test suites:
     * Options required for the Deadline repository test component:
       * USER_ACCEPTS_SSPL_FOR_RFDK_TESTS - should be set to true. Setting this variable is considered acceptance of the terms of the SSPL license. Follow [this link](https://www.mongodb.com/licensing/server-side-public-license) to read the terms of the SSPL license.
     * Options required for the Deadline worker fleet test component:
-      * DEADLINE_AMI_ID - set to the ID of an available worker fleet AMI with Deadline installed.
+      * LINUX_DEADLINE_AMI_ID - set to the ID of an available Linux worker fleet AMI with Deadline installed.
+      * WINDOWS_DEADLINE_AMI_ID - set to the ID of an available Windows worker fleet AMI with Deadline installed.
 
 1. Execute `yarn run e2e` from the `integ` directory. This will handle deploying the necessary stacks, run the appropriate tests on them, and then tear them down.
 

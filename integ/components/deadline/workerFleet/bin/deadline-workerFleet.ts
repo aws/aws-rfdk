@@ -18,42 +18,37 @@ const env = {
 // Get unique tag for this integration test from environment variable
 const integStackTag = process.env.INTEG_STACK_TAG!.toString();
 
-// Create component stack
-const componentTier1 = new Stack(app, 'RFDKInteg-WF1-ComponentTier' + integStackTag, {env});
-const componentTier2 = new Stack(app, 'RFDKInteg-WF2-ComponentTier' + integStackTag, {env});
+// Worker fleets with their own repository and render queue will be created for each permutation of OS and protocol
+const oss = ['Linux','Windows'];
+const protocols = ['http','https'];
 
-// Add structs containing Deadline repositories
-const storage1 = new StorageStruct(componentTier1, 'StorageStructWF1', {
-  integStackTag,
-  provideDocdbEfs: true,
-  useMongoDB: false,
-});
-const storage2 = new StorageStruct(componentTier2, 'StorageStructWF2', {
-  integStackTag,
-  provideDocdbEfs: true,
-  useMongoDB: false,
-});
-
-// Create test struct for Render Queue in http mode
-const render1 = new RenderStruct(componentTier1, 'RenderStructWF1', {
-  integStackTag,
-  repository: storage1.repo,
-  protocol: 'http',
-});
-const render2 = new RenderStruct(componentTier2, 'RenderStructWF2', {
-  integStackTag,
-  repository: storage2.repo,
-  protocol: 'https',
-});
-
-const worker1 = new WorkerStruct(componentTier1, 'WorkerStructWF1', {
-  integStackTag,
-  renderStruct: render1,
-});
-
-const worker2 = new WorkerStruct(componentTier2, 'WorkerStructWF2', {
-  integStackTag,
-  renderStruct: render2,
+let structs: Array<WorkerStruct> = [];
+let i = 1;
+oss.forEach( os => {
+  protocols.forEach( protocol => {
+    const testId = 'WF' + i.toString();
+    // Create component stack for structs
+    const componentTier = new Stack(app, 'RFDKInteg-' + testId + '-ComponentTier' + integStackTag, {env});
+    // Create StorageStruct with repository
+    const storage = new StorageStruct(componentTier, 'StorageStruct' + testId, {
+      integStackTag,
+      provideDocdbEfs: true,
+      useMongoDB: false,
+    });
+    // Create render queue with either HTTP or HTTPS protocol
+    const render = new RenderStruct(componentTier, 'RenderStruct' + testId, {
+      integStackTag,
+      repository: storage.repo,
+      protocol,
+    });
+    // Create worker struct containing three nodes using either Linux or Windows
+    structs.push(new WorkerStruct(componentTier, 'WorkerStruct' + testId, {
+      integStackTag,
+      renderStruct: render,
+      os,
+    }));
+    i++;
+  });
 });
 
-new TestingTier(app, 'RFDKInteg-WF-TestingTier' + integStackTag, {env, integStackTag, structs: [worker1, worker2]});
+new TestingTier(app, 'RFDKInteg-WF-TestingTier' + integStackTag, {env, integStackTag, structs});

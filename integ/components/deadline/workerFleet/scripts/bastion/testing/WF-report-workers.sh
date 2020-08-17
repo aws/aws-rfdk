@@ -15,6 +15,8 @@ set -euo pipefail
 DEADLINE="/opt/Thinkbox/Deadline10/bin"
 
 # List workers associated with renderqueue
-$DEADLINE/deadlinecommand Slaves
+WORKERS=$($DEADLINE/deadlinecommand Slaves)
+WORKERS=$(sed -e 's/\(.*\)/\L\1/' <<< "$WORKERS")
+echo $WORKERS
 
 exit 0

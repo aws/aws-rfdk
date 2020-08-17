@@ -22,6 +22,8 @@ GROUP_WORKER=$($DEADLINE/deadlinecommand GetSlaveNamesInGroup testgroup)
 # The list of workers for a region is not easily accessible; this deduces the worker assigned
 # to the region by eliminating the two already assigned to the group and pool
 for WORKER in $WORKERS; do
+  # Converts the worker name to all lower-case; the Windows workers are created with their names in all-caps
+  WORKER=$(sed -e 's/\(.*\)/\L\1/' <<< "$WORKER")
   if [ $WORKER != $POOL_WORKER ]; then
     if [ $WORKER != $GROUP_WORKER ]; then
       REGION_WORKER=$WORKER

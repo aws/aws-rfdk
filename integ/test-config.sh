@@ -14,4 +14,5 @@ export DEADLINE_VERSION
 export USER_ACCEPTS_SSPL_FOR_RFDK_TESTS=false
 
 # Options for Deadline WorkerFleet test component
-export DEADLINE_AMI_ID
+export LINUX_DEADLINE_AMI_ID
+export WINDOWS_DEADLINE_AMI_ID

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { MachineImage, Port, Vpc } from '@aws-cdk/aws-ec2';
+import { IMachineImage, MachineImage, Port, Vpc } from '@aws-cdk/aws-ec2';
 import { Construct, Stack } from '@aws-cdk/core';
 import { X509CertificatePem } from 'aws-rfdk';
 import { IWorkerFleet, RenderQueue, WorkerInstanceFleet } from 'aws-rfdk/deadline';
@@ -12,6 +12,7 @@ import { RenderStruct } from './render-struct';
 export interface WorkerStructProps {
   readonly integStackTag: string;
   readonly renderStruct: RenderStruct;
+  readonly os: string;
 }
 
 export class WorkerStruct extends Construct {
@@ -25,21 +26,31 @@ export class WorkerStruct extends Construct {
 
     // Collect environment variables
     const infrastructureStackName = 'RFDKIntegInfrastructure' + props.integStackTag;
-    const deadlineAmiId = process.env.DEADLINE_AMI_ID!.toString();
+    const linuxAmi = process.env.LINUX_DEADLINE_AMI_ID!.toString();
+    const windowsAmi = process.env.WINDOWS_DEADLINE_AMI_ID!.toString();
+
+    let workerMachineImage: IMachineImage;
 
     // Retrieve VPC created for _infrastructure stack
     const vpc = Vpc.fromLookup(this, 'Vpc', { tags: { StackName: infrastructureStackName }}) as Vpc;
 
-    const deadlineClientLinuxAmiMap: Record<string, string> = {[Stack.of(this).region]: deadlineAmiId};
-
     this.renderQueue = props.renderStruct.renderQueue;
     this.cert = props.renderStruct.cert;
+
+    if( props.os === 'Windows' ) {
+      const deadlineClientWindowsAmiMap: Record<string, string> = {[Stack.of(this).region]: windowsAmi};
+      workerMachineImage = MachineImage.genericWindows(deadlineClientWindowsAmiMap);
+    }
+    else {
+      const deadlineClientLinuxAmiMap: Record<string, string> = {[Stack.of(this).region]: linuxAmi};
+      workerMachineImage = MachineImage.genericLinux(deadlineClientLinuxAmiMap);
+    }
 
     this.workerFleet.push(
       new WorkerInstanceFleet(this, 'Worker1', {
         vpc,
         renderQueue: this.renderQueue,
-        workerMachineImage: MachineImage.genericLinux(deadlineClientLinuxAmiMap),
+        workerMachineImage,
         logGroupProps: {
           logGroupPrefix: Stack.of(this).stackName + '-' + id,
         },
@@ -48,7 +59,7 @@ export class WorkerStruct extends Construct {
       new WorkerInstanceFleet(this, 'Worker2', {
         vpc,
         renderQueue: this.renderQueue,
-        workerMachineImage: MachineImage.genericLinux(deadlineClientLinuxAmiMap),
+        workerMachineImage,
         logGroupProps: {
           logGroupPrefix: Stack.of(this).stackName + '-' + id,
         },
@@ -57,7 +68,7 @@ export class WorkerStruct extends Construct {
       new WorkerInstanceFleet(this, 'Worker3', {
         vpc,
         renderQueue: this.renderQueue,
-        workerMachineImage: MachineImage.genericLinux(deadlineClientLinuxAmiMap),
+        workerMachineImage,
         logGroupProps: {
           logGroupPrefix: Stack.of(this).stackName + '-' + id,
         },
@@ -65,13 +76,8 @@ export class WorkerStruct extends Construct {
       }),
     );
 
-    const taskDefinition = this.renderQueue.node.findChild('RCSTask');
-    const listener = this.renderQueue.loadBalancer.node.findChild('PublicListener');
-
     this.workerFleet.forEach( worker => {
       worker.connections.allowFromAnyIpv4(Port.tcp(22));
-      worker.node.addDependency(taskDefinition);
-      worker.node.addDependency(listener);
     });
 
   }

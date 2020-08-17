@@ -20,7 +20,9 @@ const certRegex = /certSecretARNWF(\d)/;
 
 const testCases: Array<Array<any>> = [
   [ 'Linux Worker HTTP mode', 1 ],
-  [ 'Linux Worker HTTPS (TLS) mode', 2],
+  [ 'Linux Worker HTTPS (TLS) mode', 2 ],
+  [ 'Windows Worker HTTP mode', 3 ],
+  [ 'Windows Worker HTTPS (TLS) mode', 4 ],
 ];
 let bastionId: any;
 let renderQueueEndpoints: Array<string> = [];
