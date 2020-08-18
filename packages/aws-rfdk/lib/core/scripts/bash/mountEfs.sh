@@ -25,6 +25,10 @@ fi
 SCRIPT_DIR=$(dirname $0)
 source "${SCRIPT_DIR}/metadataUtilities.sh"
 
+# Make sure that the EC2 instance identity document is authentic before we use it to fetch
+# information about the instance we're running on.
+authenticate_identity_document
+
 METADATA_TOKEN=$(get_metadata_token)
 AWS_REGION=$(get_region "${METADATA_TOKEN}")
 
