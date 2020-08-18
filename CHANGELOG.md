@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.16.0]() (Link not implemented) (2020-08-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deadline:** construct IDs renamed in UsageBasedLicensing.
+- Previously deployed resources will be terminated when updating
+- Default log stream prefix changed from 'docker' to 'LicenseForwarder'
+- Memory properties are no longer specified when constructing
+  UsageBasedLicensing instances
+* **deadline:** databaseRemovalPolicy property of Repository has been renamed to removalPolicy.database
+* **deadline:** This renames the UBLLicensing, and related, constructs
+to UsageBasedLicensing.
+* **deadline:** Deadline WorkerFleet has been renamed to WorkerInstanceFleet
+
+### Features
+
+* **deadline:** add dependencies when connecting to renderqueue ([#10]() (Link not implemented)) ([43a211b]() (full hash: 43a211b0679639575b06e31d3d871616a8672014))
+* **deadline:** Enable audit logging for DocDB ([#37]() (Link not implemented)) ([00367f2]() (full hash: 00367f26299c8bba3b532ca2fba8d594fa0e72ec))
+* **deadline:** RenderQueue support ELB access logs ([#42]() (Link not implemented)) ([9bdb8ff]() (full hash: 9bdb8ffa994df9ac584110b5da6001765e6c65b8))
+
+
+### Bug Fixes
+
+* **core:** enhance security of mongodbinstance setup scripts ([#33]() (Link not implemented)) ([d2b9875]() (full hash: d2b98758a7f4a3c91ad85ccf3133480d7941208e))
+* adding deletion protection for load balancer ([#39]() (Link not implemented)) ([cda4954]() (full hash: cda49542e143717ab96d5f52516d3c1f33c9f451))
+* **core:** Fix mounting filesystems if fstab does not end in newline ([#58]() (Link not implemented)) ([c361044]() (full hash: c3610441ebc8d8a0d314afecf9ec0d5f8e3b137d))
+* **core:** fixes leaking private key password to logs in mongo setup ([#28]() (Link not implemented)) ([efd1602]() (full hash: efd1602213e3c58fdbeddde676bb2eda15cba8e7))
+* **core:** fixing security group for health monitor ([#30]() (Link not implemented)) ([2a23ae7]() (full hash: 2a23ae78b6fb2c29a3ac39d7e918d44c805825d6))
+* **deadline:** add retention policy for created efs ([#11]() (Link not implemented)) ([715be7c]() (full hash: 715be7c6d8455632a09faa8242815bcfa662cc3a))
+* **deadline:** Close RenderQueue to ingress traffic by default ([#51]() (Link not implemented)) ([f1e7c4b]() (full hash: f1e7c4be3a9f6ffccaf15751976cf5948276a00d))
+* **deadline:** fix UsageBasedLicensing stack updates ([#26]() (Link not implemented)) ([84e09fb]() (full hash: 84e09fbd050031c22047e5ecf12f3b4ded5f1544))
+* **deadline:** rename ubllicensing construct ([#9]() (Link not implemented)) ([baeb3d4]() (full hash: baeb3d408c0040a2d7295066671b6a15cdaa904a))
+* **deadline:** rename WorkerFleet to WorkerInstanceFleet ([#12]() (Link not implemented)) ([84cce6a]() (full hash: 84cce6ade13d2094601d695f033404f0bd074014))
+* **deadline:** Support multiple Block Devices ([#41]() (Link not implemented)) ([a669aba]() (full hash: a669aba2eb6feec5b5f71b10a768339fe0d8e074))
+* Set load balancers to drop invalid http headers ([#54]() (Link not implemented)) ([4c56fb7]() (full hash: 4c56fb702e1325fad046bd788c27dc781b62b6fb))
+* **deadline:** Update Repository Installation script and Worker Configuration ([#52]() (Link not implemented)) ([3068b48]() (full hash: 3068b48f5a8d13c0cf7778ed473da109f14174b2))
+* **integ:** update existing repository tests to use docker recipes ([#18]() (Link not implemented)) ([b65edd6]() (full hash: b65edd62804c20cdda58b780af481fb35ec8286b))
+
+
+* **deadline:** clean up UsageBasedLicensing construct and tests ([#20]() (Link not implemented)) ([a5596d2]() (full hash: a5596d23a50554b3fa85d83e45b26904d7bec301))
+
 ## [0.15.0]() (Link not implemented) (2020-07-24)
 
 
