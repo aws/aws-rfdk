@@ -78,7 +78,10 @@
   description: "This PR is ready to be merged." 
 - name: pr/needs-tests
   color: 358F18
-  description: "This PR is missing tests."  
+  description: "This PR is missing tests."
+- name: pr/no-squash
+  color: 358F18
+  description: "This PR should be merged instead of squash-merging it."
 - name: contribution/core
   color: DA5F98
   description: "This is a PR that came from AWS."
