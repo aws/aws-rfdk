@@ -7,12 +7,12 @@ import * as path from 'path';
 import { BastionHostLinux, InstanceType, Port, SubnetType, Vpc } from '@aws-cdk/aws-ec2';
 import { Asset } from '@aws-cdk/aws-s3-assets';
 import { CfnOutput, Construct, Duration, Stack, StackProps } from '@aws-cdk/core';
-import { RenderStruct } from '../../../../lib/render-struct';
+import { WorkerStruct } from '../../../../lib/worker-struct';
 
 // Params object for TestingTier
 export interface TestingTierProps extends StackProps {
   integStackTag: string;
-  structs: Array<RenderStruct>;
+  structs: Array<WorkerStruct>;
 }
 
 // Class constructor
@@ -47,7 +47,7 @@ export class TestingTier extends Stack {
     });
 
     props.structs.forEach( struct => {
-      var testSuiteId = 'RQ' + (props.structs.indexOf(struct) + 1).toString();
+      var testSuiteId = 'WF' + (props.structs.indexOf(struct) + 1).toString();
       var renderQueue = struct.renderQueue;
       var cert = struct.cert;
       var port = renderQueue.endpoint.portAsString();
@@ -64,8 +64,13 @@ export class TestingTier extends Stack {
           break;
       }
       var renderQueueEndpoint = `${address}:${port}`;
+      var workerFleet = struct.workerFleet;
 
-      testInstance.connections.allowTo(renderQueue, Port.tcp(+port));
+      testInstance.connections.allowToDefaultPort(renderQueue);
+      testInstance.connections.allowTo(renderQueue, Port.tcp(22));
+      workerFleet.forEach( worker => {
+        testInstance.connections.allowTo(worker, Port.tcp(22));
+      });
 
       if(cert) {
         cert?.cert.grantRead(testInstance);
@@ -134,7 +139,6 @@ export class TestingTier extends Stack {
       // Unzip & run the instance setup scripts
       `unzip ${setupZipPath}`,
       'chmod +x *.sh',
-      // Copy over the Deadlient client installer and install it
       `cp ${installerPath} ./deadline-client-installer.run`,
       'chmod +x *.run',
       './install_deadline_client.sh',
