@@ -158,22 +158,21 @@ test('repository installer honors vpcSubnet', () => {
   // private subnets.
 
   // WHEN
+  const publicSubnetIds = [ 'PublicSubnet1', 'PublicSubnet2' ];
+  const attrVpc = Vpc.fromVpcAttributes(stack, 'TestVpc', {
+    availabilityZones: ['us-east-1a', 'us-east-1b'],
+    vpcId: 'vpcid',
+    publicSubnetIds,
+  });
   new Repository(stack, 'repositoryInstaller', {
-    vpc,
+    vpc: attrVpc,
     version: deadlineVersion,
     vpcSubnets: { subnetType: SubnetType.PUBLIC },
   });
 
   // THEN
   expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
-    VPCZoneIdentifier: [
-      {
-        Ref: 'VPCPublicSubnet1SubnetB4246D30',
-      },
-      {
-        Ref: 'VPCPublicSubnet2Subnet74179F39',
-      },
-    ],
+    VPCZoneIdentifier: publicSubnetIds,
   }));
 });
 
