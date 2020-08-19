@@ -57,6 +57,9 @@ import {
   MountableEfs,
   ScriptAsset,
 } from '../../core';
+import {
+  tagConstruct,
+} from '../../core/lib/runtime-info';
 
 import { DatabaseConnection } from './database-connection';
 import { IHost } from './host-ref';
@@ -559,6 +562,9 @@ export class Repository extends Construct implements IRepository {
 
     // Updating the user data with successful cfn-signal commands.
     this.installerGroup.userData.addSignalOnExitCommand(this.installerGroup);
+
+    // Tag deployed resources with RFDK meta-data
+    tagConstruct(this);
   }
 
   /**

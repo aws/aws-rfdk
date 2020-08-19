@@ -67,6 +67,9 @@ import {
   X509CertificatePem,
   X509CertificatePkcs12,
 } from '../../core';
+import {
+  tagConstruct,
+} from '../../core/lib/runtime-info';
 
 import {
   RenderQueueConnection,
@@ -422,6 +425,9 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     }
 
     this.node.defaultChild = taskDefinition;
+
+    // Tag deployed resources with RFDK meta-data
+    tagConstruct(this);
   }
 
   /**

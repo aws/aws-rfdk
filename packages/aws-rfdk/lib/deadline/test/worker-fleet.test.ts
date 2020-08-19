@@ -33,6 +33,7 @@ import {
   CfnElement,
   Stack,
 } from '@aws-cdk/core';
+
 import {
   HealthMonitor,
 } from '../../core/lib';
@@ -43,6 +44,10 @@ import {
   VersionQuery,
   WorkerInstanceFleet,
 } from '../lib';
+
+import {
+  testConstructTags,
+} from '../../core/test/tag-helpers';
 import {
   CONFIG_WORKER_ASSET_LINUX,
   CWA_ASSET_LINUX,
@@ -1361,5 +1366,46 @@ describe('Block Device Tests', () => {
     }));
 
     expect(fleet.node.metadata).toHaveLength(0);
+  });
+});
+
+describe('tagging', () => {
+  testConstructTags({
+    constructName: 'WorkerInstanceFleet',
+    createConstruct: () => {
+      // GIVEN
+      const healthMonitorStack = new Stack(app, 'HealthMonitorStack', {
+        env: {
+          region: 'us-east-1',
+        },
+      });
+      const healthMonitor = new HealthMonitor(healthMonitorStack,'healthMonitor', {
+        vpc,
+      });
+      const deviceName = '/dev/xvda';
+
+      // WHEN
+      new WorkerInstanceFleet(wfstack, 'WorkerFleet', {
+        vpc,
+        workerMachineImage: new GenericLinuxImage({
+          'us-east-1': 'ami-any',
+        }),
+        renderQueue,
+        healthMonitor,
+        blockDevices: [{
+          deviceName,
+          volume: BlockDeviceVolume.noDevice(),
+        }],
+      });
+
+      return wfstack;
+    },
+    resourceTypeCounts: {
+      'AWS::EC2::SecurityGroup': 1,
+      'AWS::IAM::Role': 1,
+      'AWS::AutoScaling::AutoScalingGroup': 1,
+      'AWS::ElasticLoadBalancingV2::TargetGroup': 1,
+      'AWS::SSM::Parameter': 1,
+    },
   });
 });
