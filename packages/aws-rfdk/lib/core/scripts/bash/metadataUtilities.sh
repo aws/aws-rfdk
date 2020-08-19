@@ -20,16 +20,6 @@ function authenticate_identity_document() {
     # Cryptographically verify that the instance identity document is authentic by
     # using the instructions here: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/verify-pkcs7.html
     
-    function get_package_manager() {
-        if which yum
-        then
-            PACKAGE_MANAGER="yum"
-        else
-            PACKAGE_MANAGER="apt-get"
-        fi
-        echo $PACKAGE_MANAGER
-    }
-
     if ! which openssl > /dev/null 2>&1
     then
         if ! sudo yum install -y openssl || sudo apt-get install -y openssl

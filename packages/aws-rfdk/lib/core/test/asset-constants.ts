@@ -19,7 +19,7 @@ export const CWA_ASSET_WINDOWS = {
 
 // mountEbsBlockVolume.sh + metadataUtilities.sh
 export const MOUNT_EBS_SCRIPT_LINUX = {
-  Bucket: stringLike('AssetParameters*S3Bucket71CA10E2'),
+  Bucket: stringLike('AssetParameters*S3BucketC33107E6'),
 };
 
 export const INSTALL_MONGODB_3_6_SCRIPT_LINUX = {
