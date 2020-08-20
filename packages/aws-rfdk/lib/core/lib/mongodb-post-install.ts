@@ -44,7 +44,7 @@ import {
  * User added to the $external admin database.
  * Referencing: https://docs.mongodb.com/v3.6/core/security-x.509/#member-certificate-requirements
  */
-export interface IMongoDbX509User {
+export interface MongoDbX509User {
   /**
    * The certificate of the user that they will use for authentication. This must be a secret
    * containing the plaintext string contents of the certificate in PEM format. For example,
@@ -70,7 +70,7 @@ export interface IMongoDbX509User {
  * This interface is for defining a set of users to pass to MongoDbPostInstallSetup so that it can
  * create them in the MongoDB.
  */
-export interface IMongoDbUsers {
+export interface MongoDbUsers {
   /**
    * Zero or more secrets containing credentials, and specification for users to be created in the
    * admin database for authentication using SCRAM. See: https://docs.mongodb.com/v3.6/core/security-scram/
@@ -95,7 +95,7 @@ export interface IMongoDbUsers {
    *
    * @default No x.509 authenticated users are created.
    */
-  readonly x509AuthUsers?: IMongoDbX509User[];
+  readonly x509AuthUsers?: MongoDbX509User[];
 }
 
 /**
@@ -124,7 +124,7 @@ export interface MongoDbPostInstallSetupProps {
    * The Users that should be created in the MongoDB database. This construct will create these
    * users only if they do not already exist. If a user does already exist, then it will not be modified.
    */
-  readonly users: IMongoDbUsers;
+  readonly users: MongoDbUsers;
 }
 
 /**
