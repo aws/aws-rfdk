@@ -10,13 +10,8 @@ libraries provided by the CDK and RFDK together and with other CDK-compatible li
 an object from the CDK and RFDK libraries represents the creation of a resource, or collection of resources, in your AWS account when the application is deployed
 via AWS CloudFormation by the CDK toolkit. The parameters of an object’s creation control the configuration of the resource.
 
-## Contents of this package
-
-* The root module/namespace (`aws-rfdk` in Typescript/Javascript, or `aws_rfdk` in Python) contains constructs that are not particular to any specific
- render management software. They are common building blocks that may be used in any deployed render farm. For more detailed information on the contents of this module, please see:
-  1. The [official API documentation](https://docs.aws.amazon.com/rfdk/api/latest/docs/aws-rfdk-construct-library.html)
-  2. Sample usage snipits in the [README](https://github.com/aws/aws-rfdk/blob/mainline/packages/aws-rfdk/lib/core/README.md)
-* The `deadline` module/namespace (`aws-rfdk/deadline` in Typescript/Javascript, or `aws_rfdk.deadline` in Python) contains constructs that are specific to
- deploying a render farm that is operated by [AWS Thinkbox](https://www.awsthinkbox.com/) [Deadline software](https://www.awsthinkbox.com/deadline). For more detailed information on the contents of this module, please see:
-   1. The [official API documentation](https://docs.aws.amazon.com/rfdk/api/latest/docs/aws-rfdk-construct-library.html)
-   2. Sample usage snipits in the [README](https://github.com/aws/aws-rfdk/blob/mainline/packages/aws-rfdk/lib/deadline/README.md)
+Please see the following sources for additional information:
+* The [AWS RFDK Developer Guide](https://docs.aws.amazon.com/rfdk/latest/guide/what-is-rfdk.html)
+* The [AWS RFDK API Documentation](https://docs.aws.amazon.com/rfdk/api/latest/docs/aws-rfdk-construct-library.html)
+* The [README for the main module](https://github.com/aws/aws-rfdk/blob/mainline/packages/aws-rfdk/lib/core/README.md)
+* The [README for the Deadline module](https://github.com/aws/aws-rfdk/blob/mainline/packages/aws-rfdk/lib/deadline/README.md)
