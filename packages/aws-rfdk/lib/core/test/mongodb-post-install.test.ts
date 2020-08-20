@@ -24,8 +24,8 @@ import {
 } from '@aws-cdk/core';
 
 import {
-  IMongoDbUsers,
-  IMongoDbX509User,
+  MongoDbUsers,
+  MongoDbX509User,
   MongoDbInstance,
   MongoDbPostInstallSetup,
   MongoDbSsplLicenseAcceptance,
@@ -43,8 +43,8 @@ describe('MongoDbPostInstall', () => {
   let pwUser2: ISecret;
   let x509User1Arn: string;
   let x509User2Arn: string;
-  let x509User1: IMongoDbX509User;
-  let x509User2: IMongoDbX509User;
+  let x509User1: MongoDbX509User;
+  let x509User2: MongoDbX509User;
 
   beforeEach(() => {
     const hostname = 'mongodb';
@@ -99,7 +99,7 @@ describe('MongoDbPostInstall', () => {
 
   test('created correctly: both user types', () => {
     // GIVEN
-    const users: IMongoDbUsers = {
+    const users: MongoDbUsers = {
       passwordAuthUsers: [ pwUser1, pwUser2 ],
       x509AuthUsers: [ x509User1, x509User2 ],
     };
@@ -227,7 +227,7 @@ describe('MongoDbPostInstall', () => {
 
   test('created correctly: only password users', () => {
     // GIVEN
-    const users: IMongoDbUsers = {
+    const users: MongoDbUsers = {
       passwordAuthUsers: [ pwUser1, pwUser2 ],
     };
 
@@ -309,7 +309,7 @@ describe('MongoDbPostInstall', () => {
 
   test('created correctly: only x509 users', () => {
     // GIVEN
-    const users: IMongoDbUsers = {
+    const users: MongoDbUsers = {
       x509AuthUsers: [ x509User1, x509User2 ],
     };
 
@@ -350,7 +350,7 @@ describe('MongoDbPostInstall', () => {
 
   test('use selected subnets', () => {
     // GIVEN
-    const users: IMongoDbUsers = {
+    const users: MongoDbUsers = {
       passwordAuthUsers: [ pwUser1, pwUser2 ],
       x509AuthUsers: [ x509User1, x509User2 ],
     };
@@ -378,7 +378,7 @@ describe('MongoDbPostInstall', () => {
 
   test('assert bad x509 role', () => {
     // GIVEN
-    const users: IMongoDbUsers = {
+    const users: MongoDbUsers = {
       x509AuthUsers: [
         {
           certificate: x509User1.certificate,

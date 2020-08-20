@@ -44,7 +44,7 @@ import { IX509CertificateEncodePkcs12, IX509CertificateGenerate } from '../lambd
  * These fields are industry standard, and can be found in rfc1779 (see: https://tools.ietf.org/html/rfc1779)
  * or the X.520 specification (see: ITU-T Rec.X.520)
  */
-export interface IDistinguishedName {
+export interface DistinguishedName {
   /**
    * Common Name for the identity.
    *  a) For servers -- The fully qualified domain name (aka: fqdn) of the server.
@@ -72,7 +72,7 @@ export interface X509CertificatePemProps {
   /**
    * The subject, or identity, for the generated certificate.
    */
-  readonly subject: IDistinguishedName;
+  readonly subject: DistinguishedName;
 
   /**
    * If provided, then this KMS is used to secure the cert, key, and passphrase Secrets created by the construct.
