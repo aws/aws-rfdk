@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.17.0]() (Link not implemented) (2020-08-20)
+
+
+### Bug Fixes
+
+* **deadline:** Make Repository installer honor subnet selection ([#65]() (Link not implemented)) ([d8b9ed6]() (full hash: d8b9ed635ce682194e8e24521abd94a0c2f5e4b2))
+
 ## [0.16.0]() (Link not implemented) (2020-08-13)
 
 
