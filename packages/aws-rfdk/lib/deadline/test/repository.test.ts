@@ -44,15 +44,14 @@ import {
   MountableEfs,
 } from '../../core';
 import {
+  testConstructTags,
+} from '../../core/test/tag-helpers';
+import {
   DatabaseConnection,
   IVersion,
   Repository,
   VersionQuery,
 } from '../lib';
-
-import {
-  testConstructTags,
-} from '../../core/test/tag-helpers';
 import {
   REPO_DC_ASSET,
 } from './asset-constants';

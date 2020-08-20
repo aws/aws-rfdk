@@ -38,16 +38,15 @@ import {
   HealthMonitor,
 } from '../../core/lib';
 import {
+  testConstructTags,
+} from '../../core/test/tag-helpers';
+import {
   IRenderQueue,
   RenderQueue,
   Repository,
   VersionQuery,
   WorkerInstanceFleet,
 } from '../lib';
-
-import {
-  testConstructTags,
-} from '../../core/test/tag-helpers';
 import {
   CONFIG_WORKER_ASSET_LINUX,
   CWA_ASSET_LINUX,
