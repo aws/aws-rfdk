@@ -187,7 +187,7 @@ export class MountableBlockVolume implements IMountableLinuxFilesystem {
     const uniqueId = 'MountableBlockVolumeAsset' + uuid.replace(/[-]/g, '');
     return (stack.node.tryFindChild(uniqueId) as Asset) ?? new Asset(stack, uniqueId, {
       path: path.join(__dirname, '..', 'scripts', 'bash'),
-      exclude: [ '**/*', '!mountEbsBlockVolume.sh', '!metadataUtilities.sh' ],
+      exclude: [ '**/*', '!mountEbsBlockVolume.sh', '!metadataUtilities.sh', '!ec2-certificates.crt' ],
     });
   }
 }

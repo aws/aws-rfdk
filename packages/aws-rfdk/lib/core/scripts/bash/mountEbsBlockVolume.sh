@@ -290,6 +290,10 @@ MOUNT_PATH=$3
 MOUNT_OPTIONS=$4
 GIVEN_TARGET_DEVICE=${5:-}
 
+# Make sure that the EC2 instance identity document is authentic before we use it to fetch
+# information about the instance we're running on.
+authenticate_identity_document
+
 # If the EBS volume is already attached, then get the device 
 # name it's attached as.
 TARGET_DEVICE=$(get_attached_device ${VOL_ID})

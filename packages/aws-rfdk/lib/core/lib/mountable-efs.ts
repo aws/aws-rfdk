@@ -102,7 +102,7 @@ export class MountableEfs implements IMountableLinuxFilesystem {
     const uniqueId = 'MountableEfsAsset' + uuid.replace(/[-]/g, '');
     return (stack.node.tryFindChild(uniqueId) as Asset) ?? new Asset(stack, uniqueId, {
       path: path.join(__dirname, '..', 'scripts', 'bash'),
-      exclude: [ '**/*', '!mountEfs.sh', '!metadataUtilities.sh' ],
+      exclude: [ '**/*', '!mountEfs.sh', '!metadataUtilities.sh', '!ec2-certificates.crt' ],
     });
   }
 }
