@@ -17,9 +17,9 @@ export const CWA_ASSET_WINDOWS = {
   Key: 'AssetParameters76c2f3fd118bbb1894503f8fe671dcf7c6cca1425afa1e770af547a1f23ebee7S3VersionKey6031009A',
 };
 
-// mountEbsBlockVolume.sh + metadataUtilities.sh
+// mountEbsBlockVolume.sh + metadataUtilities.sh + ec2-certificates.crt
 export const MOUNT_EBS_SCRIPT_LINUX = {
-  Bucket: stringLike('AssetParameters*S3BucketC33107E6'),
+  Bucket: stringLike('AssetParameters*S3BucketEE3D2B6B'),
 };
 
 export const INSTALL_MONGODB_3_6_SCRIPT_LINUX = {
