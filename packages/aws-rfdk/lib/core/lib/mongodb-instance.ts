@@ -62,6 +62,9 @@ import {
   MountableBlockVolume,
   StaticPrivateIpServer,
 } from './';
+import {
+  tagConstruct,
+} from './runtime-info';
 
 /**
  * Specification for a when a new volume is being created by a MongoDbInstance.
@@ -461,6 +464,9 @@ export class MongoDbInstance extends Construct implements IMongoDb, IGrantable {
     this.fullHostname = `${props.mongoDb.hostname}.${props.mongoDb.dnsZone.zoneName}`;
 
     this.node.defaultChild = this.server;
+
+    // Tag deployed resources with RFDK meta-data
+    tagConstruct(this);
   }
 
   /**

@@ -49,7 +49,12 @@ import {
   LogGroupFactoryProps,
   ScriptAsset,
 } from '../../core';
-import {IRenderQueue} from './render-queue';
+import {
+  tagConstruct,
+} from '../../core/lib/runtime-info';
+import {
+  IRenderQueue,
+} from './render-queue';
 
 /**
  * Interface for Deadline Worker Fleet.
@@ -446,6 +451,9 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
 
     // Updating the user data with successful cfn-signal commands.
     this.fleet.userData.addSignalOnExitCommand(this.fleet);
+
+    // Tag deployed resources with RFDK meta-data
+    tagConstruct(this);
   }
 
   /**

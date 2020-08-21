@@ -35,6 +35,10 @@ import {
   CfnElement,
   Stack,
 } from '@aws-cdk/core';
+
+import {
+  testConstructTags,
+} from '../../core/test/tag-helpers';
 import {
   IVersion,
   IWorkerFleet,
@@ -566,6 +570,25 @@ describe('UsageBasedLicensing', () => {
           },
         ],
       }));
+    });
+  });
+
+  describe('tagging', () => {
+    testConstructTags({
+      constructName: 'UsageBasedLicensing',
+      createConstruct: () => {
+        return stack;
+      },
+      resourceTypeCounts: {
+        'AWS::ECS::Cluster': 1,
+        'AWS::EC2::SecurityGroup': 1,
+        'AWS::IAM::Role': 5,
+        'AWS::AutoScaling::AutoScalingGroup': 1,
+        'AWS::Lambda::Function': 1,
+        'AWS::SNS::Topic': 1,
+        'AWS::ECS::TaskDefinition': 1,
+        'AWS::ECS::Service': 1,
+      },
     });
   });
 });

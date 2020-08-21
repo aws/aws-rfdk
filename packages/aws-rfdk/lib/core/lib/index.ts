@@ -16,6 +16,7 @@ export * from './mongodb-post-install';
 export * from './mountable-ebs';
 export * from './mountable-efs';
 export * from './mountable-filesystem';
+export { RFDK_VERSION } from './runtime-info';
 export * from './script-assets';
 export * from './staticip-server';
 export * from './x509-certificate';

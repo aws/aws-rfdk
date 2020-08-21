@@ -35,6 +35,7 @@ import {
   Secret,
 } from '@aws-cdk/aws-secretsmanager';
 import {
+  App,
   Size,
   Stack,
 } from '@aws-cdk/core';
@@ -50,10 +51,14 @@ import {
   MONGODB_INSTANCE_3_6_SCRIPT,
 } from './asset-constants';
 import {
+  testConstructTags,
+} from './tag-helpers';
+import {
   escapeTokenRegex,
 } from './token-regex-helpers';
 
 describe('Test MongoDbInstance', () => {
+  let app: App;
   let stack: Stack;
   let vpc: Vpc;
   let dnsZone: PrivateHostedZone;
@@ -66,7 +71,8 @@ describe('Test MongoDbInstance', () => {
   const userSsplAcceptance = MongoDbSsplLicenseAcceptance.USER_ACCEPTS_SSPL;
 
   beforeEach(() => {
-    stack = new Stack();
+    app = new App();
+    stack = new Stack(app, 'Stack');
     vpc = new Vpc(stack, 'Vpc');
     dnsZone = new PrivateHostedZone(stack, 'PrivateHostedZone', {
       vpc,
@@ -116,7 +122,7 @@ describe('Test MongoDbInstance', () => {
     }));
 
     cdkExpect(stack).to(haveResourceLike('AWS::SecretsManager::Secret', {
-      Description: 'Admin credentials for the MongoDB database MongoDbInstance',
+      Description: `Admin credentials for the MongoDB database ${instance.node.uniqueId}`,
       GenerateSecretString: {
         ExcludeCharacters: '\"()$\'',
         ExcludePunctuation: true,
@@ -132,8 +138,8 @@ describe('Test MongoDbInstance', () => {
       Encrypted: true,
       Tags: arrayWith(
         objectLike({
-          Key: 'VolumeGrantAttach-785e71aba44fe1179b3900b2d6024184',
-          Value: 'c66ef9c61ae07e231dff5ff9abf99ca1',
+          Key: 'VolumeGrantAttach-dff922f1fb3c0287b3759d461a48c4b8',
+          Value: 'b0381797ae9723313d35ad6f9aa815f2',
         }),
       ),
     }));
@@ -746,5 +752,32 @@ describe('Test MongoDbInstance', () => {
     cdkExpect(stack).to(haveResource('Custom::LogRetention', {
       RetentionInDays: retention,
     }));
+  });
+
+  testConstructTags({
+    constructName: 'MongoDbInstance',
+    createConstruct: () => {
+      const isolatedStack = new Stack(app, 'IsolatedStack');
+      new MongoDbInstance(isolatedStack, 'MongoDbInstance', {
+        mongoDb: {
+          version,
+          dnsZone,
+          hostname,
+          serverCertificate: serverCert,
+          userSsplAcceptance,
+        },
+        vpc,
+      });
+      return isolatedStack;
+    },
+    resourceTypeCounts: {
+      'AWS::EC2::SecurityGroup': 1,
+      'AWS::IAM::Role': 1,
+      'AWS::AutoScaling::AutoScalingGroup': 1,
+      'AWS::EC2::NetworkInterface': 1,
+      'AWS::SecretsManager::Secret': 1,
+      'AWS::EC2::Volume': 1,
+      'AWS::SSM::Parameter': 1,
+    },
   });
 });

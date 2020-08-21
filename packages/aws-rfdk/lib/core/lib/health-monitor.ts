@@ -35,6 +35,7 @@ import {
   Stack,
 } from '@aws-cdk/core';
 import {LoadBalancerFactory} from './load-balancer-manager';
+import {tagConstruct} from './runtime-info';
 
 /**
  * Information about an Elastic Load Balancing resource limit for your AWS account.
@@ -377,6 +378,9 @@ export class HealthMonitor extends HealthMonitorBase {
     });
 
     this.unhealthyFleetActionTopic.addSubscription(new LambdaSubscription(this.unhealthyFleetActionLambda));
+
+    // Tag deployed resources with RFDK meta-data
+    tagConstruct(this);
   }
 
   /**
