@@ -94,9 +94,7 @@ interface TestConstructTagsArgs {
  *
  * <VERSION>:<CONSTRUCT_NAME>
  *
- * @param createConstruct A callback function called to create an instance of the construct being tested in its own isolated stack.
- * The isolated stack should be returned by the callback function.
- * @param resourceTypeCounts A mapping of CloudFormation resource types to counts of the number of resources expected to be tagged.
+ * @param args Arguments to configure the creation of construct tagging tests
  */
 export function testConstructTags(args: TestConstructTagsArgs) {
   const { constructName, createConstruct, resourceTypeCounts } = args;
