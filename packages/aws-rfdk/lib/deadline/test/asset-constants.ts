@@ -5,13 +5,14 @@
 
 // TODO: Properly import from aws-rfdk. Not ideal
 // to use a relative path here.
+import { stringLike } from '@aws-cdk/assert';
 import {CWA_ASSET_LINUX} from '../../core/test/asset-constants';
 export {CWA_ASSET_LINUX};
 
 // configureWorker.sh
 export const CONFIG_WORKER_ASSET_LINUX = {
-  Bucket: 'AssetParametersa0479044f4a09cd17839c6903e311d7f40bb13714c61e1bb089535e7e1cc1ff0S3Bucket8A63B685',
-  Key: 'AssetParametersa0479044f4a09cd17839c6903e311d7f40bb13714c61e1bb089535e7e1cc1ff0S3VersionKeyC30DB6B8',
+  Bucket: 'AssetParameters2435996be08703cd3819e249890abb41cc0860324e5cfe1b5945704934db7101S3BucketB40BB072',
+  Key: 'AssetParameters2435996be08703cd3819e249890abb41cc0860324e5cfe1b5945704934db7101S3VersionKey4F3F9A7F',
 };
 
 // configureWorker.ps1
@@ -21,19 +22,19 @@ export const CONFIG_WORKER_ASSET_WINDOWS = {
 
 // installDeadlineRepository.sh
 export const INSTALL_REPOSITORY_ASSET_LINUX = {
-  Bucket: 'AssetParametersc9665579b439fb4c484ea0cdd9161799740dce332e235c3c09745644697f1efdS3Bucket8EB24E17',
+  Bucket: stringLike('AssetParameters*S3Bucket8EB24E17'),
 };
 
 // test.file
 export const TEST_ASSET = {
-  Bucket: 'AssetParameters95c924c84f5d023be4edee540cb2cb401a49f115d01ed403b288f6cb412771dfS3Bucket5D5509D9',
-  Key: 'AssetParameters95c924c84f5d023be4edee540cb2cb401a49f115d01ed403b288f6cb412771dfS3VersionKeyF19FF080',
+  Bucket: stringLike('AssetParameters*S3Bucket5D5509D9'),
+  Key: stringLike('AssetParameters*S3VersionKeyF19FF080'),
 };
 
 // installRepostitoryDirectConnection
 export const REPO_DC_ASSET = {
-  Bucket: 'AssetParametersc4ee7f2045a95cb6858f1fdf35253ca27103511dffd97ac97dfe2a8aae85d7fcS3Bucket87338EBD',
-  Key: 'AssetParametersc4ee7f2045a95cb6858f1fdf35253ca27103511dffd97ac97dfe2a8aae85d7fcS3VersionKeyB7FF7B3C',
+  Bucket: stringLike('AssetParameters*S3Bucket87338EBD'),
+  Key: stringLike('AssetParameters*S3VersionKeyB7FF7B3C'),
 };
 
 export const RQ_CONNECTION_ASSET = {
