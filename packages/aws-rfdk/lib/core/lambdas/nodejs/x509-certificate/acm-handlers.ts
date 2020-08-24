@@ -19,6 +19,10 @@ import {
   implementsIAcmImportCertProps,
 } from './types';
 
+const defaultSleep = function(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
+
 const ACM_VERSION = '2015-12-08';
 const DYNAMODB_VERSION = '2012-08-10';
 const SECRETS_MANAGER_VERSION = '2017-10-17';
@@ -76,9 +80,34 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
       this.databasePermissionsCheck(resourceTable),
     ]);
     const resources = await resourceTable.query(physicalId);
+
+    const maxAttempts = 10;
     for (const [key, resource] of Object.entries(resources)) {
-      console.log(`Deleting resource for '${key}'`);
       const arn: string = resource.ARN;
+
+      let inUseByResources = [];
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const { Certificate: cert } = await this.acmClient.describeCertificate({
+          CertificateArn: arn,
+        }).promise();
+
+        inUseByResources = cert!.InUseBy || [];
+
+        if (inUseByResources.length) {
+          // Exponential backoff with jitter based on 200ms base
+          // component of backoff fixed to ensure minimum total wait time on
+          // slow targets.
+          const base = Math.pow(2, attempt);
+          await defaultSleep(Math.random() * base * 50 + base * 150);
+        } else {
+          break;
+        }
+      }
+
+      if (inUseByResources.length) {
+        throw new Error(`Response from describeCertificate did not contain an empty InUseBy list after ${maxAttempts} attempts.`);
+      }
+      console.log(`Deleting resource for '${key}'`);
       try {
         await this.acmClient.deleteCertificate({ CertificateArn: arn }).promise();
       } catch (e) {

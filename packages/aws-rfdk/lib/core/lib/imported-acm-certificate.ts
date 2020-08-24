@@ -159,6 +159,7 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
     lambda.addToRolePolicy(new PolicyStatement({
       actions: [
         'acm:DeleteCertificate',
+        'acm:DescribeCertificate',
         'acm:GetCertificate',
       ],
       resources: ['*'],
