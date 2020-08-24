@@ -129,6 +129,7 @@ test('Import cert', () => {
         {
           Action: [
             'acm:DeleteCertificate',
+            'acm:DescribeCertificate',
             'acm:GetCertificate',
           ],
           Resource: '*',
