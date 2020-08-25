@@ -1,4 +1,4 @@
-# Contributing to the AWS Render Farm Deployment Kit (AWS RFDK)
+# Contributing to the Render Farm Deployment Kit on AWS (RFDK)
 
 Thanks for your interest in contributing to the AWS RFDK! ❤️
 

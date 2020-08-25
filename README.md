@@ -1,6 +1,6 @@
-# AWS Render Farm Deployment Kit (AWS RFDK)
+# Render Farm Deployment Kit on AWS (RFDK)
 
-The AWS Render Farm Deployment Kit is an open-source library for use with the
+The Render Farm Deployment Kit on AWS is an open-source library for use with the
 [AWS Cloud Development Kit](https://github.com/aws/aws-cdk) that is designed to help you
 deploy, configure, and maintain your render farm infrastructure in the cloud.
 
