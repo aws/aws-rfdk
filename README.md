@@ -41,7 +41,7 @@ If you discover a potential security issue in this project we ask that you notif
 
 ## Contributing
 
-Contributions to the AWS RFDK are encouraged. If you want to fix a problem, or want to enhance the library in any way, then
+Contributions to the RFDK are encouraged. If you want to fix a problem, or want to enhance the library in any way, then
 we are happy to accept your contribution. Information on contributing to the RFDK can be found
 [in CONTRIBUTING.md](https://github.com/aws/aws-rfdk/blob/mainline/CONTRIBUTING.md).
 

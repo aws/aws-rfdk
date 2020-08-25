@@ -246,7 +246,7 @@ const ubl = new UsageBasedLicensing(stack, 'UsageBasedLicensing', {
 
 ### Usage-Based Licensing Docker Container Images
 
-`UsageBasedLicensing` currently requires only one Docker container image for the Deadline License Forwarder. A License Forwarder image must satisfy the following criteria to be compatible with AWS RFDK:
+`UsageBasedLicensing` currently requires only one Docker container image for the Deadline License Forwarder. A License Forwarder image must satisfy the following criteria to be compatible with RFDK:
 
 - Deadline Client must be installed
 - The default command must launch the License Forwarder
