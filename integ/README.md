@@ -2,7 +2,7 @@
 
 To run all test suites:
 
-1. Build and install dependencies by running build.sh from the top-level AWS-RFDK directory
+1. Build and install dependencies by running build.sh from the top-level RFDK directory
 
 1. Configure AWS credentials (tests will use the default AWS profile, so either set up a default profile in .aws/credentials or use temporary credentials).
 

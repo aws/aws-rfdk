@@ -133,7 +133,7 @@ Network ACLs act as a firewall for controlling traffic in or out of your VPC sub
 ---
 **NOTE**
 
-These instructions assume that your working directory is `examples/deadline/All-In-AWS-Infrastructure-Basic-Tiered/ts/` relative to the root of the AWS-RFDK package.
+These instructions assume that your working directory is `examples/deadline/All-In-AWS-Infrastructure-Basic-Tiered/ts/` relative to the root of the RFDK package.
 
 ---
 

@@ -90,7 +90,7 @@ describe('Test StaticIpServer', () => {
     cdkExpect(stack).to(haveResourceLike('AWS::Lambda::Function', {
       Handler: 'index.handler',
       Runtime: 'nodejs12.x',
-      Description: 'Created by AWS-RFDK StaticPrivateIpServer to process instance launch lifecycle events in stack \'StackName\'. This lambda attaches an ENI to newly launched instances.',
+      Description: 'Created by RFDK StaticPrivateIpServer to process instance launch lifecycle events in stack \'StackName\'. This lambda attaches an ENI to newly launched instances.',
     }));
 
     expectCDK(stack).to(haveResourceLike('AWS::KMS::Key', {
@@ -128,7 +128,7 @@ describe('Test StaticIpServer', () => {
       EnableKeyRotation: true,
     }));
     cdkExpect(stack).to(haveResourceLike('AWS::SNS::Topic', {
-      DisplayName: 'For AWS-RFDK instance-launch notifications for stack \'StackName\'',
+      DisplayName: 'For RFDK instance-launch notifications for stack \'StackName\'',
       KmsMasterKeyId: {
         Ref: 'SNSEncryptionKey255e9e52ad034ddf8ff8274bc10d63d1EDF79FFE',
       },
