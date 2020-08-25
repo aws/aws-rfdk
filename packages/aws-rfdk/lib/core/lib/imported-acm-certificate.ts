@@ -68,15 +68,27 @@ export interface ImportedAcmCertificateProps {
 }
 
 /**
- * A Construct that holds a Custom Resource modelling a certificate that was imported into ACM. It uses a Lambda
- * Function to extract the certificate from Secrets and then import it into ACM. It is intended to be used with the
- * X509CertificatePem Construct.
+ * A Construct that creates an AWS CloudFormation Custom Resource that models a certificate that is imported into
+ * AWS Certificate Manager (ACM). It uses an AWS Lambda Function to extract the certificate from Secrets in AWS SecretsManager
+ * and then import it into ACM. The interface is intended to be used with the {@link X509CertificatePem} Construct.
  *
  * Resources Deployed
  * ------------------------
- * 1) DynamoDB Table - Used for tracking resources created by the CustomResource.
- * 2) Lambda Function, with Role - Used to create/update/delete the CustomResource.
- * 3) ACM Certificate - Created by the CustomResource.
+ * - DynamoDB Table - Used for tracking resources created by the Custom Resource.
+ * - An AWS Lambda Function, with IAM Role - Used to create/update/delete the Custom Resource.
+ * - AWS Certificate Manager Certificate - Created by the Custom Resource.
+ *
+ * Security Considerations
+ * ------------------------
+ * - The AWS Lambda that is deployed through this construct will be created from a deployment package
+ *   that is uploaded to your CDK bootstrap bucket during deployment. You must limit write access to
+ *   your CDK bootstrap bucket to prevent an attacker from modifying the actions performed by this Lambda.
+ *   We strongly recommend that you either enable Amazon S3 server access logging on your CDK bootstrap bucket,
+ *   or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - The AWS Lambda for this construct also has broad IAM permissions to delete any Certificate that is stored
+ *   in AWS Certificate Manager. You should not grant any additional actors/principals the ability to modify or
+ *   execute this Lambda.
  *
  * @ResourcesDeployed
  */

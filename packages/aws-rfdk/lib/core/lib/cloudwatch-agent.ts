@@ -47,8 +47,16 @@ export interface CloudWatchAgentProps {
  *
  * Resources Deployed
  * ------------------------
- * 1) String SSM Parameter in Systems Manager Parameter Store to store the cloudwatch agent configuration;
- * 2) A script Asset which is uploaded to S3 bucket.
+ * - String SSM Parameter in Systems Manager Parameter Store to store the cloudwatch agent configuration;
+ * - A script Asset which is uploaded to S3 bucket.
+ *
+ * Security Considerations
+ * ------------------------
+ * - Using this construct on an instance will result in that instance dynamically downloading and running scripts
+ *   from your CDK bootstrap bucket when that instance is launched. You must limit write access to your CDK bootstrap
+ *   bucket to prevent an attacker from modifying the actions performed by these scripts. We strongly recommend that
+ *   you either enable Amazon S3 server access logging on your CDK bootstrap bucket, or enable AWS CloudTrail on your
+ *   account to assist in post-incident analysis of compromised production environments.
  *
  * @ResourcesDeployed
  */

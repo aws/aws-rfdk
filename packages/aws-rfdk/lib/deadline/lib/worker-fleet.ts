@@ -279,10 +279,21 @@ abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet
  *
  * Resources Deployed
  * ------------------------
- * 1) An AutoScalingGroup to maintain the number of instances;
- * 2) An Instance Role and corresponding IAM Policy;
- * 3) A script asset which is uploaded to your deployment bucket used to configure the worker so it can connect to the Render Queue
- * 4) An aws-rfdk.CloudWatchAgent to configure sending logs to cloudwatch.
+ * - An EC2 Auto Scaling Group to maintain the number of instances;
+ * - An Instance Role and corresponding IAM Policy;
+ * - An Amazon CloudWatch log group that contains the Deadline Worker, Deadline Launcher, and instance-startup logs for the instances
+ *   in the fleet.
+ *
+ * Security Considerations
+ * ------------------------
+ * - The instances deployed by this construct download and run scripts from your CDK bootstrap bucket when that instance
+ *   is launched. You must limit write access to your CDK bootstrap bucket to prevent an attacker from modifying the actions
+ *   performed by these scripts. We strongly recommend that you either enable Amazon S3 server access logging on your CDK
+ *   bootstrap bucket, or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - The software on the AMI that is being used by this construct may pose a security risk. We recommend that you adopt a
+ *   patching strategy to keep this software current with the latest security patches. Please see
+ *   https://docs.aws.amazon.com/rfdk/latest/guide/patching-software.html for more information.
  *
  * @ResourcesDeployed
  */
