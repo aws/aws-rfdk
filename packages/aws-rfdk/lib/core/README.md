@@ -768,7 +768,7 @@ const importedCertificate = new ImportedAcmCertificate(stack, 'ImportedAcmCertif
 
 ## Connecting To An Instance
 
-AWS-RFDK provides a few constructs that can create instances (for example, [StaticPrivateIpServer](#staticprivateipserver) or [MongoDbInstance](#mongodbinstance)) and there are multiple ways to connect to these instances.
+The RFDK provides a few constructs that can create instances (for example, [StaticPrivateIpServer](#staticprivateipserver) or [MongoDbInstance](#mongodbinstance)) and there are multiple ways to connect to these instances.
 
 ### Session Manager
 
