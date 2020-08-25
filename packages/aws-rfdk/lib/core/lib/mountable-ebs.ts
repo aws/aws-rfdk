@@ -101,6 +101,14 @@ export interface MountableBlockVolumeProps {
  * Note: This does **NOT** support multiple partitions on the EBS Volume; the script will exit with a failure code
  * when it detects multiple partitions on the device. It is expected that the whole block device is a single partition.
  *
+ * Security Considerations
+ * ------------------------
+ * - Using this construct on an instance will result in that instance dynamically downloading and running scripts
+ *   from your CDK bootstrap bucket when that instance is launched. You must limit write access to your CDK bootstrap
+ *   bucket to prevent an attacker from modifying the actions performed by these scripts. We strongly recommend that
+ *   you either enable Amazon S3 server access logging on your CDK bootstrap bucket, or enable AWS CloudTrail on your
+ *   account to assist in post-incident analysis of compromised production environments.
+ *
  * @remark If using this script with an instance within an AWS Auto Scaling Group (ASG) and you resize
  * the EBS volume, then you can terminate the instance to let the ASG replace the instance and benefit
  * from the larger volume size when this script resizes the filesystem on instance launch.

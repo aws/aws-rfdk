@@ -347,18 +347,25 @@ export interface RepositoryProps {
  * After the installation is complete the instance will be shutdown.
  *
  * Whenever the stack is updated if a change is detected in the installer a new instance will be started, which will perform
- * a check on the existing Deadline Repository.  If they are compatible with the new installer an update will be performed
+ * a check on the existing Deadline Repository. If they are compatible with the new installer an update will be performed
  * and the deployment will continue, otherwise the the deployment will be cancelled.
  * In either case the instance will be cleaned up.
  *
  * Resources Deployed
  * ------------------------
- * 1) Encrypted EFS File System - If no IFileSystem is provided;
- * 2) DocumentDB and DatabaseConnection - If no database connection is provided;
- * 3) Auto Scaling Group (ASG) with min & max capacity of 1 instance;
- * 4) Instance Role and corresponding IAM Policy
- * 5) A Script Asset which is uploaded to your deployment bucket to run the installer
- * 6) An aws-rfdk.CloudWatchAgent to configure sending logs to cloudwatch.
+ * - Encrypted Amazon Elastic File System (EFS) - If no file system is provided;
+ * - An Amazon DocumentDB - If no database connection is provided;
+ * - Auto Scaling Group (ASG) with min & max capacity of 1 instance;
+ * - Instance Role and corresponding IAM Policy
+ * - An Amazon CloudWatch log group that contains the Deadline Repository installation logs
+ *
+ * Security Considerations
+ * ------------------------
+ * - The instances deployed by this construct download and run scripts from your CDK bootstrap bucket when that instance
+ *   is launched. You must limit write access to your CDK bootstrap bucket to prevent an attacker from modifying the actions
+ *   performed by these scripts. We strongly recommend that you either enable Amazon S3 server access logging on your CDK
+ *   bootstrap bucket, or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
  *
  * @ResourcesDeployed
  */

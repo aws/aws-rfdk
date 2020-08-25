@@ -86,6 +86,18 @@ export interface MongoDbInstallerProps {
  * ------------------------
  * - A CDK Asset package containing the installation scripts is deployed to your CDK staging bucket.
  *
+ * Security Considerations
+ * ------------------------
+ * - Since this class installs MongoDB from official sources dynamically during instance start-up, it is succeptable
+ *   to an attacker compromising the official MongoDB Inc. distribution channel for MongoDB. Such a compromise may
+ *   result in the installation of unauthorized MongoDB binaries. Executing this attack would require an attacker
+ *   compromise both the official installation packages and the MongoDB Inc. gpg key with which they are signed.
+ * - Using this construct on an instance will result in that instance dynamically downloading and running scripts
+ *   from your CDK bootstrap bucket when that instance is launched. You must limit write access to your CDK bootstrap
+ *   bucket to prevent an attacker from modifying the actions performed by these scripts. We strongly recommend that
+ *   you either enable Amazon S3 server access logging on your CDK bootstrap bucket, or enable AWS CloudTrail on your
+ *   account to assist in post-incident analysis of compromised production environments.
+ *
  * @ResourcesDeployed
  */
 export class MongoDbInstaller {

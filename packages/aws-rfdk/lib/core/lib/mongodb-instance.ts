@@ -304,10 +304,23 @@ export interface IMongoDb extends IConnectable, IConstruct {
  * Resources Deployed
  * ------------------------
  * - {@link StaticPrivateIpServer} that hosts MongoDB.
- * - An A Record in the provided PrivateHostedZone to create a DNS entry for this server's static private IP.
- * - A Secret containing the administrator credentials for MongoDB.
- * - An encrypted EBS Volume on which the MongoDB data is stored.
+ * - An A-Record in the provided PrivateHostedZone to create a DNS entry for this server's static private IP.
+ * - A Secret in AWS SecretsManager that contains the administrator credentials for MongoDB.
+ * - An encrypted Amazon Elastic Block Store (EBS) Volume on which the MongoDB data is stored.
  * - Amazon CloudWatch log group that contains instance-launch and MongoDB application logs.
+ *
+ * Security Considerations
+ * ------------------------
+ * - The administrator credentials for MongoDB are stored in a Secret within AWS SecretsManager. You must strictly limit
+ *   access to this secret to only entities that require it.
+ * - The instances deployed by this construct download and run scripts from your CDK bootstrap bucket when that instance
+ *   is launched. You must limit write access to your CDK bootstrap bucket to prevent an attacker from modifying the actions
+ *   performed by these scripts. We strongly recommend that you either enable Amazon S3 server access logging on your CDK
+ *   bootstrap bucket, or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - This construct uses this package's {@link StaticPrivateIpServer}, {@link MongoDbInstaller}, {@link CloudWatchAgent},
+ *   {@link ExportingLogGroup}, and {@link MountableBlockVolume}. Security considerations that are outlined by the documentation
+ *   for those constructs should also be taken into account.
  *
  * @ResourcesDeployed
  */
