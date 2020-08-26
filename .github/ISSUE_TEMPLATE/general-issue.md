@@ -4,8 +4,6 @@ about: Create a new issue
 labels: needs-triage
 ---
 
-<!-- NOTE:📕 If there is an issue regarding developer guide, please create an issue [here](https://github.com/awsdocs/aws-cdk-guide/issues) -->
-
 ## :question: General Issue
 
 <!--
@@ -25,7 +23,7 @@ falling prey to the [X/Y problem][2]!
 
   - **CDK CLI Version      :**
   - **CDK Framework Version:**
-  - **RFDK Framework Version:**
+  - **RFDK Version:**
   - **Deadline Version:**
   - **Node.js Version:** <!-- Version of Node.js (run the command `node -v`) -->
   - **OS               :**
