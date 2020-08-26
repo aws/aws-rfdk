@@ -504,9 +504,7 @@ describe('UsageBasedLicensing', () => {
               'GroupId',
             ],
           },
-          SourceSecurityGroupId: {
-            'Fn::ImportValue': stringLike(`${Stack.of(workerFleet)}:ExportsOutputFnGetAttworkerFleetInstanceSecurityGroupB00C2885GroupId60416F0A`),
-          },
+          SourceSecurityGroupId: 'sg-123456789',
         }));
       });
     });

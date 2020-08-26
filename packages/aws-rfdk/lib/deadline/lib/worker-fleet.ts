@@ -387,6 +387,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
       vpcSubnets: props.vpcSubnets ? props.vpcSubnets : {
         subnetType: SubnetType.PRIVATE,
       },
+      securityGroup: props.securityGroup,
       minCapacity: props.minCapacity,
       maxCapacity: props.maxCapacity,
       desiredCapacity: props.desiredCapacity,
@@ -421,10 +422,6 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
       granularity: '1Minute',
       metrics: ['GroupDesiredCapacity'],
     }];
-
-    if (props.securityGroup) {
-      this.fleet.addSecurityGroup(props.securityGroup);
-    }
 
     this.grantPrincipal = this.fleet.grantPrincipal;
     this.connections = this.fleet.connections;

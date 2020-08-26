@@ -158,6 +158,27 @@ test('security group is added to fleet after its creation', () => {
   }));
 });
 
+test('WorkerFleet uses given security group', () => {
+  // WHEN
+  new WorkerInstanceFleet(stack, 'workerFleet', {
+    vpc,
+    workerMachineImage: new GenericWindowsImage({
+      'us-east-1': 'ami-any',
+    }),
+    renderQueue,
+    securityGroup: SecurityGroup.fromSecurityGroupId(stack, 'SG', 'sg-123456789', {
+      allowAllOutbound: false,
+    }),
+  });
+
+  // THEN
+  expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+    SecurityGroups: [
+      'sg-123456789',
+    ],
+  }));
+});
+
 test('default worker fleet is created correctly with linux image', () => {
   // WHEN
   new WorkerInstanceFleet(stack, 'workerFleet', {
