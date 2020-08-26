@@ -1,6 +1,6 @@
 # Github Actions and Integration
 
-This directory is used to hold all templates and github actions that are integrated into the AWS RFDK Github Repository.
+This directory is used to hold all templates and github actions that are integrated into the RFDK Github Repository.
 
 ## Pull Request Template
 

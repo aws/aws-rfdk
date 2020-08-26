@@ -1,6 +1,6 @@
-# Contributing to the AWS Render Farm Deployment Kit (AWS RFDK)
+# Contributing to the Render Farm Deployment Kit on AWS (RFDK)
 
-Thanks for your interest in contributing to the AWS RFDK! ❤️
+Thanks for your interest in contributing to the RFDK! ❤️
 
 This document describes how to set up a development environment and submit your contributions. Please read it carefully
 and let us know if it's not up-to-date (even better, submit a PR with your  corrections ;-)).
@@ -24,7 +24,7 @@ and let us know if it's not up-to-date (even better, submit a PR with your  corr
 
 ## Prerequisites
 
-The AWS RFDK is written in Typescript and converted, using [jsii](https://github.com/aws/jsii), into Python. Thus, the
+The RFDK is written in Typescript and converted, using [jsii](https://github.com/aws/jsii), into Python. Thus, the
 minimal development environment must include:
 
 - Node.js >= 10.21.0
@@ -100,7 +100,7 @@ To build, we use the [jsii/superchain docker container](https://hub.docker.com/r
     >>> bash-4.2$
     ./pack.sh
 
-    # To build & test your changes to the AWS RFDK package
+    # To build & test your changes to the RFDK package
     # Note: Must have done at least one run of ./build.sh to build the build tools.
     >>> bash-4.2$
     cd packages/aws-rfdk
@@ -128,16 +128,16 @@ One can use the `postinstall` script to symlink this repo. For example:
 This assumes this repo is a sibling of the target repo and will install the CDK as a linked dependency during
 __yarn install__.
 
-#### Option 2 -- Use npm/pip to install the AWS RFDK packages into your environment
+#### Option 2 -- Use npm/pip to install the RFDK packages into your environment
 
 The packages that are created by the `./pack.sh` script can be installed directly into an npm or Python environment.
 
 ```bash
 # Installing into a local npm environment
-npm install <AWS RFDK directory>/dist/js/aws-rfdk@0.15.0.jsii.tgz
+npm install <RFDK directory>/dist/js/aws-rfdk@0.15.0.jsii.tgz
 
 # Installing into a Python environment
-pip install --force <AWS RFDK directory>/dist/python/aws-rfdk-0.15.0.tar.gz
+pip install --force <RFDK directory>/dist/python/aws-rfdk-0.15.0.tar.gz
 ```
 
 ### Cleaning up stale build artifacts

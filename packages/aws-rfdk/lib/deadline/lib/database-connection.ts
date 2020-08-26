@@ -257,7 +257,7 @@ class DocDBDatabaseConnection extends DatabaseConnection {
     if (docdbInstance) {
       child.node.addDependency(docdbInstance);
     } else if (this.props.database.node.defaultChild) {
-      throw new Error('The internal implementation of the AWS CDK\'s DocumentDB cluster construct may have changed. Please update to a newer AWS RFDK for an updated implementation, or file a ticket if this is the latest release.');
+      throw new Error('The internal implementation of the AWS CDK\'s DocumentDB cluster construct may have changed. Please update to a newer RFDK for an updated implementation, or file a ticket if this is the latest release.');
     }
   }
 }
