@@ -19,7 +19,7 @@ ROOT_DIR=$(readlink -f "${SCRIPT_DIR}/..")
 # Ensure that the docker daemon is running in the background
 # These commands are currently being done here instead of in buildspec due to the following issue: https://github.com/awslabs/aws-delivlib/issues/448
 # These commands come from the Codebuild sample for running docker on a custom image: https://docs.aws.amazon.com/codebuild/latest/userguide/sample-docker-custom-image.html#sample-docker-custom-image-files
-docker info || nohup /usr/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://127.0.0.1:2375 --storage-driver=overlay2&
+docker info || nohup /usr/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://127.0.0.1:2375 --storage-driver=overlay2 &
 timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
 
 # Build and publish lambda layers
