@@ -33,9 +33,13 @@ import {
   CfnElement,
   Stack,
 } from '@aws-cdk/core';
+
 import {
   HealthMonitor,
 } from '../../core/lib';
+import {
+  testConstructTags,
+} from '../../core/test/tag-helpers';
 import {
   IRenderQueue,
   RenderQueue,
@@ -149,6 +153,27 @@ test('security group is added to fleet after its creation', () => {
           'GroupId',
         ],
       },
+      'sg-123456789',
+    ],
+  }));
+});
+
+test('WorkerFleet uses given security group', () => {
+  // WHEN
+  new WorkerInstanceFleet(stack, 'workerFleet', {
+    vpc,
+    workerMachineImage: new GenericWindowsImage({
+      'us-east-1': 'ami-any',
+    }),
+    renderQueue,
+    securityGroup: SecurityGroup.fromSecurityGroupId(stack, 'SG', 'sg-123456789', {
+      allowAllOutbound: false,
+    }),
+  });
+
+  // THEN
+  expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+    SecurityGroups: [
       'sg-123456789',
     ],
   }));
@@ -1361,5 +1386,46 @@ describe('Block Device Tests', () => {
     }));
 
     expect(fleet.node.metadata).toHaveLength(0);
+  });
+});
+
+describe('tagging', () => {
+  testConstructTags({
+    constructName: 'WorkerInstanceFleet',
+    createConstruct: () => {
+      // GIVEN
+      const healthMonitorStack = new Stack(app, 'HealthMonitorStack', {
+        env: {
+          region: 'us-east-1',
+        },
+      });
+      const healthMonitor = new HealthMonitor(healthMonitorStack,'healthMonitor', {
+        vpc,
+      });
+      const deviceName = '/dev/xvda';
+
+      // WHEN
+      new WorkerInstanceFleet(wfstack, 'WorkerFleet', {
+        vpc,
+        workerMachineImage: new GenericLinuxImage({
+          'us-east-1': 'ami-any',
+        }),
+        renderQueue,
+        healthMonitor,
+        blockDevices: [{
+          deviceName,
+          volume: BlockDeviceVolume.noDevice(),
+        }],
+      });
+
+      return wfstack;
+    },
+    resourceTypeCounts: {
+      'AWS::EC2::SecurityGroup': 1,
+      'AWS::IAM::Role': 1,
+      'AWS::AutoScaling::AutoScalingGroup': 1,
+      'AWS::ElasticLoadBalancingV2::TargetGroup': 1,
+      'AWS::SSM::Parameter': 1,
+    },
   });
 });

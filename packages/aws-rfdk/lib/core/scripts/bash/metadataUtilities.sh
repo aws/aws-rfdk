@@ -16,6 +16,35 @@ function get_metadata_token() {
     curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 30" 2> /dev/null
 }
 
+function authenticate_identity_document() {
+    # Cryptographically verify that the instance identity document is authentic by
+    # using the instructions here: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/verify-pkcs7.html
+    
+    if ! which openssl > /dev/null 2>&1
+    then
+        if ! sudo yum install -y openssl || sudo apt-get install -y openssl
+        then
+            echo "ERROR -- Authenticating the instance identity document requires openssl"
+            return 1
+        fi
+    fi
+
+    SCRIPT_DIRECTORY=$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )
+    TOKEN=$(get_metadata_token)
+
+    CERT_FILE=$(mktemp)
+    echo "-----BEGIN PKCS7-----" > "${CERT_FILE}"
+    curl -H "X-aws-ec2-metadata-token: $TOKEN" -v http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 2> /dev/null >> "${CERT_FILE}"
+    echo "" >> "${CERT_FILE}"
+    echo "-----END PKCS7-----" >> "${CERT_FILE}"
+
+    DOCUMENT_FILE=$(mktemp)
+    curl -H "X-aws-ec2-metadata-token: $TOKEN" -v http://169.254.169.254/latest/dynamic/instance-identity/document 2> /dev/null > "${DOCUMENT_FILE}"
+
+    echo "Verifying identity document authenticity"
+    openssl smime -verify -in "${CERT_FILE}" -inform PEM -content "${DOCUMENT_FILE}" -certfile ${SCRIPT_DIRECTORY}/ec2-certificates.crt -noverify 1> /dev/null
+}
+
 function get_identity_document() {
     # Usage: $0 <token>
     TOKEN=$1

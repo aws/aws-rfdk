@@ -57,6 +57,9 @@ import {
   MountableEfs,
   ScriptAsset,
 } from '../../core';
+import {
+  tagConstruct,
+} from '../../core/lib/runtime-info';
 
 import { DatabaseConnection } from './database-connection';
 import { IHost } from './host-ref';
@@ -318,8 +321,10 @@ export interface RepositoryProps {
   readonly documentDbInstanceCount?: number;
 
   /**
-   * If this Repository is creating its own Amazon DocumentDB database and/or Amazon Elastic File System (EFS),
-   * then this specifies to which subnets they are deployed.
+   * All resources that are created by this Repository will be deployed to these Subnets. This includes the
+   * Auto Scaling Group that is created for running the Repository Installer. If this Repository is creating
+   * an Amazon DocumentDB database and/or Amazon Elastic File System (EFS), then this specifies the subnets
+   * to which they are deployed.
    *
    * @default: Private subnets in the VPC
    */
@@ -518,7 +523,7 @@ export class Repository extends Construct implements IRepository {
         generation: AmazonLinuxGeneration.AMAZON_LINUX_2,
       }),
       vpc: props.vpc,
-      vpcSubnets: {
+      vpcSubnets: props.vpcSubnets ?? {
         subnetType: SubnetType.PRIVATE,
       },
       minCapacity: 1,
@@ -557,6 +562,9 @@ export class Repository extends Construct implements IRepository {
 
     // Updating the user data with successful cfn-signal commands.
     this.installerGroup.userData.addSignalOnExitCommand(this.installerGroup);
+
+    // Tag deployed resources with RFDK meta-data
+    tagConstruct(this);
   }
 
   /**

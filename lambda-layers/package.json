@@ -1,6 +1,6 @@
 {
   "name": "lambda-layers",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "private": false,
   "description": "Package containing scripts for building and publishing Lambda Layers",
   "main": "lib/index.js",
@@ -26,8 +26,8 @@
   "engines": {
     "node": ">= 10.13.0 <13 || >=13.7.0"
   },
-  "stability": "experimental",
-  "maturity": "experimental",
+  "stability": "stable",
+  "maturity": "stable",
   "devDependencies": {
     "@types/node": "^14.0.12",
     "typescript": "~3.9.6"

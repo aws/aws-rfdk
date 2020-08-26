@@ -35,10 +35,14 @@ import { ISecret } from '@aws-cdk/aws-secretsmanager';
 import {
   Construct,
 } from '@aws-cdk/core';
+
 import {
   LogGroupFactory,
   LogGroupFactoryProps,
 } from '../../core';
+import {
+  tagConstruct,
+} from '../../core/lib/runtime-info';
 import {IRenderQueue} from './render-queue';
 import {IWorkerFleet} from './worker-fleet';
 
@@ -567,6 +571,9 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
 
     this.node.defaultChild = this.service;
     this.connections.allowToDefaultPort(props.renderQueue);
+
+    // Tag deployed resources with RFDK meta-data
+    tagConstruct(this);
   }
 
   /**

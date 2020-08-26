@@ -204,7 +204,7 @@ _**Note:** When suspending the fleet, `HealthMonitor` sets the `maxCapacity` pro
 
 The fleets are attached to a load balancer and health checks are made against an HTTP endpoint being served by the fleet instances ( see [Health checks for your target groups](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/target-group-health-checks.html) ). There are certain AWS service limits for each load balancer, hence an array of load balancers and listeners is created internally based on the size of the registered fleets.
 
-By default, the load balancers array is created with default limits for AWS account. Since these limits can differ (can be increased by requesting AWS support), AWS-RFDK provides an option to modify them using `elbAccountLimits` property.
+By default, the load balancers array is created with default limits for AWS account. Since these limits can differ (can be increased by requesting AWS support), RFDK provides an option to modify them using `elbAccountLimits` property.
 
 The object you assign to `elbAccountLimits` should be the output of the [describeAccountLimits API](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/ELBv2.html#describeAccountLimits-property). We provide a `Limit` interface which consists of the name of the limit and its value. You can find the whole list of possible names at [API_Limit documentation](https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_Limit.html).
 
@@ -768,7 +768,7 @@ const importedCertificate = new ImportedAcmCertificate(stack, 'ImportedAcmCertif
 
 ## Connecting To An Instance
 
-AWS-RFDK provides a few constructs that can create instances (for example, [StaticPrivateIpServer](#staticprivateipserver) or [MongoDbInstance](#mongodbinstance)) and there are multiple ways to connect to these instances.
+The RFDK provides a few constructs that can create instances (for example, [StaticPrivateIpServer](#staticprivateipserver) or [MongoDbInstance](#mongodbinstance)) and there are multiple ways to connect to these instances.
 
 ### Session Manager
 

@@ -34,13 +34,18 @@ import {
 } from '@aws-cdk/aws-s3';
 import {
   App,
+  CfnElement,
   Duration,
   RemovalPolicy,
   Stack,
 } from '@aws-cdk/core';
+
 import {
   MountableEfs,
 } from '../../core';
+import {
+  testConstructTags,
+} from '../../core/test/tag-helpers';
 import {
   DatabaseConnection,
   IVersion,
@@ -51,6 +56,7 @@ import {
   REPO_DC_ASSET,
 } from './asset-constants';
 
+let app: App;
 let stack: Stack;
 let vpc: IVpc;
 let deadlineVersion: IVersion;
@@ -63,7 +69,8 @@ function escapeTokenRegex(s: string): string {
 }
 
 beforeEach(() => {
-  stack = new Stack();
+  app = new App();
+  stack = new Stack(app, 'Stack');
   vpc = new Vpc(stack, 'VPC');
   deadlineVersion = VersionQuery.exact(stack, 'Version', {
     majorVersion: 10,
@@ -101,6 +108,14 @@ test('repository installer instance is created correctly', () => {
     Properties: {
       MaxSize: '1',
       MinSize: '1',
+      VPCZoneIdentifier: [
+        {
+          Ref: 'VPCPrivateSubnet1Subnet8BCA10E0',
+        },
+        {
+          Ref: 'VPCPrivateSubnet2SubnetCFCDAA7A',
+        },
+      ],
     },
     CreationPolicy: {
       AutoScalingCreationPolicy: {
@@ -142,6 +157,29 @@ test('repository installer instance is created correctly', () => {
         'GroupId',
       ],
     },
+  }));
+});
+
+test('repository installer honors vpcSubnet', () => {
+  // Note: Default is private subnets, so it's sufficient to test something other than
+  // private subnets.
+
+  // WHEN
+  const publicSubnetIds = [ 'PublicSubnet1', 'PublicSubnet2' ];
+  const attrVpc = Vpc.fromVpcAttributes(stack, 'TestVpc', {
+    availabilityZones: ['us-east-1a', 'us-east-1b'],
+    vpcId: 'vpcid',
+    publicSubnetIds,
+  });
+  new Repository(stack, 'repositoryInstaller', {
+    vpc: attrVpc,
+    version: deadlineVersion,
+    vpcSubnets: { subnetType: SubnetType.PUBLIC },
+  });
+
+  // THEN
+  expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+    VPCZoneIdentifier: publicSubnetIds,
   }));
 });
 
@@ -582,7 +620,6 @@ test('repository warns if databaseAuditLogging defined and database is specified
 
 test('honors subnet specification', () => {
   // GIVEN
-  const app = new App();
   const dependencyStack = new Stack(app, 'DepStack');
   const dependencyVpc = new Vpc(dependencyStack, 'DepVpc');
 
@@ -809,26 +846,19 @@ test('validate instance self-termination', () => {
     repositoryInstallationTimeout: Duration.minutes(30),
     version: deadlineVersion,
   });
+  const asgLogicalId = stack.getLogicalId(repo.node.defaultChild!.node.defaultChild as CfnElement);
 
   // THEN
-  const expectedString = 'function exitTrap(){\nexitCode=$?\nsleep 1m\nINSTANCE=\"$(curl http://169.254.169.254/latest/meta-data/instance-id)\"\nASG=\"$(aws --region ${Token[AWS::Region.4]} ec2 describe-tags --filters \"Name=resource-id,Values=${INSTANCE}\" \"Name=key,Values=aws:autoscaling:groupName\" --query \"Tags[0].Value\" --output text)\"\naws --region ${Token[AWS::Region.4]} autoscaling update-auto-scaling-group --auto-scaling-group-name ${ASG} --min-size 0 --max-size 0 --desired-capacity 0\n/opt/aws/bin/cfn-signal --stack Default --resource repositoryInstallerASG7A08DC6A --region ${Token[AWS::Region.4]} -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n}';
+  const expectedString = `function exitTrap(){\nexitCode=$?\nsleep 1m\nINSTANCE=\"$(curl http://169.254.169.254/latest/meta-data/instance-id)\"\nASG=\"$(aws --region \${Token[AWS::Region.4]} ec2 describe-tags --filters \"Name=resource-id,Values=\${INSTANCE}\" \"Name=key,Values=aws:autoscaling:groupName\" --query \"Tags[0].Value\" --output text)\"\naws --region \${Token[AWS::Region.4]} autoscaling update-auto-scaling-group --auto-scaling-group-name \${ASG} --min-size 0 --max-size 0 --desired-capacity 0\n/opt/aws/bin/cfn-signal --stack ${stack.stackName} --resource ${asgLogicalId} --region \${Token[AWS::Region.4]} -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n}`;
   expect((repo.node.defaultChild as AutoScalingGroup).userData.render()).toMatch(expectedString);
   expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
     PolicyDocument: {
-      Statement: [
-        {},
-        {},
-        {},
-        {},
-        {},
-        {},
-        {},
-        {},
+      Statement: arrayWith(
         {
           Action: 'autoscaling:UpdateAutoScalingGroup',
           Condition: {
             StringEquals: {
-              'autoscaling:ResourceTag/resourceLogicalId': 'repositoryInstaller',
+              'autoscaling:ResourceTag/resourceLogicalId': repo.node.uniqueId,
             },
           },
           Effect: 'Allow',
@@ -839,7 +869,7 @@ test('validate instance self-termination', () => {
           Effect: 'Allow',
           Resource: '*',
         },
-      ],
+      ),
     },
   }));
 });
@@ -1023,4 +1053,30 @@ test('windows client cannot direct connect to repository', () => {
       mountPoint: 'd:\\',
     });
   }).toThrowError('Deadline direct connect on Windows hosts is not yet supported by the RFDK.');
+});
+
+describe('tagging', () => {
+  testConstructTags({
+    constructName: 'Repository',
+    createConstruct: () => {
+      // GIVEN
+      const isolatedStack = new Stack(app, 'IsolatedStack');
+      new Repository(isolatedStack, 'Repository', {
+        vpc,
+        version: deadlineVersion,
+      });
+      return isolatedStack;
+    },
+    resourceTypeCounts: {
+      'AWS::EC2::SecurityGroup': 3,
+      'AWS::DocDB::DBClusterParameterGroup': 1,
+      'AWS::DocDB::DBSubnetGroup': 1,
+      'AWS::SecretsManager::Secret': 1,
+      'AWS::DocDB::DBCluster': 1,
+      'AWS::DocDB::DBInstance': 1,
+      'AWS::IAM::Role': 1,
+      'AWS::AutoScaling::AutoScalingGroup': 1,
+      'AWS::SSM::Parameter': 1,
+    },
+  });
 });

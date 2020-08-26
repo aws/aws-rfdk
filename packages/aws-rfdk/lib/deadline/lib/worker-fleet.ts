@@ -49,7 +49,12 @@ import {
   LogGroupFactoryProps,
   ScriptAsset,
 } from '../../core';
-import {IRenderQueue} from './render-queue';
+import {
+  tagConstruct,
+} from '../../core/lib/runtime-info';
+import {
+  IRenderQueue,
+} from './render-queue';
 
 /**
  * Interface for Deadline Worker Fleet.
@@ -382,6 +387,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
       vpcSubnets: props.vpcSubnets ? props.vpcSubnets : {
         subnetType: SubnetType.PRIVATE,
       },
+      securityGroup: props.securityGroup,
       minCapacity: props.minCapacity,
       maxCapacity: props.maxCapacity,
       desiredCapacity: props.desiredCapacity,
@@ -417,10 +423,6 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
       metrics: ['GroupDesiredCapacity'],
     }];
 
-    if (props.securityGroup) {
-      this.fleet.addSecurityGroup(props.securityGroup);
-    }
-
     this.grantPrincipal = this.fleet.grantPrincipal;
     this.connections = this.fleet.connections;
 
@@ -446,6 +448,9 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
 
     // Updating the user data with successful cfn-signal commands.
     this.fleet.userData.addSignalOnExitCommand(this.fleet);
+
+    // Tag deployed resources with RFDK meta-data
+    tagConstruct(this);
   }
 
   /**

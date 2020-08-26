@@ -10,11 +10,11 @@
 # Make sure we're running from the root of the CDK repo
 if ! test -f package.json || ! grep '"name": "aws-rfdk-project",' package.json > /dev/null || ! grep '"private": true,' package.json > /dev/null
 then
-    echo "Usage: Run from the root of the AWS RFDK repository"
+    echo "Usage: Run from the root of the RFDK repository"
     exit 1
 fi
 
-echo "Entering jsii/superchain docker container so you can interactively build/test AWS RFDK."
+echo "Entering jsii/superchain docker container so you can interactively build/test RFDK."
 
 USER_OPT="-u $(id -u):$(id -g)"
 USERFILE_MOUNTS="-v /etc/passwd:/etc/passwd:ro -v /etc/shadow:/etc/shadow:ro -v /etc/group:/etc/group:ro"

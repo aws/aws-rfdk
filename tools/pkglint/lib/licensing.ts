@@ -203,6 +203,6 @@ export const LICENSE =
 `;
 
 export const NOTICE =
-`AWS Render Farm Deployment Kit (AWS RFDK)
+`Render Farm Deployment Kit on AWS (RFDK)
 Copyright 2018-${new Date().getFullYear()} Amazon.com, Inc. or its affiliates. All Rights Reserved.
 `;

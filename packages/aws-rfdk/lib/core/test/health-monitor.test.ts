@@ -52,6 +52,9 @@ import {
   HealthMonitor,
   IMonitorableFleet,
 } from '../lib';
+import {
+  testConstructTags,
+} from './tag-helpers';
 
 let app: App;
 let infraStack: Stack;
@@ -104,435 +107,452 @@ class TestMonitorableFleet extends Construct implements IMonitorableFleet {
   }
 }
 
-beforeEach(() => {
-  app = new App();
-  infraStack = new Stack(app, 'infraStack', {
-    env: {
-      region: 'us-east-1',
-    },
+describe('HealthMonitor', () => {
+  beforeEach(() => {
+    app = new App();
+    infraStack = new Stack(app, 'infraStack');
+
+    hmStack = new Stack(app, 'hmStack');
+
+    wfStack = new Stack(app, 'wfStack');
+
+    vpc = new Vpc(infraStack, 'VPC');
   });
 
-  hmStack = new Stack(app, 'hmStack', {
-    env: {
-      region: 'us-east-1',
-    },
-  });
-
-  wfStack = new Stack(app, 'wfStack', {
-    env: {
-      region: 'us-east-1',
-    },
-  });
-
-  vpc = new Vpc(infraStack, 'VPC');
-});
-
-test('validating default health monitor properties', () => {
-  // WHEN
-  healthMonitor = new HealthMonitor(hmStack, 'healthMonitor', {
-    vpc,
-  });
-  // THEN
-  expectCDK(hmStack).notTo(haveResource('AWS::ElasticLoadBalancingV2::LoadBalancer'));
-  expectCDK(hmStack).to(haveResourceLike('AWS::KMS::Key', {
-    KeyPolicy: {
-      Statement: [
-        {
-          Action: 'kms:*',
-          Effect: 'Allow',
-          Principal: {
-            AWS: {
-              'Fn::Join': [
-                '',
-                [
-                  'arn:',
-                  {
-                    Ref: 'AWS::Partition',
-                  },
-                  ':iam::',
-                  {
-                    Ref: 'AWS::AccountId',
-                  },
-                  ':root',
+  test('validating default health monitor properties', () => {
+    // WHEN
+    healthMonitor = new HealthMonitor(hmStack, 'healthMonitor', {
+      vpc,
+    });
+    // THEN
+    expectCDK(hmStack).notTo(haveResource('AWS::ElasticLoadBalancingV2::LoadBalancer'));
+    expectCDK(hmStack).to(haveResourceLike('AWS::KMS::Key', {
+      KeyPolicy: {
+        Statement: [
+          {
+            Action: 'kms:*',
+            Effect: 'Allow',
+            Principal: {
+              AWS: {
+                'Fn::Join': [
+                  '',
+                  [
+                    'arn:',
+                    {
+                      Ref: 'AWS::Partition',
+                    },
+                    ':iam::',
+                    {
+                      Ref: 'AWS::AccountId',
+                    },
+                    ':root',
+                  ],
                 ],
-              ],
+              },
             },
+            Resource: '*',
           },
-          Resource: '*',
-        },
+          {
+            Action: [
+              'kms:Decrypt',
+              'kms:GenerateDataKey',
+            ],
+            Effect: 'Allow',
+            Principal: {
+              Service: 'cloudwatch.amazonaws.com',
+            },
+            Resource: '*',
+          },
+        ],
+      },
+      Description: `This key is used to encrypt SNS messages for ${healthMonitor.node.uniqueId}.`,
+      EnableKeyRotation: true,
+    }));
+    expectCDK(hmStack).to(haveResourceLike('AWS::SNS::TopicPolicy', {
+      PolicyDocument: {
+        Statement: [
+          {
+            Action: 'sns:Publish',
+            Effect: 'Allow',
+            Principal: {
+              Service: 'cloudwatch.amazonaws.com',
+            },
+            Resource: {
+              Ref: hmStack.getLogicalId(healthMonitor.unhealthyFleetActionTopic.node.defaultChild as CfnElement),
+            },
+            Sid: '0',
+          },
+        ],
+      },
+      Topics: [
         {
-          Action: [
-            'kms:Decrypt',
-            'kms:GenerateDataKey',
-          ],
-          Effect: 'Allow',
-          Principal: {
-            Service: 'cloudwatch.amazonaws.com',
-          },
-          Resource: '*',
+          Ref: hmStack.getLogicalId(healthMonitor.unhealthyFleetActionTopic.node.defaultChild as CfnElement),
         },
       ],
-    },
-    Description: `This key is used to encrypt SNS messages for ${healthMonitor.node.uniqueId}.`,
-    EnableKeyRotation: true,
-  }));
-  expectCDK(hmStack).to(haveResourceLike('AWS::SNS::TopicPolicy', {
-    PolicyDocument: {
-      Statement: [
-        {
-          Action: 'sns:Publish',
-          Effect: 'Allow',
-          Principal: {
-            Service: 'cloudwatch.amazonaws.com',
-          },
-          Resource: {
-            Ref: hmStack.getLogicalId(healthMonitor.unhealthyFleetActionTopic.node.defaultChild as CfnElement),
-          },
-          Sid: '0',
-        },
-      ],
-    },
-    Topics: [
-      {
-        Ref: hmStack.getLogicalId(healthMonitor.unhealthyFleetActionTopic.node.defaultChild as CfnElement),
+    }));
+    expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Topic', {
+      KmsMasterKeyId: {
+        Ref: `${hmStack.getLogicalId(healthMonitor.node.findChild('SNSEncryptionKey').node.defaultChild as CfnElement)}`,
       },
-    ],
-  }));
-  expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Topic', {
-    KmsMasterKeyId: {
-      Ref: `${hmStack.getLogicalId(healthMonitor.node.findChild('SNSEncryptionKey').node.defaultChild as CfnElement)}`,
-    },
-  }));
-  expectCDK(hmStack).to(haveResource('AWS::Lambda::Function'));
-  expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Subscription', {
-    Protocol: 'lambda',
-    TopicArn: {
-      Ref: `${infraStack.getLogicalId(healthMonitor.node.findChild('UnhealthyFleetTopic').node.defaultChild as CfnElement)}`,
-    },
-    Endpoint: {
-      'Fn::GetAtt': [
-        'unhealthyFleetTermination28bccf6aaa76478c9239e2f5bcc0254c8C612A5E',
-        'Arn',
-      ],
-    },
-  }));
-});
-
-test('validating health monitor properties while passing a key', () => {
-  // WHEN
-  healthMonitor = new HealthMonitor(hmStack, 'healthMonitor', {
-    vpc,
-    encryptionKey: Key.fromKeyArn(hmStack, 'importedKey', 'arn:aws:kms:us-west-2:123456789012:key/testarn'),
-  });
-  // THEN
-  expectCDK(hmStack).notTo(haveResource('AWS::ElasticLoadBalancingV2::LoadBalancer'));
-  expectCDK(hmStack).notTo(haveResource('AWS::KMS::Key'));
-  expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Topic', {
-    KmsMasterKeyId: 'testarn',
-  }));
-  expectCDK(hmStack).to(haveResource('AWS::Lambda::Function'));
-  expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Subscription', {
-    Protocol: 'lambda',
-    TopicArn: {
-      Ref: `${infraStack.getLogicalId(healthMonitor.node.findChild('UnhealthyFleetTopic').node.defaultChild as CfnElement)}`,
-    },
-    Endpoint: {
-      'Fn::GetAtt': [
-        'unhealthyFleetTermination28bccf6aaa76478c9239e2f5bcc0254c8C612A5E',
-        'Arn',
-      ],
-    },
-  }));
-});
-
-test('validating the target with default health config', () => {
-  // WHEN
-  healthMonitor = new HealthMonitor(hmStack, 'healthMonitor', {
-    vpc,
-  });
-
-  const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
-    vpc,
-  });
-
-  healthMonitor.registerFleet(fleet, {});
-
-  // THEN
-  expectCDK(wfStack).to(haveResource('AWS::ElasticLoadBalancingV2::Listener'));
-  expectCDK(hmStack).notTo((haveResourceLike('AWS::EC2::SecurityGroup', {
-    SecurityGroupIngress: arrayWith(deepObjectLike({
-      CidrIp: '0.0.0.0/0',
-      FromPort: 8081,
-      IpProtocol: 'tcp',
-      ToPort: 8081,
-    })),
-  })));
-  expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
-    HealthCheckIntervalSeconds: 300,
-    HealthCheckPort: '8081',
-    HealthCheckProtocol: 'HTTP',
-    Port: 8081,
-    Protocol: 'HTTP',
-    TargetType: 'instance',
-  }));
-  expectCDK(wfStack).to(haveResource('AWS::CloudWatch::Alarm'));
-});
-
-test('validating the target with custom health config', () => {
-  // WHEN
-  healthMonitor = new HealthMonitor(hmStack, 'healthMonitor', {
-    vpc,
-  });
-
-  const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
-    vpc,
-  });
-  healthMonitor.registerFleet(fleet, {
-    port: 7171,
-  });
-
-  // THEN
-  expectCDK(wfStack).to(haveResource('AWS::ElasticLoadBalancingV2::Listener'));
-  expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
-    HealthCheckIntervalSeconds: 300,
-    HealthCheckPort: '7171',
-    HealthCheckProtocol: 'HTTP',
-    Port: 8081,
-    Protocol: 'HTTP',
-    TargetType: 'instance',
-  }));
-  expectCDK(wfStack).to(haveResource('AWS::CloudWatch::Alarm'));
-});
-
-test('2 ASG gets registered to same LB', () => {
-  // WHEN
-  healthMonitor = new HealthMonitor(hmStack, 'healthMonitor', {
-    vpc,
-  });
-
-  const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
-    vpc,
-  });
-  healthMonitor.registerFleet(fleet, {port: 7171});
-
-  const fleet2 = new TestMonitorableFleet(wfStack, 'workerFleet2', {
-    vpc,
-  });
-  healthMonitor.registerFleet(fleet2, {port: 7171});
-
-  // THEN
-  expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 1, {
-    LoadBalancerAttributes: [
-      {
-        Key: 'deletion_protection.enabled',
-        Value: 'true',
+    }));
+    expectCDK(hmStack).to(haveResource('AWS::Lambda::Function'));
+    expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Subscription', {
+      Protocol: 'lambda',
+      TopicArn: {
+        Ref: `${infraStack.getLogicalId(healthMonitor.node.findChild('UnhealthyFleetTopic').node.defaultChild as CfnElement)}`,
       },
-    ],
-    Scheme: 'internal',
-  }));
-  expectCDK(wfStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 2));
-  expectCDK(wfStack).to(haveResource('AWS::ElasticLoadBalancingV2::Listener'));
-  expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
-    HealthCheckIntervalSeconds: 300,
-    HealthCheckPort: '7171',
-    HealthCheckProtocol: 'HTTP',
-    Port: 8081,
-    Protocol: 'HTTP',
-    TargetType: 'instance',
-  }));
-  expectCDK(wfStack).to(haveResourceLike('AWS::CloudWatch::Alarm', {
-    ComparisonOperator: 'GreaterThanThreshold',
-    EvaluationPeriods: 8,
-    ActionsEnabled: true,
-    DatapointsToAlarm: 8,
-    Threshold: 0,
-    TreatMissingData: 'notBreaching',
-  }));
-  expectCDK(wfStack).to(haveResourceLike('AWS::CloudWatch::Alarm', {
-    ComparisonOperator: 'GreaterThanThreshold',
-    EvaluationPeriods: 1,
-    ActionsEnabled: true,
-    DatapointsToAlarm: 1,
-    Threshold: 35,
-    TreatMissingData: 'notBreaching',
-  }));
-});
-
-test('validating LB target limit', () => {
-  // WHEN
-  healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
-    vpc,
-    elbAccountLimits: [{
-      name: 'targets-per-application-load-balancer',
-      max: 50,
-    }],
-  });
-
-  const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
-    vpc,
-    minCapacity: 50,
-  });
-  healthMonitor.registerFleet(fleet, {});
-
-  const fleet2 = new TestMonitorableFleet(wfStack, 'workerFleet2', {
-    vpc,
-    minCapacity: 50,
-  });
-  healthMonitor.registerFleet(fleet2, {});
-
-  // THEN
-  expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 2, {
-    LoadBalancerAttributes: [
-      {
-        Key: 'deletion_protection.enabled',
-        Value: 'true',
+      Endpoint: {
+        'Fn::GetAtt': [
+          'unhealthyFleetTermination28bccf6aaa76478c9239e2f5bcc0254c8C612A5E',
+          'Arn',
+        ],
       },
-    ],
-    Scheme: 'internal',
-    Type: 'application',
-  }));
-  expectCDK(wfStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 2));
-  expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
-    Port: 8081,
-    Protocol: 'HTTP',
-  }));
-});
-
-test('validating LB listener limit', () => {
-  // WHEN
-  healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
-    vpc,
-    elbAccountLimits: [{
-      name: 'listeners-per-application-load-balancer',
-      max: 1,
-    }, {
-      name: 'target-groups-per-action-on-application-load-balancer',
-      max: 1,
-    }],
+    }));
   });
 
-  const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
-    vpc,
-  });
-  healthMonitor.registerFleet(fleet, {});
-
-  const fleet2 = new TestMonitorableFleet(wfStack, 'workerFleet2', {
-    vpc,
-  });
-  healthMonitor.registerFleet(fleet2, {});
-
-  // THEN
-  expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 2, {
-    LoadBalancerAttributes: [
-      {
-        Key: 'deletion_protection.enabled',
-        Value: 'true',
+  test('validating health monitor properties while passing a key', () => {
+    // WHEN
+    healthMonitor = new HealthMonitor(hmStack, 'healthMonitor', {
+      vpc,
+      encryptionKey: Key.fromKeyArn(hmStack, 'importedKey', 'arn:aws:kms:us-west-2:123456789012:key/testarn'),
+    });
+    // THEN
+    expectCDK(hmStack).notTo(haveResource('AWS::ElasticLoadBalancingV2::LoadBalancer'));
+    expectCDK(hmStack).notTo(haveResource('AWS::KMS::Key'));
+    expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Topic', {
+      KmsMasterKeyId: 'testarn',
+    }));
+    expectCDK(hmStack).to(haveResource('AWS::Lambda::Function'));
+    expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Subscription', {
+      Protocol: 'lambda',
+      TopicArn: {
+        Ref: `${infraStack.getLogicalId(healthMonitor.node.findChild('UnhealthyFleetTopic').node.defaultChild as CfnElement)}`,
       },
-    ],
-    Scheme: 'internal',
-    Type: 'application',
-  }));
-  expectCDK(wfStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 2));
-  expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
-    Port: 8081,
-    Protocol: 'HTTP',
-  }));
-});
-
-test('validating target group limit per lb', () => {
-  // WHEN
-  healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
-    vpc,
-    elbAccountLimits: [{
-      name: 'target-groups-per-application-load-balancer',
-      max: 1,
-    }],
+      Endpoint: {
+        'Fn::GetAtt': [
+          'unhealthyFleetTermination28bccf6aaa76478c9239e2f5bcc0254c8C612A5E',
+          'Arn',
+        ],
+      },
+    }));
   });
 
-  const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
-    vpc,
-  });
-  healthMonitor.registerFleet(fleet, {});
+  test('validating the target with default health config', () => {
+    // WHEN
+    healthMonitor = new HealthMonitor(hmStack, 'healthMonitor', {
+      vpc,
+    });
 
-  const fleet2 = new TestMonitorableFleet(wfStack, 'workerFleet2', {
-    vpc,
-  });
-  healthMonitor.registerFleet(fleet2, {});
+    const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
+      vpc,
+    });
 
-  // THEN
-  expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 2, {
-    Scheme: 'internal',
-    Type: 'application',
-  }));
-  expectCDK(wfStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 2));
-  expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
-    Port: 8081,
-    Protocol: 'HTTP',
-  }));
-});
-
-test('validating target limit exhaustion', () => {
-  // WHEN
-  healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
-    vpc,
-    elbAccountLimits: [{
-      name: 'targets-per-application-load-balancer',
-      max: 1,
-    }],
-  });
-
-  const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
-    vpc,
-    minCapacity: 2,
-  });
-  expect(() => {
     healthMonitor.registerFleet(fleet, {});
-  }).toThrowError(/AWS service limit \"targets-per-application-load-balancer\" reached. Limit: 1/);
-});
 
-test('validating deletion protection', () => {
-  // WHEN
-  healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
-    vpc,
-    deletionProtection: false,
+    // THEN
+    expectCDK(wfStack).to(haveResource('AWS::ElasticLoadBalancingV2::Listener'));
+    expectCDK(hmStack).notTo((haveResourceLike('AWS::EC2::SecurityGroup', {
+      SecurityGroupIngress: arrayWith(deepObjectLike({
+        CidrIp: '0.0.0.0/0',
+        FromPort: 8081,
+        IpProtocol: 'tcp',
+        ToPort: 8081,
+      })),
+    })));
+    expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
+      HealthCheckIntervalSeconds: 300,
+      HealthCheckPort: '8081',
+      HealthCheckProtocol: 'HTTP',
+      Port: 8081,
+      Protocol: 'HTTP',
+      TargetType: 'instance',
+    }));
+    expectCDK(wfStack).to(haveResource('AWS::CloudWatch::Alarm'));
   });
 
-  const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
-    vpc,
-  });
-  healthMonitor.registerFleet(fleet, {});
+  test('validating the target with custom health config', () => {
+    // WHEN
+    healthMonitor = new HealthMonitor(hmStack, 'healthMonitor', {
+      vpc,
+    });
 
-  // THEN
-  expectCDK(hmStack).to(not(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
-    LoadBalancerAttributes: arrayWith(
-      {
-        Key: 'deletion_protection.enabled',
-        Value: 'true',
+    const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
+      vpc,
+    });
+    healthMonitor.registerFleet(fleet, {
+      port: 7171,
+    });
+
+    // THEN
+    expectCDK(wfStack).to(haveResource('AWS::ElasticLoadBalancingV2::Listener'));
+    expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
+      HealthCheckIntervalSeconds: 300,
+      HealthCheckPort: '7171',
+      HealthCheckProtocol: 'HTTP',
+      Port: 8081,
+      Protocol: 'HTTP',
+      TargetType: 'instance',
+    }));
+    expectCDK(wfStack).to(haveResource('AWS::CloudWatch::Alarm'));
+  });
+
+  test('2 ASG gets registered to same LB', () => {
+    // WHEN
+    healthMonitor = new HealthMonitor(hmStack, 'healthMonitor', {
+      vpc,
+    });
+
+    const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
+      vpc,
+    });
+    healthMonitor.registerFleet(fleet, {port: 7171});
+
+    const fleet2 = new TestMonitorableFleet(wfStack, 'workerFleet2', {
+      vpc,
+    });
+    healthMonitor.registerFleet(fleet2, {port: 7171});
+
+    // THEN
+    expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 1, {
+      LoadBalancerAttributes: [
+        {
+          Key: 'deletion_protection.enabled',
+          Value: 'true',
+        },
+      ],
+      Scheme: 'internal',
+    }));
+    expectCDK(wfStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 2));
+    expectCDK(wfStack).to(haveResource('AWS::ElasticLoadBalancingV2::Listener'));
+    expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
+      HealthCheckIntervalSeconds: 300,
+      HealthCheckPort: '7171',
+      HealthCheckProtocol: 'HTTP',
+      Port: 8081,
+      Protocol: 'HTTP',
+      TargetType: 'instance',
+    }));
+    expectCDK(wfStack).to(haveResourceLike('AWS::CloudWatch::Alarm', {
+      ComparisonOperator: 'GreaterThanThreshold',
+      EvaluationPeriods: 8,
+      ActionsEnabled: true,
+      DatapointsToAlarm: 8,
+      Threshold: 0,
+      TreatMissingData: 'notBreaching',
+    }));
+    expectCDK(wfStack).to(haveResourceLike('AWS::CloudWatch::Alarm', {
+      ComparisonOperator: 'GreaterThanThreshold',
+      EvaluationPeriods: 1,
+      ActionsEnabled: true,
+      DatapointsToAlarm: 1,
+      Threshold: 35,
+      TreatMissingData: 'notBreaching',
+    }));
+  });
+
+  test('validating LB target limit', () => {
+    // WHEN
+    healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
+      vpc,
+      elbAccountLimits: [{
+        name: 'targets-per-application-load-balancer',
+        max: 50,
+      }],
+    });
+
+    const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
+      vpc,
+      minCapacity: 50,
+    });
+    healthMonitor.registerFleet(fleet, {});
+
+    const fleet2 = new TestMonitorableFleet(wfStack, 'workerFleet2', {
+      vpc,
+      minCapacity: 50,
+    });
+    healthMonitor.registerFleet(fleet2, {});
+
+    // THEN
+    expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 2, {
+      LoadBalancerAttributes: [
+        {
+          Key: 'deletion_protection.enabled',
+          Value: 'true',
+        },
+      ],
+      Scheme: 'internal',
+      Type: 'application',
+    }));
+    expectCDK(wfStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 2));
+    expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
+      Port: 8081,
+      Protocol: 'HTTP',
+    }));
+  });
+
+  test('validating LB listener limit', () => {
+    // WHEN
+    healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
+      vpc,
+      elbAccountLimits: [{
+        name: 'listeners-per-application-load-balancer',
+        max: 1,
+      }, {
+        name: 'target-groups-per-action-on-application-load-balancer',
+        max: 1,
+      }],
+    });
+
+    const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
+      vpc,
+    });
+    healthMonitor.registerFleet(fleet, {});
+
+    const fleet2 = new TestMonitorableFleet(wfStack, 'workerFleet2', {
+      vpc,
+    });
+    healthMonitor.registerFleet(fleet2, {});
+
+    // THEN
+    expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 2, {
+      LoadBalancerAttributes: [
+        {
+          Key: 'deletion_protection.enabled',
+          Value: 'true',
+        },
+      ],
+      Scheme: 'internal',
+      Type: 'application',
+    }));
+    expectCDK(wfStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 2));
+    expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
+      Port: 8081,
+      Protocol: 'HTTP',
+    }));
+  });
+
+  test('validating target group limit per lb', () => {
+    // WHEN
+    healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
+      vpc,
+      elbAccountLimits: [{
+        name: 'target-groups-per-application-load-balancer',
+        max: 1,
+      }],
+    });
+
+    const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
+      vpc,
+    });
+    healthMonitor.registerFleet(fleet, {});
+
+    const fleet2 = new TestMonitorableFleet(wfStack, 'workerFleet2', {
+      vpc,
+    });
+    healthMonitor.registerFleet(fleet2, {});
+
+    // THEN
+    expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 2, {
+      Scheme: 'internal',
+      Type: 'application',
+    }));
+    expectCDK(wfStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 2));
+    expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
+      Port: 8081,
+      Protocol: 'HTTP',
+    }));
+  });
+
+  test('validating target limit exhaustion', () => {
+    // WHEN
+    healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
+      vpc,
+      elbAccountLimits: [{
+        name: 'targets-per-application-load-balancer',
+        max: 1,
+      }],
+    });
+
+    const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
+      vpc,
+      minCapacity: 2,
+    });
+    expect(() => {
+      healthMonitor.registerFleet(fleet, {});
+    }).toThrowError(/AWS service limit \"targets-per-application-load-balancer\" reached. Limit: 1/);
+  });
+
+  test('validating deletion protection', () => {
+    // WHEN
+    healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
+      vpc,
+      deletionProtection: false,
+    });
+
+    const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
+      vpc,
+    });
+    healthMonitor.registerFleet(fleet, {});
+
+    // THEN
+    expectCDK(hmStack).to(not(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+      LoadBalancerAttributes: arrayWith(
+        {
+          Key: 'deletion_protection.enabled',
+          Value: 'true',
+        },
+      ),
+      Scheme: ABSENT,
+      Type: ABSENT,
+    })));
+  });
+
+  test('drop invalid http header fields enabled', () => {
+    // WHEN
+    healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
+      vpc,
+    });
+
+    const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
+      vpc,
+    });
+    healthMonitor.registerFleet(fleet, {});
+
+    // THEN
+    expectCDK(hmStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+      LoadBalancerAttributes: arrayWith(
+        {
+          Key: 'routing.http.drop_invalid_header_fields.enabled',
+          Value: 'true',
+        },
+      ),
+    }));
+  });
+
+  describe('tagging', () => {
+    testConstructTags({
+      constructName: 'HealthMonitor',
+      createConstruct: () => {
+        // GIVEN
+        const fleetStack = new Stack(app, 'FleetStack');
+        const fleet = new TestMonitorableFleet(fleetStack, 'workerFleet', {
+          vpc,
+        });
+
+        // WHEN
+        healthMonitor = new HealthMonitor(hmStack, 'HealthMonitor', {
+          vpc,
+        });
+        healthMonitor.registerFleet(fleet, {});
+
+        return hmStack;
       },
-    ),
-    Scheme: ABSENT,
-    Type: ABSENT,
-  })));
-});
-
-test('drop invalid http header fields enabled', () => {
-  // WHEN
-  healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
-    vpc,
-  });
-
-  const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
-    vpc,
-  });
-  healthMonitor.registerFleet(fleet, {});
-
-  // THEN
-  expectCDK(hmStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
-    LoadBalancerAttributes: arrayWith(
-      {
-        Key: 'routing.http.drop_invalid_header_fields.enabled',
-        Value: 'true',
+      resourceTypeCounts: {
+        'AWS::KMS::Key': 1,
+        'AWS::SNS::Topic': 1,
+        'AWS::ElasticLoadBalancingV2::LoadBalancer': 1,
+        'AWS::EC2::SecurityGroup': 1,
       },
-    ),
-  }));
+    });
+  });
 });

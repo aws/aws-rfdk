@@ -1,17 +1,93 @@
 # AWS Thinkbox Deadline Construct Library
 
-<!--BEGIN STABILITY BANNER-->
----
-
-![cdk-constructs: Experimental](https://img.shields.io/static/v1?label=CDK-CONSTRUCTS&message=EXPERIMENTAL&color=orange&style=for-the-badge)
-
----
-<!--END STABILITY BANNER-->
-
 The `aws-rfdk/deadline` sub-module contains Deadline-specific constructs that can be used to deploy and manage a Deadline render farm in the cloud.
 
 ```ts nofixture
 import * as deadline from 'aws-rfdk/deadline';
+```
+
+- [Render Queue](#render-queue)
+  - [Docker Container Images](#render-queue-docker-container-images)
+  - [Encryption](#render-queue-encryption)
+  - [Health Monitoring](#render-queue-health-monitoring)
+  - [Deletion Protection](#render-queue-deletion-protection)
+- [Repository](#repository)
+  - [Configuring Deadline Client Connections](#configuring-deadline-client-connections)
+- [Stage](#stage)
+  - [Staging Docker Recipes](#staging-docker-recipes)
+- [Usage Based Licensing](#usage-based-licensing-ubl)
+  - [Docker Container Images](#usage-based-licensing-docker-container-images)
+  - [Uploading Binary Secrets to SecretsManager](#uploading-binary-secrets-to-secretsmanager)
+- [VersionQuery](#versionquery)
+- [Worker Fleet](#worker-fleet)
+  - [Health Monitoring](#worker-fleet-health-monitoring)
+
+## Render Queue
+
+The `RenderQueue` is the central service of a Deadline render farm. It consists of the following components:
+
+- **Deadline Repository** - The repository that initializes the persistent data schema used by Deadline such as job information, connected workers, rendered output files, etc.
+- **Deadline Remote Connection Server (RCS)** - The central server that all Deadline applications connect to. The RCS contains the core business logic to manage the render farm.
+
+The `RenderQueue` construct sets up the RCS and configures it to communicate with the Repository and to listen for requests using the configured protocol (HTTP or HTTPS). Docker container images are used to deploy the `RenderQueue` as a fleet of instances within an Elastic Container Service (ECS) cluster. This fleet of instances is load balanced by an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html) which has built-in health monitoring functionality that can be configured through this construct.
+
+---
+
+_**Note:** The number of instances running the Render Queue is currently limited to a maximum of one._
+
+---
+
+The following example outlines how to construct a `RenderQueue`:
+
+```ts
+const recipes = new ThinkboxDockerRecipes(stack, 'Recipes', {
+  stage: Stage.fromDirectory(/* ... */)
+});
+const version = VersionQuery.exactString(stack, 'Version', '1.2.3.4');
+const repository = new Repository(stack, 'Repository', { /* ...*/});
+
+const renderQueue = new RenderQueue(stack, 'RenderQueue', {
+  vpc: vpc,
+  images: recipes.renderQueueImages,
+  version: version,
+  repository: repository,
+});
+```
+
+### Render Queue Docker Container Images
+
+The `RenderQueue` currently requires only one Docker container image for the Deadline Remote Connection Server (RCS). An RCS image must satisfy the following criteria to be compatible with RFDK:
+
+- Deadline Client must be installed
+- The port the RCS will be listening on must be exposed
+- The default command must launch the RCS
+
+AWS Thinkbox provides Docker recipes that set these up for you. These can be accessed with the `ThinkboxDockerRecipes` class (see [Staging Docker Recipes](#staging-docker-recipes)).
+
+### Render Queue Encryption
+
+The `RenderQueue` provides end-to-end encryption of communications and data at rest. However, it currently does not do any client validation or application authentication due to limitations with Application Load Balancers that made it necessary to disable Deadline Worker TLS certificate authentication. 
+
+---
+
+_**Note:** Be extra careful when setting up security group rules that govern access to the `RenderQueue` and, for the machines that do have access to it, ensure you trust the Operating System as well as any software being used._
+
+---
+
+### Render Queue Health Monitoring
+
+The `RenderQueue` construct leverages the built-in health monitoring functionality provided by Application Load Balancers. The health check grace period and interval can be configured by specifying the `healthCheckConfig` property of the construct. For more information, see [Application Load Balancer Health Checks](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/target-group-health-checks.html).
+
+### Render Queue Deletion Protection
+
+By default, the Load Balancer in the `RenderQueue` has [deletion protection](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection) enabled to ensure that it does not get accidentally deleted. This also means that it cannot be automatically destroyed by CDK when you destroy your stack and must be done manually (see [here](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection)).
+
+You can specify deletion protection with a property in the `RenderQueue`:
+```ts
+const renderQueue = new RenderQueue(stack, 'RenderQueue', {
+  //...
+  deletionProtection: false
+});
 ```
 
 ## Repository
@@ -135,6 +211,55 @@ We recommend adding a `script` field in your `package.json` that runs the `stage
 
 With this in place, staging the Deadline Docker recipes can be done simply by running `npm run stage`.
 
+## Usage-Based Licensing (UBL)
+
+Usage-Based Licensing is an on-demand licensing model (see [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/licensing-usage-based.html)). The RFDK supports this type of licensing with the `UsageBasedLicensing` construct. This construct contains the following components:
+
+- **Deadline License Forwarder** - Forwards licenses to Deadline Workers that are rendering jobs.
+
+The `UsageBasedLicensing` construct sets up the License Forwarder, configures the defined license limits, and allows communication with the Render Queue. Docker container images are used to deploy the License Forwarder as a fleet of instances within an Elastic Container Service (ECS) cluster.
+
+---
+
+_**Note:** This construct does not currently implement the Deadline License Forwarder's Web Forwarding functionality._
+
+_**Note:** This construct is not usable in any China region._
+
+---
+
+The following example outlines how to construct `UsageBasedLicensing`:
+
+```ts
+const recipes = new ThinkboxDockerRecipes(stack, 'Recipes', {
+  stage: Stage.fromDirectory(/* ... */)
+});
+
+const ubl = new UsageBasedLicensing(stack, 'UsageBasedLicensing', {
+  vpc: vpc,
+  renderQueue: renderQueue,
+  images: recipes.ublImages,
+  licenses: [ UsageBasedLicense.forKrakatoa(/* ... */), /* ... */ ],
+  certificateSecret: /* ... */, // This must be a binary secret (see below)
+  memoryReservationMiB: /* ... */
+});
+```
+
+### Usage-Based Licensing Docker Container Images
+
+`UsageBasedLicensing` currently requires only one Docker container image for the Deadline License Forwarder. A License Forwarder image must satisfy the following criteria to be compatible with RFDK:
+
+- Deadline Client must be installed
+- The default command must launch the License Forwarder
+
+AWS Thinkbox provides Docker recipes that sets these up for you. These can be accessed with the `ThinkboxDockerRecipes` class (see [Staging Docker Recipes](#staging-docker-recipes)).
+
+### Uploading Binary Secrets to SecretsManager
+
+The `UsageBasedLicensing` construct expects a `.zip` file containing usage-based licenses stored as a binary secret in SecretsManager. The AWS web console does not provide a way to upload binary secrets to SecretsManager, but this can be done via [AWS CLI](https://aws.amazon.com/cli/). You can use the following command to upload a binary secret:
+```
+aws secretsmanager create-secret --name <secret-name> --secret-binary fileb://<path-to-file>
+```
+
 ## VersionQuery
 
 The `VersionQuery` construct encapsulates a version of Deadline and the location in Amazon S3 to retrieve the installers for that version. Deadline versions follow a `<major>.<minor>.<release>.<patch>` schema (e.g. `1.2.3.4`). Various constructs in this library use `VersionQuery` to determine the version of Deadline to work with.
@@ -188,120 +313,3 @@ const workerFleet = new WorkerInstanceFleet(stack, 'WorkerFleet', {
   }
 });
 ```
-
-## Render Queue
-
-The `RenderQueue` is the central service of a Deadline render farm. It consists of the following components:
-
-- **Deadline Repository** - The repository that initializes the persistent data schema used by Deadline such as job information, connected workers, rendered output files, etc.
-- **Deadline Remote Connection Server (RCS)** - The central server that all Deadline applications connect to. The RCS contains the core business logic to manage the render farm.
-
-The `RenderQueue` construct sets up the RCS and configures it to communicate with the Repository and to listen for requests using the configured protocol (HTTP or HTTPS). Docker container images are used to deploy the `RenderQueue` as a fleet of instances within an Elastic Container Service (ECS) cluster. This fleet of instances is load balanced by an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html) which has built-in health monitoring functionality that can be configured through this construct.
-
----
-
-_**Note:** The number of instances running the Render Queue is currently limited to a maximum of one._
-
----
-
-The following example outlines how to construct a `RenderQueue`:
-
-```ts
-const recipes = new ThinkboxDockerRecipes(stack, 'Recipes', {
-  stage: Stage.fromDirectory(/* ... */)
-});
-const version = VersionQuery.exactString(stack, 'Version', '1.2.3.4');
-const repository = new Repository(stack, 'Repository', { /* ...*/});
-
-const renderQueue = new RenderQueue(stack, 'RenderQueue', {
-  vpc: vpc,
-  images: recipes.renderQueueImages,
-  version: version,
-  repository: repository,
-});
-```
-
-### Render Queue Encryption
-
-The `RenderQueue` provides end-to-end encryption of communications and data at rest. However, it currently does not do any client validation or application authentication due to limitations with Application Load Balancers that made it necessary to disable Deadline Worker TLS certificate authentication. 
-
----
-
-_**Note:** Be extra careful when setting up security group rules that govern access to the `RenderQueue` and, for the machines that do have access to it, ensure you trust the Operating System as well as any software being used._
-
----
-
-### Render Queue Health Monitoring
-
-The `RenderQueue` construct leverages the built-in health monitoring functionality provided by Application Load Balancers. The health check grace period and interval can be configured by specifying the `healthCheckConfig` property of the construct. For more information, see [Application Load Balancer Health Checks](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/target-group-health-checks.html).
-
-### Render Queue Deletion Protection
-
-By default, the Load Balancer in the `RenderQueue` has [deletion protection](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection) enabled to ensure that it does not get accidentally deleted. This also means that it cannot be automatically destroyed by CDK when you destroy your stack and must be done manually (see [here](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection)).
-
-You can specify deletion protection with a property in the `RenderQueue`:
-```ts
-const renderQueue = new RenderQueue(stack, 'RenderQueue', {
-  //...
-  deletionProtection: false
-});
-```
-
-### Render Queue Docker Container Images
-
-The `RenderQueue` currently requires only one Docker container image for the Deadline Remote Connection Server (RCS). An RCS image must satisfy the following criteria to be compatible with RFDK:
-
-- Deadline Client must be installed
-- The port the RCS will be listening on must be exposed
-- The default command must launch the RCS
-
-AWS Thinkbox provides Docker recipes that set these up for you. These can be accessed with the `ThinkboxDockerRecipes` class (see [Staging Docker Recipes](#staging-docker-recipes)).
-
-## Usage-Based Licensing (UBL)
-
-Usage-Based Licensing is an on-demand licensing model (see [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/licensing-usage-based.html)). The RFDK supports this type of licensing with the `UsageBasedLicensing` construct. This construct contains the following components:
-
-- **Deadline License Forwarder** - Forwards licenses to Deadline Workers that are rendering jobs.
-
-The `UsageBasedLicensing` construct sets up the License Forwarder, configures the defined license limits, and allows communication with the Render Queue. Docker container images are used to deploy the License Forwarder as a fleet of instances within an Elastic Container Service (ECS) cluster.
-
----
-
-_**Note:** This construct does not currently implement the Deadline License Forwarder's Web Forwarding functionality._
-
-_**Note:** This construct is not usable in any China region._
-
----
-
-The following example outlines how to construct `UsageBasedLicensing`:
-
-```ts
-const recipes = new ThinkboxDockerRecipes(stack, 'Recipes', {
-  stage: Stage.fromDirectory(/* ... */)
-});
-
-const ubl = new UsageBasedLicensing(stack, 'UsageBasedLicensing', {
-  vpc: vpc,
-  renderQueue: renderQueue,
-  images: recipes.ublImages,
-  licenses: [ UsageBasedLicense.forKrakatoa(/* ... */), /* ... */ ],
-  certificateSecret: /* ... */, // This must be a binary secret (see below)
-  memoryReservationMiB: /* ... */
-});
-```
-
-#### Uploading Binary Secrets to SecretsManager
-
-The `UsageBasedLicensing` construct expects a `.zip` file containing usage-based licenses stored as a binary secret in SecretsManager. The AWS web console does not provide a way to upload binary secrets to SecretsManager, but this can be done via [AWS CLI](https://aws.amazon.com/cli/). You can use the following command to upload a binary secret:
-```
-aws secretsmanager create-secret --name <secret-name> --secret-binary fileb://<path-to-file>
-```
-
-### Usage-Based Licensing Docker Container Images
-
-`UsageBasedLicensing` currently requires only one Docker container image for the Deadline License Forwarder. A License Forwarder image must satisfy the following criteria to be compatible with AWS RFDK:
-
-- Deadline Client must be installed
-- The default command must launch the License Forwarder
-
-AWS Thinkbox provides Docker recipes that sets these up for you. These can be accessed with the `ThinkboxDockerRecipes` class (see [Staging Docker Recipes](#staging-docker-recipes)).

@@ -57,6 +57,9 @@ import {
   X509CertificatePem,
 } from '../..';
 import {
+  testConstructTags,
+} from '../../core/test/tag-helpers';
+import {
   IVersion,
   RenderQueue,
   RenderQueueImages,
@@ -64,7 +67,6 @@ import {
   Repository,
   VersionQuery,
 } from '../lib';
-
 import {
   RQ_CONNECTION_ASSET,
 } from './asset-constants';
@@ -2192,6 +2194,29 @@ describe('RenderQueue', () => {
           ),
         },
       }));
+    });
+  });
+
+  describe('tagging', () => {
+    testConstructTags({
+      constructName: 'RenderQueue',
+      createConstruct: () => {
+        return stack;
+      },
+      resourceTypeCounts: {
+        'AWS::ECS::Cluster': 1,
+        'AWS::EC2::SecurityGroup': 2,
+        'AWS::IAM::Role': 7,
+        'AWS::AutoScaling::AutoScalingGroup': 1,
+        'AWS::Lambda::Function': 3,
+        'AWS::SNS::Topic': 1,
+        'AWS::ECS::TaskDefinition': 1,
+        'AWS::DynamoDB::Table': 2,
+        'AWS::SecretsManager::Secret': 2,
+        'AWS::ElasticLoadBalancingV2::LoadBalancer': 1,
+        'AWS::ElasticLoadBalancingV2::TargetGroup': 1,
+        'AWS::ECS::Service': 1,
+      },
     });
   });
 });

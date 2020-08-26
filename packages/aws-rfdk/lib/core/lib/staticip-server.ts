@@ -313,7 +313,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
         code: handlerCode,
         handler: 'index.handler',
         runtime: Runtime.NODEJS_12_X,
-        description: `Created by AWS-RFDK StaticPrivateIpServer to process instance launch lifecycle events in stack '${stack.stackName}'. This lambda attaches an ENI to newly launched instances.`,
+        description: `Created by RFDK StaticPrivateIpServer to process instance launch lifecycle events in stack '${stack.stackName}'. This lambda attaches an ENI to newly launched instances.`,
         logRetention: RetentionDays.THREE_DAYS,
       });
       singletonPreExists = false;
@@ -399,7 +399,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
       });
 
       notificationTopic = new Topic(stack, notificationTopicUniqueId, {
-        displayName: `For AWS-RFDK instance-launch notifications for stack '${stack.stackName}'`,
+        displayName: `For RFDK instance-launch notifications for stack '${stack.stackName}'`,
         masterKey: notificationTopicEncryptKey,
       });
 
