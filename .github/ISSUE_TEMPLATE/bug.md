@@ -33,7 +33,7 @@ what is the error message you are seeing?
 
   - **CDK CLI Version      :**
   - **CDK Framework Version:**
-  - **RFDK Framework Version:**
+  - **RFDK Version:**
   - **Deadline Version:**
   - **Node.js Version:** <!-- Version of Node.js (run the command `node -v`) -->
   - **OS               :**
