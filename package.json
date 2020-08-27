@@ -88,7 +88,7 @@
     "aws-cdk": "1.57.0",
     "aws-sdk": "^2.709.0",
     "constructs": "^3.0.2",
-    "conventional-changelog-cli": "^2.0.34",
+    "conventional-changelog-cli": "^2.1.0",
     "fs-extra": "^9.0.1",
     "jest": "^25.5.4",
     "jsii-diff": "^1.12.0",
