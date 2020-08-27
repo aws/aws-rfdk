@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.17.0]() (Link not implemented) (2020-08-26)
+
+
+### Features
+
+* tag resources with RFDK meta-data ([#74]() (Link not implemented)) ([6b2ce6d]() (full hash: 6b2ce6d26f5a54c8d4a6454ee20f1592f71b45a3))
+
+
+### Bug Fixes
+
+* **core:** ACM Import remove race condition ([#77]() (Link not implemented)) ([ac6b419]() (full hash: ac6b4193f1f016747f6daf9345c0746ce5a4301c))
+* **core:** I-named interfaces could not be created in Python ([#73]() (Link not implemented)) ([4a9a145]() (full hash: 4a9a14535340483d12077f60de04efa5eed99720))
+* **core:** Verify ec2 instance identity doc before using meta-data service ([#69]() (Link not implemented)) ([789207c]() (full hash: 789207c75e02a1ff841332f558817c92eb4cb613))
+* **deadline:** Make Repository installer honor subnet selection ([#65]() (Link not implemented)) ([d8b9ed6]() (full hash: d8b9ed635ce682194e8e24521abd94a0c2f5e4b2))
+* **deadline:** WorkerFleet should not create a securitygroups when given one ([#78]() (Link not implemented)) ([c07f9bd]() (full hash: c07f9bdd5f05e50b55cc06463b665fb4161bc729))
+
 ## [0.16.0]() (Link not implemented) (2020-08-13)
 
 
