@@ -251,7 +251,7 @@ function getFile(props: GetFileProps) {
   const success = spawnCommand('aws', props.verbose, cmdArgs);
 
   if (!success) {
-    throw new Error(`Could not fetch ${props.uri.href}`);
+    throw new Error(`Could not fetch ${props.uri.href} (Are you authenticated?)`);
   }
 
   return path.join(props.targetFolder, uriFilename(props.uri));
