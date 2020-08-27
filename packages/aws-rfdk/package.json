@@ -127,7 +127,7 @@
     "@aws-cdk/custom-resources": "1.57.0",
     "@aws-cdk/cx-api": "1.57.0",
     "@aws-cdk/region-info": "1.57.0",
-    "constructs": "^3.0.2"
+    "constructs": "^3.0.4"
   },
   "peerDependencies": {
     "@aws-cdk/assets": "1.57.0",
@@ -181,7 +181,7 @@
     "@aws-cdk/custom-resources": "1.57.0",
     "@aws-cdk/cx-api": "1.57.0",
     "@aws-cdk/region-info": "1.57.0",
-    "constructs": "^3.0.2"
+    "constructs": "^3.0.4"
   },
   "engines": {
     "node": ">= 10.13.0 <13 || >=13.7.0"
