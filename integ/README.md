@@ -14,7 +14,7 @@ To run all test suites:
       * DEADLINE_STAGING_PATH - Complete path to local staging folder for Deadline assets (see `packages/aws-rfdk/docs/DockerImageRecipes.md` for more information)
     * Options required for the Deadline repository test component:
       * USER_ACCEPTS_SSPL_FOR_RFDK_TESTS - should be set to true. Setting this variable is considered acceptance of the terms of the SSPL license. Follow [this link](https://www.mongodb.com/licensing/server-side-public-license) to read the terms of the SSPL license.
-    * Options required for the Deadline worker fleet test component:
+    * Options required for the Deadline worker fleet test component (use `aws --region <region> ec2 describe-images --owners 357466774442 --filters "Name=name,Values=*Worker*" "Name=name,Values=*<version>*" --query 'Images[*].[ImageId, Name]' --output text` to discover AMI's):
       * LINUX_DEADLINE_AMI_ID - set to the ID of an available Linux worker fleet AMI with Deadline installed.
       * WINDOWS_DEADLINE_AMI_ID - set to the ID of an available Windows worker fleet AMI with Deadline installed.
 
