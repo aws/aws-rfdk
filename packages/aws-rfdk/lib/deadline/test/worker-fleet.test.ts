@@ -255,20 +255,28 @@ test('default worker fleet is created correctly custom Instance type', () => {
   }));
 });
 
-test('default worker fleet is created correctly with custom LogGroup prefix', () => {
+test.each([
+  'test-prefix/',
+  '',
+])('default worker fleet is created correctly with custom LogGroup prefix %s', (testPrefix: string) => {
+  // GIVEN
+  const id  = 'workerFleet';
+
   // WHEN
-  new WorkerInstanceFleet(stack, 'workerFleet', {
+  new WorkerInstanceFleet(stack, id, {
     vpc,
     workerMachineImage: new GenericLinuxImage({
       'us-east-1': '123',
     }),
     renderQueue,
-    logGroupProps: {logGroupPrefix: 'test-prefix'},
+    logGroupProps: {
+      logGroupPrefix: testPrefix,
+    },
   });
 
   expectCDK(stack).to(haveResource('Custom::LogRetention', {
     RetentionInDays: 3,
-    LogGroupName: 'test-prefixworkerFleet',
+    LogGroupName: testPrefix + id,
   }));
 });
 

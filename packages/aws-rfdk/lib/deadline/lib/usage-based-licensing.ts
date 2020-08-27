@@ -534,7 +534,7 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
     containerEnv.UBL_CERTIFICATES_URI = props.certificateSecret.secretArn;
     props.certificateSecret.grantRead(taskDefinition.taskRole);
 
-    const prefix = props.logGroupProps?.logGroupPrefix ? props.logGroupProps.logGroupPrefix : UsageBasedLicensing.DEFAULT_LOG_GROUP_PREFIX;
+    const prefix = props.logGroupProps?.logGroupPrefix ?? UsageBasedLicensing.DEFAULT_LOG_GROUP_PREFIX;
     const defaultedLogGroupProps: LogGroupFactoryProps = {
       ...props.logGroupProps,
       logGroupPrefix: prefix,

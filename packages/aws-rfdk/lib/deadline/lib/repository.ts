@@ -713,7 +713,7 @@ export class Repository extends Construct implements IRepository {
    * @param logGroupProps
    */
   private configureCloudWatchLogStream(installerGroup: AutoScalingGroup, groupName: string, logGroupProps?: LogGroupFactoryProps) {
-    const prefix = logGroupProps?.logGroupPrefix ? logGroupProps.logGroupPrefix : Repository.DEFAULT_LOG_GROUP_PREFIX;
+    const prefix = logGroupProps?.logGroupPrefix ?? Repository.DEFAULT_LOG_GROUP_PREFIX;
     const defaultedLogGroupProps = {
       ...logGroupProps,
       logGroupPrefix: prefix,

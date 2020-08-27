@@ -477,7 +477,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
   }
 
   private configureCloudWatchLogStream(fleetInstance: AutoScalingGroup, id: string, logGroupProps?: LogGroupFactoryProps) {
-    const prefix = logGroupProps?.logGroupPrefix ? logGroupProps.logGroupPrefix : WorkerInstanceFleet.DEFAULT_LOG_GROUP_PREFIX;
+    const prefix = logGroupProps?.logGroupPrefix ?? WorkerInstanceFleet.DEFAULT_LOG_GROUP_PREFIX;
     const defaultedLogGroupProps = {
       ...logGroupProps,
       logGroupPrefix: prefix,

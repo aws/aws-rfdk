@@ -671,13 +671,15 @@ describe('Test MongoDbInstance', () => {
     }));
   });
 
-  test('is created with correct LogGroup prefix', () => {
+  test.each([
+    'test-prefix/',
+    '',
+  ])('is created with correct LogGroup prefix %s', (testPrefix: string) => {
     // GIVEN
-    const logGroupPrefix = 'test-prefix/';
-    const uniqueId = 'MongoDbInstance';
+    const id = 'MongoDbInstance';
 
     // WHEN
-    new MongoDbInstance(stack, uniqueId, {
+    new MongoDbInstance(stack, id, {
       mongoDb: {
         version,
         dnsZone,
@@ -687,45 +689,13 @@ describe('Test MongoDbInstance', () => {
       },
       vpc,
       logGroupProps: {
-        logGroupPrefix,
+        logGroupPrefix: testPrefix,
       },
     });
 
     // THEN
     cdkExpect(stack).to(haveResource('Custom::LogRetention', {
-      LogGroupName: logGroupPrefix + uniqueId,
-    }));
-  });
-
-  test('not using default LogGroup prefix if prefix is empty', () => {
-    // GIVEN
-    const logGroupPrefix = '';
-    const uniqueId = 'MongoDbInstance';
-    const expectedLogGroupName = logGroupPrefix + uniqueId;
-    const defaultLogGroupName = '/renderfarm/' + uniqueId;
-
-    // WHEN
-    new MongoDbInstance(stack, uniqueId, {
-      mongoDb: {
-        version,
-        dnsZone,
-        hostname,
-        serverCertificate: serverCert,
-        userSsplAcceptance,
-      },
-      vpc,
-      logGroupProps: {
-        logGroupPrefix,
-      },
-    });
-
-    // THEN
-    cdkExpect(stack).to(haveResource('Custom::LogRetention', {
-      LogGroupName: expectedLogGroupName,
-    }));
-
-    cdkExpect(stack).notTo(haveResource('Custom::LogRetention', {
-      LogGroupName: defaultLogGroupName,
+      LogGroupName: testPrefix + id,
     }));
   });
 
