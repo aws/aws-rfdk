@@ -53,6 +53,14 @@ export interface MountableEfsProps {
  * This class encapsulates scripting that can be used to mount an Amazon Elastic File System onto
  * an instance.
  *
+ * Security Considerations
+ * ------------------------
+ * - Using this construct on an instance will result in that instance dynamically downloading and running scripts
+ *   from your CDK bootstrap bucket when that instance is launched. You must limit write access to your CDK bootstrap
+ *   bucket to prevent an attacker from modifying the actions performed by these scripts. We strongly recommend that
+ *   you either enable Amazon S3 server access logging on your CDK bootstrap bucket, or enable AWS CloudTrail on your
+ *   account to assist in post-incident analysis of compromised production environments.
+ *
  * @remark The default access point is writeable only by the root user.
  * @todo Add support for specifying an AccessPoint for the EFS filesystem to  enforce user and group information for all file system requests.
  */

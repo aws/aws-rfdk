@@ -60,11 +60,20 @@ export interface ExportingLogGroupProps {
  *
  * Resources Deployed
  * ------------------------
- * 1) The Lambda SingletonFunction that checks for the existence of the LogGroup;
- * 2) The CloudWatch LogGroup (if it didn't exist already);
- * 3) The CloudWatch Alarm watching log exportation failures;
- * 4) The CloudWatch Event Rule to schedule log exportation;
- * 5) The Lambda SingletonFunction, with role, to export log groups to S3 by schedule.
+ * - The Lambda SingletonFunction that checks for the existence of the LogGroup.
+ * - The CloudWatch LogGroup (if it didn't exist already).
+ * - The CloudWatch Alarm watching log exportation failures.
+ * - The CloudWatch Event Rule to schedule log exportation.
+ * - The Lambda SingletonFunction, with role, to export log groups to S3 by schedule.
+ *
+ * Security Considerations
+ * ------------------------
+ * - The AWS Lambda that is deployed through this construct will be created from a deployment package
+ *   that is uploaded to your CDK bootstrap bucket during deployment. You must limit write access to
+ *   your CDK bootstrap bucket to prevent an attacker from modifying the actions performed by this Lambda.
+ *   We strongly recommend that you either enable Amazon S3 server access logging on your CDK bootstrap bucket,
+ *   or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
  *
  * @ResourcesDeployed
  */
