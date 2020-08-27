@@ -99,7 +99,7 @@
     "nyc": "^15.1.0",
     "standard-version": "^8.0.2",
     "ts-jest": "^25.5.1",
-    "typescript": "~3.9.6"
+    "typescript": "~3.9.7"
   },
   "workspaces": {
     "packages": [
