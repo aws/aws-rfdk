@@ -20,11 +20,6 @@
     "release": "standard-version"
   },
   "standard-version": {
-    "releaseCommitMessageFormat": "v{{currentTag}}",
-    "commitUrlFormat": ") (full hash: {{hash}}",
-    "compareUrlFormat": ") (Link not implemented",
-    "issueUrlFormat": ") (Link not implemented",
-    "userUrlFormat": ") (Link not implemented",
     "scripts": {
       "prebump": "echo $(node -pe \"require('./lerna.json').version\")",
       "precommit": "git add ."
