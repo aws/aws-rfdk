@@ -67,7 +67,7 @@
   "devDependencies": {
     "@aws-cdk/assert": "1.57.0",
     "@types/aws-lambda": "^8.10.61",
-    "@types/sinon": "^9.0.4",
+    "@types/sinon": "^9.0.5",
     "aws-sdk": "^2.709.0",
     "aws-sdk-mock": "^5.1.0",
     "cdk-build-tools": "0.17.0",
