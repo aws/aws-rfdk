@@ -60,10 +60,10 @@ export interface ExportingLogGroupProps {
  *
  * Resources Deployed
  * ------------------------
- * - The Lambda SingletonFunction that checks for the existence of the LogGroup;
- * - The CloudWatch LogGroup (if it didn't exist already);
- * - The CloudWatch Alarm watching log exportation failures;
- * - The CloudWatch Event Rule to schedule log exportation;
+ * - The Lambda SingletonFunction that checks for the existence of the LogGroup.
+ * - The CloudWatch LogGroup (if it didn't exist already).
+ * - The CloudWatch Alarm watching log exportation failures.
+ * - The CloudWatch Event Rule to schedule log exportation.
  * - The Lambda SingletonFunction, with role, to export log groups to S3 by schedule.
  *
  * Security Considerations

@@ -353,11 +353,11 @@ export interface RepositoryProps {
  *
  * Resources Deployed
  * ------------------------
- * - Encrypted Amazon Elastic File System (EFS) - If no file system is provided;
- * - An Amazon DocumentDB - If no database connection is provided;
- * - Auto Scaling Group (ASG) with min & max capacity of 1 instance;
- * - Instance Role and corresponding IAM Policy
- * - An Amazon CloudWatch log group that contains the Deadline Repository installation logs
+ * - Encrypted Amazon Elastic File System (EFS) - If no file system is provided.
+ * - An Amazon DocumentDB - If no database connection is provided.
+ * - Auto Scaling Group (ASG) with min & max capacity of 1 instance.
+ * - Instance Role and corresponding IAM Policy.
+ * - An Amazon CloudWatch log group that contains the Deadline Repository installation logs.
  *
  * Security Considerations
  * ------------------------
@@ -372,9 +372,9 @@ export interface RepositoryProps {
  *   Deadline applications to run code of their choosing. You should restrict access to this file system to only those who
  *   require it.
  * - The database that is created by, or provided to, this construct is used by Deadline to store data about its configuration,
- *   submitted jobs, machine information and status, and so on. An actor with access to this database can read information
- *   any information that is entered into Deadline, and modify the bevavior of your render farm. You should restrict access
- *   to this database to only those who require it.
+ *   submitted jobs, machine information and status, and so on. An actor with access to this database can read any information
+ *   that is entered into Deadline, and modify the bevavior of your render farm. You should restrict access to this database
+ *   to only those who require it.
  *
  * @ResourcesDeployed
  */

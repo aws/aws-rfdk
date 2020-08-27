@@ -257,12 +257,12 @@ abstract class HealthMonitorBase extends Construct implements IHealthMonitor {
  *
  * Resources Deployed
  * ------------------------
- * - Application Load Balancer(s) doing frequent pings to the workers;
- * - An Amazon Simple Notification Service (SNS) topic for all unhealthy fleet notifications;
- * - An AWS Key Management Service (KMS) Key to encrypt SNS messages - If no encryption key is provided;
- * - An Amazon CloudWatch Alarm that triggers if a worker fleet is unhealthy for a long period;
- * - Another CloudWatch Alarm that triggers if the healthy host percentage of a worker fleet is lower than allowed;
- * - A single AWS Lambda function that sets fleet size to 0 when triggered in response to messages on the SNS Topic; and
+ * - Application Load Balancer(s) doing frequent pings to the workers.
+ * - An Amazon Simple Notification Service (SNS) topic for all unhealthy fleet notifications.
+ * - An AWS Key Management Service (KMS) Key to encrypt SNS messages - If no encryption key is provided.
+ * - An Amazon CloudWatch Alarm that triggers if a worker fleet is unhealthy for a long period.
+ * - Another CloudWatch Alarm that triggers if the healthy host percentage of a worker fleet is lower than allowed.
+ * - A single AWS Lambda function that sets fleet size to 0 when triggered in response to messages on the SNS Topic.
  * - Execution logs of the AWS Lambda function are published to a log group in Amazon CloudWatch.
  *
  * Security Considerations

@@ -279,8 +279,8 @@ abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet
  *
  * Resources Deployed
  * ------------------------
- * - An EC2 Auto Scaling Group to maintain the number of instances;
- * - An Instance Role and corresponding IAM Policy;
+ * - An EC2 Auto Scaling Group to maintain the number of instances.
+ * - An Instance Role and corresponding IAM Policy.
  * - An Amazon CloudWatch log group that contains the Deadline Worker, Deadline Launcher, and instance-startup logs for the instances
  *   in the fleet.
  *

@@ -131,11 +131,11 @@ abstract class RenderQueueBase extends Construct implements IRenderQueue {
  *
  * Resources Deployed
  * ------------------------
- * - An Amazon Elastic Container Service (ECS) cluster
- * - An AWS EC2 auto-scaling group that provides the instances that host the ECS service
- * - An ECS service with a task definition that deploys the Deadline Remote Connetion Server (RCS) in a container
- * - A Amazon CloudWatch log group for streaming logs from the Deadline RCS
- * - An application load balancer, listener and target group that balance incoming traffic among the RCS containers
+ * - An Amazon Elastic Container Service (ECS) cluster.
+ * - An AWS EC2 auto-scaling group that provides the instances that host the ECS service.
+ * - An ECS service with a task definition that deploys the Deadline Remote Connetion Server (RCS) in a container.
+ * - A Amazon CloudWatch log group for streaming logs from the Deadline RCS.
+ * - An application load balancer, listener and target group that balance incoming traffic among the RCS containers.
  *
  * Security Considerations
  * ------------------------

@@ -159,11 +159,11 @@ export interface StaticPrivateIpServerProps {
  *
  * Resources Deployed
  * ------------------------
- * - Auto Scaling Group (ASG) with min & max capacity of 1 instance;
- * - Elastic Network Interface (ENI);
- * - Security Group for the ASG;
- * - Instance Role and corresponding IAM Policy
- * - SNS Topic & Role for instance-launch lifecycle events -- max one of each per stack; and
+ * - Auto Scaling Group (ASG) with min & max capacity of 1 instance.
+ * - Elastic Network Interface (ENI).
+ * - Security Group for the ASG.
+ * - Instance Role and corresponding IAM Policy.
+ * - SNS Topic & Role for instance-launch lifecycle events -- max one of each per stack.
  * - Lambda function, with role, to attach the ENI in response to instance-launch lifecycle events -- max one per stack.
  *
  * Security Considerations
