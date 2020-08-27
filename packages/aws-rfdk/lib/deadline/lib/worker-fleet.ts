@@ -291,6 +291,9 @@ abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet
  *   performed by these scripts. We strongly recommend that you either enable Amazon S3 server access logging on your CDK
  *   bootstrap bucket, or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
  *   environments.
+ * - The data that is stored on your Worker's local EBS volume can include temporary working files from the applications
+ *   that are rendering your jobs and tasks. That data can be sensitive or privileged, so we recommend that you encrypt
+ *   the data volumes of these instances using either the provided option or by using an encrypted AMI as your source.
  * - The software on the AMI that is being used by this construct may pose a security risk. We recommend that you adopt a
  *   patching strategy to keep this software current with the latest security patches. Please see
  *   https://docs.aws.amazon.com/rfdk/latest/guide/patching-software.html for more information.

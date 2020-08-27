@@ -106,7 +106,10 @@ export interface MongoDbInstanceVolumeProps {
    * The Volume must not be partitioned. The volume will be mounted to /var/lib/mongo on this instance,
    * and all files on it will be changed to be owned by the mongod user on the instance.
    *
-   * @default A new volume is created for use by the instance.
+   * This volume will contain all of the data that you store in MongoDB, so we recommend that you
+   * encrypt this volume.
+   *
+   * @default A new encrypted volume is created for use by the instance.
    */
   readonly volume?: IVolume;
 
@@ -320,7 +323,8 @@ export interface IMongoDb extends IConnectable, IConstruct {
  *   environments.
  * - The EBS Volume that is created by, or provided to, this construct is used to store the contents of your MongoDB data. To
  *   protect the sensitive data in your database, you should not grant access to this EBS Volume to any principal or instance
- *   other than the instance created by this construct.
+ *   other than the instance created by this construct. Furthermore, we recommend that you ensure that the volume that is
+ *   used for this purpose is encrypted at rest.
  * - This construct uses this package's {@link StaticPrivateIpServer}, {@link MongoDbInstaller}, {@link CloudWatchAgent},
  *   {@link ExportingLogGroup}, and {@link MountableBlockVolume}. Security considerations that are outlined by the documentation
  *   for those constructs should also be taken into account.
