@@ -17,6 +17,7 @@ const args = process.argv.slice(2);
 
 let deadlineInstallerURI = '';
 let dockerRecipesURI = '';
+let deadlineRelease = '';
 let outputFolder = './stage';
 let verbose = false;
 
@@ -34,6 +35,11 @@ while (n < args.length) {
       n++;
       dockerRecipesURI = args[n];
       break;
+    case '-r':
+    case '--release':
+      n++;
+      deadlineRelease = args[n];
+      break;
     case '-o':
     case '--output':
       n++;
@@ -47,6 +53,22 @@ while (n < args.length) {
       process.exit(1);
   }
   n++;
+}
+
+// Automatically populate the installer & recipe URI using the version, if it is provided.
+if (deadlineRelease !== '') {
+  if (!/^10\.\d+\.\d+\.\d+$/.test(deadlineRelease)) {
+    usage(1);
+  }
+
+  // installer URI only if not provided as an arg
+  if (deadlineInstallerURI === '') {
+    deadlineInstallerURI = `s3://thinkbox-installers/Deadline/${deadlineRelease}/Linux/DeadlineClient-${deadlineRelease}-linux-x64-installer.run`;
+  }
+  // docker recipe URI only if not provided as an arg
+  if (dockerRecipesURI === '') {
+    dockerRecipesURI = `s3://thinkbox-installers/DeadlineDocker/${deadlineRelease}/DeadlineDocker-${deadlineRelease}.tar.gz`;
+  }
 }
 
 // Show help if URI for deadline installer or URI for docker  is not specified.
@@ -179,10 +201,19 @@ The AWS CLI must be configured to authenticate using your AWS account. This can 
 See https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html for documentation on how to configure the AWS CLI.
 
 Usage: stage-deadline [--output <output_dir>] [--verbose]
+                      -r <deadline_release_version>
+                      [-d <deadline_installer_uri>]
+                      [-c <deadline_recipes_uri>]
+  OR
+       stage-deadline [--output <output_dir>] [--verbose]
                       -d <deadline_installer_uri>
                       -c <deadline_recipes_uri>
 
+
 Arguments:
+    -r, --release <deadline_release_version>
+        Specifies the official release of Deadline that should be staged. This must be of the form 10.x.y.z.
+
     -d, --deadlineInstallerURI <deadline_installer_uri>
         Specifies a URI pointing to the Deadline Linux Client installer. This currently supports S3 URIs of the form:
 
