@@ -825,17 +825,25 @@ test('repository instance is created with correct installer path version', () =>
   expect(script.render()).toMatch(/10\.1\.9\.2/);
 });
 
-test('repository instance is created with correct LogGroup prefix', () => {
-  new Repository(stack, 'repositoryInstaller', {
+test.each([
+  'test-prefix/',
+  '',
+])('repository instance is created with correct LogGroup prefix %s', (testPrefix: string) => {
+  // GIVEN
+  const id = 'repositoryInstaller';
+
+  // WHEN
+  new Repository(stack, id, {
     vpc,
     version: deadlineVersion,
     logGroupProps: {
-      logGroupPrefix: 'test-prefix/',
+      logGroupPrefix: testPrefix,
     },
   });
 
+  // THEN
   expectCDK(stack).to(haveResource('Custom::LogRetention', {
-    LogGroupName: 'test-prefix/repositoryInstaller',
+    LogGroupName: testPrefix + id,
   }));
 });
 
