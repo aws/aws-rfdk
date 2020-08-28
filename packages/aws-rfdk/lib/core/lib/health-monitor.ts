@@ -287,8 +287,6 @@ abstract class HealthMonitorBase extends Construct implements IHealthMonitor {
  *   Notification Service (SNS) Topic that is created by this construct. Any principal that is able to publish notification
  *   to this SNS Topic can cause the Lambda to execute and reduce one of your worker fleets to zero instances. You should
  *   not grant any additional principals permissions to publish to this SNS Topic.
- *
- * @ResourcesDeployed
  */
 export class HealthMonitor extends HealthMonitorBase {
 

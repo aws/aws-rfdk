@@ -303,8 +303,6 @@ abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet
  * - The software on the AMI that is being used by this construct may pose a security risk. We recommend that you adopt a
  *   patching strategy to keep this software current with the latest security patches. Please see
  *   https://docs.aws.amazon.com/rfdk/latest/guide/patching-software.html for more information.
- *
- * @ResourcesDeployed
  */
 export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
 

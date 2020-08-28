@@ -180,8 +180,6 @@ export interface StaticPrivateIpServerProps {
  * - The SNS Topic that is deployed through this construct controls the execution of the Lambda discussed above.
  *   Principals that can publish messages to this SNS Topic will be able to trigger the Lambda to run. You should
  *   not allow any additional principals to publish messages to this SNS Topic.
- *
- * @ResourcesDeployed
  */
 export class StaticPrivateIpServer extends Construct implements IConnectable, IGrantable {
 
