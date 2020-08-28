@@ -10,12 +10,14 @@
 set -euo pipefail
 shopt -s globstar
 
-root="$(pwd)"
+INTEG_ROOT="$(pwd)"
 
-for component in **/cdk.json; do
-       component_root="$(dirname "$component")"
-       rm -f "${component_root}/cdk.context.json"
-       rm -rf "${component_root}/cdk.out"
- done
+for COMPONENT in **/cdk.json; do
+       COMPONENT_ROOT="$(dirname "$COMPONENT")"
+       rm -f "${COMPONENT_ROOT}/cdk.context.json"
+       rm -rf "${COMPONENT_ROOT}/cdk.out"
+done
 
-rm -rf "${root}/node_modules"
+rm -rf "$INTEG_ROOT/node_modules"
+rm -rf "$INTEG_ROOT/stage"
+rm -rf "$INTEG_ROOT/amis.json"

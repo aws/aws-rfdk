@@ -6,9 +6,9 @@ To run all test suites:
 
 1. Configure AWS credentials (tests will use the default AWS profile, so either set up a default profile in .aws/credentials or use temporary credentials).
 
-1. If your AWS profile has a different default region fromw here the test app will be deployed, set the AWS_REGION variable to the desired region.
+1. Set the environment variable CDK_DEFAULT_REGION to the region the test should be deployed in
 
-1. Configure test-config.sh. This script sets environment variables which are necessary for the tests. Currently this includes:
+1. Configure test-config.sh. This script configures which test modules will run and overrides certain default values. Currently these include:
     * Options required for all Deadline test components:
       * DEADLINE_VERSION - version of the Deadline repository installer used for the test
       * DEADLINE_STAGING_PATH - Complete path to local staging folder for Deadline assets (see `packages/aws-rfdk/docs/DockerImageRecipes.md` for more information)
@@ -19,8 +19,6 @@ To run all test suites:
       * WINDOWS_DEADLINE_AMI_ID - set to the ID of an available Windows worker fleet AMI with Deadline installed.
 
 1. Execute `yarn run e2e` from the `integ` directory. This will handle deploying the necessary stacks, run the appropriate tests on them, and then tear them down.
-
-1. Test output is stored in the `test-output` folder, stamped with the same ID tag attached to the stacks created during the test.
 
 # Example Output:
 

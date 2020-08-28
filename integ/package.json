@@ -47,7 +47,7 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "e2e": "./scripts/bash/rfdk-integ-e2e.sh",
+    "e2e": "./scripts/bash/rfdk-integ-e2e.sh $npm_package_version",
     "clean": "./scripts/bash/cleanup.sh",
     "deploy-all": "./scripts/bash/deploy-all.sh",
     "tear-down": "./scripts/bash/tear-down.sh",

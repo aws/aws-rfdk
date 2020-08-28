@@ -7,17 +7,17 @@ set -euo pipefail
 
 if [ $EXECUTE_DEADLINE_RENDERQ_TEST_SUITE == true ]; then
 
-  echo "Running Deadline RenderQueue end-to-end test..." >> "$OUTPUT_FILE"
+  echo "Running Deadline RenderQueue end-to-end test..."
 
   # Deploy a test app using the first configuration, run all jest tests, then tear the app down
-  echo "Deploying test app for Deadline Renderqueue test suite" >> "$OUTPUT_FILE"
+  echo "Deploying test app for Deadline Renderqueue test suite"
   npx cdk deploy "*" --require-approval=never
-  echo "Test app deployed. Running test suite..." >> "$OUTPUT_FILE"
-  npm run test deadline-renderQueue >> "$OUTPUT_FILE" 2>&1
-  echo "Test suite complete. Destroying test app..." >> "$OUTPUT_FILE"
+  echo "Test app deployed. Running test suite..."
+  npm run test deadline-renderQueue
+  echo "Test suite complete. Destroying test app..."
   npx cdk destroy "*" -f
   rm -f "./cdk.context.json"
   rm -rf "./cdk.out"
-  echo "Test app destroyed." >> "$OUTPUT_FILE"
-  echo "Deadline RenderQueue tests complete." >> "$OUTPUT_FILE"
+  echo "Test app destroyed."
+  echo "Deadline RenderQueue tests complete."
 fi
