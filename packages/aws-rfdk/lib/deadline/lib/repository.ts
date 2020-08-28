@@ -46,7 +46,7 @@ import {
   IConstruct,
   RemovalPolicy,
   Stack,
-  Tag,
+  Tags,
 } from '@aws-cdk/core';
 import {
   CloudWatchAgent,
@@ -746,7 +746,7 @@ export class Repository extends Construct implements IRepository {
     const tagCondition: { [key: string]: any } = {};
     tagCondition[`autoscaling:ResourceTag/${tagKey}`] = this.node.uniqueId;
 
-    Tag.add(this.installerGroup, tagKey, this.node.uniqueId);
+    Tags.of(this.installerGroup).add(tagKey, this.node.uniqueId);
 
     this.installerGroup.addToRolePolicy(new PolicyStatement({
       actions: [

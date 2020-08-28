@@ -54,7 +54,7 @@ import {
   Lazy,
   RemovalPolicy,
   Stack,
-  Tag,
+  Tags,
 } from '@aws-cdk/core';
 
 
@@ -344,7 +344,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
     const tagValue = eventHandler.node.uniqueId;
     const grantCondition: { [key: string]: string } = {};
     grantCondition[`autoscaling:ResourceTag/${tagKey}`] = tagValue;
-    Tag.add(this.autoscalingGroup, tagKey, tagValue);
+    Tags.of(this.autoscalingGroup).add(tagKey, tagValue);
 
     // Allow the lambda to complete the lifecycle action for only tagged ASGs.
     const iamCompleteLifecycle = new PolicyStatement({

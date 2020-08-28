@@ -139,7 +139,7 @@ describe('Test MongoDbInstance', () => {
       Tags: arrayWith(
         objectLike({
           Key: 'VolumeGrantAttach-dff922f1fb3c0287b3759d461a48c4b8',
-          Value: 'b0381797ae9723313d35ad6f9aa815f2',
+          Value: '6238d22b121db8094cb816e2a49d2b61',
         }),
       ),
     }));

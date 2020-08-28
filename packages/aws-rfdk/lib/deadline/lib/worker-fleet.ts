@@ -36,6 +36,7 @@ import {
   Construct,
   Duration,
   IResource,
+  ResourceEnvironment,
   Stack,
 } from '@aws-cdk/core';
 import {
@@ -228,6 +229,11 @@ abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet
   public abstract readonly stack: Stack;
 
   /**
+   * The environment this resource belongs to.
+   */
+  public abstract readonly env: ResourceEnvironment;
+
+  /**
    * The ASG object created by the construct.
    */
   public abstract readonly fleet: AutoScalingGroup;
@@ -352,6 +358,11 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
   public readonly stack: Stack;
 
   /**
+   * The environment this resource belongs to.
+   */
+  public readonly env: ResourceEnvironment;
+
+  /**
    * This field implements the base capacity metric of the fleet against
    * which, the healthy percent will be calculated.
    *
@@ -389,6 +400,10 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
   constructor(scope: Construct, id: string, props: WorkerInstanceFleetProps) {
     super(scope, id);
     this.stack = Stack.of(scope);
+    this.env = {
+      account: this.stack.account,
+      region: this.stack.region,
+    };
 
     this.validateProps(props);
 

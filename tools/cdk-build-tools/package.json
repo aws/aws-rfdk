@@ -50,13 +50,13 @@
     "eslint-import-resolver-typescript": "^2.0.0",
     "eslint-plugin-import": "^2.22.0",
     "fs-extra": "^9.0.1",
-    "jest": "^25.5.4",
+    "jest": "^26.4.2",
     "jsii": "^1.12.0",
     "jsii-pacmak": "^1.12.0",
     "nodeunit": "^0.11.3",
     "nyc": "^15.1.0",
-    "ts-jest": "^26.1.3",
-    "typescript": "~3.9.6",
+    "ts-jest": "^26.2.0",
+    "typescript": "~3.9.7",
     "yargs": "^15.3.1"
   },
   "keywords": [

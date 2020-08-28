@@ -26,6 +26,7 @@ import {
   CustomResource,
   Duration,
   RemovalPolicy,
+  ResourceEnvironment,
   Stack,
   Tag,
   Token,
@@ -100,6 +101,7 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
    */
   public readonly certificateArn: string;
   public readonly stack: Stack;
+  public readonly env: ResourceEnvironment;
   // The DynamoDB Table that is used as a backing store for the CustomResource utilized in this construct.
   protected readonly database: Table;
   protected readonly uniqueTag: Tag;
@@ -108,6 +110,10 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
     super(scope, id);
 
     this.stack = Stack.of(this);
+    this.env = {
+      account: this.stack.account,
+      region: this.stack.region,
+    };
 
     this.database = new Table(this, 'Table', {
       partitionKey: { name: 'PhysicalId', type: AttributeType.STRING },

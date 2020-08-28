@@ -30,7 +30,7 @@
   "maturity": "stable",
   "devDependencies": {
     "@types/node": "^14.0.12",
-    "typescript": "~3.9.6"
+    "typescript": "~3.9.7"
   },
   "dependencies": {
     "aws-sdk": "^2.693.0"

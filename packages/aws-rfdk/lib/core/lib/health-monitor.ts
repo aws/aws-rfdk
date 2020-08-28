@@ -32,6 +32,7 @@ import {
   Duration,
   IResource,
   RemovalPolicy,
+  ResourceEnvironment,
   Stack,
 } from '@aws-cdk/core';
 import {LoadBalancerFactory} from './load-balancer-manager';
@@ -213,6 +214,11 @@ abstract class HealthMonitorBase extends Construct implements IHealthMonitor {
   public abstract readonly stack: Stack;
 
   /**
+   * The environment this resource belongs to.
+   */
+  public abstract readonly env: ResourceEnvironment;
+
+  /**
    * Attaches the load-balancing target to the ELB for instance-level
    * monitoring.
    *
@@ -346,6 +352,11 @@ export class HealthMonitor extends HealthMonitorBase {
   public readonly stack: Stack;
 
   /**
+   * The environment this resource belongs to.
+   */
+  public readonly env: ResourceEnvironment;
+
+  /**
    * SNS topic for all unhealthy fleet notifications. This is triggered by
    * the grace period and hard terminations alarms for the registered fleets.
    *
@@ -364,6 +375,10 @@ export class HealthMonitor extends HealthMonitorBase {
   constructor(scope: Construct, id: string, props: HealthMonitorProps) {
     super(scope, id);
     this.stack = Stack.of(scope);
+    this.env = {
+      account: this.stack.account,
+      region: this.stack.region,
+    };
     this.props = props;
 
     this.lbFactory = new LoadBalancerFactory(this, props.vpc);
