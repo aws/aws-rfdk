@@ -18,3 +18,7 @@ updates:
       - dependency-name: "@aws-cdk/*"
     commit-message:
       prefix: "chore(deps):"
+  - package-ecosystem: "github-actions"
+    directory: "/" # Location of .github/workflows
+    schedule:
+      interval: "daily"
