@@ -56,7 +56,7 @@ self.deploy_mongo_db: bool = False
 ```python
 self.accept_sspl_license: MongoDbSsplLicenseAcceptance = MongoDbSsplLicenseAcceptance.USER_REJECTS_SSPL
 ```
-10. Modify the `deadline_ver` field in the `config` block of `package.json` as desired, then stage the Docker recipes for `RenderQueue` and `UBLLicensing`:
+10. Stage the Docker recipes for `RenderQueue` and `UBLLicensing`:
 ```bash
 # Set this value to the version of RFDK your application targets
 RFDK_VERSION=
