@@ -36,6 +36,26 @@ if [ ! -f "$DEADLINE_COMMAND" ]; then
     exit 1
 fi
 
+isVersionLessThan() {
+    local RESULT=$(python -c "import sys;print(tuple(map(int,\"$1\".split('.'))) < tuple(map(int, \"$2\".split('.'))))")
+    case $RESULT in
+        True) echo true ;;
+        False) echo false ;;
+        *) echo "ERROR: Unknown boolean value \"$RESULT\"" 1>&2; exit 1 ;;
+    esac
+}
+
+DEADLINE_VERSION=$("$DEADLINE_COMMAND" -Version | grep -oP '[v]\K\d+\.\d+\.\d+\.\d+\b')
+if [ -z "$DEADLINE_VERSION" ]; then
+    echo "ERROR: Unable to identify the version of installed Deadline Client. Exiting..."
+    exit 1
+fi
+MINIMUM_SUPPORTED_DEADLINE_VERSION="10.1.9"
+if $(isVersionLessThan $DEADLINE_VERSION $MINIMUM_SUPPORTED_DEADLINE_VERSION); then
+    echo "ERROR: Installed Deadline Version ($DEADLINE_VERSION) is less than the minimum supported version ($MINIMUM_SUPPORTED_DEADLINE_VERSION). Exiting..."
+    exit 1
+fi
+
 # launch worker at launcher startup
 "$DEADLINE_COMMAND" -SetIniFileSetting LaunchSlaveAtStartup True
 # keep worker running

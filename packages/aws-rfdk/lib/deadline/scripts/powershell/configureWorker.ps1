@@ -28,6 +28,17 @@ if (!(Test-Path $DEADLINE_COMMAND)) {
     exit 1
 }
 
+$DeadlineVersion = (& $DEADLINE_COMMAND -Version | Out-String) | Select-String -Pattern '[v](\d+\.\d+\.\d+\.\d+)\b' | % {$_.Matches.Groups[1].Value}
+if ([string]::IsNullOrEmpty($DeadlineVersion)) {
+    Write-Host "ERROR: Unable to identify the version of installed Deadline Client. Exiting..."
+    exit 1
+}
+$MINIMUM_SUPPORTED_DEADLINE_VERSION = "10.1.9"
+if([System.Version]$DeadlineVersion -lt  [System.Version]$MINIMUM_SUPPORTED_DEADLINE_VERSION) {
+    Write-Host "ERROR: Installed Deadline Version ($($DeadlineVersion)) is less than the minimum supported version ($($MINIMUM_SUPPORTED_DEADLINE_VERSION)). Exiting..."
+    exit 1
+}
+
 # launch worker at launcher startup
 & $DEADLINE_COMMAND -SetIniFileSetting LaunchSlaveAtStartup True | Out-Default
 # keep worker running
