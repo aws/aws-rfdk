@@ -24,7 +24,7 @@
     "typescript": "~3.9.7"
   },
   "dependencies": {
-    "@aws-cdk/core": "1.61.1",
+    "@aws-cdk/core": "1.57.0",
     "aws-rfdk": "0.17.0",
     "source-map-support": "^0.5.19"
   }

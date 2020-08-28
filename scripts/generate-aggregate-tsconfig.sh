@@ -12,7 +12,7 @@ echo '    "references": ['
 # if we have more than one package,
 # we set $comma to an actual comma
 comma='  '
-for package in $(node_modules/.bin/lerna ls -ap); do
+for package in $(node_modules/.bin/lerna ls -ap --ignore 'all-in-farm**'); do
     relpath=${package#"$prefix"}
     echo '  '"$comma"'{ "path": "'"$relpath"'" }'
     comma=', '
