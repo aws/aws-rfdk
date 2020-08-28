@@ -84,8 +84,6 @@ export abstract class DatabaseConnection {
    * Resources Deployed
    * ------------------------
    * This construct does not deploy any resources
-   *
-   * @ResourcesDeployed
    */
   public static forDocDB(options: DocDBConnectionOptions): DatabaseConnection {
     return new DocDBDatabaseConnection(options);
@@ -97,8 +95,6 @@ export abstract class DatabaseConnection {
    * Resources Deployed
    * ------------------------
    * This construct does not deploy any resources
-   *
-   * @ResourcesDeployed
    */
   public static forMongoDbInstance(options: MongoDbInstanceConnectionOptions): DatabaseConnection {
     return new MongoDbInstanceDatabaseConnection(options);

@@ -328,8 +328,6 @@ export interface IMongoDb extends IConnectable, IConstruct {
  * - This construct uses this package's {@link StaticPrivateIpServer}, {@link MongoDbInstaller}, {@link CloudWatchAgent},
  *   {@link ExportingLogGroup}, and {@link MountableBlockVolume}. Security considerations that are outlined by the documentation
  *   for those constructs should also be taken into account.
- *
- * @ResourcesDeployed
  */
 export class MongoDbInstance extends Construct implements IMongoDb, IGrantable {
   // How often Cloudwatch logs will be flushed.

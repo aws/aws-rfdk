@@ -157,8 +157,6 @@ export interface MongoDbPostInstallSetupProps {
  *   and the MongoDB application port. An attacker that can find a way to modify and execute this lambda could use it to
  *   modify or read any data in the database. You should not grant any additional actors/principals the ability to modify
  *   or execute this Lambda.
- *
- * @ResourcesDeployed
  */
 export class MongoDbPostInstallSetup extends Construct {
   constructor(scope: Construct, id: string, props: MongoDbPostInstallSetupProps) {

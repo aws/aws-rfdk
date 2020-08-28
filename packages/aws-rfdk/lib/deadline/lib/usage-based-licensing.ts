@@ -455,8 +455,6 @@ export interface UsageBasedLicensingProps {
  * - The Deadline License Forwarder is designed to be secured by restricting network access to it. For security, only the Deadline
  *   Workers that require access to Usage-based Licenses should be granted network access to the instances deployed by this construct.
  *   Futhermore, you should restrict that access to only the product(s) that those workers require when deploying this construct.
- *
- * @ResourcesDeployed
  */
 export class UsageBasedLicensing extends Construct implements IGrantable {
   /**

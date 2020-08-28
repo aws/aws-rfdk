@@ -46,7 +46,7 @@ import {
   IConstruct,
   RemovalPolicy,
   Stack,
-  Tag,
+  Tags,
 } from '@aws-cdk/core';
 import {
   CloudWatchAgent,
@@ -375,8 +375,6 @@ export interface RepositoryProps {
  *   submitted jobs, machine information and status, and so on. An actor with access to this database can read any information
  *   that is entered into Deadline, and modify the bevavior of your render farm. You should restrict access to this database
  *   to only those who require it.
- *
- * @ResourcesDeployed
  */
 export class Repository extends Construct implements IRepository {
   /**
@@ -746,7 +744,7 @@ export class Repository extends Construct implements IRepository {
     const tagCondition: { [key: string]: any } = {};
     tagCondition[`autoscaling:ResourceTag/${tagKey}`] = this.node.uniqueId;
 
-    Tag.add(this.installerGroup, tagKey, this.node.uniqueId);
+    Tags.of(this.installerGroup).add(tagKey, this.node.uniqueId);
 
     this.installerGroup.addToRolePolicy(new PolicyStatement({
       actions: [

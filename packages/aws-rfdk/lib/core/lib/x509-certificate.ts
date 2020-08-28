@@ -250,8 +250,6 @@ abstract class X509CertificateBase extends Construct {
  *   environments.
  * - Access to the AWS SecretsManager Secrets that are created by this construct should be tightly restricted
  *   to only the principal(s) that require access.
- *
- * @ResourcesDeployed
  */
 export class X509CertificatePem extends X509CertificateBase implements IX509CertificatePem {
   public readonly cert: ISecret;
@@ -404,8 +402,6 @@ export interface IX509CertificatePkcs12 extends IConstruct {
  *   environments.
  * - Access to the AWS SecretsManager Secrets that are created by this construct should be tightly restricted
  *   to only the principal(s) that require access.
- *
- * @ResourcesDeployed
  */
 export class X509CertificatePkcs12 extends X509CertificateBase implements IX509CertificatePkcs12 {
 

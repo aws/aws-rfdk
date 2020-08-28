@@ -57,8 +57,6 @@ export interface CloudWatchAgentProps {
  *   bucket to prevent an attacker from modifying the actions performed by these scripts. We strongly recommend that
  *   you either enable Amazon S3 server access logging on your CDK bootstrap bucket, or enable AWS CloudTrail on your
  *   account to assist in post-incident analysis of compromised production environments.
- *
- * @ResourcesDeployed
  */
 export class CloudWatchAgent extends Construct {
 
