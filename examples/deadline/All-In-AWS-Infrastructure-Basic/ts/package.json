@@ -18,14 +18,14 @@
     "watch": "tsc -w"
   },
   "devDependencies": {
-    "@types/node": "10.17.5",
+    "@types/node": "^14.6.1",
     "aws-cdk": "1.61.1",
-    "ts-node": "^8.1.0",
+    "ts-node": "^9.0.0",
     "typescript": "~3.9.7"
   },
   "dependencies": {
     "@aws-cdk/core": "1.61.1",
     "aws-rfdk": "0.17.0",
-    "source-map-support": "^0.5.16"
+    "source-map-support": "^0.5.19"
   }
 }
