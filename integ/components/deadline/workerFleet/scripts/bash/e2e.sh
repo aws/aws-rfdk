@@ -5,19 +5,26 @@
 
 set -euo pipefail
 
+OPTION=${1:-undefined}
+
+if [ $(basename $(pwd)) != "workerFleet" ]; then
+  echo "ERROR: Script must be run from top directory of test component"
+  exit 1
+fi
+
+# Load utility functions
+source "../common/functions/deploy-utils.sh"
+
 if [ $EXECUTE_DEADLINE_WORKER_TEST_SUITE == true ]; then
 
-  echo "Running Deadline Worker end-to-end test..."
+  if [[ $OPTION != '--destroy-only' ]]; then
+    deploy_component_stacks "Deadline WorkerInstanceFleet"
+    execute_component_test "deadline-workerFleet"
+  fi
+  if [[ $OPTION != '--deploy-only' ]]; then
+    destroy_component_stacks "Deadline WorkerInstanceFleet"
+  fi
 
-  # Deploy a test app using the first configuration, run all jest tests, then tear the app down
-  echo "Deploying test app for Deadline Worker test suite"
-  npx cdk deploy "*" --require-approval=never
-  echo "Test app deployed. Running test suite..."
-  npm run test deadline-workerFleet
-  echo "Test suite complete. Destroying test app..."
-  npx cdk destroy "*" -f
-  rm -f "./cdk.context.json"
-  rm -rf "./cdk.out"
-  echo "Test app destroyed."
-  echo "Deadline Worker tests complete."
 fi
+
+exit 0

@@ -16,9 +16,22 @@ INTEG_ROOT="$(pwd)"
 # RFDK version is passed in as first argument (taken from package.json)
 RFDK_VERSION=$1
 
+# Can supply parameter "--cleanup-on-failure" to tear down stacks if deployment errors
+OPTION=$2
+
 # Load variables from config file
 echo "Loading config..."
 source "./test-config.sh"
+
+# Define catch function on deployment failure
+cleanup_on_failure () {
+    if [ $OPTION == "--cleanup-on-failure" ]; then
+        echo "Something went wrong. Aborting deployment and cleaning up stacks..."
+        cd $INTEG_ROOT
+        ./scripts/bash/tear-down.sh
+        exit 1
+    fi
+}
 
 # Make sure SSPL license has been accepted if running repository test
 if [ $EXECUTE_DEADLINE_REPOSITORY_TEST_SUITE == true ]; then
@@ -80,7 +93,7 @@ echo "Starting RFDK-integ end-to-end tests"
 INFRASTRUCTURE_APP="$INTEG_ROOT/components/_infrastructure"
 cd "$INFRASTRUCTURE_APP"
 echo "Deploying RFDK-integ infrastructure..."
-npx cdk deploy "*" --require-approval=never
+npx cdk deploy "*" --require-approval=never || cleanup_on_failure
 echo "RFDK-integ infrastructure deployed."
 cd "$INTEG_ROOT"
 
@@ -90,7 +103,7 @@ for COMPONENT in **/cdk.json; do
     # Use a pattern match to exclude the infrastructure app from the results
     if [[ "$(basename "$COMPONENT_ROOT")" != _* ]]; then
         # Excecute the e2e test in the component's scripts directory
-        cd "$INTEG_ROOT/$COMPONENT_ROOT" && "./scripts/bash/e2e.sh"
+        cd "$INTEG_ROOT/$COMPONENT_ROOT" && "./scripts/bash/e2e.sh" || cleanup_on_failure
     fi
 done
 
