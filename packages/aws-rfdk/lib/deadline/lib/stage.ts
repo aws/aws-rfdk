@@ -9,6 +9,7 @@ import * as path from 'path';
 import { DockerImageAsset } from '@aws-cdk/aws-ecr-assets';
 import { Construct } from '@aws-cdk/core';
 
+import { Utils } from '../../core';
 import { VersionQuery } from './version';
 
 /**
@@ -99,6 +100,8 @@ export interface StageProps {
  * requires to deploy Deadline. It should contain a manifest file, the Deadline
  * installers, and any supporting files required for building the Deadline
  * container.
+ *
+ * Note: Current version of RFDK supports Deadline v10.1.9 and later.
  */
 export class Stage {
   /**
@@ -152,6 +155,12 @@ export class Stage {
       throw new Error('Manifest contains no "version" key');
     } else if (typeof version !== 'string') {
       throw new TypeError(`Expected a string "version" but got: ${typeof version}`);
+    }
+
+    // Do minimum supported deadline version check
+    const minimumSupportedVersion = '10.1.9';
+    if (Utils.versionCompare(version, minimumSupportedVersion) < 0) {
+      throw new TypeError(`Staged Deadline Version (${version}) is less than the minimum supported version (${minimumSupportedVersion})`);
     }
 
     return true;

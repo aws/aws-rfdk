@@ -41,7 +41,7 @@ describe('Stage', () => {
     // GIVEN
     const manifest: Manifest = {
       schema: 1,
-      version: '1.2.3.4',
+      version: '10.1.9.2',
       recipes: {},
     };
 
@@ -77,10 +77,34 @@ describe('Stage', () => {
     });
   });
 
+  describe('.fromDirectory', () => {
+    test('not supported version failure', () => {
+      // GIVEN
+      const manifest: Manifest = {
+        schema: 1,
+        version: '10.1.8.0',
+        recipes: {},
+      };
+
+      // WHEN
+      const readFileSync = jest.spyOn(fs, 'readFileSync');
+      readFileSync.mockReturnValue(JSON.stringify(manifest));
+
+      // THEN
+      expect(() => {
+        require('../lib').Stage.fromDirectory(STAGE_PATH) // eslint-disable-line
+      }).toThrow('Staged Deadline Version (10.1.8.0) is less than the minimum supported version (10.1.9)');
+
+      readFileSync.mockRestore();
+      jest.resetModules();
+    });
+
+  });
+
   test('has manifest', () => {
     const manifest: Manifest = {
       schema: 1,
-      version: '1.2.3.4',
+      version: '10.1.9.2',
       recipes: {
         a: {
           title: 'a-title',
@@ -131,7 +155,7 @@ describe('Stage', () => {
         'missing schema',
         {
           manifest: {
-            version: '1.2.3.4',
+            version: '10.1.9.2',
             recipes: {},
           },
           expectedError: /Manifest contains no "schema" key/,
@@ -141,7 +165,7 @@ describe('Stage', () => {
         'wrong schema type', {
           manifest: {
             schema: 'a',
-            version: '1.2.3.4',
+            version: '10.1.9.2',
             recipes: {},
           },
           expectedError: /Expected a numeric "schema" but got:/,
@@ -154,6 +178,16 @@ describe('Stage', () => {
             recipes: {},
           },
           expectedError: /Manifest contains no "version" key/,
+        },
+      ],
+      [
+        'version not supported', {
+          manifest: {
+            schema: 1,
+            version: '10.1',
+            recipes: {},
+          },
+          expectedError: 'Staged Deadline Version (10.1) is less than the minimum supported version (10.1.9)',
         },
       ],
     ])('%s', (_name, testcase) => {
@@ -225,7 +259,7 @@ describe('Stage', () => {
           recipeName: recipe,
         },
         schema: 1,
-        version: '1.2.3.4',
+        version: '10.1.9.2',
       };
 
       // WHEN
@@ -287,7 +321,7 @@ describe('Stage', () => {
       const stage = new ReloadedStageWithPublicConstructor({
         path: STAGE_PATH,
         manifest: {
-          version: '1.2.3.4',
+          version: '10.1.9.2',
           schema: 1,
           recipes: {
             [recipeName]: recipe,
@@ -316,7 +350,7 @@ describe('Stage', () => {
       // GIVEN
       const manifest: Manifest = {
         schema: 1,
-        version: '1.2.3.4',
+        version: '10.1.9.2',
         recipes: {},
       };
       const invalidRecipeName = 'this-recipe-does-not-exist';
@@ -342,7 +376,7 @@ describe('Stage', () => {
       const stack = new Stack(app, 'Stack');
       const manifest: Manifest = {
         schema: 1,
-        version: '1.2.3.4',
+        version: '10.1.9.2',
         recipes: {},
       };
       const stage = new StageWithPulicConstructor({
@@ -355,15 +389,15 @@ describe('Stage', () => {
       const linuxFullVersionString = version.linuxFullVersionString();
 
       // THEN
-      expect(version.majorVersion).toEqual(1);
-      expect(version.minorVersion).toEqual(2);
-      expect(version.releaseVersion).toEqual(3);
+      expect(version.majorVersion).toEqual(10);
+      expect(version.minorVersion).toEqual(1);
+      expect(version.releaseVersion).toEqual(9);
 
       expect(version.linuxInstallers).toBeDefined();
-      expect(version.linuxInstallers?.patchVersion).toEqual(4);
+      expect(version.linuxInstallers?.patchVersion).toEqual(2);
 
       expect(linuxFullVersionString).toBeDefined();
-      expect(linuxFullVersionString).toEqual('1.2.3.4');
+      expect(linuxFullVersionString).toEqual('10.1.9.2');
     });
   });
 });
