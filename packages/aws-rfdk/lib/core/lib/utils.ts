@@ -11,17 +11,17 @@ export class Utils {
    * @param versionSecond
    *
    * @returns negative value if first version is smaller than second version;
-   * 0 if the versions matches, positive value if first version is smaller
+   * 0 if the versions matches, positive value if first version is greater
    * than second version.
    */
   public static versionCompare(versionFirst: string, versionSecond: string): number {
     const regExStripZero = /(\.0+)+$/;
     const versionArrayFirst = versionFirst.replace(regExStripZero, '').split('.');
     const versionArraySecond = versionSecond.replace(regExStripZero, '').split('.');
-    const l = Math.min(versionArrayFirst.length, versionArraySecond.length);
+    const minLen = Math.min(versionArrayFirst.length, versionArraySecond.length);
 
-    for (let i = 0; i < l; i++) {
-      let diff = parseInt(versionArrayFirst[i], 10) - parseInt(versionArraySecond[i], 10);
+    for (let i = 0; i < minLen; i++) {
+      const diff = parseInt(versionArrayFirst[i], 10) - parseInt(versionArraySecond[i], 10);
       if (diff) {
         return diff;
       }

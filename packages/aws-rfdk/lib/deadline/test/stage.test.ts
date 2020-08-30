@@ -181,6 +181,16 @@ describe('Stage', () => {
         },
       ],
       [
+        'incorrect version format', {
+          manifest: {
+            schema: 1,
+            version: '10.1.',
+            recipes: {},
+          },
+          expectedError: /Invalid version format/,
+        },
+      ],
+      [
         'version not supported', {
           manifest: {
             schema: 1,
