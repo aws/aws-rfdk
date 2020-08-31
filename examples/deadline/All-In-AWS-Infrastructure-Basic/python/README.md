@@ -16,7 +16,7 @@ These instructions assume that your working directory is `examples/deadline/All-
 ```bash
 pip install -r requirements.txt
 ```
-2. Change the value in the `deadline_client_linux_ami_map` variable in `bin/config.py` to include the region + AMI ID mapping of your EC2 AMI(s) with Deadline Worker.
+2. Change the value in the `deadline_client_linux_ami_map` variable in `package/config.py` to include the region + AMI ID mapping of your EC2 AMI(s) with Deadline Worker.
 ```python
 # For example, in the us-west-2 region
 self.deadline_client_linux_ami_map: Mapping[str, str] = {'us-west-2': '<your ami id'}
@@ -26,11 +26,11 @@ self.deadline_client_linux_ami_map: Mapping[str, str] = {'us-west-2': '<your ami
 ```bash
 aws secretsmanager create-secret --name <name> --secret-binary fileb://<path-to-zip-file>
 ```
-4. The output from the previous step will contain the secret's ARN. Change the value of the `ubl_certificate_secret_arn` variable in `bin/config.py` to the secret's ARN:
+4. The output from the previous step will contain the secret's ARN. Change the value of the `ubl_certificate_secret_arn` variable in `package/config.py` to the secret's ARN:
 ```python
 self.ubl_certificate_secret_arn: str = '<your secret arn>'
 ```
-5. Choose your UBL limits and change the value of the `ubl_licenses` variable in `bin/config.py` accordingly:
+5. Choose your UBL limits and change the value of the `ubl_licenses` variable in `package/config.py` accordingly:
 ```python
 self.ubl_licenses: List[UsageBasedLicense] = [<your-ubl-limits> (e.g. UsageBasedLicense.forMaya(10))]
 ```
@@ -43,20 +43,20 @@ self.ubl_licenses: List[UsageBasedLicense] = [<your-ubl-limits> (e.g. UsageBased
 ```bash
 aws ec2 create-key-pair --key-name <key-name>
 ```
-7.  Change the value of the `key_pair_name` variable in `bin/config.py` to your value for `<key-name>` in the previous step: <br><br>**Note:** Save the value of the "KeyMaterial" field as a file in a secure location. This is your private key that you can use to SSH into the render farm.
+7.  Change the value of the `key_pair_name` variable in `package/config.py` to your value for `<key-name>` in the previous step: <br><br>**Note:** Save the value of the "KeyMaterial" field as a file in a secure location. This is your private key that you can use to SSH into the render farm.
 ```python
 self.key_pair_name: Optional[str] = '<your key pair name>'
 ```
-8. Choose the type of database you would like to deploy and change the value of the `deploy_mongo_db` variable in `bin/config.py` accordingly:
+8. Choose the type of database you would like to deploy and change the value of the `deploy_mongo_db` variable in `package/config.py` accordingly:
 ```python
 # True = MongoDB, False = Amazon DocumentDB
 self.deploy_mongo_db: bool = False
 ```
-9. If you set `deploy_mongo_db` to `True`, then you must accept the [SSPL license](https://www.mongodb.com/licensing/server-side-public-license) to successfully deploy MongoDB. To do so, change the value of `accept_sspl_license` in `bin/config.py`:
+9. If you set `deploy_mongo_db` to `True`, then you must accept the [SSPL license](https://www.mongodb.com/licensing/server-side-public-license) to successfully deploy MongoDB. To do so, change the value of `accept_sspl_license` in `package/config.py`:
 ```python
 self.accept_sspl_license: MongoDbSsplLicenseAcceptance = MongoDbSsplLicenseAcceptance.USER_REJECTS_SSPL
 ```
-10. Modify the `deadline_ver` field in the `config` block of `package.json` as desired, then stage the Docker recipes for `RenderQueue` and `UBLLicensing`:
+10. Stage the Docker recipes for `RenderQueue` and `UBLLicensing`:
 ```bash
 # Set this value to the version of RFDK your application targets
 RFDK_VERSION=
