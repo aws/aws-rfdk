@@ -38,7 +38,7 @@ cleanup_on_failure () {
 }
 
 # Make sure SSPL license has been accepted if running repository test
-if [ $EXECUTE_DEADLINE_REPOSITORY_TEST_SUITE == true ]; then
+if [ ! "${SKIP_DEADLINE_REPOSITORY_TEST-}" == true ]; then
     if [ $USER_ACCEPTS_SSPL_FOR_RFDK_TESTS != true ]; then
         echo "Error: SSPL license has not been accepted for repository test; test will not run. See README.md for details"
         exit 1
@@ -76,7 +76,7 @@ if [ ! $(ls "$DEADLINE_STAGING_PATH/manifest.json" 2> /dev/null) ]; then
 fi
 
 # If executing worker fleet tests, find Deadline AMIs based on supplied version
-if [ $EXECUTE_DEADLINE_WORKER_TEST_SUITE == true ]; then
+if [ ! "${SKIP_DEADLINE_WORKER_TEST-}" == true ]; then
     # Only pull AMI ids if one of these variables is not already set
     if [ -z ${LINUX_DEADLINE_AMI_ID+x} ] || [ -z ${WINDOWS_DEADLINE_AMI_ID+x} ]; then
         DEADLINE_RELEASE=$(sed 's/\(.*\..*\..*\)\..*/\1/' <<< $DEADLINE_VERSION)
@@ -196,7 +196,6 @@ for COMPONENT in **/cdk.json; do
     fi
     export ${COMPONENT_NAME}_FINISH_TIME=$SECONDS
 done
-
 
 echo "Cleaning up folders..."
 yarn run clean

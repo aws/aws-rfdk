@@ -15,7 +15,7 @@ fi
 # Load utility functions
 source "../common/functions/deploy-utils.sh"
 
-if [ $EXECUTE_DEADLINE_WORKER_TEST_SUITE == true ]; then
+if [ ! "${SKIP_DEADLINE_WORKER_TEST-}" == true ]; then
 
   if [[ $OPTION != '--destroy-only' ]]; then
     deploy_component_stacks "Deadline WorkerInstanceFleet"
