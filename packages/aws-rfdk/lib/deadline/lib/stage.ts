@@ -165,12 +165,6 @@ export class Stage {
       throw new TypeError(`Staged Deadline Version (${version}) is less than the minimum supported version (${minimumSupportedVersion})`);
     }
 
-    // Do minimum supported deadline version check
-    const minimumSupportedVersion = '10.1.9';
-    if (Utils.versionCompare(version, minimumSupportedVersion) < 0) {
-      throw new TypeError(`Staged Deadline Version (${version}) is less than the minimum supported version (${minimumSupportedVersion})`);
-    }
-
     return true;
   }
 
