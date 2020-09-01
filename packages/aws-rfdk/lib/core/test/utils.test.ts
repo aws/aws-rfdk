@@ -59,4 +59,34 @@ describe('Utils', () => {
       expect(result).toEqual(expectedValue);
     });
   });
+
+  describe('.validateVersionFormat', () => {
+    test.each<[string, { version: string, expectedValue: boolean }]>([
+      [
+        'ending with .',
+        {
+          version: '10.1.9.',
+          expectedValue: false,
+        },
+      ], [
+        'empty string',
+        {
+          version: '',
+          expectedValue: false,
+        },
+      ], [
+        'correct version',
+        {
+          version: '10.1.9.2',
+          expectedValue: true,
+        },
+      ],
+    ])('%s', (_name, testcase) => {
+      const { version, expectedValue } = testcase;
+      // WHEN
+      const result = Utils.validateVersionFormat(version);
+
+      expect(result).toEqual(expectedValue);
+    });
+  });
 });

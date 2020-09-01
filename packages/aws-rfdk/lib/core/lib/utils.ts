@@ -28,4 +28,27 @@ export class Utils {
     }
     return versionArrayFirst.length - versionArraySecond.length;
   }
+
+  /**
+   * This method validates the given string for a sequence '.' separated numbers.
+   *
+   * @param version the string to be validated.
+   *
+   * @returns true if the format is correct, else false.
+   */
+  public static validateVersionFormat(version: string): boolean {
+    /**
+     * Regex: ^\d+(?:\.\d+){3}$
+     * Matches a sequence of '.' separated numbers with exactly 4 digits.
+     * - ^ asserts position at start of a line.
+     * - \d+ Matches one or more digits.
+     * - (?:\.\d+) Matches a dot and the following one or more digits.
+     * - * Matches previous pattern zero or more times.
+     * - $ asserts position at the end of a line
+     */
+    if (version.match(/^\d+(?:\.\d+)*$/g)) {
+      return true;
+    }
+    return false;
+  }
 }

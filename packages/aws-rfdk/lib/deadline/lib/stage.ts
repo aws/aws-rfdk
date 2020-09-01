@@ -155,7 +155,7 @@ export class Stage {
       throw new Error('Manifest contains no "version" key');
     } else if (typeof version !== 'string') {
       throw new TypeError(`Expected a string "version" but got: ${typeof version}`);
-    } else if (!Stage.validateVersionFormat(version)) {
+    } else if (!Utils.validateVersionFormat(version)) {
       throw new Error(`Invalid version format - ${version}`);
     }
 
@@ -166,22 +166,6 @@ export class Stage {
     }
 
     return true;
-  }
-
-  private static validateVersionFormat(version: string): boolean {
-    /**
-     * Regex: ^\d+(?:\.\d+){3}$
-     * Matches a sequence of '.' separated numbers with exactly 4 digits.
-     * - ^ asserts position at start of a line.
-     * - \d+ Matches one or more digits.
-     * - (?:\.\d+) Matches a dot and the following one or more digits.
-     * - * Matches previous pattern zero or more times.
-     * - $ asserts position at the end of a line
-     */
-    if (version.match(/^\d+(?:\.\d+)*$/g)) {
-      return true;
-    }
-    return false;
   }
 
   /**
