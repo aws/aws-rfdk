@@ -11,6 +11,10 @@
 set -euo pipefail
 shopt -s globstar
 
+#Mark test start time
+TEST_START_TIME="$(date +%s)"
+SECONDS=$TEST_START_TIME
+
 INTEG_ROOT="$(pwd)"
 
 # RFDK version is passed in as first argument (taken from package.json)
@@ -40,6 +44,10 @@ if [ $EXECUTE_DEADLINE_REPOSITORY_TEST_SUITE == true ]; then
         exit 1
     fi
 fi
+
+# Create temp directory
+INTEG_TEMP_DIR="$INTEG_ROOT/.e2etemp"
+mkdir -p $INTEG_TEMP_DIR
 
 # Get region from CDK_DEFAULT_REGION; assume us-west-2 if it's not set
 if [ -z ${CDK_DEFAULT_REGION+x} ]; then
@@ -72,12 +80,12 @@ if [ $EXECUTE_DEADLINE_WORKER_TEST_SUITE == true ]; then
     # Only pull AMI ids if one of these variables is not already set
     if [ -z ${LINUX_DEADLINE_AMI_ID+x} ] || [ -z ${WINDOWS_DEADLINE_AMI_ID+x} ]; then
         DEADLINE_RELEASE=$(sed 's/\(.*\..*\..*\)\..*/\1/' <<< $DEADLINE_VERSION)
-        curl https://awsportal.s3.amazonaws.com/$DEADLINE_RELEASE/Release/amis.json --silent -o "./amis.json"
+        curl https://awsportal.s3.amazonaws.com/$DEADLINE_RELEASE/Release/amis.json --silent -o "$INTEG_TEMP_DIR/amis.json"
         if [ -z ${LINUX_DEADLINE_AMI_ID+x} ]; then
-            export LINUX_DEADLINE_AMI_ID=$(node -e $'const json = require(\'./amis.json\'); console.log(json[process.argv[1]].worker["ami-id"])' "$AWS_REGION")
+            export LINUX_DEADLINE_AMI_ID=$(node -e $'const json = require(\'./.e2etemp/amis.json\'); console.log(json[process.argv[1]].worker["ami-id"])' "$AWS_REGION")
         fi
         if [ -z ${WINDOWS_DEADLINE_AMI_ID+x} ]; then
-            export WINDOWS_DEADLINE_AMI_ID=$(node -e $'const json = require(\'./amis.json\'); console.log(json[process.argv[1]].windowsWorker["ami-id"])' "$AWS_REGION")
+            export WINDOWS_DEADLINE_AMI_ID=$(node -e $'const json = require(\'./.e2etemp/amis.json\'); console.log(json[process.argv[1]].windowsWorker["ami-id"])' "$AWS_REGION")
         fi
     fi
 fi
@@ -86,6 +94,9 @@ fi
 if [ -z ${INTEG_STACK_TAG+x} ]; then
     export INTEG_STACK_TAG="$(date +%s%N)"
 fi
+
+# Mark pretest finish time
+PRETEST_FINISH_TIME=$SECONDS
 
 echo "Starting RFDK-integ end-to-end tests"
 
@@ -97,27 +108,99 @@ npx cdk deploy "*" --require-approval=never || cleanup_on_failure
 echo "RFDK-integ infrastructure deployed."
 cd "$INTEG_ROOT"
 
+# Mark infrastructure deploy finish time
+INFRASTRUCTURE_DEPLOY_FINISH_TIME=$SECONDS
+
 # Pull the top level directory for each cdk app in the components directory
 for COMPONENT in **/cdk.json; do
     COMPONENT_ROOT="$(dirname "$COMPONENT")"
+    COMPONENT_NAME=$(basename "$COMPONENT_ROOT")
     # Use a pattern match to exclude the infrastructure app from the results
-    if [[ "$(basename "$COMPONENT_ROOT")" != _* ]]; then
+    export ${COMPONENT_NAME}_START_TIME=$SECONDS
+    if [[ "$COMPONENT_NAME" != _* ]]; then
         # Excecute the e2e test in the component's scripts directory
-        cd "$INTEG_ROOT/$COMPONENT_ROOT" && "./scripts/bash/e2e.sh" || cleanup_on_failure
+        cd "$INTEG_ROOT/$COMPONENT_ROOT" && ./scripts/bash/e2e.sh || cleanup_on_failure
     fi
+    export ${COMPONENT_NAME}_FINISH_TIME=$SECONDS
 done
+
+# Mark infrastructure destroy start time
+INFRASTRUCTURE_DESTROY_START_TIME=$SECONDS
 
 # Destroy the infrastructure stack on completion
 echo "Test suites completed. Destroying infrastructure stack..."
 cd "$INFRASTRUCTURE_APP"
 npx cdk destroy "*" -f
-
 echo "Infrastructure stack destroyed."
+
+# Mark infrastructure destroy finish time
+INFRASTRUCTURE_DESTROY_FINISH_TIME=$SECONDS
+
 cd "$INTEG_ROOT"
+
+echo "Complete!"
+
+PRETEST_TIME=$(( $PRETEST_FINISH_TIME - $TEST_START_TIME ))
+echo "Pretest setup runtime: $((($PRETEST_TIME / 60) % 60))m $(($PRETEST_TIME % 60))s"
+
+INFRASTRUCTURE_DEPLOY_TIME=$(( $INFRASTRUCTURE_DEPLOY_FINISH_TIME - $PRETEST_FINISH_TIME ))
+echo "Infrastructure stack deploy runtime: $((($INFRASTRUCTURE_DEPLOY_TIME / 60) % 60))m $(($INFRASTRUCTURE_DEPLOY_TIME % 60))s"
+
+INFRASTRUCTURE_DESTROY_TIME=$(( $INFRASTRUCTURE_DESTROY_FINISH_TIME - $INFRASTRUCTURE_DESTROY_START_TIME ))
+echo "Infrastructure stack cleanup runtime: $((($INFRASTRUCTURE_DESTROY_TIME / 60) % 60))m $(($INFRASTRUCTURE_DESTROY_TIME % 60))s"
+
+# Function pulls test results from test output file and calculates time spent on each stage of the test
+report_results () {
+    COMPONENT_NAME=$1
+
+    if [ $(ls "$INTEG_TEMP_DIR/$COMPONENT_NAME.json" 2> /dev/null) ]; then
+
+        # Get test numbers from jest output
+        TESTS_RAN=$(node -e $'const json = require(process.argv[1]); console.log(json.numTotalTests)' "$INTEG_TEMP_DIR/$COMPONENT_NAME.json")
+        TESTS_PASSED=$(node -e $'const json = require(process.argv[1]); console.log(json.numPassedTests)' "$INTEG_TEMP_DIR/$COMPONENT_NAME.json")
+        TESTS_FAILED=$(node -e $'const json = require(process.argv[1]); console.log(json.numFailedTests)' "$INTEG_TEMP_DIR/$COMPONENT_NAME.json")
+
+        DEPLOY_START_TIME=${COMPONENT_NAME}_START_TIME
+        DEPLOY_FINISH_TIME=$(node -e $'const json = require(process.argv[1]); console.log(json.startTime)' "$INTEG_TEMP_DIR/$COMPONENT_NAME.json")
+        DEPLOY_FINISH_TIME="${DEPLOY_FINISH_TIME:0:10}"
+        DESTROY_START_TIME=$(node -e $'const json = require(process.argv[1]); console.log(json.testResults[0].endTime)' "$INTEG_TEMP_DIR/$COMPONENT_NAME.json")
+        DESTROY_START_TIME="${DESTROY_START_TIME:0:10}"
+        DESTROY_FINISH_TIME=${COMPONENT_NAME}_FINISH_TIME
+
+        # Calculate seconds from when deploy began to when test began
+        DEPLOY_TIME=$(( $DEPLOY_FINISH_TIME - $DEPLOY_START_TIME ))
+        # Calculate seconds from when deploy ended to when teardown began
+        TEST_TIME=$(( $DESTROY_START_TIME - $DEPLOY_FINISH_TIME ))
+        # Calculate seconds from when test ended to when teardown finished
+        DESTROY_TIME=$(( $DESTROY_FINISH_TIME - $DESTROY_START_TIME ))
+
+        echo "Results for test component $COMPONENT_NAME: "
+        echo "  -Tests ran:"    $TESTS_RAN
+        echo "  -Tests passed:" $TESTS_PASSED
+        echo "  -Tests failed:" $TESTS_FAILED
+        echo "  -Deploy runtime:     $((($DEPLOY_TIME / 60) % 60))m $(($DEPLOY_TIME % 60))s"
+        echo "  -Test suite runtime: $((($TEST_TIME / 60) % 60))m $(($TEST_TIME % 60))s"
+        echo "  -Cleanup runtime:    $((($DESTROY_TIME / 60) % 60))m $(($DESTROY_TIME % 60))s"
+
+    fi
+}
+
+# Report test results for each test component
+for COMPONENT in **/cdk.json; do
+    COMPONENT_ROOT="$(dirname "$COMPONENT")"
+    COMPONENT_NAME=$(basename "$COMPONENT_ROOT")
+    # Use a pattern match to exclude the infrastructure app from the results
+    if [[ "$COMPONENT_NAME" != _* ]]; then
+        report_results $COMPONENT_NAME
+        
+    fi
+    export ${COMPONENT_NAME}_FINISH_TIME=$SECONDS
+done
+
 
 echo "Cleaning up folders..."
 yarn run clean
 
-echo "Complete!"
+echo "Exiting..."
 
 exit 0

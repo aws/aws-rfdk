@@ -20,4 +20,4 @@ done
 
 rm -rf "$INTEG_ROOT/node_modules"
 rm -rf "$INTEG_ROOT/stage"
-rm -rf "$INTEG_ROOT/amis.json"
+rm -rf "$INTEG_ROOT/.e2etemp"

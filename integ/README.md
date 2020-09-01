@@ -23,25 +23,28 @@ To run all test suites:
 # Example Output:
 
 ```bash
-PASS components/deadline/repository/test/deadline-repository.test.ts (13.218 s)
-  DocDB tests
-    ✓ DL-1-1: Deadline DB is initialized (3 ms)
-    ✓ DL-2-1: Deadline DB is initialized
-  EFS tests
-    ✓ DL-1-2: EFS is initialized (1 ms)
-    ✓ DL-2-2: EFS is initialized
-    ✓ DL-1-3: repository.ini version matches Deadline installer (1 ms)
-    ✓ DL-2-3: repository.ini version matches Deadline installer
-  CloudWatch LogGroup tests
-    ✓ DL-1-4: Verify CloudWatch LogGroup contains two LogStreams
-    ✓ DL-2-4: Verify CloudWatch LogGroup contains two LogStreams
-    ✓ DL-1-5: Verify cloud-init-output LogStream (1622 ms)
-    ✓ DL-2-5: Verify cloud-init-output LogStream (1608 ms)
-    ✓ DL-1-6: Verify DeadlineRepositoryInstallationLogs LogStream (510 ms)
-    ✓ DL-2-6: Verify DeadlineRepositoryInstallationLogs LogStream (672 ms)
-
-Test Suites: 1 passed, 1 total
-Tests:       12 passed, 12 total
-Snapshots:   0 total
-Time:        13.803 s, estimated 19 s
+Pretest setup runtime: 0m 8s
+Infrastructure stack deploy runtime: 0m 9s
+Infrastructure stack cleanup runtime: 1m 46s
+Results for test component deadline_01_repository: 
+  -Tests ran: 21
+  -Tests passed: 21
+  -Tests failed: 0
+  -Deploy runtime:     0m 34s
+  -Test suite runtime: 0m 30s
+  -Cleanup runtime:    9m 0s
+Results for test component deadline_02_renderQueue: 
+  -Tests ran: 8
+  -Tests passed: 8
+  -Tests failed: 0
+  -Deploy runtime:     23m 41s
+  -Test suite runtime: 0m 55s
+  -Cleanup runtime:    16m 2s
+Results for test component deadline_03_workerFleet: 
+  -Tests ran: 16
+  -Tests passed: 16
+  -Tests failed: 0
+  -Deploy runtime:     49m 44s
+  -Test suite runtime: 3m 3s
+  -Cleanup runtime:    55m 34s
 ```

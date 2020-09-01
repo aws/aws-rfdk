@@ -17,7 +17,7 @@ function deploy_component_stacks () {
 function execute_component_test () {
   TEST_NAME=$1
   echo "Running test suite..."
-  npm run test $TEST_NAME
+  yarn run test "$TEST_NAME.test" --json --outputFile="./.e2etemp/$TEST_NAME.json"
   echo "Test suite complete."
 
   return 0
