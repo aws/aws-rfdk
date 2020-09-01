@@ -6,8 +6,9 @@
 set -euo pipefail
 
 OPTION=${1:-undefined}
+COMPONENT_NAME="deadline_03_workerFleet"
 
-if [[ $(basename $(pwd)) != *workerFleet ]]; then
+if [[ $(basename $(pwd)) != $COMPONENT_NAME ]]; then
   echo "ERROR: Script must be run from top directory of test component"
   exit 1
 fi
@@ -18,11 +19,11 @@ source "../common/functions/deploy-utils.sh"
 if [ ! "${SKIP_DEADLINE_WORKER_TEST-}" == true ]; then
 
   if [[ $OPTION != '--destroy-only' ]]; then
-    deploy_component_stacks "Deadline WorkerInstanceFleet"
-    execute_component_test "deadline_03_workerFleet"
+    deploy_component_stacks $COMPONENT_NAME
+    execute_component_test $COMPONENT_NAME
   fi
   if [[ $OPTION != '--deploy-only' ]]; then
-    destroy_component_stacks "Deadline WorkerInstanceFleet"
+    destroy_component_stacks $COMPONENT_NAME
   fi
 
 fi
