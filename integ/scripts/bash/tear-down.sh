@@ -20,10 +20,11 @@ fi
 
 for COMPONENT in **/cdk.json; do
     COMPONENT_ROOT="$(dirname "$COMPONENT")"
+    COMPONENT_NAME=$(basename "$COMPONENT_ROOT")
     # Use a pattern match to exclude the infrastructure app from the results
     if [[ "$(basename "$COMPONENT_ROOT")" != _* ]]; then
         # Excecute the e2e test in the component's scripts directory
-        cd "$INTEG_ROOT/$COMPONENT_ROOT" && ./scripts/bash/e2e.sh --destroy-only
+        cd "$INTEG_ROOT/$COMPONENT_ROOT" && ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" --destroy-only
     fi
 done
 

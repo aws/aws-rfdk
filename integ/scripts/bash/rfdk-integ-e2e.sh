@@ -15,18 +15,20 @@ export TEST_START_TIME="$(date +%s)"
 SECONDS=$TEST_START_TIME
 
 export INTEG_ROOT="$(pwd)"
+BASH_SCRIPTS="$INTEG_ROOT/scripts/bash"
 
-# RFDK version is passed in as first argument (taken from package.json)
-export RFDK_VERSION=$1
-
-# Can supply parameter "--cleanup-on-failure" to tear down stacks if deployment errors
-OPTION=$2
+# Load environment variables from config file
+if [ ! "${SKIP_TEST_CONFIG-}" = true ]; then
+  # Load variables from config file
+  echo "Loading config..."
+  source "$INTEG_ROOT/test-config.sh"
+fi
 
 # Set variables from script
-source $INTEG_ROOT/scripts/bash/set-test-variables.sh
+source $BASH_SCRIPTS/set-test-variables.sh
 
 # Make sure SSPL license has been accepted if running repository test
-if [ ! "${SKIP_DEADLINE_REPOSITORY_TEST-}" == true ]; then
+if [ ! "${SKIP_deadline_01_repository_TEST-}" = true ]; then
     if [ $USER_ACCEPTS_SSPL_FOR_RFDK_TESTS != true ]; then
         echo "Error: SSPL license has not been accepted for repository test; test will not run. See README.md for details"
         exit 1
@@ -38,11 +40,11 @@ export INTEG_TEMP_DIR="$INTEG_ROOT/.e2etemp"
 mkdir -p $INTEG_TEMP_DIR
 
 # Stage deadline from script
-$INTEG_ROOT/scripts/bash/stage-deadline.sh
+$BASH_SCRIPTS/stage-deadline.sh
 
 # If executing worker fleet tests, find Deadline AMIs based on supplied version
-if [ ! "${SKIP_DEADLINE_WORKER_TEST-}" == true ]; then
-    $INTEG_ROOT/scripts/bash/fetch-worker-amis.sh
+if [ ! "${SKIP_deadline_03_repository_TEST-}" = true ]; then
+    source $BASH_SCRIPTS/fetch-worker-amis.sh
 fi
 
 # Create a unique tag to add to stack names and some resources
@@ -55,8 +57,14 @@ export PRETEST_FINISH_TIME=$SECONDS
 
 echo "Starting RFDK-integ end-to-end tests"
 
+# Define cleanup function for deployment failure
+cleanup_on_failure () {
+    yarn run tear-down
+    exit 1
+}
+
 # Deploy the infrastructure app, a cdk app containing only a VPC to be supplied to the following tests
-# $INTEG_ROOT/scripts/bash/deploy-infrastructure.sh || yarn run tear-down
+$BASH_SCRIPTS/deploy-infrastructure.sh || cleanup_on_failure
 
 # Mark infrastructure deploy finish time
 export INFRASTRUCTURE_DEPLOY_FINISH_TIME=$SECONDS
@@ -69,7 +77,7 @@ for COMPONENT in **/cdk.json; do
     export ${COMPONENT_NAME}_START_TIME=$SECONDS
     if [[ "$COMPONENT_NAME" != _* ]]; then
         # Excecute the e2e test in the component's scripts directory
-        cd "$INTEG_ROOT/$COMPONENT_ROOT" && ./scripts/bash/e2e.sh --destroy-only || yarn run tear-down
+        cd "$INTEG_ROOT/$COMPONENT_ROOT" && ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" || cleanup_on_failure
     fi
     export ${COMPONENT_NAME}_FINISH_TIME=$SECONDS
 done
@@ -79,7 +87,7 @@ export INFRASTRUCTURE_DESTROY_START_TIME=$SECONDS
 
 # Destroy the infrastructure stack on completion
 cd $INTEG_ROOT
-$INTEG_ROOT/scripts/bash/teardown-infrastructure.sh || yarn run tear-down
+$BASH_SCRIPTS/teardown-infrastructure.sh || cleanup_on_failure
 
 # Mark infrastructure destroy finish time
 export INFRASTRUCTURE_DESTROY_FINISH_TIME=$SECONDS
@@ -89,7 +97,7 @@ cd "$INTEG_ROOT"
 echo "Complete!"
 
 # Report results
-$INTEG_ROOT/scripts/bash/report-test-results.sh
+$BASH_SCRIPTS/report-test-results.sh
 
 echo "Cleaning up folders..."
 yarn run clean

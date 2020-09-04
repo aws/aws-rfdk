@@ -22,6 +22,6 @@ export LINUX_DEADLINE_AMI_ID
 export WINDOWS_DEADLINE_AMI_ID
 
 # Configure test suites to include in end-to-end test
-export SKIP_DEADLINE_REPOSITORY_TEST
-export SKIP_DEADLINE_RENDERQ_TEST
-export SKIP_DEADLINE_WORKER_TEST
+export SKIP_deadline_01_repository_TEST
+export SKIP_deadline_02_renderQueue_TEST
+export SKIP_deadline_03_workerFleet_TEST

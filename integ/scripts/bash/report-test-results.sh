@@ -3,6 +3,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+set -euo pipefail
+shopt -s globstar
+
 PRETEST_TIME=$(( $PRETEST_FINISH_TIME - $TEST_START_TIME ))
 echo "Pretest setup runtime: $((($PRETEST_TIME / 60) % 60))m $(($PRETEST_TIME % 60))s"
 
@@ -17,7 +20,6 @@ report_results () {
     COMPONENT_NAME=$1
 
     if [ $(ls "$INTEG_TEMP_DIR/$COMPONENT_NAME.json" 2> /dev/null) ]; then
-
         # Get test numbers from jest output
         TESTS_RAN=$(node -e $'const json = require(process.argv[1]); console.log(json.numTotalTests)' "$INTEG_TEMP_DIR/$COMPONENT_NAME.json")
         TESTS_PASSED=$(node -e $'const json = require(process.argv[1]); console.log(json.numPassedTests)' "$INTEG_TEMP_DIR/$COMPONENT_NAME.json")

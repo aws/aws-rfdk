@@ -9,27 +9,27 @@ function deploy_component_stacks () {
 
   echo "Deploying test app for $COMPONENT_NAME test suite"
   npx cdk deploy "*" --require-approval=never
-  echo "Test app deployed."
+  echo "Test app $COMPONENT_NAME deployed."
   
   return 0
 }
 
 function execute_component_test () {
-  TEST_NAME=$1
-  echo "Running test suite..."
-  yarn run test "$TEST_NAME.test" --json --outputFile="./.e2etemp/$TEST_NAME.json"
-  echo "Test suite complete."
+  COMPONENT_NAME=$1
+  echo "Running test suite $COMPONENT_NAME..."
+  yarn run test "$COMPONENT_NAME.test" --json --outputFile="./.e2etemp/$COMPONENT_NAME.json"
+  echo "Test suite $COMPONENT_NAME complete."
 
   return 0
 }
 
 function destroy_component_stacks () {
   COMPONENT_NAME=$1
-  echo "Destroying test app..."
+  echo "Destroying test app $COMPONENT_NAME..."
   npx cdk destroy "*" -f
   rm -f "./cdk.context.json"
   rm -rf "./cdk.out"
-  echo "Test app destroyed."
+  echo "Test app $COMPONENT_NAME destroyed."
 
   return 0
 }
