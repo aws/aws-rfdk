@@ -73,6 +73,85 @@ abstract class VersionQueryBase extends Construct implements IVersion {
 }
 
 /**
+  * This class is reposonsible to do basic operations on version format.
+  */
+export class Version {
+
+  /**
+   * This method parses the input string and returns the version object.
+   *
+   * @param version version string to parse
+   */
+  public static parse(version: string): Version {
+    if (!Version.validateVersionFormat(version)) {
+      throw new TypeError(`Invalid version format. Expected format 'a.b.c.d', found '${version}'`);
+    }
+
+    return new Version(version.split('.').map(x => parseInt(x)));
+  }
+
+  /**
+   * This method validates the given string for a sequence '.' separated numbers.
+   *
+   * @param version the string to be validated.
+   *
+   * @returns true if the format is correct, else false.
+   */
+  private static validateVersionFormat(version: string): boolean {
+    /**
+     * Regex: ^\d+(?:\.\d+){3}$
+     * Matches a sequence of '.' separated numbers with exactly 4 digits.
+     * - ^ asserts position at start of a line.
+     * - \d+ Matches one or more digits.
+     * - (?:\.\d+) Matches a dot and the following one or more digits.
+     * - {3} Matches previous pattern exactly 3 times.
+     * - $ asserts position at the end of a line
+     */
+    if (version.match(/^\d+(?:\.\d+){3}$/g)) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Numeric components of version.
+   */
+  public readonly components: number[];
+
+  constructor(components: number[]) {
+    this.components = components;
+  }
+
+  /**
+   * This method compares two version strings
+   *
+   * @param version
+   *
+   * @returns true if this version is greater than the provided version;
+   * false if this version is less than or equal to the provided verison.
+   */
+  public isGreaterThan(version: Version): boolean {
+    if (this.components.length != version.components.length) {
+      throw new TypeError('Component count in both the versions should be same.');
+    }
+
+    for (let i = 0; i < this.components.length; i++) {
+      if (this.components[i] != version.components[i]) {
+        return this.components[i] > version.components[i];
+      }
+    }
+    return false;
+  }
+
+  /**
+   * The method returns the version components in dot separated string format.
+   */
+  public toString(): string {
+    return this.components.join('.');
+  }
+}
+
+/**
  * This class encapsulates information about a particular version of Thinkbox's Deadline software.
  * Information such as the version number, and where to get installers for that version from Amazon S3.
  *
@@ -100,16 +179,13 @@ export class VersionQuery extends VersionQueryBase {
    * @param versionstr The input version string
    */
   public static parseVersionString(versionstr: string): IPatchVersion {
-    const match = VersionQuery.RE_FULL_VERSION.exec(versionstr);
-    if (!match) {
-      throw new Error(`"${versionstr}" is not a valid version`);
-    }
+    const version = Version.parse(versionstr);
 
     return {
-      majorVersion: parseInt(match.groups!.major, 10),
-      minorVersion: parseInt(match.groups!.minor, 10),
-      releaseVersion: parseInt(match.groups!.release, 10),
-      patchVersion: parseInt(match.groups!.patch, 10),
+      majorVersion: version.components[0],
+      minorVersion: version.components[1],
+      releaseVersion: version.components[2],
+      patchVersion: version.components[3],
     };
   }
 
@@ -190,11 +266,6 @@ export class VersionQuery extends VersionQueryBase {
   public static exactString(scope: Construct, id: string, versionString: string) {
     return VersionQuery.exact(scope, id, VersionQuery.parseVersionString(versionString));
   }
-
-  /**
-   * Regular expression for matching a Deadline release version number
-   */
-  private static readonly RE_FULL_VERSION = /^(?<major>\d+)\.(?<minor>\d+)\.(?<release>\d+)\.(?<patch>\d+)$/;
 
   /**
    * @inheritdoc

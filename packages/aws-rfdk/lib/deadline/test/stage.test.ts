@@ -93,7 +93,7 @@ describe('Stage', () => {
       // THEN
       expect(() => {
         require('../lib').Stage.fromDirectory(STAGE_PATH) // eslint-disable-line
-      }).toThrow('Staged Deadline Version (10.1.8.0) is less than the minimum supported version (10.1.9)');
+      }).toThrow('Staged Deadline Version (10.1.8.0) is less than the minimum supported version (10.1.9.2)');
 
       readFileSync.mockRestore();
       jest.resetModules();
@@ -194,10 +194,10 @@ describe('Stage', () => {
         'version not supported', {
           manifest: {
             schema: 1,
-            version: '10.1',
+            version: '10.1.0.0',
             recipes: {},
           },
-          expectedError: 'Staged Deadline Version (10.1) is less than the minimum supported version (10.1.9)',
+          expectedError: 'Staged Deadline Version (10.1.0.0) is less than the minimum supported version (10.1.9.2)',
         },
       ],
     ])('%s', (_name, testcase) => {
