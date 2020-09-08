@@ -11,6 +11,10 @@ yarn-error.log
 **/cdk.context.json
 test-output/
 
+# Deadline staging
+stage/
+.e2etemp/
+
 # Include eslint config
 !.eslintrc.js
 

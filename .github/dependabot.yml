@@ -14,7 +14,11 @@ updates:
       - dependency-name: "@types/node"
         versions: ">=11.0.0-0"
       - dependency-name: "constructs"
-        versions: ">=3.0.2"
+        versions: ">=3.0.4"
       - dependency-name: "@aws-cdk/*"
     commit-message:
       prefix: "chore(deps):"
+  - package-ecosystem: "github-actions"
+    directory: "/" # Location of .github/workflows
+    schedule:
+      interval: "daily"

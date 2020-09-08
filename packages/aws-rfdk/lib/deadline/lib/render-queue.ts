@@ -150,8 +150,6 @@ abstract class RenderQueueBase extends Construct implements IRenderQueue {
  * - The RenderQueue can be deployed with network encryption through Transport Layer Security (TLS) or without it. Unencrypted
  *   network communications can be eavesdropped upon or modified in transit. We strongly recommend deploying the RenderQueue
  *   with TLS enabled in production environments.
- *
- * @ResourcesDeployed
  */
 export class RenderQueue extends RenderQueueBase implements IGrantable {
   /**

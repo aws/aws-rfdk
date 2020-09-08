@@ -48,6 +48,6 @@ rm -rf $BUILD_INDICATOR
 
 echo "============================================================================================="
 echo "building..."
-time lerna run $bail --stream $runtarget || fail
+time lerna run $bail --stream $runtarget  --ignore 'all-in-farm**' || fail
 
 touch $BUILD_INDICATOR

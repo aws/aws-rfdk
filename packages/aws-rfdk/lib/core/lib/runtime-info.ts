@@ -7,7 +7,7 @@ import * as path from 'path';
 
 import {
   Construct,
-  Tag,
+  Tags,
 } from '@aws-cdk/core';
 
 /**
@@ -37,5 +37,5 @@ export function tagConstruct<T extends Construct>(scope: T) {
   // The constructor property is a reference to the "function" used to create
   const className = scope.constructor.name;
   const value = `${RFDK_VERSION}:${className}`;
-  Tag.add(scope, TAG_NAME, value);
+  Tags.of(scope).add(TAG_NAME, value);
 }

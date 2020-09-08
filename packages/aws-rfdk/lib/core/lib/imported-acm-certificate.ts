@@ -26,6 +26,7 @@ import {
   CustomResource,
   Duration,
   RemovalPolicy,
+  ResourceEnvironment,
   Stack,
   Tag,
   Token,
@@ -89,8 +90,6 @@ export interface ImportedAcmCertificateProps {
  * - The AWS Lambda for this construct also has broad IAM permissions to delete any Certificate that is stored
  *   in AWS Certificate Manager. You should not grant any additional actors/principals the ability to modify or
  *   execute this Lambda.
- *
- * @ResourcesDeployed
  */
 export class ImportedAcmCertificate extends Construct implements ICertificate {
   private static IMPORTER_UUID = '2d20d8f2-7b84-444e-b738-c75b499a9eaa';
@@ -100,6 +99,7 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
    */
   public readonly certificateArn: string;
   public readonly stack: Stack;
+  public readonly env: ResourceEnvironment;
   // The DynamoDB Table that is used as a backing store for the CustomResource utilized in this construct.
   protected readonly database: Table;
   protected readonly uniqueTag: Tag;
@@ -108,6 +108,10 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
     super(scope, id);
 
     this.stack = Stack.of(this);
+    this.env = {
+      account: this.stack.account,
+      region: this.stack.region,
+    };
 
     this.database = new Table(this, 'Table', {
       partitionKey: { name: 'PhysicalId', type: AttributeType.STRING },
