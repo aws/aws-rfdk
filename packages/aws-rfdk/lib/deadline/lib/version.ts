@@ -107,7 +107,7 @@ export class Version {
      * - {3} Matches previous pattern exactly 3 times.
      * - $ asserts position at the end of a line
      */
-    if (version.match(/^\d+(?:\.\d+){3}$/g)) {
+    if (version.match(/^\d+(?:\.\d+){3}$/)) {
       return true;
     }
     return false;
