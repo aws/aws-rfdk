@@ -11,8 +11,8 @@ export {CWA_ASSET_LINUX};
 
 // configureWorker.sh
 export const CONFIG_WORKER_ASSET_LINUX = {
-  Bucket: 'AssetParametersa810f21f4258d08568527cf4e84b9e181325808b7a0f8c67201f6283cde4b0d9S3Bucket21CCAD64',
-  Key: 'AssetParametersa810f21f4258d08568527cf4e84b9e181325808b7a0f8c67201f6283cde4b0d9S3VersionKey597740B2',
+  Bucket: 'AssetParameters0311c54f883ccefe9fa85f0fcc23a25a6eef18f3ced463fbd83643bd819234ceS3Bucket518442D6',
+  Key: 'AssetParameters0311c54f883ccefe9fa85f0fcc23a25a6eef18f3ced463fbd83643bd819234ceS3VersionKey95A6A5D5',
 };
 
 // configureWorker.ps1

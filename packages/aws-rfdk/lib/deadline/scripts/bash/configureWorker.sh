@@ -37,12 +37,7 @@ if [ ! -f "$DEADLINE_COMMAND" ]; then
 fi
 
 isVersionLessThan() {
-    local RESULT=$(python -c "import sys;print(tuple(map(int,\"$1\".split('.'))) < tuple(map(int, \"$2\".split('.'))))")
-    case $RESULT in
-        True) echo true ;;
-        False) echo false ;;
-        *) echo "ERROR: Unknown boolean value \"$RESULT\"" 1>&2; exit 1 ;;
-    esac
+    python -c "import sys;sys.exit(0 if tuple(map(int, sys.argv[-2].split('.'))) < tuple(map(int, sys.argv[-1].split('.'))) else 1)" "$1" "$2"
 }
 
 DEADLINE_VERSION=$("$DEADLINE_COMMAND" -Version | grep -oP '[v]\K\d+\.\d+\.\d+\.\d+\b')

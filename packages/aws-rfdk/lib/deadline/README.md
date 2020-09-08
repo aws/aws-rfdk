@@ -8,7 +8,7 @@ import * as deadline from 'aws-rfdk/deadline';
 
 ---
 
-_**Note:** Current version of RFDK supports constructs for Deadline 10.1.9 and later._
+_**Note:** RFDK constructs currently support Deadline 10.1.9 and later._
 
 ---
 
