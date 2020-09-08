@@ -21,7 +21,9 @@ These instructions assume that your working directory is `examples/deadline/All-
 
     ```python
     # For example, in the us-west-2 region
-    self.deadline_client_linux_ami_map: Mapping[str, str] = {'us-west-2': '<your ami id'}
+    self.deadline_client_linux_ami_map: Mapping[str, str] = {
+        'us-west-2': '<your ami id>'
+    }
     ```
 3.  Create a binary secret in [SecretsManager](https://aws.amazon.com/secrets-manager/) that contains your [Usage-Based Licensing](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/aws-portal/licensing-setup.html?highlight=usage%20based%20licensing) certificates in a `.zip` file:
 
@@ -38,10 +40,10 @@ These instructions assume that your working directory is `examples/deadline/All-
     ```python
     self.ubl_licenses: List[UsageBasedLicense] = [
         # your UBL limits, for example:
-        #
+
         # up to 10 concurrent Maya licenses used at once
         UsageBasedLicense.for_maya(10),
-        #
+
         # unlimited Arnold licenses
         UsageBasedLicense.for_arnold()
     ]
@@ -57,12 +59,16 @@ These instructions assume that your working directory is `examples/deadline/All-
     ```bash
     aws ec2 create-key-pair --key-name <key-name>
     ```
-7.  Change the value of the `key_pair_name` variable in `package/config.py` to your value for `<key-name>` in the previous step: <br><br>**Note:** Save the value of the "KeyMaterial" field as a file in a secure location. This is your private key that you can use to SSH into the render farm.
+7.  Change the value of the `key_pair_name` variable in `package/config.py` to your value for `<key-name>` in the previous step:
+
+    **Note:** Save the value of the `"KeyMaterial"` field as a file in a secure location. This is your private key that you can use to SSH into the render farm.
 
     ```python
     self.key_pair_name: Optional[str] = '<your key pair name>'
     ```
-8.  Choose the type of database you would like to deploy and change the value of the `deploy_mongo_db` variable in `package/config.py` accordingly:
+8.  Choose the type of database you would like to deploy (AWS DocumentDB or MongoDB).
+    If you would like to use MongoDB, you will need to accept the Mongo SSPL (see next step).
+    Once you've decided on a database type, change the value of the `deploy_mongo_db` variable in `package/config.py` accordingly:
 
     ```python
     # True = MongoDB, False = Amazon DocumentDB
@@ -71,15 +77,18 @@ These instructions assume that your working directory is `examples/deadline/All-
 9.  If you set `deploy_mongo_db` to `True`, then you must accept the [SSPL license](https://www.mongodb.com/licensing/server-side-public-license) to successfully deploy MongoDB. To do so, change the value of `accept_sspl_license` in `package/config.py`:
 
     ```python
+    # To accept the MongoDB SSPL, change from USER_REJECTS_SSPL to USER_ACCEPTS_SSPL
     self.accept_sspl_license: MongoDbSsplLicenseAcceptance = MongoDbSsplLicenseAcceptance.USER_REJECTS_SSPL
     ```
 10. Stage the Docker recipes for `RenderQueue` and `UBLLicensing`:
 
     ```bash
     # Set this value to the version of RFDK your application targets
-    RFDK_VERSION=
-    # Set this value to the version of AWS Thinkbox Deadline you'd like to deploy to your farm
-    RFDK_DEADLINE_VERSION=
+    RFDK_VERSION=<version_of_RFDK>
+
+    # Set this value to the version of AWS Thinkbox Deadline you'd like to deploy to your farm. Deadline 10.1.9 and up are supported.
+    RFDK_DEADLINE_VERSION=<version_of_deadline>
+
     npx --package=aws-rfdk@${RFDK_VERSION} stage-deadline \
         --deadlineInstallerURI s3://thinkbox-installers/Deadline/${RFDK_DEADLINE_VERSION}/Linux/DeadlineClient-${RFDK_DEADLINE_VERSION}-linux-x64-installer.run \
         --dockerRecipesURI s3://thinkbox-installers/DeadlineDocker/${RFDK_DEADLINE_VERSION}/DeadlineDocker-${RFDK_DEADLINE_VERSION}.tar.gz \
