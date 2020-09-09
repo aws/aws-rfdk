@@ -144,6 +144,27 @@ export class Version {
   }
 
   /**
+   * This method compares two version strings
+   *
+   * @param version
+   *
+   * @returns true if this version is less than the provided version;
+   * false if this version is greater than or equal to the provided verison.
+   */
+  public isLessThan(version: Version): boolean {
+    if (this.components.length != version.components.length) {
+      throw new TypeError('Component count in both the versions should be same.');
+    }
+
+    for (let i = 0; i < this.components.length; i++) {
+      if (this.components[i] != version.components[i]) {
+        return this.components[i] < version.components[i];
+      }
+    }
+    return false;
+  }
+
+  /**
    * The method returns the version components in dot separated string format.
    */
   public toString(): string {

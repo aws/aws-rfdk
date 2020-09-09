@@ -72,6 +72,57 @@ describe('Version', () => {
 
   });
 
+  describe('.isLessThan', () => {
+    test.each<[string, { firstVersion: string, secondVersion: string, expectedValue: boolean }]>([
+      [
+        'equal version',
+        {
+          firstVersion: '1.1.1.1',
+          secondVersion: '1.1.1.1',
+          expectedValue: false,
+        },
+      ], [
+        'greater minor version',
+        {
+          firstVersion: '10.1.9.2',
+          secondVersion: '10.0.9.2',
+          expectedValue: false,
+        },
+      ], [
+        'greater patch version',
+        {
+          firstVersion: '1.1.1.2',
+          secondVersion: '1.1.1.1',
+          expectedValue: false,
+        },
+      ], [
+        'less than',
+        {
+          firstVersion: '2.0.0.0',
+          secondVersion: '2.0.0.1',
+          expectedValue: true,
+        },
+      ],
+    ])('%s', (_name, testcase) => {
+      const { firstVersion, secondVersion, expectedValue } = testcase;
+
+      // WHEN
+      const lhs = Version.parse(firstVersion);
+      const result = lhs.isLessThan(Version.parse(secondVersion));
+
+      expect(result).toEqual(expectedValue);
+    });
+  });
+
+  describe('.isLessThan constructor', () => {
+
+    // WHEN
+    const lhs = new Version([10, 0, 9, 2]);
+    const result = lhs.isLessThan(Version.parse('10.1.9.2'));
+
+    expect(result).toEqual(true);
+  });
+
   describe('.parse', () => {
     test.each<[string, { version: string, expectedValue: boolean }]>([
       [
