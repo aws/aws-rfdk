@@ -66,10 +66,7 @@ const network = new NetworkTier(app, 'NetworkTier', { env });
 // --- Security Tier --- //
 // --------------------- //
 
-const security = new SecurityTier(app, 'SecurityTier', {
-  env,
-  vpc: network.vpc,
-});
+const security = new SecurityTier(app, 'SecurityTier', { env });
 
 // -------------------- //
 // --- Storage Tier --- //
