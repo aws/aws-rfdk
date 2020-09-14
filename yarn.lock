@@ -4196,10 +4196,10 @@ duplexify@^3.4.2, duplexify@^3.6.0:
     readable-stream "^2.0.0"
     stream-shift "^1.0.0"
 
-dynalite@^3.2.0:
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/dynalite/-/dynalite-3.2.0.tgz#dd9eeac7fd69e36ff71d11cb2e7920c1f4110f5b"
-  integrity sha512-ONNyuMiOX1ETiVYc4bj/Bd7lA78Su8VgO1EdLEhSpJr+xJ6DjzTvKZlmIq3mmuuEvc8VyFkjif2eEzV4SPZIOg==
+dynalite@^3.2.1:
+  version "3.2.1"
+  resolved "https://registry.yarnpkg.com/dynalite/-/dynalite-3.2.1.tgz#24f0f8db65ffe910b4e70b5cde3cbbd2203e1381"
+  integrity sha512-PgpagYk1ecSzhjGuFMuFHEuWJ0BNddqTrG89ra+Jhs0zgjr/IPoNCmrAdBUumy2Ds2hx8V3aNuLKpPbaGcVwtQ==
   dependencies:
     async "^2.6.3"
     big.js "^5.2.2"
