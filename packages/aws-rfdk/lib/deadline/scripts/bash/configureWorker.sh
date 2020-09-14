@@ -46,7 +46,7 @@ if [ -z "$DEADLINE_VERSION" ]; then
     exit 1
 fi
 MINIMUM_SUPPORTED_DEADLINE_VERSION="10.1.9"
-if $(isVersionLessThan $DEADLINE_VERSION $MINIMUM_SUPPORTED_DEADLINE_VERSION); then
+if isVersionLessThan $DEADLINE_VERSION $MINIMUM_SUPPORTED_DEADLINE_VERSION; then
     echo "ERROR: Installed Deadline Version ($DEADLINE_VERSION) is less than the minimum supported version ($MINIMUM_SUPPORTED_DEADLINE_VERSION). Exiting..."
     exit 1
 fi
