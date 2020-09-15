@@ -75,7 +75,12 @@ abstract class VersionQueryBase extends Construct implements IVersion {
 /**
   * This class is reposonsible to do basic operations on version format.
   */
-export class Version {
+export class Version implements IPatchVersion {
+
+  /**
+   * This variable holds the value for minimum supported deadline version.
+   */
+  public static readonly MINIMUM_SUPPORTED_DEADLINE_VERSION = new Version([10, 1, 9, 2]);
 
   /**
    * This method parses the input string and returns the version object.
@@ -116,9 +121,47 @@ export class Version {
   /**
    * Numeric components of version.
    */
-  public readonly components: number[];
+  private readonly components: number[];
+
+  /**
+   * @inheritdoc
+   */
+  public get majorVersion(): number {
+    return this.components[0];
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public get minorVersion(): number {
+    return this.components[1];
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public get releaseVersion(): number {
+    return this.components[2];
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public get patchVersion(): number {
+    return this.components[3];
+  }
 
   constructor(components: number[]) {
+    // validations
+    if(components.length != 4) {
+      throw new TypeError('Invalid version format. Version should contain exactly 4 components.');
+    }
+    components.forEach((component) => {
+      if (component < 0) {
+        throw new TypeError('Invalid version format. None of the version components can be negative.');
+      }
+    });
+
     this.components = components;
   }
 
@@ -190,26 +233,6 @@ export class Version {
  * constructs which version of Deadline you want them to use, and be configured for.
  */
 export class VersionQuery extends VersionQueryBase {
-  /**
-   * Parses a version string of the format:
-   *
-   *    <major>.<minor>.<release>.<patch>
-   *
-   * and extracts the components.
-   *
-   * @param versionstr The input version string
-   */
-  public static parseVersionString(versionstr: string): IPatchVersion {
-    const version = Version.parse(versionstr);
-
-    return {
-      majorVersion: version.components[0],
-      minorVersion: version.components[1],
-      releaseVersion: version.components[2],
-      patchVersion: version.components[3],
-    };
-  }
-
   /**
    * Specify a Deadline version from a fully-qualified Deadline patch version.
    *
@@ -285,7 +308,7 @@ export class VersionQuery extends VersionQueryBase {
    * @param versionString A fully qualified version string (e.g. 10.1.9.2)
    */
   public static exactString(scope: Construct, id: string, versionString: string) {
-    return VersionQuery.exact(scope, id, VersionQuery.parseVersionString(versionString));
+    return VersionQuery.exact(scope, id, Version.parse(versionString));
   }
 
   /**

@@ -114,7 +114,7 @@ describe('Version', () => {
     });
   });
 
-  describe('.isLessThan constructor', () => {
+  describe('.isLessThan using constructor', () => {
 
     // WHEN
     const lhs = new Version([10, 0, 9, 2]);
@@ -123,39 +123,79 @@ describe('Version', () => {
     expect(result).toEqual(true);
   });
 
-  describe('.parse', () => {
-    test.each<[string, { version: string, expectedValue: boolean }]>([
+  describe('constructor validation', () => {
+    test.each<[string, { version: number[], expectedException?: RegExp }]>([
+      [
+        'incorrect component count',
+        {
+          version: [10, 1, 9],
+          expectedException: /Invalid version format/,
+        },
+      ], [
+        'negative value',
+        {
+          version: [10, -1, 9],
+          expectedException: /Invalid version format/,
+        },
+      ], [
+        'decimal value',
+        {
+          version: [10, 1, 9.2],
+          expectedException: /Invalid version format/,
+        },
+      ], [
+        'correct value',
+        {
+          version: [10, 1, 9, 2],
+        },
+      ],
+    ])('%s', (_name, testcase) => {
+      const { version, expectedException } = testcase;
+
+      // WHEN
+      if (expectedException) {
+        expect(() => new Version(version)).toThrow(expectedException);
+      } else {
+        expect(() => new Version(version)).not.toThrow();
+      }
+    });
+  });
+
+  describe('.parse throws exception', () => {
+    test.each<[string, { version: string, expectedException?: RegExp }]>([
       [
         'ending with .',
         {
           version: '10.1.9.',
-          expectedValue: false,
+          expectedException: /Invalid version format/,
         },
       ], [
         'empty string',
         {
           version: '',
-          expectedValue: false,
+          expectedException: /Invalid version format/,
+        },
+      ], [
+        'negative value',
+        {
+          version: '10.-1.9.2',
+          expectedException: /Invalid version format/,
         },
       ], [
         'correct version',
         {
           version: '10.1.9.2',
-          expectedValue: true,
         },
       ],
     ])('%s', (_name, testcase) => {
-      const { version, expectedValue } = testcase;
-      // WHEN
-      let result = false;
-      try {
-        Version.parse(version);
-        result = true;
-      } catch (error) {
-      } finally {
-      }
+      const { version, expectedException } = testcase;
 
-      expect(result).toEqual(expectedValue);
+      // WHEN
+      if(expectedException) {
+        expect(() => Version.parse(version)).toThrow(expectedException);
+      } else {
+        expect(() => Version.parse(version)).not.toThrow();
+      }
     });
   });
 });

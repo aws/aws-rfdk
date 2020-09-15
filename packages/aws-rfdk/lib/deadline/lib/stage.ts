@@ -160,10 +160,9 @@ export class Stage {
     }
 
     // Do minimum supported deadline version check
-    const minimumSupportedVersion = new Version([10, 1, 9, 2]);
     const stagedVersion = Version.parse(version);
-    if (stagedVersion.isLessThan(minimumSupportedVersion)) {
-      throw new TypeError(`Staged Deadline Version (${version}) is less than the minimum supported version (${minimumSupportedVersion.toString()})`);
+    if (stagedVersion.isLessThan(Version.MINIMUM_SUPPORTED_DEADLINE_VERSION)) {
+      throw new TypeError(`Staged Deadline Version (${version}) is less than the minimum supported version (${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()})`);
     }
 
     return true;

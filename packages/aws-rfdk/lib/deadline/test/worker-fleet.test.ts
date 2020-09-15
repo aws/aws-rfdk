@@ -46,6 +46,7 @@ import {
   Repository,
   VersionQuery,
   WorkerInstanceFleet,
+  Version,
 } from '../lib';
 import {
   CONFIG_WORKER_ASSET_LINUX,
@@ -685,7 +686,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             },
           ],
         },
-        "' '6161' '' '' ''",
+        `' '6161' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}'`,
       ],
     ],
   });
@@ -1085,7 +1086,7 @@ test('default worker fleet is created correctly with groups, pools and region', 
           },
         ],
       },
-      "' '63415' 'a,b' 'c,d' 'E'",
+      `' '63415' 'a,b' 'c,d' 'E' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}'`,
     ]],
   });
 });
