@@ -154,11 +154,11 @@ export class Version implements IPatchVersion {
   constructor(components: number[]) {
     // validations
     if(components.length != 4) {
-      throw new TypeError('Invalid version format. Version should contain exactly 4 components.');
+      throw new Error('Invalid version format. Version should contain exactly 4 components.');
     }
     components.forEach((component) => {
       if (component < 0) {
-        throw new TypeError('Invalid version format. None of the version components can be negative.');
+        throw new RangeError('Invalid version format. None of the version components can be negative.');
       }
     });
 

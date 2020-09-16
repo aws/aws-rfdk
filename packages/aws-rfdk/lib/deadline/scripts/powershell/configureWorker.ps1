@@ -9,9 +9,7 @@ param (
     [Parameter(Mandatory=$True)]
     $workerPools,
     [Parameter(Mandatory=$True)]
-    $workerRegion,
-    [Parameter(Mandatory=$True)]
-    $minimumSupportedDeadlineVersion
+    $workerRegion
 )
 
 Set-PSDebug -Trace 1

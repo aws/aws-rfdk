@@ -56,7 +56,6 @@ import {
 import {
   IRenderQueue,
 } from './render-queue';
-import { Version } from './version';
 
 /**
  * Interface for Deadline Worker Fleet.
@@ -549,7 +548,6 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
         `'${groups}'`,
         `'${pools}'`,
         `'${props.region || ''}'`,
-        `'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}'`,
       ],
     });
   }
