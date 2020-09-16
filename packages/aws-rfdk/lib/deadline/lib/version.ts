@@ -178,12 +178,7 @@ export class Version implements IPatchVersion {
       throw new TypeError('Component count in both the versions should be same.');
     }
 
-    for (let i = 0; i < this.components.length; i++) {
-      if (this.components[i] != version.components[i]) {
-        return this.components[i] > version.components[i];
-      }
-    }
-    return false;
+    return this.compare(version) > 0;
   }
 
   /**
@@ -199,12 +194,7 @@ export class Version implements IPatchVersion {
       throw new TypeError('Component count in both the versions should be same.');
     }
 
-    for (let i = 0; i < this.components.length; i++) {
-      if (this.components[i] != version.components[i]) {
-        return this.components[i] < version.components[i];
-      }
-    }
-    return false;
+    return this.compare(version) < 0;
   }
 
   /**
@@ -212,6 +202,25 @@ export class Version implements IPatchVersion {
    */
   public toString(): string {
     return this.components.join('.');
+  }
+
+  /**
+   * This method compares 2 versions.
+   *
+   * @param version version to compare
+   *
+   * @returns negative value if this version is less than the provided version;
+   * 0 if both the versions are equal;
+   * positive value if this version is greater than the provided verison.
+   */
+  private compare(version: Version): number {
+    for (let i = 0; i < version.components.length; i++) {
+      const diff = this.components[i] - version.components[i];
+      if (diff != 0) {
+        return diff;
+      }
+    }
+    return 0;
   }
 }
 
