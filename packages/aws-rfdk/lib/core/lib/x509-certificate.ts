@@ -236,11 +236,20 @@ abstract class X509CertificateBase extends Construct {
  *
  * Resources Deployed
  * ------------------------
- * 1) DynamoDB Table - Used for tracking resources created by the Custom Resource.
- * 2) Secrets - 4 in total, for the certificate, it's private key, the passphrase to the key, and the cert chain.
- * 3) Lambda Function, with role - Used to create/update/delete the Custom Resource
+ * - DynamoDB Table - Used for tracking resources created by the Custom Resource.
+ * - Secrets - 4 in total, for the certificate, it's private key, the passphrase to the key, and the cert chain.
+ * - Lambda Function, with role - Used to create/update/delete the Custom Resource
  *
- * @ResourcesDeployed
+ * Security Considerations
+ * ------------------------
+ * - The AWS Lambda that is deployed through this construct will be created from a deployment package
+ *   that is uploaded to your CDK bootstrap bucket during deployment. You must limit write access to
+ *   your CDK bootstrap bucket to prevent an attacker from modifying the actions performed by this Lambda.
+ *   We strongly recommend that you either enable Amazon S3 server access logging on your CDK bootstrap bucket,
+ *   or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - Access to the AWS SecretsManager Secrets that are created by this construct should be tightly restricted
+ *   to only the principal(s) that require access.
  */
 export class X509CertificatePem extends X509CertificateBase implements IX509CertificatePem {
   public readonly cert: ISecret;
@@ -379,11 +388,20 @@ export interface IX509CertificatePkcs12 extends IConstruct {
  *
  * Resources Deployed
  * ------------------------
- * 1) DynamoDB Table - Used for tracking resources created by the CustomResource.
- * 2) Secrets - 2 in total, The binary of the PKCS #12 certificate and its passphrase.
- * 3) Lambda Function, with role - Used to create/update/delete the CustomResource.
+ * - DynamoDB Table - Used for tracking resources created by the CustomResource.
+ * - Secrets - 2 in total, The binary of the PKCS #12 certificate and its passphrase.
+ * - Lambda Function, with role - Used to create/update/delete the CustomResource.
  *
- * @ResourcesDeployed
+ * Security Considerations
+ * ------------------------
+ * - The AWS Lambda that is deployed through this construct will be created from a deployment package
+ *   that is uploaded to your CDK bootstrap bucket during deployment. You must limit write access to
+ *   your CDK bootstrap bucket to prevent an attacker from modifying the actions performed by this Lambda.
+ *   We strongly recommend that you either enable Amazon S3 server access logging on your CDK bootstrap bucket,
+ *   or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - Access to the AWS SecretsManager Secrets that are created by this construct should be tightly restricted
+ *   to only the principal(s) that require access.
  */
 export class X509CertificatePkcs12 extends X509CertificateBase implements IX509CertificatePkcs12 {
 

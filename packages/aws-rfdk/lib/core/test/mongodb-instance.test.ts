@@ -139,7 +139,7 @@ describe('Test MongoDbInstance', () => {
       Tags: arrayWith(
         objectLike({
           Key: 'VolumeGrantAttach-dff922f1fb3c0287b3759d461a48c4b8',
-          Value: 'b0381797ae9723313d35ad6f9aa815f2',
+          Value: '6238d22b121db8094cb816e2a49d2b61',
         }),
       ),
     }));
@@ -671,13 +671,15 @@ describe('Test MongoDbInstance', () => {
     }));
   });
 
-  test('is created with correct LogGroup prefix', () => {
+  test.each([
+    'test-prefix/',
+    '',
+  ])('is created with correct LogGroup prefix %s', (testPrefix: string) => {
     // GIVEN
-    const logGroupPrefix = 'test-prefix/';
-    const uniqueId = 'MongoDbInstance';
+    const id = 'MongoDbInstance';
 
     // WHEN
-    new MongoDbInstance(stack, uniqueId, {
+    new MongoDbInstance(stack, id, {
       mongoDb: {
         version,
         dnsZone,
@@ -687,45 +689,13 @@ describe('Test MongoDbInstance', () => {
       },
       vpc,
       logGroupProps: {
-        logGroupPrefix,
+        logGroupPrefix: testPrefix,
       },
     });
 
     // THEN
     cdkExpect(stack).to(haveResource('Custom::LogRetention', {
-      LogGroupName: logGroupPrefix + uniqueId,
-    }));
-  });
-
-  test('not using default LogGroup prefix if prefix is empty', () => {
-    // GIVEN
-    const logGroupPrefix = '';
-    const uniqueId = 'MongoDbInstance';
-    const expectedLogGroupName = logGroupPrefix + uniqueId;
-    const defaultLogGroupName = '/renderfarm/' + uniqueId;
-
-    // WHEN
-    new MongoDbInstance(stack, uniqueId, {
-      mongoDb: {
-        version,
-        dnsZone,
-        hostname,
-        serverCertificate: serverCert,
-        userSsplAcceptance,
-      },
-      vpc,
-      logGroupProps: {
-        logGroupPrefix,
-      },
-    });
-
-    // THEN
-    cdkExpect(stack).to(haveResource('Custom::LogRetention', {
-      LogGroupName: expectedLogGroupName,
-    }));
-
-    cdkExpect(stack).notTo(haveResource('Custom::LogRetention', {
-      LogGroupName: defaultLogGroupName,
+      LogGroupName: testPrefix + id,
     }));
   });
 

@@ -60,23 +60,26 @@ import sys
 import os
 import yaml
 
+
 def modify_storage_path(mongod_conf, storage_path):
-  # Should never happen that this isn't set, but play it safe. Set to out-of-the-box default.
-  storage_conf = mongod_conf.setdefault('storage', {
-    'journal': { 'enabled': 'true' }
-  })
-  storage_conf['dbPath'] = storage_path
+    # Should never happen that this isn't set, but play it safe. Set to out-of-the-box default.
+    storage_conf = mongod_conf.setdefault('storage', {
+        'journal': {'enabled': 'true'}
+    })
+    storage_conf['dbPath'] = storage_path
+
 
 def main():
-  if (len(sys.argv) < 2):
-    raise "ERROR -- Require the storage path as an argument."
-  storage_path = sys.argv[1]
-  if (not os.path.isdir(storage_path)):
-    raise "ERROR -- " + storage_path + " is not a directory."
-  
-  mongod_conf = yaml.load(sys.stdin)
-  modify_storage_path(mongod_conf, storage_path)
-  print yaml.dump(mongod_conf, default_flow_style=False)
+    if len(sys.argv) < 2:
+        raise Exception("ERROR -- Require the storage path as an argument.")
+    storage_path = sys.argv[1]
+    if not os.path.isdir(storage_path):
+        raise Exception("ERROR -- {storage_path} is not a directory.".format(storage_path=storage_path))
+
+    mongod_conf = yaml.load(sys.stdin)
+    modify_storage_path(mongod_conf, storage_path)
+    print(yaml.dump(mongod_conf, default_flow_style=False))
+
 
 if __name__ == '__main__':
-  main()
+    main()

@@ -170,30 +170,9 @@ describe('RenderQueue', () => {
             LogDriver: 'awslogs',
             Options: {
               'awslogs-group': {
-                'Fn::Select': [
-                  6,
-                  {
-                    'Fn::Split': [
-                      ':',
-                      {
-                        'Fn::Join': [
-                          '',
-                          [
-                            'arn:',
-                            { Ref: 'AWS::Partition' },
-                            ':logs:',
-                            { Ref: 'AWS::Region' },
-                            ':',
-                            { Ref: 'AWS::AccountId' },
-                            ':log-group:',
-                            {
-                              'Fn::GetAtt': arrayWith('LogGroupName'),
-                            },
-                          ],
-                        ],
-                      },
-                    ],
-                  },
+                'Fn::GetAtt': [
+                  'RenderQueueCommonLogGroupWrapperA0EF7057',
+                  'LogGroupName',
                 ],
               },
               'awslogs-stream-prefix': 'RCS',

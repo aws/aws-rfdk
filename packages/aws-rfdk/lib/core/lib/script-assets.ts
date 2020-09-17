@@ -125,9 +125,15 @@ export interface ScriptAssetProps extends AssetProps {}
  *
  * Resources Deployed
  * ------------------------
- * 1) An Asset which is uploaded to the bootstrap S3 bucket.
+ * - An Asset which is uploaded to the bootstrap S3 bucket.
  *
- * @ResourcesDeployed
+ * Security Considerations
+ * ------------------------
+ * - Using this construct on an instance will result in that instance dynamically downloading and running scripts
+ *   from your CDK bootstrap bucket when that instance is launched. You must limit write access to your CDK bootstrap
+ *   bucket to prevent an attacker from modifying the actions performed by these scripts. We strongly recommend that
+ *   you either enable Amazon S3 server access logging on your CDK bootstrap bucket, or enable AWS CloudTrail on your
+ *   account to assist in post-incident analysis of compromised production environments.
  */
 export class ScriptAsset extends Asset {
   /**

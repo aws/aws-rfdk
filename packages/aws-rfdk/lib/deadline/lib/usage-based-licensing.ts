@@ -440,12 +440,21 @@ export interface UsageBasedLicensingProps {
  *
  * Resources Deployed
  * ------------------------
- * 1) The Auto Scaling Group (ASG) added to the Amazon ECS cluster that is hosting the Deadline License Forwarder for UBL.
- *    By default, creates one instance. The default instance type is C5 Large.
- * 2) Elastic Block Store device(s) associated with the EC2 instance(s) in the ASG. The default volume size is 30 GiB.
- * 3) The LogGroup if it doesn't exist already.
+ * - The Auto Scaling Group (ASG) added to the Amazon Elastic Container Service cluster that is hosting the Deadline
+ *   License Forwarder for UBL. This creates one C5 Large instance by default.
+ * - Amazon Elastic Block Store (EBS) device(s) associated with the EC2 instance(s) in the ASG. The default volume size is 30 GiB.
+ * - An Amazon CloudWatch log group that contains the logs from the Deadline License Forwarder application.
  *
- * @ResourcesDeployed
+ * Security Considerations
+ * ------------------------
+ * - The instances deployed by this construct download and run scripts from your CDK bootstrap bucket when that instance
+ *   is launched. You must limit write access to your CDK bootstrap bucket to prevent an attacker from modifying the actions
+ *   performed by these scripts. We strongly recommend that you either enable Amazon S3 server access logging on your CDK
+ *   bootstrap bucket, or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - The Deadline License Forwarder is designed to be secured by restricting network access to it. For security, only the Deadline
+ *   Workers that require access to Usage-based Licenses should be granted network access to the instances deployed by this construct.
+ *   Futhermore, you should restrict that access to only the product(s) that those workers require when deploying this construct.
  */
 export class UsageBasedLicensing extends Construct implements IGrantable {
   /**
@@ -523,7 +532,7 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
     containerEnv.UBL_CERTIFICATES_URI = props.certificateSecret.secretArn;
     props.certificateSecret.grantRead(taskDefinition.taskRole);
 
-    const prefix = props.logGroupProps?.logGroupPrefix ? props.logGroupProps.logGroupPrefix : UsageBasedLicensing.DEFAULT_LOG_GROUP_PREFIX;
+    const prefix = props.logGroupProps?.logGroupPrefix ?? UsageBasedLicensing.DEFAULT_LOG_GROUP_PREFIX;
     const defaultedLogGroupProps: LogGroupFactoryProps = {
       ...props.logGroupProps,
       logGroupPrefix: prefix,

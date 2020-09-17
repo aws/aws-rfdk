@@ -131,13 +131,25 @@ abstract class RenderQueueBase extends Construct implements IRenderQueue {
  *
  * Resources Deployed
  * ------------------------
- * 1) An ECS cluster
- * 2) An EC2 auto-scaling group that provides the EC2 container instances that host the ECS service
- * 3) An ECS service with a task definition that deploys the RCS container
- * 4) A CloudWatch bucket for streaming logs from the RCS container
- * 5) An application load balancer, listener and target group that balance incoming traffic among the RCS containers
+ * - An Amazon Elastic Container Service (ECS) cluster.
+ * - An AWS EC2 auto-scaling group that provides the instances that host the ECS service.
+ * - An ECS service with a task definition that deploys the Deadline Remote Connetion Server (RCS) in a container.
+ * - A Amazon CloudWatch log group for streaming logs from the Deadline RCS.
+ * - An application load balancer, listener and target group that balance incoming traffic among the RCS containers.
  *
- * @ResourcesDeployed
+ * Security Considerations
+ * ------------------------
+ * - The instances deployed by this construct download and run scripts from your CDK bootstrap bucket when that instance
+ *   is launched. You must limit write access to your CDK bootstrap bucket to prevent an attacker from modifying the actions
+ *   performed by these scripts. We strongly recommend that you either enable Amazon S3 server access logging on your CDK
+ *   bootstrap bucket, or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - Care must be taken to secure what can connect to the RenderQueue. The RenderQueue does not authenticate API
+ *   requests made against it. You must limit access to the RenderQueue endpoint to only trusted hosts. Those hosts
+ *   should be governed carefully, as malicious software could use the API to remotely execute code across the entire render farm.
+ * - The RenderQueue can be deployed with network encryption through Transport Layer Security (TLS) or without it. Unencrypted
+ *   network communications can be eavesdropped upon or modified in transit. We strongly recommend deploying the RenderQueue
+ *   with TLS enabled in production environments.
  */
 export class RenderQueue extends RenderQueueBase implements IGrantable {
   /**

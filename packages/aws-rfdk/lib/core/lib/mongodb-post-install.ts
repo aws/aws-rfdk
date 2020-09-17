@@ -145,7 +145,18 @@ export interface MongoDbPostInstallSetupProps {
  * - A CloudFormation Custom Resource that triggers execution of the Lambda on stack deployment, update, and deletion.
  * - An Amazon CloudWatch log group that records history of the AWS Lambda's execution.
  *
- * @ResourcesDeployed
+ * Security Considerations
+ * ------------------------
+ * - The AWS Lambda that is deployed through this construct will be created from a deployment package
+ *   that is uploaded to your CDK bootstrap bucket during deployment. You must limit write access to
+ *   your CDK bootstrap bucket to prevent an attacker from modifying the actions performed by this Lambda.
+ *   We strongly recommend that you either enable Amazon S3 server access logging on your CDK bootstrap bucket,
+ *   or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - The AWS Lambda function that is created by this resource has access to both the MongoDB administrator credentials,
+ *   and the MongoDB application port. An attacker that can find a way to modify and execute this lambda could use it to
+ *   modify or read any data in the database. You should not grant any additional actors/principals the ability to modify
+ *   or execute this Lambda.
  */
 export class MongoDbPostInstallSetup extends Construct {
   constructor(scope: Construct, id: string, props: MongoDbPostInstallSetupProps) {

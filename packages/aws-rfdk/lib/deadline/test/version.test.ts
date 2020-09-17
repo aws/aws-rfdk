@@ -13,10 +13,227 @@ import {
 } from '@aws-cdk/core';
 import {
   IVersion,
+  Version,
   VersionQuery,
 } from '../lib';
 
 let stack: Stack;
+
+describe('Version', () => {
+  describe('.isGreaterThan', () => {
+    test.each<[string, { firstVersion: string, secondVersion: string, expectedValue: boolean }]>([
+      [
+        'equal version',
+        {
+          firstVersion: '1.1.1.1',
+          secondVersion: '1.1.1.1',
+          expectedValue: false,
+        },
+      ], [
+        'less than',
+        {
+          firstVersion: '10.0.9.2',
+          secondVersion: '10.1.9.2',
+          expectedValue: false,
+        },
+      ], [
+        'less than',
+        {
+          firstVersion: '1.1.1.1',
+          secondVersion: '1.1.1.2',
+          expectedValue: false,
+        },
+      ], [
+        'greater than',
+        {
+          firstVersion: '2.0.0.1',
+          secondVersion: '2.0.0.0',
+          expectedValue: true,
+        },
+      ],
+    ])('%s', (_name, testcase) => {
+      const { firstVersion, secondVersion, expectedValue } = testcase;
+
+      // WHEN
+      const lhs = Version.parse(firstVersion);
+      const result = lhs.isGreaterThan(Version.parse(secondVersion));
+
+      expect(result).toEqual(expectedValue);
+    });
+  });
+
+  describe('.isGreaterThan constructor', () => {
+
+    // WHEN
+    const lhs = new Version([10, 1, 9, 2]);
+    const result = lhs.isGreaterThan(Version.parse('10.0.9.2'));
+
+    expect(result).toEqual(true);
+
+  });
+
+  describe('.isLessThan', () => {
+    test.each<[string, { firstVersion: string, secondVersion: string, expectedValue: boolean }]>([
+      [
+        'equal version',
+        {
+          firstVersion: '1.1.1.1',
+          secondVersion: '1.1.1.1',
+          expectedValue: false,
+        },
+      ], [
+        'greater minor version',
+        {
+          firstVersion: '10.1.9.2',
+          secondVersion: '10.0.9.2',
+          expectedValue: false,
+        },
+      ], [
+        'greater patch version',
+        {
+          firstVersion: '1.1.1.2',
+          secondVersion: '1.1.1.1',
+          expectedValue: false,
+        },
+      ], [
+        'less than',
+        {
+          firstVersion: '2.0.0.0',
+          secondVersion: '2.0.0.1',
+          expectedValue: true,
+        },
+      ],
+    ])('%s', (_name, testcase) => {
+      const { firstVersion, secondVersion, expectedValue } = testcase;
+
+      // WHEN
+      const lhs = Version.parse(firstVersion);
+      const result = lhs.isLessThan(Version.parse(secondVersion));
+
+      expect(result).toEqual(expectedValue);
+    });
+  });
+
+  describe('.isEqual', () => {
+    test.each<[string, { firstVersion: string, secondVersion: string, expectedValue: boolean }]>([
+      [
+        'equal version',
+        {
+          firstVersion: '1.1.1.1',
+          secondVersion: '1.1.1.1',
+          expectedValue: true,
+        },
+      ], [
+        'unequal',
+        {
+          firstVersion: '2.1.1.1',
+          secondVersion: '1.1.1.1',
+          expectedValue: false,
+        },
+      ], [
+        'less than',
+        {
+          firstVersion: '1.1.1.1',
+          secondVersion: '1.1.1.2',
+          expectedValue: false,
+        },
+      ],
+    ])('%s', (_name, testcase) => {
+      const { firstVersion, secondVersion, expectedValue } = testcase;
+
+      // WHEN
+      const lhs = Version.parse(firstVersion);
+      const result = lhs.isEqual(Version.parse(secondVersion));
+
+      expect(result).toEqual(expectedValue);
+    });
+  });
+
+  describe('.isLessThan using constructor', () => {
+
+    // WHEN
+    const lhs = new Version([10, 0, 9, 2]);
+    const result = lhs.isLessThan(Version.parse('10.1.9.2'));
+
+    expect(result).toEqual(true);
+  });
+
+  describe('constructor validation', () => {
+    test.each<[string, { version: number[], expectedException?: RegExp }]>([
+      [
+        'incorrect component count',
+        {
+          version: [10, 1, 9],
+          expectedException: /Invalid version format/,
+        },
+      ], [
+        'negative value',
+        {
+          version: [10, -1, 9],
+          expectedException: /Invalid version format/,
+        },
+      ], [
+        'decimal value',
+        {
+          version: [10, 1, 9.2],
+          expectedException: /Invalid version format/,
+        },
+      ], [
+        'correct value',
+        {
+          version: [10, 1, 9, 2],
+        },
+      ],
+    ])('%s', (_name, testcase) => {
+      const { version, expectedException } = testcase;
+
+      // WHEN
+      if (expectedException) {
+        expect(() => new Version(version)).toThrow(expectedException);
+      } else {
+        expect(() => new Version(version)).not.toThrow();
+      }
+    });
+  });
+
+  describe('.parse throws exception', () => {
+    test.each<[string, { version: string, expectedException?: RegExp }]>([
+      [
+        'ending with .',
+        {
+          version: '10.1.9.',
+          expectedException: /Invalid version format/,
+        },
+      ], [
+        'empty string',
+        {
+          version: '',
+          expectedException: /Invalid version format/,
+        },
+      ], [
+        'negative value',
+        {
+          version: '10.-1.9.2',
+          expectedException: /Invalid version format/,
+        },
+      ], [
+        'correct version',
+        {
+          version: '10.1.9.2',
+        },
+      ],
+    ])('%s', (_name, testcase) => {
+      const { version, expectedException } = testcase;
+
+      // WHEN
+      if(expectedException) {
+        expect(() => Version.parse(version)).toThrow(expectedException);
+      } else {
+        expect(() => Version.parse(version)).not.toThrow();
+      }
+    });
+  });
+});
 
 describe('VersionQuery', () => {
   beforeEach(() => {
@@ -41,7 +258,7 @@ describe('VersionQuery', () => {
 
     test('throws not implemented error for valid version string', () => {
       // WHEN
-      expect( () => {
+      expect(() => {
         new VersionQuery(stack, 'version', {
           version: '1.2',
         });
@@ -151,7 +368,7 @@ describe('VersionQuery', () => {
       }
 
       // THEN
-      expect(when).toThrowError(new RegExp(`^"${versionStr}" is not a valid version$`));
+      expect(when).toThrowError(new RegExp(`^Invalid version format. Expected format 'a.b.c.d', found '${versionStr}'$`));
     });
   });
 });

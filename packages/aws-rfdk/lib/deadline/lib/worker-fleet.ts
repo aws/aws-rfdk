@@ -36,6 +36,7 @@ import {
   Construct,
   Duration,
   IResource,
+  ResourceEnvironment,
   Stack,
 } from '@aws-cdk/core';
 import {
@@ -228,6 +229,11 @@ abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet
   public abstract readonly stack: Stack;
 
   /**
+   * The environment this resource belongs to.
+   */
+  public abstract readonly env: ResourceEnvironment;
+
+  /**
    * The ASG object created by the construct.
    */
   public abstract readonly fleet: AutoScalingGroup;
@@ -279,12 +285,24 @@ abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet
  *
  * Resources Deployed
  * ------------------------
- * 1) An AutoScalingGroup to maintain the number of instances;
- * 2) An Instance Role and corresponding IAM Policy;
- * 3) A script asset which is uploaded to your deployment bucket used to configure the worker so it can connect to the Render Queue
- * 4) An aws-rfdk.CloudWatchAgent to configure sending logs to cloudwatch.
+ * - An EC2 Auto Scaling Group to maintain the number of instances.
+ * - An Instance Role and corresponding IAM Policy.
+ * - An Amazon CloudWatch log group that contains the Deadline Worker, Deadline Launcher, and instance-startup logs for the instances
+ *   in the fleet.
  *
- * @ResourcesDeployed
+ * Security Considerations
+ * ------------------------
+ * - The instances deployed by this construct download and run scripts from your CDK bootstrap bucket when that instance
+ *   is launched. You must limit write access to your CDK bootstrap bucket to prevent an attacker from modifying the actions
+ *   performed by these scripts. We strongly recommend that you either enable Amazon S3 server access logging on your CDK
+ *   bootstrap bucket, or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - The data that is stored on your Worker's local EBS volume can include temporary working files from the applications
+ *   that are rendering your jobs and tasks. That data can be sensitive or privileged, so we recommend that you encrypt
+ *   the data volumes of these instances using either the provided option or by using an encrypted AMI as your source.
+ * - The software on the AMI that is being used by this construct may pose a security risk. We recommend that you adopt a
+ *   patching strategy to keep this software current with the latest security patches. Please see
+ *   https://docs.aws.amazon.com/rfdk/latest/guide/patching-software.html for more information.
  */
 export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
 
@@ -338,6 +356,11 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
   public readonly stack: Stack;
 
   /**
+   * The environment this resource belongs to.
+   */
+  public readonly env: ResourceEnvironment;
+
+  /**
    * This field implements the base capacity metric of the fleet against
    * which, the healthy percent will be calculated.
    *
@@ -375,6 +398,10 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
   constructor(scope: Construct, id: string, props: WorkerInstanceFleetProps) {
     super(scope, id);
     this.stack = Stack.of(scope);
+    this.env = {
+      account: this.stack.account,
+      region: this.stack.region,
+    };
 
     this.validateProps(props);
 
@@ -463,7 +490,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
   }
 
   private configureCloudWatchLogStream(fleetInstance: AutoScalingGroup, id: string, logGroupProps?: LogGroupFactoryProps) {
-    const prefix = logGroupProps?.logGroupPrefix ? logGroupProps.logGroupPrefix : WorkerInstanceFleet.DEFAULT_LOG_GROUP_PREFIX;
+    const prefix = logGroupProps?.logGroupPrefix ?? WorkerInstanceFleet.DEFAULT_LOG_GROUP_PREFIX;
     const defaultedLogGroupProps = {
       ...logGroupProps,
       logGroupPrefix: prefix,

@@ -74,7 +74,7 @@ This sample application deploys a basic Deadline Render farm using Usage-Based L
 | |                                                   |   v     v     v   |              | Health Monitor |            | |
 | |                                                   | +-++         ++-+ |              |                |            | |
 | |                                                   | |  |   ...   |  | |    Monitors  |   +-------+    |            | |
-| |                                                   | +--+         +--+ <--------------+   |  NLB  |    |            | |
+| |                                                   | +--+         +--+ <--------------+   |  ALB  |    |            | |
 | |                                                   |                   |              |   +-------+    |            | |
 | |                                                   +-------------------+              |                |            | |
 | |                                                                                      +----------------+            | |

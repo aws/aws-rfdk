@@ -6,6 +6,7 @@
 import {
   arrayWith,
   expect as expectCDK,
+  haveResource,
   haveResourceLike,
   stringLike,
 } from '@aws-cdk/assert';
@@ -421,6 +422,32 @@ describe('UsageBasedLicensing', () => {
     // THEN
     expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
       VPCZoneIdentifier: publicSubnetIds,
+    }));
+  });
+
+  test.each([
+    'test-prefix/',
+    '',
+  ])('License Forwarder is created with correct LogGroup prefix %s', (testPrefix: string) => {
+    // GIVEN
+    stack = new Stack(app, 'IsolatedStack', { env });
+    const id = 'licenseForwarder';
+
+    // WHEN
+    new UsageBasedLicensing(stack, id, {
+      certificateSecret,
+      images,
+      licenses,
+      renderQueue,
+      vpc,
+      logGroupProps: {
+        logGroupPrefix: testPrefix,
+      },
+    });
+
+    // THEN
+    expectCDK(stack).to(haveResource('Custom::LogRetention', {
+      LogGroupName: testPrefix + id,
     }));
   });
 
