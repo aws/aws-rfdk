@@ -182,18 +182,18 @@ export interface WorkerInstanceFleetProps {
   /**
    * Health Monitor component to monitor the health of instances.
    *
-   * @default - Health Monitoring is turned-off
-   *
    * Note: The health-check feature is supported with Deadline Client v10.1.9 and later.
+   *
+   * @default - Health Monitoring is turned-off
    */
   readonly healthMonitor?: IHealthMonitor;
 
   /**
    * Properties for configuring a health check.
    *
-   * @default properties of HealthCheckConfig applies
-   *
    * Note: The health-check feature is supported with Deadline Client v10.1.9 and later.
+   *
+   * @default properties of HealthCheckConfig applies
    */
   readonly healthCheckConfig?: HealthCheckConfig;
 
