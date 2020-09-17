@@ -174,10 +174,6 @@ export class Version implements IPatchVersion {
    * false if this version is less than or equal to the provided verison.
    */
   public isGreaterThan(version: Version): boolean {
-    if (this.components.length != version.components.length) {
-      throw new TypeError('Component count in both the versions should be same.');
-    }
-
     return this.compare(version) > 0;
   }
 
@@ -190,11 +186,19 @@ export class Version implements IPatchVersion {
    * false if this version is greater than or equal to the provided verison.
    */
   public isLessThan(version: Version): boolean {
-    if (this.components.length != version.components.length) {
-      throw new TypeError('Component count in both the versions should be same.');
-    }
-
     return this.compare(version) < 0;
+  }
+
+  /**
+   * This method compares two version strings
+   *
+   * @param version
+   *
+   * @returns true if this version is equal to the provided version;
+   * false otherwise.
+   */
+  public isEqual(version: Version): boolean {
+    return this.compare(version) == 0;
   }
 
   /**
@@ -214,6 +218,10 @@ export class Version implements IPatchVersion {
    * positive value if this version is greater than the provided verison.
    */
   private compare(version: Version): number {
+    if (this.components.length != version.components.length) {
+      throw new TypeError('Component count in both the versions should be same.');
+    }
+
     for (let i = 0; i < version.components.length; i++) {
       const diff = this.components[i] - version.components[i];
       if (diff != 0) {

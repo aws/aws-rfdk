@@ -114,6 +114,41 @@ describe('Version', () => {
     });
   });
 
+  describe('.isEqual', () => {
+    test.each<[string, { firstVersion: string, secondVersion: string, expectedValue: boolean }]>([
+      [
+        'equal version',
+        {
+          firstVersion: '1.1.1.1',
+          secondVersion: '1.1.1.1',
+          expectedValue: true,
+        },
+      ], [
+        'unequal',
+        {
+          firstVersion: '2.1.1.1',
+          secondVersion: '1.1.1.1',
+          expectedValue: false,
+        },
+      ], [
+        'less than',
+        {
+          firstVersion: '1.1.1.1',
+          secondVersion: '1.1.1.2',
+          expectedValue: false,
+        },
+      ],
+    ])('%s', (_name, testcase) => {
+      const { firstVersion, secondVersion, expectedValue } = testcase;
+
+      // WHEN
+      const lhs = Version.parse(firstVersion);
+      const result = lhs.isEqual(Version.parse(secondVersion));
+
+      expect(result).toEqual(expectedValue);
+    });
+  });
+
   describe('.isLessThan using constructor', () => {
 
     // WHEN
