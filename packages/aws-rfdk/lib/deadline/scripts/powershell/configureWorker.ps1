@@ -9,7 +9,9 @@ param (
     [Parameter(Mandatory=$True)]
     $workerPools,
     [Parameter(Mandatory=$True)]
-    $workerRegion
+    $workerRegion,
+    [Parameter(Mandatory=$True)]
+    $minimumSupportedDeadlineVersion
 )
 
 Set-PSDebug -Trace 1
@@ -33,9 +35,9 @@ if ([string]::IsNullOrEmpty($DeadlineVersion)) {
     Write-Host "ERROR: Unable to identify the version of installed Deadline Client. Exiting..."
     exit 1
 }
-$MINIMUM_SUPPORTED_DEADLINE_VERSION = "10.1.9"
-if([System.Version]$DeadlineVersion -lt  [System.Version]$MINIMUM_SUPPORTED_DEADLINE_VERSION) {
-    Write-Host "ERROR: Installed Deadline Version ($($DeadlineVersion)) is less than the minimum supported version ($($MINIMUM_SUPPORTED_DEADLINE_VERSION)). Exiting..."
+
+if([System.Version]$DeadlineVersion -lt  [System.Version]$minimumSupportedDeadlineVersion) {
+    Write-Host "ERROR: Installed Deadline Version ($($DeadlineVersion)) is less than the minimum supported version ($($minimumSupportedDeadlineVersion)). Exiting..."
     exit 1
 }
 
