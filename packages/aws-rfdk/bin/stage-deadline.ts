@@ -12,6 +12,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
 import { types } from 'util';
+import { Version } from '../lib/deadline';
 
 const args = process.argv.slice(2);
 
@@ -57,20 +58,25 @@ while (n < args.length) {
 
 // Automatically populate the installer & recipe URI using the version, if it is provided.
 if (deadlineReleaseVersion !== '') {
-  if (!/^\d+(?:\.\d+){3}$/.test(deadlineReleaseVersion)) {
+  try {
+    const version = Version.parse(deadlineReleaseVersion);
+    if(version.isLessThan(Version.MINIMUM_SUPPORTED_DEADLINE_VERSION)) {
+      console.error(`ERROR: Unsupported Deadline Version ${version.toString()}. Minimum supported version is ${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION} \n`);
+      usage(1);
+    }
+  } catch(e) {
+    console.error(`ERROR: ${(e as Error).message} \n`);
     usage(1);
   }
 
-  // TODO: Do the minimum version check
-
   // populate installer URI
-  if (deadlineInstallerURI) {
+  if (deadlineInstallerURI && deadlineInstallerURI.length > 0) {
     console.info('INFO: Since deadline release version is provided, "deadlineInstallerURI" will be ignored.');
   }
   deadlineInstallerURI = `s3://thinkbox-installers/Deadline/${deadlineReleaseVersion}/Linux/DeadlineClient-${deadlineReleaseVersion}-linux-x64-installer.run`;
 
   // populate docker recipe URI
-  if (dockerRecipesURI) {
+  if (dockerRecipesURI && dockerRecipesURI.length > 0) {
     console.info('INFO: Since deadline release version is provided, "dockerRecipesURI" will be ignored.');
   }
   dockerRecipesURI = `s3://thinkbox-installers/DeadlineDocker/${deadlineReleaseVersion}/DeadlineDocker-${deadlineReleaseVersion}.tar.gz`;
@@ -218,7 +224,7 @@ Arguments:
         Specifies the official release of Deadline that should be staged. This must be of the form a.b.c.d.
         Both '-d' or '-c' arguments will be ignored if provided with this value.
         
-        Note: The minimum supported deadline version is 10.1.9
+        Note: The minimum supported deadline version is ${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}
 
     -d, --deadlineInstallerURI <deadline_installer_uri>
         Specifies a URI pointing to the Deadline Linux Client installer. This currently supports S3 URIs of the form:
