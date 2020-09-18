@@ -44,6 +44,7 @@ import {
   IRenderQueue,
   RenderQueue,
   Repository,
+  Version,
   VersionQuery,
   WorkerInstanceFleet,
 } from '../lib';
@@ -685,7 +686,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             },
           ],
         },
-        "' '6161' '' '' ''",
+        `' '6161' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}'`,
       ],
     ],
   });
@@ -1085,7 +1086,7 @@ test('default worker fleet is created correctly with groups, pools and region', 
           },
         ],
       },
-      "' '63415' 'a,b' 'c,d' 'E'",
+      `' '63415' 'a,b' 'c,d' 'E' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}'`,
     ]],
   });
 });
