@@ -212,7 +212,7 @@ The AWS CLI must be configured to authenticate using your AWS account. This can 
 See https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html for documentation on how to configure the AWS CLI.
 
 Usage: stage-deadline [--output <output_dir>] [--verbose]
-                      [<deadline_release_version>]
+                      <deadline_release_version>
   OR
        stage-deadline [--output <output_dir>] [--verbose]
                       -d <deadline_installer_uri>
