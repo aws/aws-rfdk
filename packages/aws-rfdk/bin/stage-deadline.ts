@@ -12,11 +12,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
 import { types } from 'util';
+import { Version } from '../lib/deadline';
 
 const args = process.argv.slice(2);
 
 let deadlineInstallerURI = '';
 let dockerRecipesURI = '';
+let deadlineReleaseVersion = '';
 let outputFolder = './stage';
 let verbose = false;
 
@@ -43,10 +45,41 @@ while (n < args.length) {
       verbose = true;
       break;
     default:
-      console.error(`Unexpected command parameter ${args[n]}`);
-      process.exit(1);
+      if (!deadlineReleaseVersion){
+        deadlineReleaseVersion = args[n];
+      } else {
+        console.error(`Unexpected command parameter ${args[n]}`);
+        process.exit(1);
+      }
+      break;
   }
   n++;
+}
+
+// Automatically populate the installer & recipe URI using the version, if it is provided.
+if (deadlineReleaseVersion !== '') {
+  try {
+    const version = Version.parse(deadlineReleaseVersion);
+    if(version.isLessThan(Version.MINIMUM_SUPPORTED_DEADLINE_VERSION)) {
+      console.error(`ERROR: Unsupported Deadline Version ${version.toString()}. Minimum supported version is ${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION} \n`);
+      usage(1);
+    }
+  } catch(e) {
+    console.error(`ERROR: ${(e as Error).message} \n`);
+    usage(1);
+  }
+
+  // populate installer URI
+  if (deadlineInstallerURI && deadlineInstallerURI.length > 0) {
+    console.info('INFO: Since deadline release version is provided, "deadlineInstallerURI" will be ignored.');
+  }
+  deadlineInstallerURI = `s3://thinkbox-installers/Deadline/${deadlineReleaseVersion}/Linux/DeadlineClient-${deadlineReleaseVersion}-linux-x64-installer.run`;
+
+  // populate docker recipe URI
+  if (dockerRecipesURI && dockerRecipesURI.length > 0) {
+    console.info('INFO: Since deadline release version is provided, "dockerRecipesURI" will be ignored.');
+  }
+  dockerRecipesURI = `s3://thinkbox-installers/DeadlineDocker/${deadlineReleaseVersion}/DeadlineDocker-${deadlineReleaseVersion}.tar.gz`;
 }
 
 // Show help if URI for deadline installer or URI for docker  is not specified.
@@ -179,10 +212,20 @@ The AWS CLI must be configured to authenticate using your AWS account. This can 
 See https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html for documentation on how to configure the AWS CLI.
 
 Usage: stage-deadline [--output <output_dir>] [--verbose]
+                      <deadline_release_version>
+  OR
+       stage-deadline [--output <output_dir>] [--verbose]
                       -d <deadline_installer_uri>
                       -c <deadline_recipes_uri>
 
+
 Arguments:
+    <deadline_release_version>
+        Specifies the official release of Deadline that should be staged. This must be of the form a.b.c.d.
+        Both '-d' or '-c' arguments will be ignored if provided with this value.
+        
+        Note: The minimum supported deadline version is ${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}
+
     -d, --deadlineInstallerURI <deadline_installer_uri>
         Specifies a URI pointing to the Deadline Linux Client installer. This currently supports S3 URIs of the form:
 
