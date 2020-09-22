@@ -117,7 +117,20 @@ export abstract class TestingTier extends Stack {
    */
   public configureRenderQueue(testSuiteId: string, renderQueue:RenderQueue) {
 
-    const renderQueueEndpoint = renderQueue.endpoint.socketAddress;
+    const port = renderQueue.endpoint.portAsString();
+    const zoneName = Stack.of(renderQueue).stackName + '.local';
+    let address;
+    switch(port) {
+      case '8080':
+        address = renderQueue.endpoint.hostname;
+        break;
+      case '4433':
+        address = 'renderqueue.' + zoneName;
+        break;
+      default:
+        break;
+    }
+    const renderQueueEndpoint = `${address}:${port}`;
 
     this.testInstance.connections.allowToDefaultPort(renderQueue);
     this.testInstance.connections.allowTo(renderQueue, Port.tcp(22));
