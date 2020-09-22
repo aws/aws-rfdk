@@ -52,8 +52,8 @@ describe('ThinkboxDockerRecipes', () => {
 
   const MAJOR_VERSION = 10;
   const MINOR_VERSION = 1;
-  const RELEASE_VERSION = 8;
-  const PATCH_VERSION = 5;
+  const RELEASE_VERSION = 9;
+  const PATCH_VERSION = 2;
   const FULL_VERSION_STRING = `${MAJOR_VERSION}.${MINOR_VERSION}.${RELEASE_VERSION}.${PATCH_VERSION}`;
 
   beforeEach(() => {

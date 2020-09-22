@@ -12,11 +12,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
 import { types } from 'util';
+import { IDeadlineInstallerUris, IDeadlineDockerRecipeUris, Platform, Product, VersionProvider } from '../lib/core/lambdas/nodejs/version-provider';
+import { Version } from '../lib/deadline';
 
 const args = process.argv.slice(2);
 
 let deadlineInstallerURI = '';
 let dockerRecipesURI = '';
+let deadlineReleaseVersion = '';
 let outputFolder = './stage';
 let verbose = false;
 
@@ -43,32 +46,15 @@ while (n < args.length) {
       verbose = true;
       break;
     default:
-      console.error(`Unexpected command parameter ${args[n]}`);
-      process.exit(1);
+      if (!deadlineReleaseVersion){
+        deadlineReleaseVersion = args[n];
+      } else {
+        console.error(`Unexpected command parameter ${args[n]}`);
+        process.exit(1);
+      }
+      break;
   }
   n++;
-}
-
-// Show help if URI for deadline installer or URI for docker  is not specified.
-if (deadlineInstallerURI === '' || dockerRecipesURI === '') {
-  usage(1);
-}
-
-const deadlineInstallerURL = new url.URL(deadlineInstallerURI);
-const dockerRecipeURL = new url.URL(dockerRecipesURI);
-
-if (deadlineInstallerURL.protocol !== 's3:') {
-  console.error(`ERROR: Invalid URI protocol ("${deadlineInstallerURL.protocol}") for --deadlineInstallerURI. Only "s3:" URIs are supported.`);
-  usage(1);
-}
-
-if (dockerRecipeURL.protocol !== 's3:') {
-  console.error(`ERROR: Invalid URI protocol ("${dockerRecipeURL.protocol}") for --dockerRecipeURL. Only "s3:" URIs are supported.`);
-  usage(1);
-}
-
-if (!validateBucketName(deadlineInstallerURL.hostname) || !validateBucketName(dockerRecipeURL.hostname)) {
-  usage(1);
 }
 
 if (!fs.existsSync(outputFolder)) {
@@ -78,33 +64,128 @@ if (!fs.existsSync(outputFolder)) {
   process.exit(1);
 }
 
-try {
-  // Get Docker recipe
-  getAndExtractArchive({
-    uri: dockerRecipeURL,
-    targetFolder: outputFolder,
-    verbose,
-    tarOptions: [`-x${verbose ? 'v' : ''}z`],
-  });
+const handler = new VersionProvider('./index-test.json');
 
-  // Get Deadline client installer
-  const deadlineInstallerPath = getFile({
-    uri: deadlineInstallerURL,
-    targetFolder: path.join(outputFolder, 'bin'),
-    verbose,
-  });
+// populate installer URI
+if (deadlineInstallerURI === '') {
+  handler.doCreate('physicalId', { platform: Platform.linux, product: Product.deadline, versionString: deadlineReleaseVersion})
+    .then(result => {
+      const installerVersion = result.get(Platform.linux);
+      if (installerVersion) {
+        validateDeadlineVersion(`${installerVersion.MajorVersion}.${installerVersion.MinorVersion}.${installerVersion.ReleaseVersion}.${installerVersion.PatchVersion}`);
+        getDeadlineInstaller((<IDeadlineInstallerUris>installerVersion.Uris).clientInstaller);
+      }
+      else {
+        console.error(`Deadline installer for version ${deadlineReleaseVersion} was not found.`);
+        exitAndCleanup(1);
+      }
+    })
+    .catch(error => {
+      console.error(error.message);
+      exitAndCleanup(error.code);
+    });
+}
+else {
+  getDeadlineInstaller(deadlineInstallerURI);
+}
 
-  // Make installer executable
-  makeExecutable(deadlineInstallerPath);
-} catch (e) {
-  let errorMsg: string;
-  if (types.isNativeError(e)) {
-    errorMsg = e.message;
-  } else {
-    errorMsg = e.toString();
+
+// populate docker recipe URI
+if (dockerRecipesURI === '') {
+  handler.doCreate('physicalId', { platform: Platform.linux, product: Product.deadlineDocker, versionString: deadlineReleaseVersion})
+    .then(result => {
+      const installerVersion = result.get(Platform.linux);
+      if (installerVersion) {
+        validateDeadlineVersion(`${installerVersion.MajorVersion}.${installerVersion.MinorVersion}.${installerVersion.ReleaseVersion}.${installerVersion.PatchVersion}`);
+        getDockerRecipe((<IDeadlineDockerRecipeUris>installerVersion.Uris).recipe);
+      }
+      else {
+        console.error(`Deadline installer for version ${deadlineReleaseVersion} was not found.`);
+        exitAndCleanup(1);
+      }
+    })
+    .catch(error => {
+      throw new Error(error.message);
+    });
+}
+else {
+  getDockerRecipe(dockerRecipesURI);
+}
+
+/**
+ * Download Deadline installer
+ *
+ * @param deadlineInstallerUri - Specifies a URI pointing to the Deadline Linux Client installer. This currently supports S3 URIs.
+ */
+function getDeadlineInstaller(deadlineInstallerUri: string) {
+  const deadlineInstallerURL = new url.URL(deadlineInstallerUri);
+
+  if (deadlineInstallerURL.protocol !== 's3:') {
+    console.error(`ERROR: Invalid URI protocol ("${deadlineInstallerURL.protocol}") for --deadlineInstallerURI. Only "s3:" URIs are supported.`);
+    usage(1);
   }
-  console.error(`ERROR: ${errorMsg}`);
-  process.exit(1);
+
+  if (!validateBucketName(deadlineInstallerURL.hostname)) {
+    usage(1);
+  }
+
+  try {
+    // Get Deadline client installer
+    const deadlineInstallerPath = getFile({
+      uri: deadlineInstallerURL,
+      targetFolder: path.join(outputFolder, 'bin'),
+      verbose,
+    });
+
+    // Make installer executable
+    makeExecutable(deadlineInstallerPath);
+  } catch (e) {
+    let errorMsg: string;
+    if (types.isNativeError(e)) {
+      errorMsg = e.message;
+    } else {
+      errorMsg = e.toString();
+    }
+    console.error(`ERROR: ${errorMsg}`);
+    exitAndCleanup(1);
+  }
+}
+
+/**
+ * Download and extract Docker recipe.
+ *
+ * @param dockerRecipesUri - Specifies a URI pointing to the Deadline Docker recipes. This currently supports S3 URIs.
+ */
+function getDockerRecipe(dockerRecipesUri: string) {
+  const dockerRecipeURL = new url.URL(dockerRecipesUri);
+
+  if (dockerRecipeURL.protocol !== 's3:') {
+    console.error(`ERROR: Invalid URI protocol ("${dockerRecipeURL.protocol}") for --dockerRecipeURL. Only "s3:" URIs are supported.`);
+    usage(1);
+  }
+
+  if (!validateBucketName(dockerRecipeURL.hostname)) {
+    usage(1);
+  }
+
+  try {
+    // Get Docker recipe
+    getAndExtractArchive({
+      uri: dockerRecipeURL,
+      targetFolder: outputFolder,
+      verbose,
+      tarOptions: [`-x${verbose ? 'v' : ''}z`],
+    });
+  } catch (e) {
+    let errorMsg: string;
+    if (types.isNativeError(e)) {
+      errorMsg = e.message;
+    } else {
+      errorMsg = e.toString();
+    }
+    console.error(`ERROR: ${errorMsg}`);
+    exitAndCleanup(1);
+  }
 }
 
 /**
@@ -179,19 +260,32 @@ The AWS CLI must be configured to authenticate using your AWS account. This can 
 See https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html for documentation on how to configure the AWS CLI.
 
 Usage: stage-deadline [--output <output_dir>] [--verbose]
+                      <deadline_release_version>
+  OR
+       stage-deadline [--output <output_dir>] [--verbose]
                       -d <deadline_installer_uri>
                       -c <deadline_recipes_uri>
 
+
 Arguments:
+    <deadline_release_version>
+        Specifies the official release of Deadline that should be staged. This must be of the form a.b.c.d, a.b.c, a.b or a.
+        
+        Note: The minimum supported deadline version is ${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}
+
     -d, --deadlineInstallerURI <deadline_installer_uri>
         Specifies a URI pointing to the Deadline Linux Client installer. This currently supports S3 URIs of the form:
 
         s3://thinkbox-installers/Deadline/10.1.x.y/Linux/DeadlineClient-10.1.x.y-linux-x64-installer.run
 
+        If this argument is provided <deadline_release_version> will be ignored for Deadline Linux Client.
+
     -c, --dockerRecipesURI <deadline_recipes_uri>
         Specifies a URI pointing to the Deadline Docker recipes. This currently supports S3 URIs of the form:
 
         s3://thinkbox-installers/DeadlineDocker/10.1.x.y/DeadlineDocker-10.1.x.y.tar.gz
+
+        If this argument is provided <deadline_release_version> will be ignored for Deadline Docker recipes.
 
 Options:
     -o, --output <output_dir>
@@ -201,6 +295,16 @@ Options:
     --verbose
         Increases the verbosity of the output
   `.trimLeft());
+  exitAndCleanup(errorCode);
+}
+
+/**
+ * Exit with error code and remove output folder.
+ *
+ * @param errorCode - THe code of error that will be returned.
+ */
+function exitAndCleanup(errorCode: number) {
+  fs.rmdirSync(outputFolder, {recursive: true});
   process.exit(errorCode);
 }
 
@@ -305,5 +409,19 @@ function getAndExtractArchive(props: GetExtractArchiveProps) {
   // Exit with error if recipe wasn't extracted.
   if (!filesExtracted) {
     throw new Error(`File ${tarPath} has not been extracted successfully.`);
+  }
+}
+
+function validateDeadlineVersion(versionString: string) {
+  // Automatically populate the installer & recipe URI using the version, if it is provided.
+  try {
+    const version = Version.parse(versionString);
+    if(version.isLessThan(Version.MINIMUM_SUPPORTED_DEADLINE_VERSION)) {
+      console.error(`ERROR: Unsupported Deadline Version ${version.toString()}. Minimum supported version is ${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION} \n`);
+      usage(1);
+    }
+  } catch(e) {
+    console.error(`ERROR: ${(e as Error).message} \n`);
+    usage(1);
   }
 }

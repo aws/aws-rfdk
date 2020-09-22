@@ -6,6 +6,12 @@ The `aws-rfdk/deadline` sub-module contains Deadline-specific constructs that ca
 import * as deadline from 'aws-rfdk/deadline';
 ```
 
+---
+
+_**Note:** RFDK constructs currently support Deadline 10.1.9 and later._
+
+---
+
 - [Render Queue](#render-queue)
   - [Docker Container Images](#render-queue-docker-container-images)
   - [Encryption](#render-queue-encryption)

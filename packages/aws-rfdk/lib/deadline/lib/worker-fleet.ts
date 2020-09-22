@@ -56,6 +56,7 @@ import {
 import {
   IRenderQueue,
 } from './render-queue';
+import { Version } from './version';
 
 /**
  * Interface for Deadline Worker Fleet.
@@ -181,12 +182,16 @@ export interface WorkerInstanceFleetProps {
   /**
    * Health Monitor component to monitor the health of instances.
    *
+   * Note: The health-check feature is supported with Deadline Client v10.1.9 and later.
+   *
    * @default - Health Monitoring is turned-off
    */
   readonly healthMonitor?: IHealthMonitor;
 
   /**
-   * Properties for configuring a health check
+   * Properties for configuring a health check.
+   *
+   * Note: The health-check feature is supported with Deadline Client v10.1.9 and later.
    *
    * @default properties of HealthCheckConfig applies
    */
@@ -548,6 +553,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
         `'${groups}'`,
         `'${pools}'`,
         `'${props.region || ''}'`,
+        `'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}'`,
       ],
     });
   }

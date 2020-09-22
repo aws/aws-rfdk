@@ -3,20 +3,54 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/* eslint-disable no-console */
+
 import * as fs from 'fs';
 import { IncomingMessage } from 'http';
-import { SimpleCustomResource } from '../lib/custom-resource/simple-resource';
 
-export interface IVersionProviderProperties {
+import { LambdaContext } from '../lib/aws-lambda';
+import { CfnRequestEvent, SimpleCustomResource } from '../lib/custom-resource';
 
-  readonly versionString?: string
+export enum Platform {
+  linux = 'linux',
 
-  readonly product: string;
+  mac = 'mac',
 
-  readonly platform: string;
+  windows = 'windows',
 }
 
-export interface IInstallerVersion {
+export enum Product {
+  deadline = 'Deadline',
+
+  deadlineDocker = 'DeadlineDocker',
+}
+
+export interface IVersionProviderProperties {
+  readonly versionString?: string
+
+  readonly product: Product;
+
+  readonly platform?: Platform;
+}
+
+export interface IUris {
+}
+
+export interface IDeadlineInstallerUris extends IUris {
+  readonly bundle: string;
+
+  readonly clientInstaller: string;
+
+  readonly repositoryInstaller: string;
+
+  readonly certificateInstaller?: string;
+}
+
+export interface IDeadlineDockerRecipeUris extends IUris {
+  readonly recipe: string;
+}
+
+export interface IVersionedUris {
   /**
    * The major version number.
    */
@@ -40,7 +74,7 @@ export interface IInstallerVersion {
   /**
    * The URLs to installers
    */
-  readonly Installers: any;
+  readonly Uris: IUris;
 }
 
 export class VersionProvider extends SimpleCustomResource {
@@ -50,20 +84,22 @@ export class VersionProvider extends SimpleCustomResource {
     super();
     this.indexFilePath = indexFilePath;
   }
+
   /**
    * @inheritdoc
    */
   /* istanbul ignore next */ // @ts-ignore
   public validateInput(data: object): boolean {
-    return implementsIVersionProviderProperties(data);
+    return this.implementsIVersionProviderProperties(data);
   }
 
   /**
    * @inheritdoc
    */
   // @ts-ignore  -- we do not use the physicalId
-  public async doCreate(physicalId: string, resourceProperties: IVersionProviderProperties): Promise<IInstallerVersion> {
-    const indexJson = this.indexFilePath ? readInstallersIndex(this.indexFilePath) : downloadInstallerIndex();
+  public async doCreate(physicalId: string, resourceProperties: IVersionProviderProperties): Promise<Map<Platform, IVersionedUris>> {
+    /* istanbul ignore next */
+    const indexJson = this.indexFilePath ? this.readInstallersIndex() : await this.downloadInstallerIndex();
 
     const productSection = indexJson[resourceProperties.product];
 
@@ -71,24 +107,32 @@ export class VersionProvider extends SimpleCustomResource {
       throw new Error(`Information about product ${resourceProperties.product} can't be found`);
     }
 
-    const versionString: string = resourceProperties.versionString ??
-    getLatestVersion(resourceProperties.platform, productSection);
+    let installers = new Map();
+    if (resourceProperties.platform) {
+      const versionedUris = await this.getUrisForPlatform(
+        resourceProperties.product,
+        productSection,
+        resourceProperties.platform,
+        resourceProperties.versionString);
 
-    const requestedVersion = parseVersionString( versionString );
+      if (versionedUris) {
+        installers.set(resourceProperties.platform, versionedUris);
+      }
+    } else {
+      Object.values(Platform).forEach(async p => {
+        const versionedUris = await this.getUrisForPlatform(
+          resourceProperties.product,
+          productSection,
+          p,
+          resourceProperties.versionString);
 
-    // Based on the requested version, fetches the latest patch and its installer file paths.
-    const {versionMap, versionArray} = await getRequestedInstallerVersion(
-      requestedVersion,
-      productSection.versions);
+        if (versionedUris) {
+          installers.set(p, versionedUris);
+        }
+      });
+    }
 
-    const versionForPlatform = versionMap[resourceProperties.platform];
-    return {
-      MajorVersion: versionArray[0],
-      MinorVersion: versionArray[1],
-      ReleaseVersion: versionArray[2],
-      PatchVersion: versionArray[3],
-      Installers: versionForPlatform,
-    };
+    return installers;
   }
 
   /**
@@ -100,131 +144,214 @@ export class VersionProvider extends SimpleCustomResource {
     return;
   }
 
-}
+  private implementsIVersionProviderProperties(value: any): boolean {
+    if (!value || typeof(value) !== 'object') { return false; }
 
-export async function downloadInstallerIndex() {
-  const productionInfoURL = 'https://downloads.thinkboxsoftware.com/product-info.json';
-
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const parsedUrl = require('url').parse(productionInfoURL);
-
-  const options = {
-    host: parsedUrl.hostname,
-    path: parsedUrl.path,
-  };
-
-  return new Promise((resolve, reject) => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    require('https').get(options, (res: IncomingMessage) => {
-      let json = '';
-
-      res.on('data', (chunk: any) => {
-        // keep appending the response chunks until we get 'end' event.
-        json += chunk;
-      });
-
-      res.on('end', () => {
-        // complete response is available here:
-        if (res.statusCode === 200) {
-          try {
-            // convert the response to a json object and return.
-            const data = JSON.parse(json);
-            resolve(data);
-          } catch (e) {
-            reject(e);
-          }
-        } else {
-          reject('Expected status code 200, but got ' + res.statusCode);
-        }
-      });
-    }).on('error', (err: Error) => {
-      reject(err);
-    });
-  });
-}
-
-export function readInstallersIndex(filePath: string) :any {
-  if (!fs.existsSync) {
-    throw new Error(`File ${filePath} was not found`);
-  }
-  const data = fs.readFileSync(filePath, 'utf8');
-
-  // convert the response to a json object and return.
-  const json = JSON.parse(data);
-  return json;
-}
-
-export function parseVersionString(versionString: string) {
-  const VALID_VERSION_REGEX = /^(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?(?:\.(0|[1-9]\d*))?(?:\.(0|[1-9]\d*))?$/;
-  return VALID_VERSION_REGEX.exec(versionString);
-}
-
-export function implementsIVersionProviderProperties(value: any): boolean {
-  if (!value || typeof(value) !== 'object') { return false; }
-  if (value.versionString) {
-    if (null === parseVersionString(value.versionString))  { return false; }
-  }
-  if (!value.product) { return false; }
-  return true;
-}
-
-
-/**
- * This method looks for the requested version (partial or complete) in the
- * indexed version information. Based on the input, it iterates through all
- * four numbers in the version string and compares the requested version
- * with the indexed info.
- * If any of the requested version number is missing, it fetches the latest
- * (highest) available version for it.
- *
- * @param requestedVersion
- * @param indexedVersionInfo
- */
-export async function getRequestedInstallerVersion(
-  requestedVersion: RegExpExecArray | null,
-  indexedVersionInfo: any) {
-
-  let versionMap = indexedVersionInfo;
-  const versionArray: string[] = [];
-
-  // iterate through all 4 major, minor, release and patch numbers,
-  // and get the matching version from the indexed version map.
-  for (let versionIndex = 0; versionIndex < 4; versionIndex++) {
-    let version;
-    if (null === requestedVersion || null == requestedVersion[versionIndex + 1]) {
-
-      // version is not provided, get the max version.
-      const numberValues: number[] = (Object.keys(versionMap)).map((val: string) => {
-        return parseInt(val, 10);
-      });
-      version = (Math.max(...numberValues)).toString();
-
-    } else {
-      version = requestedVersion[versionIndex + 1];
+    // TODO: Ignore case
+    if (!value.product || !Object.values(Product).includes(value.product)) {
+      return false;
     }
-    versionArray[versionIndex] = version;
-    versionMap = versionMap[version];
+
+    if (value.versionString) {
+      if (null === this.parseVersionString(value.versionString))  { return false; }
+    }
+
+    if (value.platform) {
+      // TODO: Ignore case
+      if (!Object.values(Platform).includes(value.platform))  { return false; }
+    }
+
+    return true;
   }
 
-  return {versionMap, versionArray};
+  /* istanbul ignore next */ // @ts-ignore
+  private async downloadInstallerIndex() {
+    const productionInfoURL = 'https://usiskin-test-bucket.s3-us-west-2.amazonaws.com/installers_info.json';
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const parsedUrl = require('url').parse(productionInfoURL);
+
+    const options = {
+      host: parsedUrl.hostname,
+      path: parsedUrl.path,
+    };
+
+    return new Promise((resolve, reject) => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require('https').get(options, (res: IncomingMessage) => {
+        let json = '';
+
+        res.on('data', (chunk: any) => {
+          // keep appending the response chunks until we get 'end' event.
+          json += chunk;
+        });
+
+        res.on('end', () => {
+          // complete response is available here:
+          if (res.statusCode === 200) {
+            try {
+              // convert the response to a json object and return.
+              const data = JSON.parse(json);
+              resolve(data);
+            } catch (e) {
+              reject(e);
+            }
+          } else {
+            reject(new Error(`Expected status code 200, but got ${res.statusCode}`));
+          }
+        });
+      }).on('error', (err: Error) => {
+        reject(err);
+      });
+    });
+  }
+
+  /**
+   * This method reads index file.
+   */
+  private readInstallersIndex(): any {
+    if (!this.indexFilePath) {
+      throw new Error('File path should be defined.');
+    }
+    if (!fs.existsSync(this.indexFilePath)) {
+      throw new Error(`File ${this.indexFilePath} was not found`);
+    }
+    const data = fs.readFileSync(this.indexFilePath, 'utf8');
+
+    // convert the response to a json object and return.
+    const json = JSON.parse(data);
+    return json;
+  }
+
+  private parseVersionString(versionString: string): RegExpExecArray | null {
+    const VALID_VERSION_REGEX = /^(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?(?:\.(0|[1-9]\d*))?(?:\.(0|[1-9]\d*))?$/;
+    return VALID_VERSION_REGEX.exec(versionString);
+  }
+
+  /**
+   * This method returns IVersionedUris for specific platform
+   *
+   * @param product
+   * @param productSection
+   * @param platform
+   * @param version
+   */
+  private async getUrisForPlatform(
+    product: Product,
+    productSection: any,
+    platform: Platform,
+    version?: string,
+  ): Promise<IVersionedUris | undefined> {
+    const versionString: string = version ? version : this.getLatestVersion(platform, productSection);
+
+    const requestedVersion = this.parseVersionString( versionString );
+
+    // Based on the requested version, fetches the latest patch and its installer file paths.
+    return this.getRequestedUriVersion(
+      requestedVersion,
+      productSection.versions,
+      platform,
+      product,
+    );
+  }
+
+  /**
+   * This method returns the latest version for specified platform.
+   *
+   * @param platform
+   * @param indexedVersionInfo
+   */
+  private getLatestVersion(platform: string, indexedVersionInfo: any): string {
+    const latestSection = indexedVersionInfo.latest;
+    if (!latestSection) {
+      throw new Error('Information about latest version can not be found');
+    }
+
+    const latestVersion = latestSection[platform];
+    if (!latestVersion) {
+      throw new Error(`Information about latest version for platform ${platform} can not be found`);
+    }
+
+    return latestVersion;
+  }
+
+  /**
+   * This method looks for the requested version (partial or complete) in the
+   * indexed version information. Based on the input, it iterates through all
+   * four numbers in the version string and compares the requested version
+   * with the indexed info.
+   * If any of the requested version number is missing, it fetches the latest
+   * (highest) available version for it.
+   *
+   * @param requestedVersion
+   * @param indexedVersionInfo
+   */
+  private getRequestedUriVersion(
+    requestedVersion: RegExpExecArray | null,
+    indexedVersionInfo: any,
+    platform: Platform,
+    product: Product,
+  ): IVersionedUris | undefined {
+
+    let versionMap = indexedVersionInfo;
+    const versionArray: string[] = [];
+
+    // iterate through all 4 major, minor, release and patch numbers,
+    // and get the matching version from the indexed version map.
+    for (let versionIndex = 0; versionIndex < 4; versionIndex++) {
+      let version: string;
+      if (null === requestedVersion
+        || null === requestedVersion[versionIndex + 1]
+        || typeof requestedVersion[versionIndex + 1] === 'undefined') {
+
+        // version is not provided, get the max version.
+        const numberValues: number[] = (Object.keys(versionMap)).map((val: string) => {
+          return parseInt(val, 10);
+        });
+        version = (Math.max(...numberValues)).toString();
+
+      } else {
+        version = requestedVersion[versionIndex + 1];
+      }
+      versionArray[versionIndex] = version;
+      versionMap = versionMap[version];
+    }
+
+    let uriIndex: IDeadlineInstallerUris | IDeadlineDockerRecipeUris | undefined;
+    if ((platform in versionMap)) {
+      if (product == Product.deadline) {
+        uriIndex = {
+          bundle: versionMap[platform].bundle,
+          clientInstaller: versionMap[platform].clientInstaller,
+          repositoryInstaller: versionMap[platform].repositoryInstaller,
+          certificateInstaller: versionMap[platform].certificateInstaller,
+        };
+      } else { // Product.deadlineDocker
+        uriIndex = {
+          recipe: versionMap[platform],
+        };
+      }
+    }
+
+    if (uriIndex) {
+      return {
+        MajorVersion: versionArray[0],
+        MinorVersion: versionArray[1],
+        ReleaseVersion: versionArray[2],
+        PatchVersion: versionArray[3],
+        Uris: uriIndex,
+      };
+    } else {
+      return undefined;
+    }
+  }
 }
 
 /**
- * This method returns the latest version for specified platform.
- *
- * @param platform
- * @param indexedVersionInfo
+ * The handler used to provide the installer links for the requested version
  */
-export function getLatestVersion(platform: string, indexedVersionInfo: any) :string {
-  const latestSection = indexedVersionInfo.latest;
-  if (!latestSection) {
-    throw new Error('Information about latest version can not be found');
-  }
-
-  const latestVersion = latestSection[platform];
-  if (!latestVersion) {
-    throw new Error(`Information about latest version for platform ${platform} can not be found`);
-  }
-
-  return latestVersion;
+/* istanbul ignore next */
+export async function handler(event: CfnRequestEvent, context: LambdaContext): Promise<string> {
+  const versionProvider = new VersionProvider();
+  return await versionProvider.handler(event, context);
 }
