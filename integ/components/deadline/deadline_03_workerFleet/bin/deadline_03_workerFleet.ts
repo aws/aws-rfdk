@@ -5,9 +5,9 @@
 
 import { App, Stack } from '@aws-cdk/core';
 import { RenderStruct } from '../../../../lib/render-struct';
-import { StorageStruct } from '../../../../lib/storage-struct';
+import { DatabaseType, StorageStruct } from '../../../../lib/storage-struct';
 import { WorkerStruct } from '../../../../lib/worker-struct';
-import { TestingTier } from '../lib/testing-tier';
+import { WorkerFleetTestingTier } from '../lib/workerFleet-testing-tier';
 
 const app = new App();
 const env = {
@@ -22,7 +22,7 @@ const integStackTag = process.env.INTEG_STACK_TAG!.toString();
 const oss = ['Linux','Windows'];
 const protocols = ['http','https'];
 
-let structs: Array<WorkerStruct> = [];
+let structs:Array<WorkerStruct> = [];
 let i = 1;
 oss.forEach( os => {
   protocols.forEach( protocol => {
@@ -32,8 +32,7 @@ oss.forEach( os => {
     // Create StorageStruct with repository
     const storage = new StorageStruct(componentTier, 'StorageStruct' + testId, {
       integStackTag,
-      provideDocdbEfs: true,
-      useMongoDB: false,
+      databaseType: DatabaseType.DocDB,
     });
     // Create render queue with either HTTP or HTTPS protocol
     const render = new RenderStruct(componentTier, 'RenderStruct' + testId, {
@@ -51,4 +50,4 @@ oss.forEach( os => {
   });
 });
 
-new TestingTier(app, 'RFDKInteg-WF-TestingTier' + integStackTag, {env, integStackTag, structs});
+new WorkerFleetTestingTier(app, 'RFDKInteg-WF-TestingTier' + integStackTag, {env, integStackTag, structs});

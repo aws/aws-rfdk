@@ -12,25 +12,23 @@ import awaitSsmCommand from '../../common/functions/awaitSsmCommand';
 const testingStackName = 'RFDKInteg-DL-TestingTier' + process.env.INTEG_STACK_TAG?.toString();
 const deadlineVersion = process.env.DEADLINE_VERSION?.toString();
 
-jest.setTimeout(10000);
-
 const cloudformation = new CloudFormation();
 const logs = new CloudWatchLogs();
 
 const bastionRegex = /bastionId/;
-const dbRegex = /secretARNDL(\d)/;
+const dbRegex = /DatabaseSecretARNDL(\d)/;
 const logRegex = /logGroupNameDL(\d)/;
-const certRegex = /certSecretARNDL(\d)/;
+const certRegex = /CertSecretARNDL(\d)/;
 
-const testCases: Array<Array<any>> = [
+const testCases:Array<Array<any>> = [
   [ 'RFDK-created DB and EFS', 1 ],
   [ 'User-created DB and EFS', 2 ],
   [ 'User-created MongoDB', 3],
 ];
-let bastionId: string;
-let dbSecretARNs: Array<any> = [];
-let logGroupNames: Array<any> = [];
-let certSecretARNs: Array<any> = [];
+let bastionId:string;
+let dbSecretARNs:Array<any> = [];
+let logGroupNames:Array<any> = [];
+let certSecretARNs:Array<any> = [];
 
 
 beforeAll( () => {

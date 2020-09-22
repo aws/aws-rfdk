@@ -7,9 +7,9 @@ import { Vpc }from '@aws-cdk/aws-ec2';
 import { Construct, Stack, StackProps } from '@aws-cdk/core';
 
 export class NetworkTier extends Stack {
-  public readonly vpc: Vpc;
+  public readonly vpc:Vpc;
 
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope:Construct, id:string, props?:StackProps) {
     super(scope, id, props);
 
     // Workaround: the maxAZs are limited to prevent exceeding account limits on subaddresses

@@ -11,12 +11,23 @@ set -euo pipefail
 shopt -s globstar
 
 INTEG_ROOT="$(pwd)"
+BASH_SCRIPTS="$INTEG_ROOT/scripts/bash"
 INFRASTRUCTURE_APP="$INTEG_ROOT/components/_infrastructure"
 
 if [ -z ${INTEG_STACK_TAG+x} ]; then
     echo "INTEG_STACK_TAG must be set, exiting..."
     exit 1
 fi
+
+# Load environment variables from config file
+if [ ! "${SKIP_TEST_CONFIG-}" = true ]; then
+  # Load variables from config file
+  echo "Loading config..."
+  source "$INTEG_ROOT/test-config.sh"
+fi
+
+# Set variables from script
+source $BASH_SCRIPTS/set-test-variables.sh
 
 for COMPONENT in **/cdk.json; do
     COMPONENT_ROOT="$(dirname "$COMPONENT")"

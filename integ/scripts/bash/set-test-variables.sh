@@ -14,6 +14,11 @@ else
     export AWS_REGION=$CDK_DEFAULT_REGION
 fi
 
+if [ -z ${USER_ACCEPTS_SSPL_FOR_RFDK_TESTS+x} ]; then
+    export USER_ACCEPTS_SSPL_FOR_RFDK_TESTS=false
+fi
+
+
 # Set staging path to default if not overridden
 if [ -z ${DEADLINE_STAGING_PATH+x} ]; then
     export DEADLINE_STAGING_PATH="$INTEG_ROOT/stage"

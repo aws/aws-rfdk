@@ -15,23 +15,27 @@ import { DatabaseConnection, Repository, Stage, ThinkboxDockerRecipes } from 'aw
 
 // Interface for supplying database connection and accompanying secret for credentials
 export interface IRenderFarmDb {
-  db: DatabaseCluster | MongoDbInstance,
-  secret: ISecret,
-  cert?: X509CertificatePem,
+  db:DatabaseCluster | MongoDbInstance,
+  secret:ISecret,
+  cert?:X509CertificatePem,
+}
+
+export enum DatabaseType {
+  DocDB = 1,
+  MongoDB = 2,
 }
 
 export interface StorageStructProps {
-  readonly integStackTag: string;
-  readonly provideDocdbEfs: boolean;
-  readonly useMongoDB: boolean;
+  readonly integStackTag:string;
+  readonly databaseType?:DatabaseType;
 }
 
 export class StorageStruct extends Construct {
-  public readonly repo: Repository;
-  public readonly database: IRenderFarmDb;
-  public readonly efs: FileSystem;
+  public readonly repo:Repository;
+  public readonly database:IRenderFarmDb;
+  public readonly efs:FileSystem;
 
-  constructor(scope: Construct, id: string, props: StorageStructProps) {
+  constructor(scope:Construct, id:string, props:StorageStructProps) {
     super(scope, id);
 
     // Confirm that user has accepted SSPL license to use mongoDB
@@ -58,9 +62,8 @@ export class StorageStruct extends Construct {
     let deadlineEfs;
     let deadlineMountableEfs;
 
-    // Check the configuration for the test for provideDocdbEfs
-    // If true, create a docDB and efs for the repository to use
-    if (props.provideDocdbEfs) {
+    // Check if the test requires a DocDB or MongoDB to be created. If neither is provided, the Repository construct will create a DocDB itself.
+    if (props.databaseType == DatabaseType.DocDB) {
 
       // Create a DocDB database cluster on the VPC
       database = new DatabaseCluster(this, 'DocumentDatabase', {
@@ -97,8 +100,8 @@ export class StorageStruct extends Construct {
         filesystem: deadlineEfs,
       });
     }
-    // If useMongoDB is true, a mongoDB instance is created in place of the DocDB
-    else if (props.useMongoDB) {
+    // If databaseType is MongoDB, a MongoDB instance is created in place of the DocDB
+    else if (props.databaseType == DatabaseType.MongoDB) {
 
       // Create CA signing certificate
       cacert = new X509CertificatePem(this, 'CaCert', {

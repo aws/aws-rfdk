@@ -13,6 +13,6 @@ set -euo pipefail
 
 MOUNT_ID=$1
 
-cat "/mnt/efs/fs${MOUNT_ID}/DeadlineRepository/settings/repository.ini"
+cat "/mnt/efs/fsdl${MOUNT_ID}/DeadlineRepository/settings/repository.ini"
 
 exit 0

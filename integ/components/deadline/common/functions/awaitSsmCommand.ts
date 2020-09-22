@@ -8,13 +8,13 @@ import * as SSM from 'aws-sdk/clients/ssm';
 const ssm = new SSM;
 
 interface CommandResponse {
-  output: string;
-  responseCode: number;
+  output:string;
+  responseCode:number;
 }
 
 // Custom function to send SSM command to run a particular script on the bastion instance,
 // wait for it to finish executing, then return the response.
-export default function awaitSsmCommand(bastionId: string, params:SSM.SendCommandRequest){
+export default function awaitSsmCommand(bastionId:string, params:SSM.SendCommandRequest){
   return new Promise<CommandResponse>( async (res) => {
 
     // Send the command
