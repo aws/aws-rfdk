@@ -10,18 +10,18 @@ import { IWorkerFleet, RenderQueue, WorkerInstanceFleet } from 'aws-rfdk/deadlin
 import { RenderStruct } from './render-struct';
 
 export interface WorkerStructProps {
-  readonly integStackTag: string;
-  readonly renderStruct: RenderStruct;
-  readonly os: string;
+  readonly integStackTag:string;
+  readonly renderStruct:RenderStruct;
+  readonly os:string;
 }
 
 export class WorkerStruct extends Construct {
 
-  readonly workerFleet: Array<IWorkerFleet> = [];
-  readonly renderQueue: RenderQueue;
-  readonly cert?: X509CertificatePem;
+  readonly workerFleet:Array<IWorkerFleet> = [];
+  readonly renderQueue:RenderQueue;
+  readonly cert?:X509CertificatePem;
 
-  constructor(scope: Construct, id: string, props: WorkerStructProps) {
+  constructor(scope:Construct, id:string, props:WorkerStructProps) {
     super(scope, id);
 
     // Collect environment variables

@@ -5,8 +5,8 @@
 
 import { App, Stack } from '@aws-cdk/core';
 import { RenderStruct } from '../../../../lib/render-struct';
-import { StorageStruct } from '../../../../lib/storage-struct';
-import { TestingTier } from '../lib/testing-tier';
+import { DatabaseType, StorageStruct } from '../../../../lib/storage-struct';
+import { RenderQueueTestingTier } from '../lib/renderQueue-testing-tier';
 
 const app = new App();
 const env = {
@@ -23,21 +23,22 @@ const componentTier = new Stack(app, 'RFDKInteg-RQ-ComponentTier' + integStackTa
 // Add struct containing Deadline repository (the same repo is used for all test configurations)
 const storage = new StorageStruct(componentTier, 'StorageStruct', {
   integStackTag,
-  provideDocdbEfs: true,
-  useMongoDB: false,
+  databaseType: DatabaseType.DocDB,
 });
 
-// Create test struct for Render Queue in http mode
-const render1 = new RenderStruct(componentTier, 'RenderStructRQ1', {
-  integStackTag,
-  repository: storage.repo,
-  protocol: 'http',
-});
-//Create test struct for Render Queue in https mode
-const render2 = new RenderStruct(componentTier, 'RenderStructRQ2', {
-  integStackTag,
-  repository: storage.repo,
-  protocol: 'https',
-});
+const structs:Array<RenderStruct> = [
+  // Create test struct for Render Queue in http mode
+  new RenderStruct(componentTier, 'RenderStructRQ1', {
+    integStackTag,
+    repository: storage.repo,
+    protocol: 'http',
+  }),
+  //Create test struct for Render Queue in https mode
+  new RenderStruct(componentTier, 'RenderStructRQ2', {
+    integStackTag,
+    repository: storage.repo,
+    protocol: 'https',
+  }),
+];
 
-new TestingTier(app, 'RFDKInteg-RQ-TestingTier' + integStackTag, {env, integStackTag, structs: [render1, render2] });
+new RenderQueueTestingTier(app, 'RFDKInteg-RQ-TestingTier' + integStackTag, { env, integStackTag, structs });

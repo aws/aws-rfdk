@@ -4,8 +4,8 @@
  */
 
 import { App, Stack } from '@aws-cdk/core';
-import { StorageStruct } from '../../../../lib/storage-struct';
-import { TestingTier } from '../lib/testing-tier';
+import { DatabaseType, StorageStruct } from '../../../../lib/storage-struct';
+import { RepositoryTestingTier } from '../lib/repository-testing-tier';
 
 const app = new App();
 const env = {
@@ -16,20 +16,19 @@ const env = {
 const integStackTag = process.env.INTEG_STACK_TAG!.toString();
 
 const componentTier = new Stack(app, 'RFDKInteg-DL-ComponentTier' + integStackTag, {env});
-const storage1 = new StorageStruct(componentTier, 'StorageStruct1', {
-  integStackTag,
-  provideDocdbEfs: false,
-  useMongoDB: false,
-});
-const storage2 = new StorageStruct(componentTier, 'StorageStruct2', {
-  integStackTag,
-  provideDocdbEfs: true,
-  useMongoDB: false,
-});
-const storage3 = new StorageStruct(componentTier, 'StorageStruct3', {
-  integStackTag,
-  provideDocdbEfs: false,
-  useMongoDB: true,
-});
 
-new TestingTier(app, 'RFDKInteg-DL-TestingTier' + integStackTag, { env, integStackTag, structs: [storage1, storage2, storage3] });
+const structs:Array<StorageStruct> = [
+  new StorageStruct(componentTier, 'StorageStruct1', {
+    integStackTag,
+  }),
+  new StorageStruct(componentTier, 'StorageStruct2', {
+    integStackTag,
+    databaseType: DatabaseType.DocDB,
+  }),
+  new StorageStruct(componentTier, 'StorageStruct3', {
+    integStackTag,
+    databaseType: DatabaseType.MongoDB,
+  }),
+];
+
+new RepositoryTestingTier(app, 'RFDKInteg-DL-TestingTier' + integStackTag, { env, integStackTag, structs });

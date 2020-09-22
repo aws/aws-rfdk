@@ -9,8 +9,18 @@ set -euo pipefail
 shopt -s globstar
 
 INTEG_ROOT="$(pwd)"
+BASH_SCRIPTS="$INTEG_ROOT/scripts/bash"
 INFRASTRUCTURE_APP="$INTEG_ROOT/components/_infrastructure"
-source "$INTEG_ROOT/test-config.sh"
+
+# Load environment variables from config file
+if [ ! "${SKIP_TEST_CONFIG-}" = true ]; then
+  # Load variables from config file
+  echo "Loading config..."
+  source "$INTEG_ROOT/test-config.sh"
+fi
+
+# Set variables from script
+source $BASH_SCRIPTS/set-test-variables.sh
 
 if [ -z ${INTEG_STACK_TAG+x} ]; then
     # Create a unique tag to add to stack names and some resources
@@ -29,7 +39,7 @@ for COMPONENT in **/cdk.json; do
     # Use a pattern match to exclude the infrastructure app from the results
     if [[ "$(basename "$COMPONENT_ROOT")" != _* ]]; then
         # Excecute the e2e test in the component's scripts directory
-        cd "$INTEG_STACK_TAG/$COMPONENT_ROOT" && ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME"  --deploy-and-test-only
+        cd "$INTEG_ROOT/$COMPONENT_ROOT" && ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME"  --deploy-and-test-only
     fi
 done
 
