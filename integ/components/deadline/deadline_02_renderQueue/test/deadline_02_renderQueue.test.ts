@@ -16,13 +16,13 @@ const bastionRegex = /bastionId/;
 const rqRegex = /renderQueueEndpointRQ(\d)/;
 const certRegex = /CertSecretARNRQ(\d)/;
 
-const testCases:Array<Array<any>> = [
+const testCases: Array<Array<any>> = [
   [ 'HTTP mode', 1 ],
   [ 'HTTPS mode (TLS)', 2],
 ];
-let bastionId:any;
-let renderQueueEndpoints:Array<string> = [];
-let secretARNs:Array<string> = [];
+let bastionId: any;
+let renderQueueEndpoints: Array<string> = [];
+let secretARNs: Array<string> = [];
 
 beforeAll( () => {
   // Query the TestingStack and await its outputs to use as test inputs

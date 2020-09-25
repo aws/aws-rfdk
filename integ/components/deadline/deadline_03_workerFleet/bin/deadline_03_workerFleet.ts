@@ -22,7 +22,7 @@ const integStackTag = process.env.INTEG_STACK_TAG!.toString();
 const oss = ['Linux','Windows'];
 const protocols = ['http','https'];
 
-let structs:Array<WorkerStruct> = [];
+let structs: Array<WorkerStruct> = [];
 let i = 1;
 oss.forEach( os => {
   protocols.forEach( protocol => {

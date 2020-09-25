@@ -42,6 +42,28 @@ module.exports = {
     // Require use of the `import { foo } from 'bar';` form instead of `import foo = require('bar');`
     '@typescript-eslint/no-require-imports': [ 'error' ],
     '@typescript-eslint/indent': [ 'error', 2 ],
+    // Rule to lint white-space between the TyepScript type annotation syntax
+    // e.g.
+    //    const foo: number; // Good
+    //    const foo :number; // Bad
+    //    const foo:number;  // Bad
+    '@typescript-eslint/type-annotation-spacing': [
+      // Error level (fail the lint)
+      'error',
+      // Rule options
+      {
+        // No whitespace before the colon
+        before: false,
+        // Must have whitespace after the colon
+        after: true,
+        overrides: {
+          arrow: {
+            before: true,
+            after: true,
+          },
+        },
+      },
+    ],
 
     // Style
     'quotes': [ 'error', 'single', { avoidEscape: true } ],

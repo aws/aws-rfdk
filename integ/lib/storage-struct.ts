@@ -15,9 +15,9 @@ import { DatabaseConnection, Repository, Stage, ThinkboxDockerRecipes } from 'aw
 
 // Interface for supplying database connection and accompanying secret for credentials
 export interface IRenderFarmDb {
-  db:DatabaseCluster | MongoDbInstance,
-  secret:ISecret,
-  cert?:X509CertificatePem,
+  db: DatabaseCluster | MongoDbInstance,
+  secret: ISecret,
+  cert?: X509CertificatePem,
 }
 
 export enum DatabaseType {
@@ -26,16 +26,16 @@ export enum DatabaseType {
 }
 
 export interface StorageStructProps {
-  readonly integStackTag:string;
-  readonly databaseType?:DatabaseType;
+  readonly integStackTag: string;
+  readonly databaseType?: DatabaseType;
 }
 
 export class StorageStruct extends Construct {
-  public readonly repo:Repository;
-  public readonly database:IRenderFarmDb;
-  public readonly efs:FileSystem;
+  public readonly repo: Repository;
+  public readonly database: IRenderFarmDb;
+  public readonly efs: FileSystem;
 
-  constructor(scope:Construct, id:string, props:StorageStructProps) {
+  constructor(scope: Construct, id: string, props: StorageStructProps) {
     super(scope, id);
 
     // Confirm that user has accepted SSPL license to use mongoDB

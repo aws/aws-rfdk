@@ -26,7 +26,7 @@ const storage = new StorageStruct(componentTier, 'StorageStruct', {
   databaseType: DatabaseType.DocDB,
 });
 
-const structs:Array<RenderStruct> = [
+const structs: Array<RenderStruct> = [
   // Create test struct for Render Queue in http mode
   new RenderStruct(componentTier, 'RenderStructRQ1', {
     integStackTag,

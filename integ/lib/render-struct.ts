@@ -11,16 +11,16 @@ import { X509CertificatePem } from 'aws-rfdk';
 import { IRepository, RenderQueue, Stage, ThinkboxDockerRecipes } from 'aws-rfdk/deadline';
 
 export interface RenderStructProps {
-  readonly integStackTag:string;
-  readonly repository:IRepository;
-  readonly protocol:string;
+  readonly integStackTag: string;
+  readonly repository: IRepository;
+  readonly protocol: string;
 }
 
 export class RenderStruct extends Construct {
-  public readonly renderQueue:RenderQueue;
-  public readonly cert:X509CertificatePem | undefined;
+  public readonly renderQueue: RenderQueue;
+  public readonly cert: X509CertificatePem | undefined;
 
-  constructor(scope:Construct, id:string, props:RenderStructProps) {
+  constructor(scope: Construct, id: string, props: RenderStructProps) {
     super(scope, id);
 
     // Collect environment variables
