@@ -1218,7 +1218,7 @@
     "@types/yargs" "^15.0.0"
     chalk "^4.0.0"
 
-"@jsii/spec@^1.11.0", "@jsii/spec@^1.12.0":
+"@jsii/spec@^1.12.0":
   version "1.12.0"
   resolved "https://registry.yarnpkg.com/@jsii/spec/-/spec-1.12.0.tgz#4b13acc5fe591a4c70137f38275ac3d8a977a958"
   integrity sha512-xqiROAZjOLNhvGzVCdyNu1sJ4CLU+jxcQcRvXz3qkQobHeHRk4MMiqRVOk6LWaBNVtDjil4HlP1sRm5j/ZqYeQ==
@@ -2784,17 +2784,17 @@ aws4@^1.8.0:
   resolved "https://registry.yarnpkg.com/aws4/-/aws4-1.10.1.tgz#e1e82e4f3e999e2cfd61b161280d16a111f86428"
   integrity sha512-zg7Hz2k5lI8kb7U32998pRRFin7zJlkfezGJjUc2heaD4Pw2wObakCDVzkKztTm/Ln7eiVvYsjqak0Ed4LkMDA==
 
-awslint@1.61.1:
-  version "1.61.1"
-  resolved "https://registry.yarnpkg.com/awslint/-/awslint-1.61.1.tgz#d9af525b591c10642c67de8ac9eeb5dab2706902"
-  integrity sha512-KvyXdQi5IYXjXHAA2z92KjwqfIQ+qIhD9WyFANhQ0gehWN8Dj6jfdYlDDit4chCYSjjQxK0sLuK+yn3dum1Bhg==
+awslint@1.64.0:
+  version "1.64.0"
+  resolved "https://registry.yarnpkg.com/awslint/-/awslint-1.64.0.tgz#7f32cbcbdfd35d6bf07eea78fd6da85fbce70b76"
+  integrity sha512-u0xVRCCBEjlF6YP+rEXQSEdpH140LvS6PhKQ/7ZrYES0tb56IcC+y9aN72gtrLw9UBqqnE4SwCZ9ODbR7JB/wQ==
   dependencies:
-    "@jsii/spec" "^1.11.0"
+    "@jsii/spec" "^1.12.0"
     camelcase "^6.0.0"
     colors "^1.4.0"
     fs-extra "^9.0.1"
-    jsii-reflect "^1.11.0"
-    yargs "^15.4.1"
+    jsii-reflect "^1.12.0"
+    yargs "^16.0.3"
 
 babel-jest@^26.3.0:
   version "26.3.0"
@@ -6530,7 +6530,7 @@ jsii-pacmak@^1.12.0:
     xmlbuilder "^15.1.1"
     yargs "^15.4.1"
 
-jsii-reflect@^1.11.0, jsii-reflect@^1.12.0:
+jsii-reflect@^1.12.0:
   version "1.12.0"
   resolved "https://registry.yarnpkg.com/jsii-reflect/-/jsii-reflect-1.12.0.tgz#e894a823e1abc7d4e0c61e7a8f8ff45f6757566a"
   integrity sha512-wADLvHWARzV4tSYFwqO3FpUuYmhcwnJENppJ5UY9ONt1E/r5CtxBCxHChnEeMWywyAy+rhl3CXVyCfV0IoPj3g==
