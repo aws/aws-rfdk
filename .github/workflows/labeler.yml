@@ -13,14 +13,13 @@ jobs:
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
       -
         name: Run Labeler
         if: success()
         uses: crazy-max/ghaction-github-labeler@v3
         with:
-          yaml_file: .github/config/labels.yml
-          skip_delete: false
-          dry_run: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          yaml-file: .github/config/labels.yml
+          skip-delete: false
+          dry-run: false
