@@ -38,7 +38,7 @@
     "@types/fs-extra": "^9.0.1",
     "@types/semver": "^7.3.4",
     "@types/yargs": "^15.0.5",
-    "typescript": "~4.0.2"
+    "typescript": "~4.0.3"
   },
   "dependencies": {
     "case": "^1.6.3",
