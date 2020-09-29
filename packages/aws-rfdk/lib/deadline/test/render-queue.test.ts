@@ -6,14 +6,14 @@
 import {
   ABSENT,
   arrayWith,
-  not,
+  countResourcesLike,
   deepObjectLike,
   expect as expectCDK,
   haveResource,
   haveResourceLike,
+  not,
   objectLike,
   ResourcePart,
-  countResourcesLike,
 } from '@aws-cdk/assert';
 import {
   Certificate,
@@ -2197,5 +2197,76 @@ describe('RenderQueue', () => {
         'AWS::ECS::Service': 1,
       },
     });
+  });
+
+  describe('SEP Policies', () => {
+    test('with resource tracker', () => {
+      renderQueueCommon.addSEPPolicies();
+      expectCDK(stack).to(countResourcesLike('AWS::IAM::Role', 1, {
+        ManagedPolicyArns: arrayWith(
+          {
+            'Fn::Join': [
+              '',
+              [
+                'arn:',
+                {
+                  Ref: 'AWS::Partition',
+                },
+                ':iam::aws:policy/AWSThinkboxDeadlineSpotEventPluginAdminPolicy',
+              ],
+            ],
+          },
+          {
+            'Fn::Join': [
+              '',
+              [
+                'arn:',
+                {
+                  Ref: 'AWS::Partition',
+                },
+                ':iam::aws:policy/AWSThinkboxDeadlineResourceTrackerAdminPolicy',
+              ],
+            ],
+          },
+        ),
+      }));
+    });
+
+    test('no resource tracker', () => {
+      renderQueueCommon.addSEPPolicies(false);
+      expectCDK(stack).to(haveResourceLike('AWS::IAM::Role', {
+        ManagedPolicyArns: arrayWith(
+          {
+            'Fn::Join': [
+              '',
+              [
+                'arn:',
+                {
+                  Ref: 'AWS::Partition',
+                },
+                ':iam::aws:policy/AWSThinkboxDeadlineSpotEventPluginAdminPolicy',
+              ],
+            ],
+          },
+        ),
+      }));
+      expectCDK(stack).notTo(haveResourceLike('AWS::IAM::Role', {
+        ManagedPolicyArns: arrayWith(
+          {
+            'Fn::Join': [
+              '',
+              [
+                'arn:',
+                {
+                  Ref: 'AWS::Partition',
+                },
+                ':iam::aws:policy/AWSThinkboxDeadlineResourceTrackerAdminPolicy',
+              ],
+            ],
+          },
+        ),
+      }));
+    });
+
   });
 });
