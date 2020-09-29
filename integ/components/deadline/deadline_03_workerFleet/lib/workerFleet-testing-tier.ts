@@ -17,7 +17,7 @@ export interface WorkerFleetTestingTierProps extends TestingTierProps {
   /**
    * Array of WorkerStructs representing different test cases
    */
-  readonly structs:Array<WorkerStruct>;
+  readonly structs: Array<WorkerStruct>;
 }
 
 /**
@@ -36,7 +36,7 @@ export interface WorkerFleetTestingTierProps extends TestingTierProps {
  *   At execution the tests retrieve the value of secrets for the authentication cert.
  */
 export class WorkerFleetTestingTier extends TestingTier {
-  constructor(scope:Construct, id:string, props:WorkerFleetTestingTierProps) {
+  constructor(scope: Construct, id: string, props: WorkerFleetTestingTierProps) {
     super(scope, id, props);
 
     const structs = props.structs;
@@ -65,7 +65,7 @@ export class WorkerFleetTestingTier extends TestingTier {
    *
    * @param workerFleet Array of worker instances to connect to the test Bastion
    */
-  public configureWorkerFleet(workerFleet:Array<IWorkerFleet>) {
+  public configureWorkerFleet(workerFleet: Array<IWorkerFleet>) {
     workerFleet.forEach( worker => {
       this.testInstance.connections.allowTo(worker, Port.tcp(22));
     });

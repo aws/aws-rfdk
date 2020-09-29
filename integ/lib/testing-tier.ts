@@ -18,7 +18,7 @@ interface UserDataConfigProps {
   /**
    * Local path to the framework directory containing the testing script to be copied to the Bastion
    */
-  readonly testingScriptPath:string;
+  readonly testingScriptPath: string;
 }
 
 /**
@@ -28,7 +28,7 @@ export interface TestingTierProps extends StackProps {
   /**
    * The unique suffix given to all stacks in the testing app
    */
-  readonly integStackTag:string;
+  readonly integStackTag: string;
 }
 
 /**
@@ -38,19 +38,19 @@ export abstract class TestingTier extends Stack {
   /**
    * The Bastion instance used for communicating with the farm and executing test cases
    */
-  public readonly testInstance:BastionHostLinux;
+  public readonly testInstance: BastionHostLinux;
 
   /**
    * The version of Deadline used for installing DeadlineClient. Must be set by env variable before test execution.
    */
-  private deadlineVersion:string = process.env.DEADLINE_VERSION!.toString();
+  private deadlineVersion: string = process.env.DEADLINE_VERSION!.toString();
 
   /**
    * Full path to locally staged Deadline assets. Must be set by env variable before test execution.
    */
-  private stagePath:string = process.env.DEADLINE_STAGING_PATH!.toString();
+  private stagePath: string = process.env.DEADLINE_STAGING_PATH!.toString();
 
-  constructor(scope:Construct, id:string, props:TestingTierProps) {
+  constructor(scope: Construct, id: string, props: TestingTierProps) {
     super(scope, id, props);
 
     const infrastructureStackName = 'RFDKIntegInfrastructure' + props.integStackTag;
@@ -82,7 +82,7 @@ export abstract class TestingTier extends Stack {
    * @param testSuiteId Test case to configure the cert for
    * @param cert Certificate for authenticating to the database/render queue used for this test case
    */
-  public configureCert(testSuiteId:string, cert?:X509CertificatePem) {
+  public configureCert(testSuiteId: string, cert?: X509CertificatePem) {
     if(cert) {
       cert.cert.grantRead(this.testInstance);
       new CfnOutput(this, 'CertSecretARN' + testSuiteId, {
@@ -97,7 +97,7 @@ export abstract class TestingTier extends Stack {
    * @param testSuiteId Test case to configure the database for
    * @param database Database object to connect to the test Bastion
    */
-  public configureDatabase(testSuiteId:string, database:IRenderFarmDb) {
+  public configureDatabase(testSuiteId: string, database: IRenderFarmDb) {
     const db = database.db;
     const dbSecret = database.secret!;
 
@@ -115,7 +115,7 @@ export abstract class TestingTier extends Stack {
    * @param testSuiteId Test case to configure the render queue for
    * @param renderQueue Render queue object to connect to the test Bastion
    */
-  public configureRenderQueue(testSuiteId: string, renderQueue:RenderQueue) {
+  public configureRenderQueue(testSuiteId: string, renderQueue: RenderQueue) {
 
     const port = renderQueue.endpoint.portAsString();
     const zoneName = Stack.of(renderQueue).stackName + '.local';
@@ -169,7 +169,7 @@ export abstract class TestingTier extends Stack {
    *
    * @param props Options for configuring Bastion userData
    */
-  public configureBastionUserData(props:UserDataConfigProps) {
+  public configureBastionUserData(props: UserDataConfigProps) {
     this.testInstance.instance.instance.cfnOptions.creationPolicy = {
       ...this.testInstance.instance.instance.cfnOptions.creationPolicy,
       resourceSignal: {

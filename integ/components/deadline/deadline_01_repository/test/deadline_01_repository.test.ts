@@ -20,15 +20,15 @@ const dbRegex = /DatabaseSecretARNDL(\d)/;
 const logRegex = /logGroupNameDL(\d)/;
 const certRegex = /CertSecretARNDL(\d)/;
 
-const testCases:Array<Array<any>> = [
+const testCases: Array<Array<any>> = [
   [ 'RFDK-created DB and EFS', 1 ],
   [ 'User-created DB and EFS', 2 ],
   [ 'User-created MongoDB', 3],
 ];
-let bastionId:string;
-let dbSecretARNs:Array<any> = [];
-let logGroupNames:Array<any> = [];
-let certSecretARNs:Array<any> = [];
+let bastionId: string;
+let dbSecretARNs: Array<any> = [];
+let logGroupNames: Array<any> = [];
+let certSecretARNs: Array<any> = [];
 
 
 beforeAll( () => {

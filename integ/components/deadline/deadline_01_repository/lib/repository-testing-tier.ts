@@ -18,7 +18,7 @@ export interface RepositoryTestingTierProps extends TestingTierProps {
   /**
    * Array of StorageStructs representing different test cases
    */
-  readonly structs:Array<StorageStruct>;
+  readonly structs: Array<StorageStruct>;
 }
 
 /**
@@ -37,7 +37,7 @@ export interface RepositoryTestingTierProps extends TestingTierProps {
  *   At execution the tests retrieve the value of secrets for the database password and authentication cert.
  */
 export class RepositoryTestingTier extends TestingTier {
-  constructor(scope:Construct, id:string, props:RepositoryTestingTierProps) {
+  constructor(scope: Construct, id: string, props: RepositoryTestingTierProps) {
     super(scope, id, props);
 
     const structs = props.structs;
@@ -72,7 +72,7 @@ export class RepositoryTestingTier extends TestingTier {
    * @param testSuiteId Test case to configure the repository for
    * @param repo Repository object to connect to the test Bastion
    */
-  private configureRepo(testSuiteId:string, repo:Repository) {
+  private configureRepo(testSuiteId: string, repo: Repository) {
 
     repo.fileSystem.mountToLinuxInstance(this.testInstance.instance, {
       location: '/mnt/efs/fs' + testSuiteId.toLowerCase(),

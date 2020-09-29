@@ -17,7 +17,7 @@ const integStackTag = process.env.INTEG_STACK_TAG!.toString();
 
 const componentTier = new Stack(app, 'RFDKInteg-DL-ComponentTier' + integStackTag, {env});
 
-const structs:Array<StorageStruct> = [
+const structs: Array<StorageStruct> = [
   new StorageStruct(componentTier, 'StorageStruct1', {
     integStackTag,
   }),

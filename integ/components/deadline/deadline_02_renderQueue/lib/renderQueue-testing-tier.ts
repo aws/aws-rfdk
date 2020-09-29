@@ -15,7 +15,7 @@ export interface RenderQueueTestingTierProps extends TestingTierProps {
   /**
    * Array of RenderStructs representing different test cases
    */
-  readonly structs:Array<RenderStruct>;
+  readonly structs: Array<RenderStruct>;
 }
 
 /**
@@ -34,7 +34,7 @@ export interface RenderQueueTestingTierProps extends TestingTierProps {
  *   At execution the tests retrieve the value of secrets for the authentication cert.
  */
 export class RenderQueueTestingTier extends TestingTier {
-  constructor(scope:Construct, id:string, props:RenderQueueTestingTierProps) {
+  constructor(scope: Construct, id: string, props: RenderQueueTestingTierProps) {
     super(scope, id, props);
 
     const structs = props.structs;

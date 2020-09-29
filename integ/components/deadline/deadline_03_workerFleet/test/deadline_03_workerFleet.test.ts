@@ -16,15 +16,15 @@ const bastionRegex = /bastionId/;
 const rqRegex = /renderQueueEndpointWF(\d)/;
 const certRegex = /CertSecretARNWF(\d)/;
 
-const testCases:Array<Array<any>> = [
+const testCases: Array<Array<any>> = [
   [ 'Linux Worker HTTP mode', 1 ],
   [ 'Linux Worker HTTPS (TLS) mode', 2 ],
   [ 'Windows Worker HTTP mode', 3 ],
   [ 'Windows Worker HTTPS (TLS) mode', 4 ],
 ];
-let bastionId:any;
-let renderQueueEndpoints:Array<string> = [];
-let secretARNs:Array<string> = [];
+let bastionId: any;
+let renderQueueEndpoints: Array<string> = [];
+let secretARNs: Array<string> = [];
 
 beforeAll( () => {
   // Query the TestingStack and await its outputs to use as test inputs
