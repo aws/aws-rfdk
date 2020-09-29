@@ -166,7 +166,7 @@ export class VersionProvider extends SimpleCustomResource {
 
   /* istanbul ignore next */ // @ts-ignore
   private async downloadInstallerIndex() {
-    const productionInfoURL = 'https://usiskin-test-bucket.s3-us-west-2.amazonaws.com/installers_info.json';
+    const productionInfoURL = 'https://downloads.thinkboxsoftware.com/version_info.json';
 
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const parsedUrl = require('url').parse(productionInfoURL);

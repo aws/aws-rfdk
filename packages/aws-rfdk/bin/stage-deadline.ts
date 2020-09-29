@@ -64,7 +64,7 @@ if (!fs.existsSync(outputFolder)) {
   process.exit(1);
 }
 
-const handler = new VersionProvider('./index-test.json');
+const handler = new VersionProvider();
 
 // populate installer URI
 if (deadlineInstallerURI === '') {
