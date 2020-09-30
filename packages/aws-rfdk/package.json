@@ -73,7 +73,7 @@
     "cdk-build-tools": "0.17.0",
     "dynalite": "^3.2.1",
     "pkglint": "0.17.0",
-    "sinon": "^9.0.3"
+    "sinon": "^9.1.0"
   },
   "dependencies": {
     "@aws-cdk/assets": "1.61.1",
