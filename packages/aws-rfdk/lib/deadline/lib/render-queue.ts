@@ -39,6 +39,7 @@ import {
 import {
   IGrantable,
   IPrincipal,
+  ManagedPolicy,
   PolicyStatement,
   ServicePrincipal,
 } from '@aws-cdk/aws-iam';
@@ -456,6 +457,23 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   public configureClientInstance(param: InstanceConnectOptions): void {
     this.addChildDependency(param.host);
     this.rqConnection.configureClientInstance(param);
+  }
+
+  /**
+   * Adds AWS Managed Policies to the Render Queue so it is able to control Deadlines Spot Event Plugin.
+   *
+   * See: https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html for additonal information.
+   *
+   * @param includeResourceTracker Whether or not the Resource tracker admin policy should also be addd (Default: True)
+   */
+  public addSEPPolicies( includeResourceTracker: boolean = true): void {
+    const sepPolicy = ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginAdminPolicy');
+    this.taskDefinition.taskRole.addManagedPolicy(sepPolicy);
+
+    if (includeResourceTracker) {
+      const rtPolicy = ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAdminPolicy');
+      this.taskDefinition.taskRole.addManagedPolicy(rtPolicy);
+    }
   }
 
   /**
