@@ -11,7 +11,7 @@
                           "repositoryInstaller": "s3://thinkbox-installers/Deadline/10.1.8.5/Linux/DeadlineRepository-10.1.8.5-linux-x64-installer.run"
                       },
                       "mac": {
-                          "installer": "s3://thinkbox-installers/Deadline/10.1.8.5/Mac/Deadline-10.1.8.5-osx-installers.dmg"
+                          "bundle": "s3://thinkbox-installers/Deadline/10.1.8.5/Mac/Deadline-10.1.8.5-osx-installers.dmg"
                       },
                       "windows": {
                           "bundle": "s3://thinkbox-installers/Deadline/10.1.8.5/Windows/Deadline-10.1.8.5-windows-installers.zip",
@@ -28,7 +28,7 @@
                               "repositoryInstaller": "s3://thinkbox-installers/Deadline/10.1.9.2/Linux/DeadlineRepository-10.1.9.2-linux-x64-installer.run"
                           },
                           "mac": {
-                              "installer": "s3://thinkbox-installers/Deadline/10.1.9.2/Mac/Deadline-10.1.9.2-osx-installers.dmg"
+                              "bundle": "s3://thinkbox-installers/Deadline/10.1.9.2/Mac/Deadline-10.1.9.2-osx-installers.dmg"
                           },
                           "windows": {
                               "bundle": "s3://thinkbox-installers/Deadline/10.1.9.2/Windows/Deadline-10.1.9.2-windows-installers.zip",

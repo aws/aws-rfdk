@@ -12,7 +12,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
 import { types } from 'util';
-import { IDeadlineInstallerUris, IDeadlineDockerRecipeUris, Platform, Product, VersionProvider } from '../lib/core/lambdas/nodejs/version-provider';
+import {IUris, Platform, Product, VersionProvider } from '../lib/core/lambdas/nodejs/version-provider';
 import { Version } from '../lib/deadline';
 
 const args = process.argv.slice(2);
@@ -68,12 +68,15 @@ const handler = new VersionProvider();
 
 // populate installer URI
 if (deadlineInstallerURI === '') {
-  handler.doCreate('physicalId', { platform: Platform.linux, product: Product.deadline, versionString: deadlineReleaseVersion})
+  handler.getVersionUris({ platform: Platform.linux, product: Product.deadline, versionString: deadlineReleaseVersion})
     .then(result => {
       const installerVersion = result.get(Platform.linux);
       if (installerVersion) {
         validateDeadlineVersion(`${installerVersion.MajorVersion}.${installerVersion.MinorVersion}.${installerVersion.ReleaseVersion}.${installerVersion.PatchVersion}`);
-        getDeadlineInstaller((<IDeadlineInstallerUris>installerVersion.Uris).clientInstaller);
+        const installerUrl = (<IUris>installerVersion.Uris).clientInstaller;
+        if (installerUrl) {
+          getDeadlineInstaller(installerUrl);
+        }
       }
       else {
         console.error(`Deadline installer for version ${deadlineReleaseVersion} was not found.`);
@@ -92,20 +95,20 @@ else {
 
 // populate docker recipe URI
 if (dockerRecipesURI === '') {
-  handler.doCreate('physicalId', { platform: Platform.linux, product: Product.deadlineDocker, versionString: deadlineReleaseVersion})
+  handler.getVersionUris({ platform: Platform.linux, product: Product.deadlineDocker, versionString: deadlineReleaseVersion})
     .then(result => {
       const installerVersion = result.get(Platform.linux);
       if (installerVersion) {
-        validateDeadlineVersion(`${installerVersion.MajorVersion}.${installerVersion.MinorVersion}.${installerVersion.ReleaseVersion}.${installerVersion.PatchVersion}`);
-        getDockerRecipe((<IDeadlineDockerRecipeUris>installerVersion.Uris).recipe);
+        getDockerRecipe((<IUris>installerVersion.Uris).bundle);
       }
       else {
-        console.error(`Deadline installer for version ${deadlineReleaseVersion} was not found.`);
+        console.error(`Docker recipies for version ${deadlineReleaseVersion} was not found.`);
         exitAndCleanup(1);
       }
     })
     .catch(error => {
-      throw new Error(error.message);
+      console.error(error.message);
+      exitAndCleanup(error.code);
     });
 }
 else {
@@ -269,7 +272,7 @@ Usage: stage-deadline [--output <output_dir>] [--verbose]
 
 Arguments:
     <deadline_release_version>
-        Specifies the official release of Deadline that should be staged. This must be of the form a.b.c.d, a.b.c, a.b or a.
+        Specifies the official release of Deadline that should be staged. This must be of the form "a.b.c.d", "a.b.c", "a.b" or "a".
         
         Note: The minimum supported deadline version is ${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}
 
