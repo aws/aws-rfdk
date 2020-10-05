@@ -1218,12 +1218,12 @@
     "@types/yargs" "^15.0.0"
     chalk "^4.0.0"
 
-"@jsii/spec@^1.11.0", "@jsii/spec@^1.12.0":
-  version "1.12.0"
-  resolved "https://registry.yarnpkg.com/@jsii/spec/-/spec-1.12.0.tgz#4b13acc5fe591a4c70137f38275ac3d8a977a958"
-  integrity sha512-xqiROAZjOLNhvGzVCdyNu1sJ4CLU+jxcQcRvXz3qkQobHeHRk4MMiqRVOk6LWaBNVtDjil4HlP1sRm5j/ZqYeQ==
+"@jsii/spec@^1.12.0", "@jsii/spec@^1.13.0":
+  version "1.13.0"
+  resolved "https://registry.yarnpkg.com/@jsii/spec/-/spec-1.13.0.tgz#3389e047065b6b7f7fda238a90d58ac577c811bf"
+  integrity sha512-BeDBk9OqsTjo5Oe5MrXT+dt0WqjzPN5DsYedmnhP65oceuBdx3VKS/nKGQ8DOB+9587Go8i9L+nri1wwQz3bpA==
   dependencies:
-    jsonschema "^1.2.6"
+    jsonschema "^1.2.7"
 
 "@lerna/add@3.21.0":
   version "3.21.0"
@@ -2784,17 +2784,17 @@ aws4@^1.8.0:
   resolved "https://registry.yarnpkg.com/aws4/-/aws4-1.10.1.tgz#e1e82e4f3e999e2cfd61b161280d16a111f86428"
   integrity sha512-zg7Hz2k5lI8kb7U32998pRRFin7zJlkfezGJjUc2heaD4Pw2wObakCDVzkKztTm/Ln7eiVvYsjqak0Ed4LkMDA==
 
-awslint@1.61.1:
-  version "1.61.1"
-  resolved "https://registry.yarnpkg.com/awslint/-/awslint-1.61.1.tgz#d9af525b591c10642c67de8ac9eeb5dab2706902"
-  integrity sha512-KvyXdQi5IYXjXHAA2z92KjwqfIQ+qIhD9WyFANhQ0gehWN8Dj6jfdYlDDit4chCYSjjQxK0sLuK+yn3dum1Bhg==
+awslint@1.66.0:
+  version "1.66.0"
+  resolved "https://registry.yarnpkg.com/awslint/-/awslint-1.66.0.tgz#642b29585d8a2c717ea411919521c3d9ea581091"
+  integrity sha512-vpsLqzydkwv/0HLo692Ehu4PR0eR0nHIGPwEsy7gJpNLdnWu+0+Vc1EbJv0BueuM5Wu+PJE0NLxC1wOfCAKDUg==
   dependencies:
-    "@jsii/spec" "^1.11.0"
+    "@jsii/spec" "^1.13.0"
     camelcase "^6.0.0"
     colors "^1.4.0"
     fs-extra "^9.0.1"
-    jsii-reflect "^1.11.0"
-    yargs "^15.4.1"
+    jsii-reflect "^1.13.0"
+    yargs "^16.0.3"
 
 babel-jest@^26.3.0:
   version "26.3.0"
@@ -6530,16 +6530,16 @@ jsii-pacmak@^1.12.0:
     xmlbuilder "^15.1.1"
     yargs "^15.4.1"
 
-jsii-reflect@^1.11.0, jsii-reflect@^1.12.0:
-  version "1.12.0"
-  resolved "https://registry.yarnpkg.com/jsii-reflect/-/jsii-reflect-1.12.0.tgz#e894a823e1abc7d4e0c61e7a8f8ff45f6757566a"
-  integrity sha512-wADLvHWARzV4tSYFwqO3FpUuYmhcwnJENppJ5UY9ONt1E/r5CtxBCxHChnEeMWywyAy+rhl3CXVyCfV0IoPj3g==
+jsii-reflect@^1.12.0, jsii-reflect@^1.13.0:
+  version "1.13.0"
+  resolved "https://registry.yarnpkg.com/jsii-reflect/-/jsii-reflect-1.13.0.tgz#773531fd5f449094a3fec102f741922a68391424"
+  integrity sha512-HQPjqIWAkMGg/SbiX+m/3MMdMo0p9wejosQNuiynvOYV9LqCRRbRi7MK3BuK4QeOaUHvJw4b+0bu6eCaD3cWxw==
   dependencies:
-    "@jsii/spec" "^1.12.0"
+    "@jsii/spec" "^1.13.0"
     colors "^1.4.0"
     fs-extra "^9.0.1"
-    oo-ascii-tree "^1.12.0"
-    yargs "^15.4.1"
+    oo-ascii-tree "^1.13.0"
+    yargs "^16.0.3"
 
 jsii-rosetta@^1.12.0:
   version "1.12.0"
@@ -6645,10 +6645,15 @@ jsonparse@^1.2.0:
   resolved "https://registry.yarnpkg.com/jsonparse/-/jsonparse-1.3.1.tgz#3f4dae4a91fac315f71062f8521cc239f1366280"
   integrity sha1-P02uSpH6wxX3EGL4UhzCOfE2YoA=
 
-jsonschema@^1.2.5, jsonschema@^1.2.6:
+jsonschema@^1.2.5:
   version "1.2.6"
   resolved "https://registry.yarnpkg.com/jsonschema/-/jsonschema-1.2.6.tgz#52b0a8e9dc06bbae7295249d03e4b9faee8a0c0b"
   integrity sha512-SqhURKZG07JyKKeo/ir24QnS4/BV7a6gQy93bUSe4lUdNp0QNpIz2c9elWJQ9dpc5cQYY6cvCzgRwy0MQCLyqA==
+
+jsonschema@^1.2.7:
+  version "1.2.8"
+  resolved "https://registry.yarnpkg.com/jsonschema/-/jsonschema-1.2.8.tgz#76efb90aa6062f9bd24ba4414965089b948e35ce"
+  integrity sha512-HZrVvnv9Ri3WK3t53Anu55eS+IYiQm+UcGE23oBEYi3gD1qODW+I7y4R28q2FyVhzGTDhxAEqTjbe5+jNkqmeQ==
 
 jsprim@^1.2.2:
   version "1.4.1"
@@ -7826,10 +7831,10 @@ onetime@^5.1.0:
   dependencies:
     mimic-fn "^2.1.0"
 
-oo-ascii-tree@^1.12.0:
-  version "1.12.0"
-  resolved "https://registry.yarnpkg.com/oo-ascii-tree/-/oo-ascii-tree-1.12.0.tgz#896859cf96c3a6656deb399cf3f413bbfd409fbf"
-  integrity sha512-nidKriODh94KACsubEzkjbV25wd+HUQAjr9yGi6J8l4BfNaYT1AxRDSXQKfiNgrBh/11FqzpPUC7iiWEcbk4qg==
+oo-ascii-tree@^1.13.0:
+  version "1.13.0"
+  resolved "https://registry.yarnpkg.com/oo-ascii-tree/-/oo-ascii-tree-1.13.0.tgz#6abe2a34a4d7b1fb4aa5b8488eb00ae58ab67f3a"
+  integrity sha512-z4OE5yHSNO3F3SDGwNnN4IiTqxiAca0TahL3TbvFzp659UkG0k9PizhQyqmDgPflfyh1C0ULIr0s7b6y7TgBMQ==
 
 opener@^1.5.1:
   version "1.5.1"
