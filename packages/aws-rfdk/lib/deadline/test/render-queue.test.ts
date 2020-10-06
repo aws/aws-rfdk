@@ -1460,7 +1460,7 @@ describe('RenderQueue', () => {
                   'DNSName',
                 ],
               },
-              ':4433" --tls-ca "arn:aws:secretsmanager:123456789012:secret:ca/arn"\n' +
+              `:4433" --tls-ca "${CA_ARN}"\n` +
               'rm -f "/tmp/',
               {
                 'Fn::Select': [
@@ -1631,7 +1631,7 @@ describe('RenderQueue', () => {
                   'DNSName',
                 ],
               },
-              ':4433" --tls-ca \"arn:aws:secretsmanager:123456789012:secret:ca/arn\" 2>&1\n' +
+              `:4433" --tls-ca \"${CA_ARN}\" 2>&1\n` +
               'Remove-Item -Path "C:/temp/',
               {
                 'Fn::Select': [
