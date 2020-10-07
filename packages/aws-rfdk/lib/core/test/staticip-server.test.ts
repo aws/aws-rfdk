@@ -130,7 +130,10 @@ describe('Test StaticIpServer', () => {
     cdkExpect(stack).to(haveResourceLike('AWS::SNS::Topic', {
       DisplayName: 'For RFDK instance-launch notifications for stack \'StackName\'',
       KmsMasterKeyId: {
-        Ref: 'SNSEncryptionKey255e9e52ad034ddf8ff8274bc10d63d1EDF79FFE',
+        'Fn::GetAtt': [
+          'SNSEncryptionKey255e9e52ad034ddf8ff8274bc10d63d1EDF79FFE',
+          'Arn',
+        ],
       },
     }));
 
