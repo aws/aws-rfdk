@@ -27,7 +27,7 @@ elif [ $(ls "$DEADLINE_STAGING_PATH/manifest.json" 2> /dev/null) ]; then
     export DEADLINE_VERSION=$(node -e $'const json = require(process.argv[1] + \'/manifest.json\'); console.log(json.version)' "$DEADLINE_STAGING_PATH")
 fi
 
-# Set Deadline version to default if not overridden
+# Set Deadline version to empty if not overridden
 if [ -z ${DEADLINE_VERSION+x} ]; then
-    export DEADLINE_VERSION="10.1.9.2"
+    export DEADLINE_VERSION=""
 fi
