@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.18.0](https://github.com/aws/aws-rfdk/compare/v0.17.0...v0.18.0) (2020-10-08)
+
+
+### Features
+
+* **bin:** Add simpler way to invoke stage-deadline ([#90](https://github.com/aws/aws-rfdk/issues/90)) ([cb68992](https://github.com/aws/aws-rfdk/commit/cb68992de1c72f7997de6ff81f1b0c09e88dacaf))
+* **deadline:** add ability to add spot event plugin managed policies to RenderQueue ([#141](https://github.com/aws/aws-rfdk/issues/141)) ([b2cf9e0](https://github.com/aws/aws-rfdk/commit/b2cf9e0cd8264b106e8f705f379181beb6916653))
+* **integ:** add ability to use hook function before each component test  ([#155](https://github.com/aws/aws-rfdk/issues/155)) ([792586e](https://github.com/aws/aws-rfdk/commit/792586eeb5befedbe810ca6a91867ed006c029f0))
+* Update stage-deadline script with new version index  ([#139](https://github.com/aws/aws-rfdk/issues/139)) ([9cbf99f](https://github.com/aws/aws-rfdk/commit/9cbf99f1a1f2effbfe85ab0ecbdcaecd418056db))
+
+
+### Bug Fixes
+
+* allowing empty log group prefixes ([#87](https://github.com/aws/aws-rfdk/issues/87)) ([e53571c](https://github.com/aws/aws-rfdk/commit/e53571c7d249f8efb81517af7031f264d0baf1d2))
+* **deadline:** adding deadline version check for workers ([#100](https://github.com/aws/aws-rfdk/issues/100)) ([291f903](https://github.com/aws/aws-rfdk/commit/291f9033389157b745a0a812b4cb5584ea5fe05c))
+* **deadline:** adding version check for staging deadline ([#109](https://github.com/aws/aws-rfdk/issues/109)) ([75d0f9f](https://github.com/aws/aws-rfdk/commit/75d0f9fedce52de9dcfe73482965de923fa8941d))
+* **examples:** bump cdk core module version ([#122](https://github.com/aws/aws-rfdk/issues/122)) ([20db251](https://github.com/aws/aws-rfdk/commit/20db251d6b8fc53f8560637818e53e47ae106b49))
+* **examples:** Fix instructions and formatting in example app README ([#111](https://github.com/aws/aws-rfdk/issues/111)) ([f050f41](https://github.com/aws/aws-rfdk/commit/f050f41500b8d005d246c37e225895f0489debda)), closes [#105](https://github.com/aws/aws-rfdk/issues/105)
+* **examples:** Minor fixes to Python example app REAME ([84b5ffa](https://github.com/aws/aws-rfdk/commit/84b5ffac9e282510c71f8e0348d24a573b2b337a))
+
 ## [0.17.0]() (Link not implemented) (2020-08-26)
 
 
