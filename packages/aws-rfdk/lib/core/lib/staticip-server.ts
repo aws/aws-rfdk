@@ -32,7 +32,6 @@ import {
   Role,
   ServicePrincipal,
 } from '@aws-cdk/aws-iam';
-import {Key} from '@aws-cdk/aws-kms';
 import {
   Code,
   Function as LambdaFunction,
@@ -52,7 +51,6 @@ import {
   Construct,
   Duration,
   Lazy,
-  RemovalPolicy,
   Stack,
   Tags,
 } from '@aws-cdk/core';
@@ -403,20 +401,9 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
         assumedBy: new ServicePrincipal('autoscaling.amazonaws.com'),
       });
 
-      const notificationTopicEncryptKeyUniqueId = 'SNSEncryptionKey' + this.removeHyphens('255e9e52-ad03-4ddf-8ff8-274bc10d63d1');
-      const notificationTopicEncryptKey = new Key(stack, notificationTopicEncryptKeyUniqueId, {
-        description: `This key is used to encrypt SNS messages for ${notificationTopicUniqueId}.`,
-        enableKeyRotation: true,
-        removalPolicy: RemovalPolicy.DESTROY,
-        trustAccountIdentities: true,
-      });
-
       notificationTopic = new Topic(stack, notificationTopicUniqueId, {
         displayName: `For RFDK instance-launch notifications for stack '${stack.stackName}'`,
-        masterKey: notificationTopicEncryptKey,
       });
-
-      notificationTopicEncryptKey.grant(notificationRole, 'kms:Decrypt', 'kms:GenerateDataKey');
 
       notificationTopic.addSubscription(new LambdaSubscription(lambdaHandler));
       notificationTopic.grantPublish(notificationRole);
