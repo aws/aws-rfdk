@@ -8,7 +8,6 @@ import {
   countResources,
   countResourcesLike,
   expect as cdkExpect,
-  expect as expectCDK,
   haveResourceLike,
   objectLike,
   ResourcePart,
@@ -93,48 +92,8 @@ describe('Test StaticIpServer', () => {
       Description: 'Created by RFDK StaticPrivateIpServer to process instance launch lifecycle events in stack \'StackName\'. This lambda attaches an ENI to newly launched instances.',
     }));
 
-    expectCDK(stack).to(haveResourceLike('AWS::KMS::Key', {
-      UpdateReplacePolicy: 'Delete',
-      DeletionPolicy: 'Delete',
-    }, ResourcePart.CompleteDefinition));
-    expectCDK(stack).to(haveResourceLike('AWS::KMS::Key', {
-      KeyPolicy: {
-        Statement: [
-          {
-            Action: 'kms:*',
-            Effect: 'Allow',
-            Principal: {
-              AWS: {
-                'Fn::Join': [
-                  '',
-                  [
-                    'arn:',
-                    {
-                      Ref: 'AWS::Partition',
-                    },
-                    ':iam::',
-                    {
-                      Ref: 'AWS::AccountId',
-                    },
-                    ':root',
-                  ],
-                ],
-              },
-            },
-            Resource: '*',
-          },
-        ],
-      },
-      EnableKeyRotation: true,
-    }));
     cdkExpect(stack).to(haveResourceLike('AWS::SNS::Topic', {
       DisplayName: 'For RFDK instance-launch notifications for stack \'StackName\'',
-      KmsMasterKeyId: {
-        'Fn::GetAtt': [
-          'SNSEncryptionKey255e9e52ad034ddf8ff8274bc10d63d1EDF79FFE',
-          'Arn',
-        ],
-      },
     }));
 
     cdkExpect(stack).to(haveResourceLike('AWS::SNS::Subscription', {
@@ -214,19 +173,6 @@ describe('Test StaticIpServer', () => {
     cdkExpect(stack).to(countResourcesLike('AWS::IAM::Policy', 1, {
       PolicyDocument: {
         Statement: [
-          {
-            Action: [
-              'kms:Decrypt',
-              'kms:GenerateDataKey',
-            ],
-            Effect: 'Allow',
-            Resource: {
-              'Fn::GetAtt': [
-                'SNSEncryptionKey255e9e52ad034ddf8ff8274bc10d63d1EDF79FFE',
-                'Arn',
-              ],
-            },
-          },
           {
             Action: 'sns:Publish',
             Effect: 'Allow',
