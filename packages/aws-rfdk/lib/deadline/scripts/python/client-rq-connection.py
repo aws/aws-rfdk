@@ -24,7 +24,7 @@ FILE_URI_RE = re.compile(r'^file:///(?P<FilePath>((?:[^/]*/)*)(.*))$')
 # Regex for counting the number of certificates in a cert chain
 CERT_COUNT_RE = re.compile(r'-----BEGIN CERTIFICATE-----')
 
-# Named tuples for storing arguments 
+# Named tuples for storing arguments
 RenderQueue = namedtuple('RenderQueue','uri,scheme,address')
 AwsSecret = namedtuple('AwsSecret','arn,region')
 FileSecret = namedtuple('FileSecret', 'filepath')
@@ -42,7 +42,7 @@ def parse_args(args):
     :param args: A list of command line arguments
     :return: A configuration object containing the parsed arguments
     """
-    
+
     def _secret(value):
         """
         A type function for converting args that represent secrets into a named Tuple
@@ -61,7 +61,7 @@ def parse_args(args):
         if match:
             named_groups = match.groupdict()
             return FileSecret( arn=named_groups['FilePath'] )
-        
+
         raise argparse.ArgumentTypeError('Given argument "%s" is not a valid secret' % value)
 
     def _render_queue(value):
@@ -69,7 +69,7 @@ def parse_args(args):
         A type function for converting args that represent render queue URI's into a named Tuple
 
         :param value: The string representing the argument
-        :return: A RenderQueue named tuple 
+        :return: A RenderQueue named tuple
         :exception argparse.ArgumentTypeError: if the argument cannot be converted properly.
         """
 
@@ -130,15 +130,17 @@ def configure_deadline( config ):
 
     :param config: The parsed configuration object
     """
-    
+
     repo_args = ['ChangeRepository','Proxy',config.render_queue.address]
     if config.render_queue.scheme == 'http':
         print( "Configuring Deadline to connect to the Render Queue (%s) using HTTP Traffic" % config.render_queue.address )
-        #Ensure SSL is disbaled
+        #Ensure SSL is disabled
         call_deadline_command(['SetIniFileSetting','ProxyUseSSL','False'])
+        call_deadline_command(['SetIniFileSetting', 'ProxySSLCA', ''])
+        call_deadline_command(['SetIniFileSetting', 'ClientSSLAuthentication', 'NotRequired'])
 
     else:
-        print("Configuring Deadline to connect to the Render Queue using HTTP Traffic")
+        print("Configuring Deadline to connect to the Render Queue using HTTPS Traffic")
         call_deadline_command(['SetIniFileSetting','ProxyUseSSL','True'])
 
         try:
