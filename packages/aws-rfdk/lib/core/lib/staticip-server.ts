@@ -32,7 +32,6 @@ import {
   Role,
   ServicePrincipal,
 } from '@aws-cdk/aws-iam';
-import {Key} from '@aws-cdk/aws-kms';
 import {
   Code,
   Function as LambdaFunction,
@@ -52,9 +51,8 @@ import {
   Construct,
   Duration,
   Lazy,
-  RemovalPolicy,
   Stack,
-  Tag,
+  Tags,
 } from '@aws-cdk/core';
 
 
@@ -159,14 +157,27 @@ export interface StaticPrivateIpServerProps {
  *
  * Resources Deployed
  * ------------------------
- * 1) Auto Scaling Group (ASG) with min & max capacity of 1 instance;
- * 2) Elastic Network Interface (ENI);
- * 3) Security Group for the ASG;
- * 4) Instance Role and corresponding IAM Policy
- * 5) SNS Topic & Role for instance-launch lifecycle events -- max one of each per stack; and
- * 6) Lambda function, with role, to attach the ENI in response to instance-launch lifecycle events -- max one per stack.
+ * - Auto Scaling Group (ASG) with min & max capacity of 1 instance.
+ * - Elastic Network Interface (ENI).
+ * - Security Group for the ASG.
+ * - Instance Role and corresponding IAM Policy.
+ * - SNS Topic & Role for instance-launch lifecycle events -- max one of each per stack.
+ * - Lambda function, with role, to attach the ENI in response to instance-launch lifecycle events -- max one per stack.
  *
- * @ResourcesDeployed
+ * Security Considerations
+ * ------------------------
+ * - The AWS Lambda that is deployed through this construct will be created from a deployment package
+ *   that is uploaded to your CDK bootstrap bucket during deployment. You must limit write access to
+ *   your CDK bootstrap bucket to prevent an attacker from modifying the actions performed by this Lambda.
+ *   We strongly recommend that you either enable Amazon S3 server access logging on your CDK bootstrap bucket,
+ *   or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - The AWS Lambda that is deployed through this construct has broad IAM permissions to attach any Elastic
+ *   Network Interface (ENI) to any instance. You should not grant any additional actors/principals the ability
+ *   to modify or execute this Lambda.
+ * - The SNS Topic that is deployed through this construct controls the execution of the Lambda discussed above.
+ *   Principals that can publish messages to this SNS Topic will be able to trigger the Lambda to run. You should
+ *   not allow any additional principals to publish messages to this SNS Topic.
  */
 export class StaticPrivateIpServer extends Construct implements IConnectable, IGrantable {
 
@@ -329,7 +340,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
     const tagValue = eventHandler.node.uniqueId;
     const grantCondition: { [key: string]: string } = {};
     grantCondition[`autoscaling:ResourceTag/${tagKey}`] = tagValue;
-    Tag.add(this.autoscalingGroup, tagKey, tagValue);
+    Tags.of(this.autoscalingGroup).add(tagKey, tagValue);
 
     // Allow the lambda to complete the lifecycle action for only tagged ASGs.
     const iamCompleteLifecycle = new PolicyStatement({
@@ -390,20 +401,9 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
         assumedBy: new ServicePrincipal('autoscaling.amazonaws.com'),
       });
 
-      const notificationTopicEncryptKeyUniqueId = 'SNSEncryptionKey' + this.removeHyphens('255e9e52-ad03-4ddf-8ff8-274bc10d63d1');
-      const notificationTopicEncryptKey = new Key(stack, notificationTopicEncryptKeyUniqueId, {
-        description: `This key is used to encrypt SNS messages for ${notificationTopicUniqueId}.`,
-        enableKeyRotation: true,
-        removalPolicy: RemovalPolicy.DESTROY,
-        trustAccountIdentities: true,
-      });
-
       notificationTopic = new Topic(stack, notificationTopicUniqueId, {
         displayName: `For RFDK instance-launch notifications for stack '${stack.stackName}'`,
-        masterKey: notificationTopicEncryptKey,
       });
-
-      notificationTopicEncryptKey.grant(notificationRole, 'kms:Decrypt', 'kms:GenerateDataKey');
 
       notificationTopic.addSubscription(new LambdaSubscription(lambdaHandler));
       notificationTopic.grantPublish(notificationRole);

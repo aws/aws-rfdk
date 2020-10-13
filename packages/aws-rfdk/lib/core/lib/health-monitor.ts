@@ -32,6 +32,7 @@ import {
   Duration,
   IResource,
   RemovalPolicy,
+  ResourceEnvironment,
   Stack,
 } from '@aws-cdk/core';
 import {LoadBalancerFactory} from './load-balancer-manager';
@@ -213,6 +214,11 @@ abstract class HealthMonitorBase extends Construct implements IHealthMonitor {
   public abstract readonly stack: Stack;
 
   /**
+   * The environment this resource belongs to.
+   */
+  public abstract readonly env: ResourceEnvironment;
+
+  /**
    * Attaches the load-balancing target to the ELB for instance-level
    * monitoring.
    *
@@ -257,14 +263,30 @@ abstract class HealthMonitorBase extends Construct implements IHealthMonitor {
  *
  * Resources Deployed
  * ------------------------
- * 1) Application Load Balancer(s) doing frequent pings to the workers;
- * 2) KMS Key to encrypt SNS messages - If no encryption key is provided;
- * 3) SNS topic for all unhealthy fleet notifications;
- * 4) The Alarm if the node is unhealthy for a long period;
- * 5) The Alarm if the healthy host percentage if lower than allowed;
- * 4) A single Lambda function that sets fleet size to 0 when triggered.
+ * - Application Load Balancer(s) doing frequent pings to the workers.
+ * - An Amazon Simple Notification Service (SNS) topic for all unhealthy fleet notifications.
+ * - An AWS Key Management Service (KMS) Key to encrypt SNS messages - If no encryption key is provided.
+ * - An Amazon CloudWatch Alarm that triggers if a worker fleet is unhealthy for a long period.
+ * - Another CloudWatch Alarm that triggers if the healthy host percentage of a worker fleet is lower than allowed.
+ * - A single AWS Lambda function that sets fleet size to 0 when triggered in response to messages on the SNS Topic.
+ * - Execution logs of the AWS Lambda function are published to a log group in Amazon CloudWatch.
  *
- * @ResourcesDeployed
+ * Security Considerations
+ * ------------------------
+ * - The AWS Lambda that is deployed through this construct will be created from a deployment package
+ *   that is uploaded to your CDK bootstrap bucket during deployment. You must limit write access to
+ *   your CDK bootstrap bucket to prevent an attacker from modifying the actions performed by this Lambda.
+ *   We strongly recommend that you either enable Amazon S3 server access logging on your CDK bootstrap bucket,
+ *   or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - The AWS Lambda that is created by this construct to terminate unhealthy worker fleets has permission to
+ *   UpdateAutoScalingGroup ( https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_UpdateAutoScalingGroup.html )
+ *   on all of the fleets that this construct is monitoring. You should not grant any additional actors/principals the
+ *   ability to modify or execute this Lambda.
+ * - Execution of the AWS Lambda for terminating unhealthy workers is triggered by messages to the Amazon Simple
+ *   Notification Service (SNS) Topic that is created by this construct. Any principal that is able to publish notification
+ *   to this SNS Topic can cause the Lambda to execute and reduce one of your worker fleets to zero instances. You should
+ *   not grant any additional principals permissions to publish to this SNS Topic.
  */
 export class HealthMonitor extends HealthMonitorBase {
 
@@ -328,6 +350,11 @@ export class HealthMonitor extends HealthMonitorBase {
   public readonly stack: Stack;
 
   /**
+   * The environment this resource belongs to.
+   */
+  public readonly env: ResourceEnvironment;
+
+  /**
    * SNS topic for all unhealthy fleet notifications. This is triggered by
    * the grace period and hard terminations alarms for the registered fleets.
    *
@@ -346,6 +373,10 @@ export class HealthMonitor extends HealthMonitorBase {
   constructor(scope: Construct, id: string, props: HealthMonitorProps) {
     super(scope, id);
     this.stack = Stack.of(scope);
+    this.env = {
+      account: this.stack.account,
+      region: this.stack.region,
+    };
     this.props = props;
 
     this.lbFactory = new LoadBalancerFactory(this, props.vpc);

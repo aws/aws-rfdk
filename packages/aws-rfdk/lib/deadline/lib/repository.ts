@@ -46,7 +46,7 @@ import {
   IConstruct,
   RemovalPolicy,
   Stack,
-  Tag,
+  Tags,
 } from '@aws-cdk/core';
 import {
   CloudWatchAgent,
@@ -347,20 +347,34 @@ export interface RepositoryProps {
  * After the installation is complete the instance will be shutdown.
  *
  * Whenever the stack is updated if a change is detected in the installer a new instance will be started, which will perform
- * a check on the existing Deadline Repository.  If they are compatible with the new installer an update will be performed
+ * a check on the existing Deadline Repository. If they are compatible with the new installer an update will be performed
  * and the deployment will continue, otherwise the the deployment will be cancelled.
  * In either case the instance will be cleaned up.
  *
  * Resources Deployed
  * ------------------------
- * 1) Encrypted EFS File System - If no IFileSystem is provided;
- * 2) DocumentDB and DatabaseConnection - If no database connection is provided;
- * 3) Auto Scaling Group (ASG) with min & max capacity of 1 instance;
- * 4) Instance Role and corresponding IAM Policy
- * 5) A Script Asset which is uploaded to your deployment bucket to run the installer
- * 6) An aws-rfdk.CloudWatchAgent to configure sending logs to cloudwatch.
+ * - Encrypted Amazon Elastic File System (EFS) - If no file system is provided.
+ * - An Amazon DocumentDB - If no database connection is provided.
+ * - Auto Scaling Group (ASG) with min & max capacity of 1 instance.
+ * - Instance Role and corresponding IAM Policy.
+ * - An Amazon CloudWatch log group that contains the Deadline Repository installation logs.
  *
- * @ResourcesDeployed
+ * Security Considerations
+ * ------------------------
+ * - The instances deployed by this construct download and run scripts from your CDK bootstrap bucket when that instance
+ *   is launched. You must limit write access to your CDK bootstrap bucket to prevent an attacker from modifying the actions
+ *   performed by these scripts. We strongly recommend that you either enable Amazon S3 server access logging on your CDK
+ *   bootstrap bucket, or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - The file system that is created by, or provided to, this construct contains the data for Deadline's Repository file
+ *   system. This file system contains information about your submitted jobs, and the plugin scripts that are run by the
+ *   Deadline applications in your render farm. An actor that can modify the contents of this file system can cause your
+ *   Deadline applications to run code of their choosing. You should restrict access to this file system to only those who
+ *   require it.
+ * - The database that is created by, or provided to, this construct is used by Deadline to store data about its configuration,
+ *   submitted jobs, machine information and status, and so on. An actor with access to this database can read any information
+ *   that is entered into Deadline, and modify the bevavior of your render farm. You should restrict access to this database
+ *   to only those who require it.
  */
 export class Repository extends Construct implements IRepository {
   /**
@@ -697,7 +711,7 @@ export class Repository extends Construct implements IRepository {
    * @param logGroupProps
    */
   private configureCloudWatchLogStream(installerGroup: AutoScalingGroup, groupName: string, logGroupProps?: LogGroupFactoryProps) {
-    const prefix = logGroupProps?.logGroupPrefix ? logGroupProps.logGroupPrefix : Repository.DEFAULT_LOG_GROUP_PREFIX;
+    const prefix = logGroupProps?.logGroupPrefix ?? Repository.DEFAULT_LOG_GROUP_PREFIX;
     const defaultedLogGroupProps = {
       ...logGroupProps,
       logGroupPrefix: prefix,
@@ -730,7 +744,7 @@ export class Repository extends Construct implements IRepository {
     const tagCondition: { [key: string]: any } = {};
     tagCondition[`autoscaling:ResourceTag/${tagKey}`] = this.node.uniqueId;
 
-    Tag.add(this.installerGroup, tagKey, this.node.uniqueId);
+    Tags.of(this.installerGroup).add(tagKey, this.node.uniqueId);
 
     this.installerGroup.addToRolePolicy(new PolicyStatement({
       actions: [

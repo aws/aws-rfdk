@@ -11,8 +11,8 @@ export {CWA_ASSET_LINUX};
 
 // configureWorker.sh
 export const CONFIG_WORKER_ASSET_LINUX = {
-  Bucket: 'AssetParameters2435996be08703cd3819e249890abb41cc0860324e5cfe1b5945704934db7101S3BucketB40BB072',
-  Key: 'AssetParameters2435996be08703cd3819e249890abb41cc0860324e5cfe1b5945704934db7101S3VersionKey4F3F9A7F',
+  Bucket: 'AssetParameters3915f098ad4813270754c05c4e236d137da778773dfb13912fa54f387cc5929aS3BucketE7DA333E',
+  Key: 'AssetParameters3915f098ad4813270754c05c4e236d137da778773dfb13912fa54f387cc5929aS3VersionKey1C0D482D',
 };
 
 // configureWorker.ps1
@@ -38,6 +38,6 @@ export const REPO_DC_ASSET = {
 };
 
 export const RQ_CONNECTION_ASSET = {
-  Bucket: 'AssetParameters63694479464606109bdbd3525fb2bef7b2abfbf196d8a132832c8e5d8a3c4796S3BucketF3231D14',
-  Key: 'AssetParameters63694479464606109bdbd3525fb2bef7b2abfbf196d8a132832c8e5d8a3c4796S3VersionKeyE501DFB8',
+  Bucket: 'AssetParameters89a29e05a2a88ec4d4a02e847e3c3c9461d0154b326492f4cad655d4ca0bda98S3BucketC22E185C',
+  Key: 'AssetParameters89a29e05a2a88ec4d4a02e847e3c3c9461d0154b326492f4cad655d4ca0bda98S3VersionKey0833D670',
 };

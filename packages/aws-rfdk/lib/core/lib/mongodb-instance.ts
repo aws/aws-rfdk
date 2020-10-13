@@ -106,7 +106,10 @@ export interface MongoDbInstanceVolumeProps {
    * The Volume must not be partitioned. The volume will be mounted to /var/lib/mongo on this instance,
    * and all files on it will be changed to be owned by the mongod user on the instance.
    *
-   * @default A new volume is created for use by the instance.
+   * This volume will contain all of the data that you store in MongoDB, so we recommend that you
+   * encrypt this volume.
+   *
+   * @default A new encrypted volume is created for use by the instance.
    */
   readonly volume?: IVolume;
 
@@ -304,12 +307,27 @@ export interface IMongoDb extends IConnectable, IConstruct {
  * Resources Deployed
  * ------------------------
  * - {@link StaticPrivateIpServer} that hosts MongoDB.
- * - An A Record in the provided PrivateHostedZone to create a DNS entry for this server's static private IP.
- * - A Secret containing the administrator credentials for MongoDB.
- * - An encrypted EBS Volume on which the MongoDB data is stored.
+ * - An A-Record in the provided PrivateHostedZone to create a DNS entry for this server's static private IP.
+ * - A Secret in AWS SecretsManager that contains the administrator credentials for MongoDB.
+ * - An encrypted Amazon Elastic Block Store (EBS) Volume on which the MongoDB data is stored.
  * - Amazon CloudWatch log group that contains instance-launch and MongoDB application logs.
  *
- * @ResourcesDeployed
+ * Security Considerations
+ * ------------------------
+ * - The administrator credentials for MongoDB are stored in a Secret within AWS SecretsManager. You must strictly limit
+ *   access to this secret to only entities that require it.
+ * - The instances deployed by this construct download and run scripts from your CDK bootstrap bucket when that instance
+ *   is launched. You must limit write access to your CDK bootstrap bucket to prevent an attacker from modifying the actions
+ *   performed by these scripts. We strongly recommend that you either enable Amazon S3 server access logging on your CDK
+ *   bootstrap bucket, or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - The EBS Volume that is created by, or provided to, this construct is used to store the contents of your MongoDB data. To
+ *   protect the sensitive data in your database, you should not grant access to this EBS Volume to any principal or instance
+ *   other than the instance created by this construct. Furthermore, we recommend that you ensure that the volume that is
+ *   used for this purpose is encrypted at rest.
+ * - This construct uses this package's {@link StaticPrivateIpServer}, {@link MongoDbInstaller}, {@link CloudWatchAgent},
+ *   {@link ExportingLogGroup}, and {@link MountableBlockVolume}. Security considerations that are outlined by the documentation
+ *   for those constructs should also be taken into account.
  */
 export class MongoDbInstance extends Construct implements IMongoDb, IGrantable {
   // How often Cloudwatch logs will be flushed.

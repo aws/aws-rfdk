@@ -192,7 +192,10 @@ describe('HealthMonitor', () => {
     }));
     expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Topic', {
       KmsMasterKeyId: {
-        Ref: `${hmStack.getLogicalId(healthMonitor.node.findChild('SNSEncryptionKey').node.defaultChild as CfnElement)}`,
+        'Fn::GetAtt': [
+          `${hmStack.getLogicalId(healthMonitor.node.findChild('SNSEncryptionKey').node.defaultChild as CfnElement)}`,
+          'Arn',
+        ],
       },
     }));
     expectCDK(hmStack).to(haveResource('AWS::Lambda::Function'));
@@ -220,7 +223,7 @@ describe('HealthMonitor', () => {
     expectCDK(hmStack).notTo(haveResource('AWS::ElasticLoadBalancingV2::LoadBalancer'));
     expectCDK(hmStack).notTo(haveResource('AWS::KMS::Key'));
     expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Topic', {
-      KmsMasterKeyId: 'testarn',
+      KmsMasterKeyId: 'arn:aws:kms:us-west-2:123456789012:key/testarn',
     }));
     expectCDK(hmStack).to(haveResource('AWS::Lambda::Function'));
     expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Subscription', {

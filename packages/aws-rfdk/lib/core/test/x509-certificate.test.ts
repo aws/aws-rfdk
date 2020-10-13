@@ -9,15 +9,19 @@ import {
   haveResourceLike,
   InspectionFailure,
 } from '@aws-cdk/assert';
+import {
+  Role,
+  ServicePrincipal,
+} from '@aws-cdk/aws-iam';
 import { Key } from '@aws-cdk/aws-kms';
 import { CfnSecret } from '@aws-cdk/aws-secretsmanager';
 import { Stack } from '@aws-cdk/core';
-import { AwsCustomResource } from '@aws-cdk/custom-resources';
 
 import {
   X509CertificatePem,
   X509CertificatePkcs12,
 } from '../lib/x509-certificate';
+
 
 test('Generate cert', () => {
   const stack = new Stack(undefined, 'Stack', { env: { region: 'us-west-2' } });
@@ -313,14 +317,9 @@ test('Generate cert, all options set', () => {
 
 test('Grant cert read', () => {
   const stack = new Stack();
-  const grantable = new AwsCustomResource(
-    stack,
-    'Grantable',
-    {
-      policy: { statements: [] },
-      onDelete: { action: 'none', service: 'none' },
-    },
-  );
+  const grantable = new Role(stack, 'TestRole', {
+    assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
+  });
   const subject = { cn: 'testCN' };
 
   const cert = new X509CertificatePem(stack, 'Cert', {
@@ -341,10 +340,6 @@ test('Grant cert read', () => {
   expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
     PolicyDocument: {
       Statement: [
-        {
-          Action: 'none:None',
-          Effect: 'Allow',
-        },
         {
           Action: [
             'secretsmanager:GetSecretValue',
@@ -401,14 +396,9 @@ test('Grant cert read', () => {
 
 test('Grant full read', () => {
   const stack = new Stack();
-  const grantable = new AwsCustomResource(
-    stack,
-    'Grantable',
-    {
-      policy: { statements: [] },
-      onDelete: { action: 'none', service: 'none' },
-    },
-  );
+  const grantable = new Role(stack, 'TestRole', {
+    assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
+  });
   const subject = { cn: 'testCN' };
 
   const cert = new X509CertificatePem(stack, 'Cert', {

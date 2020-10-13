@@ -8,29 +8,39 @@
 set -euo pipefail
 shopt -s globstar
 
-root="$(pwd)"
-infrastructure="${root}/components/_infrastructure"
-source "${root}/test-config.sh"
+INTEG_ROOT="$(pwd)"
+BASH_SCRIPTS="$INTEG_ROOT/scripts/bash"
+INFRASTRUCTURE_APP="$INTEG_ROOT/components/_infrastructure"
+
+# Load environment variables from config file
+if [ ! "${SKIP_TEST_CONFIG-}" = true ]; then
+  # Load variables from config file
+  echo "Loading config..."
+  source "$INTEG_ROOT/test-config.sh"
+fi
+
+# Set variables from script
+source $BASH_SCRIPTS/set-test-variables.sh
 
 if [ -z ${INTEG_STACK_TAG+x} ]; then
     # Create a unique tag to add to stack names and some resources
     export INTEG_STACK_TAG="$(date +%s%N)"
 fi
 
-# Run preflight checks to make sure necessary variables, etc. are set
-jest --passWithNoTests --silent "preflight"
-
 # Deploy the infrastructure app, a cdk app containing only a VPC to be supplied to the following tests
-cd "$infrastructure"
+cd "$INFRASTRUCTURE_APP"
 npx cdk deploy "*" --require-approval=never
 
-cd "$root"
+cd "$INTEG_ROOT"
 
-for component in **/cdk.json; do
-    component_root="$(dirname "$component")"
+for COMPONENT in **/cdk.json; do
+    COMPONENT_ROOT="$(dirname "$COMPONENT")"
+    COMPONENT_NAME=$(basename "$COMPONENT_ROOT")
     # Use a pattern match to exclude the infrastructure app from the results
-    if [[ "$(basename "$component_root")" != _* ]]; then
+    if [[ "$(basename "$COMPONENT_ROOT")" != _* ]]; then
         # Excecute the e2e test in the component's scripts directory
-        cd "${root}/${component_root}" && "./scripts/bash/deploy-stacks.sh"
+        cd "$INTEG_ROOT/$COMPONENT_ROOT" && ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME"  --deploy-and-test-only
     fi
 done
+
+exit 0

@@ -127,7 +127,7 @@ describe('Test MountableBlockVolume', () => {
             ],
             Condition: {
               'ForAnyValue:StringEquals': {
-                'ec2:ResourceTag/VolumeGrantAttach-a47ec0afb147979ebdf4265080024b2c': 'd9a17c1c9e8ef6866e4dbeef41c741b2',
+                'ec2:ResourceTag/VolumeGrantAttach-a47ec0afb147979ebdf4265080024b2c': '274f1fe7e3ac0d55b2991dd00242f5ea',
               },
             },
           },

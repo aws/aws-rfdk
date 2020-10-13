@@ -6,14 +6,14 @@
 import {
   ABSENT,
   arrayWith,
-  not,
+  countResourcesLike,
   deepObjectLike,
   expect as expectCDK,
   haveResource,
   haveResourceLike,
+  not,
   objectLike,
   ResourcePart,
-  countResourcesLike,
 } from '@aws-cdk/assert';
 import {
   Certificate,
@@ -170,30 +170,9 @@ describe('RenderQueue', () => {
             LogDriver: 'awslogs',
             Options: {
               'awslogs-group': {
-                'Fn::Select': [
-                  6,
-                  {
-                    'Fn::Split': [
-                      ':',
-                      {
-                        'Fn::Join': [
-                          '',
-                          [
-                            'arn:',
-                            { Ref: 'AWS::Partition' },
-                            ':logs:',
-                            { Ref: 'AWS::Region' },
-                            ':',
-                            { Ref: 'AWS::AccountId' },
-                            ':log-group:',
-                            {
-                              'Fn::GetAtt': arrayWith('LogGroupName'),
-                            },
-                          ],
-                        ],
-                      },
-                    ],
-                  },
+                'Fn::GetAtt': [
+                  'RenderQueueCommonLogGroupWrapperA0EF7057',
+                  'LogGroupName',
                 ],
               },
               'awslogs-stream-prefix': 'RCS',
@@ -576,7 +555,7 @@ describe('RenderQueue', () => {
     describe('externalProtocol is HTTPS', () => {
       let isolatedStack: Stack;
       const CERT_ARN = 'certarn';
-      const CA_ARN = 'caarn';
+      const CA_ARN = 'arn:aws:secretsmanager:123456789012:secret:ca/arn';
       const ZONE_NAME = 'renderfarm.local';
 
       beforeEach(() => {
@@ -747,7 +726,7 @@ describe('RenderQueue', () => {
       const isolatedStack = new Stack(app, 'IsolatedStack');
       const ZONE_NAME = 'renderfarm.local';
       const CERT_ARN = 'certArn';
-      const CA_ARN = 'caArn';
+      const CA_ARN = 'arn:aws:secretsmanager:123456789012:secret:ca/arn';
 
       const zone = new PrivateHostedZone(isolatedStack, 'RenderQueueZone', {
         vpc,
@@ -1291,8 +1270,8 @@ describe('RenderQueue', () => {
       let zone: PrivateHostedZone;
       let rq: RenderQueue;
       const ZONE_NAME = 'renderfarm.local';
-      const CERT_ARN = 'certarn';
-      const CA_ARN = 'caarn';
+      const CERT_ARN = 'arn:a:b:c:dcertarn';
+      const CA_ARN = 'arn:aws:secretsmanager:123456789012:secret:ca/arn';
 
       beforeEach(() => {
         // GIVEN
@@ -1481,7 +1460,7 @@ describe('RenderQueue', () => {
                   'DNSName',
                 ],
               },
-              ':4433" --tls-ca "caarn"\n' +
+              `:4433" --tls-ca "${CA_ARN}"\n` +
               'rm -f "/tmp/',
               {
                 'Fn::Select': [
@@ -1652,7 +1631,7 @@ describe('RenderQueue', () => {
                   'DNSName',
                 ],
               },
-              ':4433" --tls-ca \"caarn\" 2>&1\n' +
+              `:4433" --tls-ca \"${CA_ARN}\" 2>&1\n` +
               'Remove-Item -Path "C:/temp/',
               {
                 'Fn::Select': [
@@ -2218,5 +2197,76 @@ describe('RenderQueue', () => {
         'AWS::ECS::Service': 1,
       },
     });
+  });
+
+  describe('SEP Policies', () => {
+    test('with resource tracker', () => {
+      renderQueueCommon.addSEPPolicies();
+      expectCDK(stack).to(countResourcesLike('AWS::IAM::Role', 1, {
+        ManagedPolicyArns: arrayWith(
+          {
+            'Fn::Join': [
+              '',
+              [
+                'arn:',
+                {
+                  Ref: 'AWS::Partition',
+                },
+                ':iam::aws:policy/AWSThinkboxDeadlineSpotEventPluginAdminPolicy',
+              ],
+            ],
+          },
+          {
+            'Fn::Join': [
+              '',
+              [
+                'arn:',
+                {
+                  Ref: 'AWS::Partition',
+                },
+                ':iam::aws:policy/AWSThinkboxDeadlineResourceTrackerAdminPolicy',
+              ],
+            ],
+          },
+        ),
+      }));
+    });
+
+    test('no resource tracker', () => {
+      renderQueueCommon.addSEPPolicies(false);
+      expectCDK(stack).to(haveResourceLike('AWS::IAM::Role', {
+        ManagedPolicyArns: arrayWith(
+          {
+            'Fn::Join': [
+              '',
+              [
+                'arn:',
+                {
+                  Ref: 'AWS::Partition',
+                },
+                ':iam::aws:policy/AWSThinkboxDeadlineSpotEventPluginAdminPolicy',
+              ],
+            ],
+          },
+        ),
+      }));
+      expectCDK(stack).notTo(haveResourceLike('AWS::IAM::Role', {
+        ManagedPolicyArns: arrayWith(
+          {
+            'Fn::Join': [
+              '',
+              [
+                'arn:',
+                {
+                  Ref: 'AWS::Partition',
+                },
+                ':iam::aws:policy/AWSThinkboxDeadlineResourceTrackerAdminPolicy',
+              ],
+            ],
+          },
+        ),
+      }));
+    });
+
   });
 });
