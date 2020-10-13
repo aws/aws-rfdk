@@ -1,6 +1,6 @@
 {
   "name": "lambda-layers",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "private": false,
   "description": "Package containing scripts for building and publishing Lambda Layers",
   "main": "lib/index.js",

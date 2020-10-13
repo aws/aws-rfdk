@@ -1,6 +1,6 @@
 {
   "name": "all-in-farm-basic",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "bin": {
     "app": "bin/app.js"
   },
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@aws-cdk/core": "1.66.0",
-    "aws-rfdk": "0.17.0",
+    "aws-rfdk": "0.18.0",
     "source-map-support": "^0.5.19"
   }
 }
