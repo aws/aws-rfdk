@@ -12,7 +12,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
 import { types } from 'util';
-import {IUris, Platform, Product, VersionProvider } from '../lib/core/lambdas/nodejs/version-provider';
+import {
+  IUris,
+  Platform,
+  Product,
+  VersionProvider,
+} from '../lib/core/lambdas/nodejs/lib/version-provider';
 import { Version } from '../lib/deadline';
 
 const args = process.argv.slice(2);
