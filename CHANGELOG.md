@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.18.1](https://github.com/aws/aws-rfdk/compare/v0.18.0...v0.18.1) (2020-10-16)
+
+
+### Bug Fixes
+
+* **deadline:** remove requirement of aws-sdk in stage-deadline ([3b66c1b](https://github.com/aws/aws-rfdk/commit/3b66c1bd10ff604fdb8523d71097b674b6795520))
+* **deadline:** use HTTPS to download index ([c626ba9](https://github.com/aws/aws-rfdk/commit/c626ba945005c841d5f46a45c917e040248b8e93))
+
 ## [0.18.0](https://github.com/aws/aws-rfdk/compare/v0.17.0...v0.18.0) (2020-10-13)
 
 

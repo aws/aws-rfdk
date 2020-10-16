@@ -12,7 +12,7 @@ import {
   IVersionProviderProperties,
   IVersionedUris,
   Platform,
-} from './version-provider';
+} from '../lib/version-provider';
 
 
 export class VersionProviderResource extends SimpleCustomResource {
