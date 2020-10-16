@@ -2808,10 +2808,10 @@ aws4@^1.8.0:
   resolved "https://registry.yarnpkg.com/aws4/-/aws4-1.10.1.tgz#e1e82e4f3e999e2cfd61b161280d16a111f86428"
   integrity sha512-zg7Hz2k5lI8kb7U32998pRRFin7zJlkfezGJjUc2heaD4Pw2wObakCDVzkKztTm/Ln7eiVvYsjqak0Ed4LkMDA==
 
-awslint@1.66.0:
-  version "1.66.0"
-  resolved "https://registry.yarnpkg.com/awslint/-/awslint-1.66.0.tgz#642b29585d8a2c717ea411919521c3d9ea581091"
-  integrity sha512-vpsLqzydkwv/0HLo692Ehu4PR0eR0nHIGPwEsy7gJpNLdnWu+0+Vc1EbJv0BueuM5Wu+PJE0NLxC1wOfCAKDUg==
+awslint@1.68.0:
+  version "1.68.0"
+  resolved "https://registry.yarnpkg.com/awslint/-/awslint-1.68.0.tgz#2065d1dd2235dd0f73d98a9deb2922a39781f895"
+  integrity sha512-xQc+GCepU3dDAryOUYtOWgYimks7GpnxEFbY3VHxhuUumkhaTm7BOISz2wgoNi0njFMxCpb7PLMwH1vwgdQZxA==
   dependencies:
     "@jsii/spec" "^1.13.0"
     camelcase "^6.0.0"
