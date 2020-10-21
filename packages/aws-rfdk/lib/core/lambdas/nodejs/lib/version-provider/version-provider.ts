@@ -7,6 +7,7 @@
 
 import * as fs from 'fs';
 import * as http from 'http';
+import * as https from 'https';
 import * as url from 'url';
 
 export enum Platform {
@@ -154,7 +155,7 @@ export class VersionProvider {
     };
 
     return new Promise((resolve, reject) => {
-      http.get(options, (res: http.IncomingMessage) => {
+      https.get(options, (res: http.IncomingMessage) => {
         let json = '';
 
         res.on('data', (chunk: any) => {
