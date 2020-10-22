@@ -169,7 +169,7 @@ export class UsageBasedLicense {
   public static forKatana(limit?: number): UsageBasedLicense {
     return new UsageBasedLicense({
       licenseName: 'katana',
-      ports: [Port.tcp(4101), Port.tcp(6101)],
+      ports: [Port.tcp(4151), Port.tcp(6101)],
       limit,
     });
   }
@@ -229,7 +229,7 @@ export class UsageBasedLicense {
   public static forMaxwell(limit?: number): UsageBasedLicense {
     return new UsageBasedLicense({
       licenseName: 'maxwell',
-      ports: [Port.tcp(5055), Port.tcp(7055)],
+      ports: [Port.tcp(5555), Port.tcp(7055)],
       limit,
     });
   }
