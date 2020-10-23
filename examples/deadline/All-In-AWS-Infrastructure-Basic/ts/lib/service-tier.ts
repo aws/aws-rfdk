@@ -16,7 +16,7 @@ import {
   IPrivateHostedZone,
 } from '@aws-cdk/aws-route53';
 import * as cdk from '@aws-cdk/core';
-import { 
+import {
   IMountableLinuxFilesystem,
   X509CertificatePem,
 } from 'aws-rfdk';
@@ -30,8 +30,8 @@ import {
   UsageBasedLicense,
   UsageBasedLicensing,
 } from 'aws-rfdk/deadline';
-import { 
-  Secret 
+import {
+  Secret,
 } from '@aws-cdk/aws-secretsmanager';
 import { Duration } from '@aws-cdk/core';
 
@@ -150,7 +150,6 @@ export class ServiceTier extends cdk.Stack {
     });
     this.renderQueue = new RenderQueue(this, 'RenderQueue', {
       vpc: props.vpc,
-      version: recipes.version,
       images: recipes.renderQueueImages,
       repository: repository,
       hostname: {
@@ -163,6 +162,7 @@ export class ServiceTier extends cdk.Stack {
         },
         internalProtocol: ApplicationProtocol.HTTPS,
       },
+      version: recipes.version,
       // TODO - Evaluate deletion protection for your own needs. This is set to false to
       // cleanly remove everything when this stack is destroyed. If you would like to ensure
       // that this resource is not accidentally deleted, you should set this to true.
@@ -170,7 +170,7 @@ export class ServiceTier extends cdk.Stack {
     });
     this.renderQueue.connections.allowDefaultPortFrom(this.bastion);
 
-    const ublCertSecret = Secret.fromSecretArn(this, 'UBLCertsSecret', props.ublCertsSecretArn); 
+    const ublCertSecret = Secret.fromSecretArn(this, 'UBLCertsSecret', props.ublCertsSecretArn);
     this.ublLicensing = new UsageBasedLicensing(this, 'UBLLicensing', {
       vpc: props.vpc,
       images: recipes.ublImages,

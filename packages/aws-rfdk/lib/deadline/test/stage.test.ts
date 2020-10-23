@@ -7,6 +7,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import {
+  expect as expectCDK,
+  haveResource,
+} from '@aws-cdk/assert';
+import {
   App,
   Stack,
 } from '@aws-cdk/core';
@@ -395,19 +399,8 @@ describe('Stage', () => {
       });
 
       // WHEN
-      const version = stage.getVersion(stack, 'Version');
-      const linuxFullVersionString = version.linuxFullVersionString();
-
-      // THEN
-      expect(version.majorVersion).toEqual(10);
-      expect(version.minorVersion).toEqual(1);
-      expect(version.releaseVersion).toEqual(9);
-
-      expect(version.linuxInstallers).toBeDefined();
-      expect(version.linuxInstallers?.patchVersion).toEqual(2);
-
-      expect(linuxFullVersionString).toBeDefined();
-      expect(linuxFullVersionString).toEqual('10.1.9.2');
+      stage.getVersion(stack, 'Version');
+      expectCDK(stack).to(haveResource('Custom::RFDK_DEADLINE_INSTALLERS'));
     });
   });
 });

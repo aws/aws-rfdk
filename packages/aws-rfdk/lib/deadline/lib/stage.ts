@@ -10,9 +10,10 @@ import { DockerImageAsset } from '@aws-cdk/aws-ecr-assets';
 import { Construct } from '@aws-cdk/core';
 
 import {
+  IVersion,
   Version,
   VersionQuery,
-} from './version';
+} from './';
 
 /**
  * Build arguments to supply to a Docker image build
@@ -197,8 +198,8 @@ export class Stage {
    * @param scope The parent scope
    * @param id The construct ID
    */
-  public getVersion(scope: Construct, id: string) {
-    return VersionQuery.exactString(scope, id, this.manifest.version);
+  public getVersion(scope: Construct, id: string): IVersion {
+    return new VersionQuery(scope, id, { version: this.manifest.version });
   }
 
   /**

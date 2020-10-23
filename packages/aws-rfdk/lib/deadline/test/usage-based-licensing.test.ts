@@ -57,7 +57,7 @@ const env = {
 };
 let app: App;
 let certificateSecret: ISecret;
-let deadlineVersion: IVersion;
+let versionedInstallers: IVersion;
 let dependencyStack: Stack;
 let dockerContainer: DockerImageAsset;
 let images: UsageBasedLicensingImages;
@@ -77,27 +77,20 @@ describe('UsageBasedLicensing', () => {
 
     dependencyStack = new Stack(app, 'DependencyStack', { env });
 
-    deadlineVersion = VersionQuery.exact(dependencyStack, 'Version', {
-      majorVersion: 10,
-      minorVersion: 1,
-      releaseVersion: 9,
-      patchVersion: 1,
-    });
-
-    expect(deadlineVersion.linuxFullVersionString).toBeDefined();
+    versionedInstallers = new VersionQuery(dependencyStack, 'VersionQuery');
 
     vpc = new Vpc(dependencyStack, 'VPC');
     rcsImage = ContainerImage.fromDockerImageAsset(new DockerImageAsset(dependencyStack, 'Image', {
       directory: __dirname,
     }));
     renderQueue = new RenderQueue(dependencyStack, 'RQ-NonDefaultPort', {
-      version: deadlineVersion,
       vpc,
       images: { remoteConnectionServer: rcsImage },
       repository: new Repository(dependencyStack, 'RepositoryNonDefault', {
         vpc,
-        version: deadlineVersion,
+        version: versionedInstallers,
       }),
+      version: versionedInstallers,
     });
 
     lfCluster = new Cluster(dependencyStack, 'licenseForwarderCluster', {

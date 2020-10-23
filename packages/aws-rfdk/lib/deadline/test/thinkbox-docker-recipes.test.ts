@@ -5,6 +5,10 @@
 
 import * as path from 'path';
 
+import {
+  expect as expectCDK,
+  haveResource,
+} from '@aws-cdk/assert';
 import { DockerImageAsset } from '@aws-cdk/aws-ecr-assets';
 import {
   App,
@@ -13,7 +17,6 @@ import {
 
 import {
   DeadlineDockerRecipes,
-  IVersion,
   Manifest,
   Recipe,
   Stage,
@@ -129,40 +132,13 @@ describe('ThinkboxDockerRecipes', () => {
     expect(actualImage.sourceHash).toEqual(expectedImage.sourceHash);
   });
 
-  describe('provides the Deadline version with', () => {
-    let version: IVersion;
-    beforeEach(() => {
-      // WHEN
-      const recipes = new ThinkboxDockerRecipes(stack, 'Recipes', {
-        stage,
-      });
-      version = recipes.version;
+  test('provides the Deadline version', () => {
+    // WHEN
+    new ThinkboxDockerRecipes(stack, 'Recipes', {
+      stage,
     });
 
-    test('majorVersion attribute', () => {
-      // THEN
-      expect(version.majorVersion).toEqual(MAJOR_VERSION);
-    });
-    test('minorVersion attribute', () => {
-      // THEN
-      expect(version.minorVersion).toEqual(MINOR_VERSION);
-    });
-    test('releaseVersion component', () => {
-      // THEN
-      expect(version.releaseVersion).toEqual(RELEASE_VERSION);
-    });
-    test('linuxFullVersionString() result', () => {
-      // THEN
-      expect(version.linuxFullVersionString()).toEqual(FULL_VERSION_STRING);
-    });
-    test('linuxInstallers', () => {
-      // THEN
-      expect(version.linuxInstallers).toBeDefined();
-      expect(version.linuxInstallers?.patchVersion).toEqual(PATCH_VERSION);
-      expect(version.linuxInstallers?.repository).toBeDefined();
-      expect(version.linuxInstallers?.repository?.s3Bucket.bucketName).toEqual('thinkbox-installers');
-      expect(version.linuxInstallers?.repository?.objectKey).toEqual(`Deadline/${FULL_VERSION_STRING}/Linux/DeadlineRepository-${FULL_VERSION_STRING}-linux-x64-installer.run`);
-    });
+    expectCDK(stack).to(haveResource('Custom::RFDK_DEADLINE_INSTALLERS'));
   });
 
   test.each([

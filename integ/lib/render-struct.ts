@@ -8,12 +8,19 @@ import { ApplicationProtocol } from '@aws-cdk/aws-elasticloadbalancingv2';
 import { PrivateHostedZone } from '@aws-cdk/aws-route53';
 import { Construct, Stack } from '@aws-cdk/core';
 import { X509CertificatePem } from 'aws-rfdk';
-import { IRepository, RenderQueue, Stage, ThinkboxDockerRecipes } from 'aws-rfdk/deadline';
+import {
+  IRepository,
+  IVersion,
+  RenderQueue,
+  Stage,
+  ThinkboxDockerRecipes,
+} from 'aws-rfdk/deadline';
 
 export interface RenderStructProps {
   readonly integStackTag: string;
   readonly repository: IRepository;
   readonly protocol: string;
+  readonly version: IVersion
 }
 
 export class RenderStruct extends Construct {
@@ -79,11 +86,11 @@ export class RenderStruct extends Construct {
       vpc,
       repository: props.repository,
       images: recipes.renderQueueImages,
-      version: recipes.version,
       logGroupProps: {
         logGroupPrefix: Stack.of(this).stackName + '-' + id,
       },
       hostname,
+      version: props.version,
       trafficEncryption,
       deletionProtection: false,
     };

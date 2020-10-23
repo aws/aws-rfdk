@@ -4,6 +4,8 @@
  */
 
 import { App, Stack } from '@aws-cdk/core';
+import { VersionQuery } from 'aws-rfdk/deadline';
+
 import { RenderStruct } from '../../../../lib/render-struct';
 import { DatabaseType, StorageStruct } from '../../../../lib/storage-struct';
 import { WorkerStruct } from '../../../../lib/worker-struct';
@@ -29,16 +31,22 @@ oss.forEach( os => {
     const testId = 'WF' + i.toString();
     // Create component stack for structs
     const componentTier = new Stack(app, 'RFDKInteg-' + testId + '-ComponentTier' + integStackTag, {env});
+
+    // This will get the installers for the latest version of Deadline
+    const version = new VersionQuery(componentTier, 'VersionQuery');
+
     // Create StorageStruct with repository
     const storage = new StorageStruct(componentTier, 'StorageStruct' + testId, {
       integStackTag,
       databaseType: DatabaseType.DocDB,
+      version,
     });
     // Create render queue with either HTTP or HTTPS protocol
     const render = new RenderStruct(componentTier, 'RenderStruct' + testId, {
       integStackTag,
       repository: storage.repo,
       protocol,
+      version,
     });
     // Create worker struct containing three nodes using either Linux or Windows
     structs.push(new WorkerStruct(componentTier, 'WorkerStruct' + testId, {

@@ -10,6 +10,7 @@ import {
   haveResource,
   haveResourceLike,
   ResourcePart,
+  stringLike,
 } from '@aws-cdk/assert';
 import {AutoScalingGroup} from '@aws-cdk/aws-autoscaling';
 import {DatabaseCluster} from '@aws-cdk/aws-docdb';
@@ -29,9 +30,7 @@ import {
 import {
   FileSystem as EfsFileSystem,
 } from '@aws-cdk/aws-efs';
-import {
-  Bucket,
-} from '@aws-cdk/aws-s3';
+import { Bucket } from '@aws-cdk/aws-s3';
 import {
   App,
   CfnElement,
@@ -50,7 +49,6 @@ import {
   DatabaseConnection,
   IVersion,
   Repository,
-  VersionQuery,
 } from '../lib';
 import {
   REPO_DC_ASSET,
@@ -59,7 +57,7 @@ import {
 let app: App;
 let stack: Stack;
 let vpc: IVpc;
-let deadlineVersion: IVersion;
+let version: IVersion;
 
 function escapeTokenRegex(s: string): string {
   // A CDK Token looks like: ${Token[TOKEN.12]}
@@ -72,26 +70,33 @@ beforeEach(() => {
   app = new App();
   stack = new Stack(app, 'Stack');
   vpc = new Vpc(stack, 'VPC');
-  deadlineVersion = VersionQuery.exact(stack, 'Version', {
+  version = {
     majorVersion: 10,
     minorVersion: 1,
     releaseVersion: 9,
-    patchVersion: 2,
-  });
+    linuxInstallers: {
+      patchVersion: 2,
+      repository: {
+        objectKey: 'testInstaller',
+        s3Bucket: new Bucket(stack, 'InstallerBucket'),
+      },
+    },
+    linuxFullVersionString: '10.1.9.2',
+  };
 });
 
 test('can create two repositories', () => {
   // GIVEN
   new Repository(stack, 'Repo1', {
     vpc,
-    version: deadlineVersion,
+    version,
   });
 
   // THEN
   expect(() => {
     new Repository(stack, 'Repo2', {
       vpc,
-      version: deadlineVersion,
+      version,
     });
   }).not.toThrow();
 });
@@ -100,7 +105,7 @@ test('repository installer instance is created correctly', () => {
   // WHEN
   new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version: deadlineVersion,
+    version,
   });
 
   // THEN
@@ -173,7 +178,7 @@ test('repository installer honors vpcSubnet', () => {
   });
   new Repository(stack, 'repositoryInstaller', {
     vpc: attrVpc,
-    version: deadlineVersion,
+    version,
     vpcSubnets: { subnetType: SubnetType.PUBLIC },
   });
 
@@ -187,7 +192,7 @@ test('repository installer security groups created correctly', () => {
   // WHEN
   new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version: deadlineVersion,
+    version,
   });
 
   // THEN
@@ -270,7 +275,7 @@ test('repository installer iam permissions: db secret access', () => {
   // WHEN
   new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version: deadlineVersion,
+    version,
   });
 
   // THEN
@@ -305,7 +310,7 @@ test('repository installer iam permissions: installer get', () => {
   // WHEN
   new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version: deadlineVersion,
+    version,
   });
 
   // THEN
@@ -328,7 +333,10 @@ test('repository installer iam permissions: installer get', () => {
                   {
                     Ref: 'AWS::Partition',
                   },
-                  ':s3:::thinkbox-installers',
+                  ':s3:::',
+                  {
+                    Ref: stringLike('AssetParameters*S3Bucket352E624B'),
+                  },
                 ],
               ],
             },
@@ -340,7 +348,11 @@ test('repository installer iam permissions: installer get', () => {
                   {
                     Ref: 'AWS::Partition',
                   },
-                  ':s3:::thinkbox-installers/Deadline/10.1.9.2/Linux/DeadlineRepository-10.1.9.2-linux-x64-installer.run',
+                  ':s3:::',
+                  {
+                    Ref: stringLike('AssetParameters*S3Bucket352E624B'),
+                  },
+                  '/*',
                 ],
               ],
             },
@@ -355,7 +367,7 @@ test('default repository installer log group created correctly', () => {
   // WHEN
   new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version: deadlineVersion,
+    version,
   });
 
   // THEN
@@ -369,7 +381,7 @@ test('repository installer logs all required files', () => {
   // WHEN
   new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version: deadlineVersion,
+    version,
   });
 
   // THEN
@@ -397,7 +409,7 @@ test('repository mounts repository filesystem', () => {
   // GIVEN
   const repo = new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version: deadlineVersion,
+    version,
   });
 
   // WHEN
@@ -415,7 +427,7 @@ test.each([
   // WHEN
   new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version: deadlineVersion,
+    version,
     removalPolicy: {
       database: policy,
     },
@@ -435,7 +447,7 @@ test.each([
   // WHEN
   new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version: deadlineVersion,
+    version,
     removalPolicy: {
       filesystem: policy,
     },
@@ -460,7 +472,7 @@ test('repository warns if removal policy for filesystem when filesystem provided
   const repo = new Repository(stack, 'repositoryInstaller', {
     vpc,
     fileSystem: testFS,
-    version: deadlineVersion,
+    version,
     removalPolicy: {
       filesystem: RemovalPolicy.DESTROY,
     },
@@ -500,7 +512,7 @@ test('repository warns if removal policy for database when database provided', (
   const repo = new Repository(stack, 'repositoryInstaller', {
     vpc,
     database: DatabaseConnection.forDocDB({ database: fsDatabase, login: fsDatabase.secret! }),
-    version: deadlineVersion,
+    version,
     removalPolicy: {
       database: RemovalPolicy.DESTROY,
     },
@@ -529,7 +541,7 @@ test('repository creates deadlineDatabase if none provided', () => {
   new Repository(stack, 'repositoryInstaller', {
     vpc,
     fileSystem: testFS,
-    version: deadlineVersion,
+    version,
   });
 
   // THEN
@@ -560,7 +572,7 @@ test('disabling Audit logging does not enable Cloudwatch audit logs', () => {
   new Repository(stack, 'repositoryInstaller', {
     vpc,
     fileSystem: testFS,
-    version: deadlineVersion,
+    version,
     databaseAuditLogging: false,
   });
 
@@ -598,7 +610,7 @@ test('repository warns if databaseAuditLogging defined and database is specified
   // WHEN
   const repo = new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version: deadlineVersion,
+    version,
     removalPolicy: {
       filesystem: RemovalPolicy.DESTROY,
     },
@@ -606,13 +618,15 @@ test('repository warns if databaseAuditLogging defined and database is specified
     databaseAuditLogging: true,
   });
 
+  const warningMsg = 'The parameter databaseAuditLogging only has an effect when the Repository is creating its own database.\n' +
+    'Please ensure that the Database provided is configured correctly.';
+
   // THEN
   expect(repo.node.metadata).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
         type: 'aws:cdk:warning',
-        data: `The parameter databaseAuditLogging only has an effect when the Repository is creating its own database. 
-        Please ensure that the Database provided is configured correctly.`,
+        data: warningMsg,
       }),
     ]),
   );
@@ -638,7 +652,7 @@ test('honors subnet specification', () => {
   // WHEN
   new Repository(isolatedStack, 'repositoryInstaller', {
     vpc: dependencyVpc,
-    version: deadlineVersion,
+    version,
     vpcSubnets: {
       subnets,
     },
@@ -662,7 +676,7 @@ test('repository honors database instance count', () => {
   // WHEN
   new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version: deadlineVersion,
+    version,
     documentDbInstanceCount: instanceCount,
   });
 
@@ -679,7 +693,7 @@ test('repository honors database retention period', () => {
   // WHEN
   new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version: deadlineVersion,
+    version,
     backupOptions: {
       databaseRetention: Duration.days(period),
     },
@@ -714,7 +728,7 @@ test('warns if both retention period and database provided', () => {
   const repo = new Repository(stack, 'repositoryInstaller', {
     vpc,
     database: DatabaseConnection.forDocDB({ database: fsDatabase, login: fsDatabase.secret! }),
-    version: deadlineVersion,
+    version,
     backupOptions: {
       databaseRetention: Duration.days(20),
     },
@@ -761,7 +775,7 @@ test('repository creates filesystem if none provided', () => {
   new Repository(stack, 'repositoryInstaller', {
     vpc,
     database: DatabaseConnection.forDocDB({ database: fsDatabase, login: fsDatabase.secret }),
-    version: deadlineVersion,
+    version,
   });
 
   // THEN
@@ -772,7 +786,7 @@ test('repository creates filesystem if none provided', () => {
 test('default repository instance is created using user defined installation path prefix', () => {
   const repo = new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version: deadlineVersion,
+    version,
     repositoryInstallationPrefix: 'xyz',
   });
 
@@ -784,7 +798,7 @@ test('default repository instance is created using user defined installation pat
 test('default repository instance is created using user defined installation path prefix with extra slashes in path', () => {
   const repo = new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version: deadlineVersion,
+    version,
     repositoryInstallationPrefix: '/xyz//',
   });
 
@@ -797,7 +811,7 @@ test('repository instance is created with user defined timeout', () => {
   new Repository(stack, 'repositoryInstaller', {
     vpc,
     repositoryInstallationTimeout: Duration.minutes(30),
-    version: deadlineVersion,
+    version,
   });
 
   // THEN
@@ -817,7 +831,7 @@ test('repository instance is created with correct installer path version', () =>
   const repo = new Repository(stack, 'repositoryInstaller', {
     vpc,
     repositoryInstallationTimeout: Duration.minutes(30),
-    version: deadlineVersion,
+    version,
   });
 
   // THEN
@@ -835,7 +849,7 @@ test.each([
   // WHEN
   new Repository(stack, id, {
     vpc,
-    version: deadlineVersion,
+    version,
     logGroupProps: {
       logGroupPrefix: testPrefix,
     },
@@ -852,7 +866,7 @@ test('validate instance self-termination', () => {
   const repo = new Repository(stack, 'repositoryInstaller', {
     vpc,
     repositoryInstallationTimeout: Duration.minutes(30),
-    version: deadlineVersion,
+    version,
   });
   const asgLogicalId = stack.getLogicalId(repo.node.defaultChild!.node.defaultChild as CfnElement);
 
@@ -887,7 +901,7 @@ test('repository configure client instance', () => {
   const repo = new Repository(stack, 'repositoryInstaller', {
     vpc,
     repositoryInstallationTimeout: Duration.minutes(30),
-    version: deadlineVersion,
+    version,
   });
   const instance = new Instance(stack, 'Instance', {
     vpc,
@@ -921,7 +935,7 @@ test('configureClientInstance uses singleton for repo config script', () => {
   const repo = new Repository(stack, 'repositoryInstaller', {
     vpc,
     repositoryInstallationTimeout: Duration.minutes(30),
-    version: deadlineVersion,
+    version,
   });
   const instance1 = new Instance(stack, 'Instance1', {
     vpc,
@@ -997,56 +1011,12 @@ test('configureClientInstance uses singleton for repo config script', () => {
   }));
 });
 
-test('must provide linux repository installer', () => {
-  // GIVEN
-  const version: IVersion = {
-    majorVersion: 10,
-    minorVersion: 1,
-    releaseVersion: 0,
-    linuxFullVersionString: () => '10.1.0.3',
-  };
-
-  // THEN
-  expect(() => {
-    new Repository(stack, 'repositoryInstaller', {
-      vpc,
-      version,
-    });
-  }).toThrowError('Version given to Repository must provide a Linux Repository installer.');
-});
-
-test('must provide linux repository full version string', () => {
-  // GIVEN
-  const s3Bucket = Bucket.fromBucketName(stack, 'Bucket', 'someBucket');
-  const version: IVersion = {
-    majorVersion: 10,
-    minorVersion: 1,
-    releaseVersion: 0,
-    linuxFullVersionString: () => undefined,
-    linuxInstallers: {
-      patchVersion: 1,
-      repository: {
-        s3Bucket,
-        objectKey: 'somekey',
-      },
-    },
-  };
-
-  // THEN
-  expect(() => {
-    new Repository(stack, 'repositoryInstaller', {
-      vpc,
-      version,
-    });
-  }).toThrowError('Version given to Repository must provide a full Linux version string.');
-});
-
 test('windows client cannot direct connect to repository', () => {
   // GIVEN
   const repo = new Repository(stack, 'repositoryInstaller', {
     vpc,
     repositoryInstallationTimeout: Duration.minutes(30),
-    version: deadlineVersion,
+    version,
   });
   const instance = new Instance(stack, 'Instance', {
     vpc,
@@ -1071,7 +1041,7 @@ describe('tagging', () => {
       const isolatedStack = new Stack(app, 'IsolatedStack');
       new Repository(isolatedStack, 'Repository', {
         vpc,
-        version: deadlineVersion,
+        version,
       });
       return isolatedStack;
     },
