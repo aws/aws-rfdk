@@ -7,7 +7,7 @@ import * as path from 'path';
 
 import {
   expect as expectCDK,
-  haveResource,
+  haveResourceLike,
 } from '@aws-cdk/assert';
 import { DockerImageAsset } from '@aws-cdk/aws-ecr-assets';
 import {
@@ -138,7 +138,9 @@ describe('ThinkboxDockerRecipes', () => {
       stage,
     });
 
-    expectCDK(stack).to(haveResource('Custom::RFDK_DEADLINE_INSTALLERS'));
+    expectCDK(stack).to(haveResourceLike('Custom::RFDK_DEADLINE_INSTALLERS', {
+      versionString: FULL_VERSION_STRING,
+    }));
   });
 
   test.each([

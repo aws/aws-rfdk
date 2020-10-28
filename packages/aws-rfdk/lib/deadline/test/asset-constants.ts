@@ -43,6 +43,6 @@ export const RQ_CONNECTION_ASSET = {
 };
 
 export const VERSION_QUERY_ASSET = {
-  Bucket: stringLike('AssetParameters*S3Bucket75763B6A'),
-  Key: stringLike('AssetParameters*S3VersionKeyCF2C67CB'),
+  Bucket: stringLike('AssetParameters*S3Bucket56D7A778'),
+  Key: stringLike('AssetParameters*S3VersionKey35C44157'),
 };

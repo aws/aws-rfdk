@@ -792,13 +792,6 @@ export class Repository extends Construct implements IRepository {
 
     this.databaseConnection.addInstallerDBArgs(installerGroup);
 
-    if (!version.linuxInstallers?.repository) {
-      throw new Error('Version given to Repository must provide a Linux Repository installer.');
-    }
-    const linuxVersionString = version.linuxFullVersionString;
-    if (!linuxVersionString) {
-      throw new Error('Version given to Repository must provide a full Linux version string.');
-    }
     version.linuxInstallers.repository.s3Bucket.grantRead(installerGroup, version.linuxInstallers.repository.objectKey);
 
     installerScriptAsset.executeOn({
@@ -806,7 +799,7 @@ export class Repository extends Construct implements IRepository {
       args: [
         `"s3://${version.linuxInstallers.repository.s3Bucket.bucketName}/${version.linuxInstallers.repository.objectKey}"`,
         `"${installPath}"`,
-        linuxVersionString,
+        version.linuxFullVersionString(),
       ],
     });
   }

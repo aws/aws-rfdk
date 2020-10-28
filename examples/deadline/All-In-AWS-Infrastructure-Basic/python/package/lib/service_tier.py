@@ -44,7 +44,6 @@ from aws_rfdk.deadline import (
     ThinkboxDockerRecipes,
     UsageBasedLicense,
     UsageBasedLicensing,
-    VersionQuery,
 )
 
 

@@ -10,9 +10,7 @@ import { Construct, Stack } from '@aws-cdk/core';
 import { X509CertificatePem } from 'aws-rfdk';
 import {
   IRepository,
-  IVersion,
   RenderQueue,
-  Stage,
   ThinkboxDockerRecipes,
 } from 'aws-rfdk/deadline';
 
@@ -20,7 +18,7 @@ export interface RenderStructProps {
   readonly integStackTag: string;
   readonly repository: IRepository;
   readonly protocol: string;
-  readonly version: IVersion
+  readonly recipes: ThinkboxDockerRecipes;
 }
 
 export class RenderStruct extends Construct {
@@ -32,15 +30,9 @@ export class RenderStruct extends Construct {
 
     // Collect environment variables
     const infrastructureStackName = 'RFDKIntegInfrastructure' + props.integStackTag;
-    const stagePath = process.env.DEADLINE_STAGING_PATH!.toString();
 
     // Retrieve VPC created for _infrastructure stack
     const vpc = Vpc.fromLookup(this, 'Vpc', { tags: { StackName: infrastructureStackName }}) as Vpc;
-
-    // Stage docker recipes, which include image used for the render queue instance
-    const recipes = new ThinkboxDockerRecipes(this, 'DockerRecipes', {
-      stage: Stage.fromDirectory(stagePath),
-    });
 
     const host = 'renderqueue';
     const zoneName = Stack.of(this).stackName + '.local';
@@ -85,12 +77,12 @@ export class RenderStruct extends Construct {
     var renderQueueProps = {
       vpc,
       repository: props.repository,
-      images: recipes.renderQueueImages,
+      images: props.recipes.renderQueueImages,
       logGroupProps: {
         logGroupPrefix: Stack.of(this).stackName + '-' + id,
       },
       hostname,
-      version: props.version,
+      version: props.recipes.version,
       trafficEncryption,
       deletionProtection: false,
     };

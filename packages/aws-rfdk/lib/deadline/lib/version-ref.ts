@@ -97,5 +97,5 @@ export interface IVersion extends IReleaseVersion {
    * this version object. This is constructed by joining the major, minor,
    * release, and patch versions by dots.
    */
-  readonly linuxFullVersionString: string;
+  linuxFullVersionString(): string;
 }

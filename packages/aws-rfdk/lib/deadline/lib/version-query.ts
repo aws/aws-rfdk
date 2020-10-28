@@ -69,7 +69,7 @@ abstract class VersionQueryBase extends Construct implements IVersion {
   /**
    * @inheritdoc
    */
-  readonly abstract linuxFullVersionString: string;
+  abstract linuxFullVersionString(): string;
 }
 
 /**
@@ -108,11 +108,6 @@ export class VersionQuery extends VersionQueryBase {
   /**
    * @inheritdoc
    */
-  readonly linuxFullVersionString: string;
-
-  /**
-   * @inheritdoc
-   */
   readonly linuxInstallers: PlatformInstallers;
 
   constructor(scope: Construct, id: string, props?: VersionQueryProps) {
@@ -144,7 +139,6 @@ export class VersionQuery extends VersionQueryBase {
     this.minorVersion = Token.asNumber(deadlineResource.getAtt('MinorVersion'));
     this.releaseVersion = Token.asNumber(deadlineResource.getAtt('ReleaseVersion'));
 
-    this.linuxFullVersionString = Token.asString(deadlineResource.getAtt('LinuxFullVersionString'));
     this.linuxInstallers = {
       patchVersion: Token.asNumber(deadlineResource.getAtt('LinuxPatchVersion')),
       repository: {
@@ -152,5 +146,16 @@ export class VersionQuery extends VersionQueryBase {
         s3Bucket: Bucket.fromBucketName(scope, 'InstallerBucket', Token.asString(deadlineResource.getAtt('S3Bucket'))),
       },
     };
+  }
+
+  public linuxFullVersionString(): string {
+    const major = Token.isUnresolved(this.majorVersion) ? Token.asString(this.majorVersion) : this.majorVersion.toString();
+    const minor = Token.isUnresolved(this.minorVersion) ? Token.asString(this.minorVersion) : this.minorVersion.toString();
+    const release = Token.isUnresolved(this.releaseVersion) ? Token.asString(this.releaseVersion) : this.releaseVersion.toString();
+    const patch = Token.isUnresolved(this.linuxInstallers.patchVersion)
+      ? Token.asString(this.linuxInstallers.patchVersion)
+      : this.linuxInstallers.patchVersion.toString();
+
+    return `${major}.${minor}.${release}.${patch}`;
   }
 }

@@ -4,7 +4,10 @@
  */
 
 import { App, Stack } from '@aws-cdk/core';
-import { VersionQuery } from 'aws-rfdk/deadline';
+import {
+  Stage,
+  ThinkboxDockerRecipes,
+} from 'aws-rfdk/deadline';
 
 import { RenderStruct } from '../../../../lib/render-struct';
 import { DatabaseType, StorageStruct } from '../../../../lib/storage-struct';
@@ -32,21 +35,24 @@ oss.forEach( os => {
     // Create component stack for structs
     const componentTier = new Stack(app, 'RFDKInteg-' + testId + '-ComponentTier' + integStackTag, {env});
 
-    // This will get the installers for the latest version of Deadline
-    const version = new VersionQuery(componentTier, 'VersionQuery');
+    const stagePath = process.env.DEADLINE_STAGING_PATH!.toString();
+    // Stage docker recipes, which include image used for the render queue instance
+    const recipes = new ThinkboxDockerRecipes(componentTier, 'DockerRecipes', {
+      stage: Stage.fromDirectory(stagePath),
+    });
 
     // Create StorageStruct with repository
     const storage = new StorageStruct(componentTier, 'StorageStruct' + testId, {
       integStackTag,
       databaseType: DatabaseType.DocDB,
-      version,
+      version: recipes.version,
     });
     // Create render queue with either HTTP or HTTPS protocol
     const render = new RenderStruct(componentTier, 'RenderStruct' + testId, {
       integStackTag,
       repository: storage.repo,
       protocol,
-      version,
+      recipes,
     });
     // Create worker struct containing three nodes using either Linux or Windows
     structs.push(new WorkerStruct(componentTier, 'WorkerStruct' + testId, {

@@ -106,8 +106,6 @@ export class ThinkboxDockerRecipes extends Construct {
 
     this.version  = props.stage.getVersion(this, 'Version');
 
-    // this.versionQuery  = props.stage.getVersion(this, 'Version');
-
     for (const recipe of [ThinkboxManagedDeadlineDockerRecipes.RemoteConnectionServer, ThinkboxManagedDeadlineDockerRecipes.LicenseForwarder]) {
       if (!props.stage.manifest.recipes[recipe]) {
         throw new Error(`Could not find ${recipe} recipe`);

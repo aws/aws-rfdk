@@ -55,11 +55,6 @@ export interface FlatVersionedUriOutput {
   readonly LinuxPatchVersion: string;
 
   /**
-   * The patch version of the Linux installer. For example, "d" in "a.b.c.d".
-   */
-  readonly LinuxFullVersionString: string;
-
-  /**
    * The object key of the Deadline repository installer for Linux.
    */
   readonly LinuxRepositoryInstaller: string;
@@ -107,12 +102,6 @@ export class VersionProviderResource extends SimpleCustomResource {
       MinorVersion: deadlineLinux.MinorVersion,
       ReleaseVersion: deadlineLinux.ReleaseVersion,
       LinuxPatchVersion: deadlineLinux.PatchVersion,
-      LinuxFullVersionString: Version.convertToFullVersionString(
-        deadlineLinux.MajorVersion,
-        deadlineLinux.MinorVersion,
-        deadlineLinux.ReleaseVersion,
-        deadlineLinux.PatchVersion,
-      ),
       LinuxRepositoryInstaller: linuxRepoObjectKey,
     };
   }
@@ -130,7 +119,10 @@ export class VersionProviderResource extends SimpleCustomResource {
     if (!value || typeof(value) !== 'object') { return false; }
 
     if (value.versionString) {
-      if (!Version.validateVersionString(value.versionString))  { return false; }
+      if (!Version.validateVersionString(value.versionString)) {
+        console.log(`Failed to validate the version string: ${value.versionString}`);
+        return false;
+      }
     }
 
     return true;

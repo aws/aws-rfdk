@@ -81,7 +81,7 @@ beforeEach(() => {
         s3Bucket: new Bucket(stack, 'InstallerBucket'),
       },
     },
-    linuxFullVersionString: '10.1.9.2',
+    linuxFullVersionString: () => '10.1.9.2',
   };
 });
 
