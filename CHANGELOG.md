@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.19.0](https://github.com/aws/aws-rfdk/compare/v0.18.1...v0.19.0) (2020-10-28)
+
+
+### Supported CDK Version
+
+* [1.70.0](https://github.com/aws/aws-cdk/releases/tag/v1.70.0)
+
+### Bug Fixes
+
+* **deadline:** Incorrect Usage Based Licensing ports for Katana and Maxwell. ([e648711](https://github.com/aws/aws-rfdk/commit/e6487119444ccfef6fef26f17e47260522fbc292))
+
 ### [0.18.1](https://github.com/aws/aws-rfdk/compare/v0.18.0...v0.18.1) (2020-10-16)
 
 
