@@ -43,8 +43,11 @@ npx standard-version --skip.tag=true --commit-all
 # Get the new version number to do some manual find and replaces
 new_version=$(node -p "require('./package.json').version")
 
-# Update the version of RFDK used in the python example
-sed -i "s/\"aws-rfdk==[0-9]*\.[0-9]*\.[0-9]*\"/\"aws-rfdk==$new_version\"/" ./examples/deadline/All-In-AWS-Infrastructure-Basic/python/setup.py
+# Update the version of RFDK used in the python examples
+for exampleSetupPy in $(find ./examples/ -name 'setup.py')
+do
+  sed -i "s/\"aws-rfdk==[0-9]*\.[0-9]*\.[0-9]*\"/\"aws-rfdk==$new_version\"/" "$exampleSetupPy"
+done
 
 # When standard-version adds a patch release to the changelog, it makes it a smaller header size. This undoes that.
 if [[ $version == "patch" ]]; then
