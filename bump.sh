@@ -22,13 +22,13 @@ version=${1:-minor}
 
 cd "$(dirname "$0")"
 
-echo "Starting ${version} version bump"
+echo "Starting $version version bump"
 
 export NODE_OPTIONS="--max-old-space-size=4096 ${NODE_OPTIONS:-}"
 
 /bin/bash ./install.sh
 
-npx lerna version ${version} --yes --exact --no-git-tag-version --no-push
+npx lerna version $version --yes --exact --no-git-tag-version --no-push
 
 # Another round of install to fix package-lock.jsons
 /bin/bash ./install.sh
@@ -39,3 +39,27 @@ npx lerna version ${version} --yes --exact --no-git-tag-version --no-push
 
 # Generate CHANGELOG and create a commit
 npx standard-version --skip.tag=true --commit-all
+
+# Get the new version number to do some manual find and replaces
+new_version=$(node -p "require('./package.json').version")
+
+# Update the version of RFDK used in the python examples
+for exampleSetupPy in $(find ./examples/ -name 'setup.py')
+do
+  sed -i "s/\"aws-rfdk==[0-9]*\.[0-9]*\.[0-9]*\"/\"aws-rfdk==$new_version\"/" "$exampleSetupPy"
+done
+
+# When standard-version adds a patch release to the changelog, it makes it a smaller header size. This undoes that.
+if [[ $version == "patch" ]]; then
+  version_header="#\(## \[$new_version](.*) (.*)\)"
+  sed -i "s|$version_header|\1|" ./CHANGELOG.md
+fi
+
+# Add a section to the changelog that state the version of CDK being used
+version_header="# \[$new_version](.*) (.*)"
+cdk_version=$(node -p "require('./package.json').devDependencies['aws-cdk']")
+cdk_version_section="\n\n\n### Supported CDK Version\n\n* [$cdk_version](https://github.com/aws/aws-cdk/releases/tag/v$cdk_version)"
+sed -i "s|\($version_header\)|\1$cdk_version_section|" ./CHANGELOG.md
+
+git add .
+git commit --amend --no-edit
