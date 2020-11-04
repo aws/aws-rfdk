@@ -11,8 +11,12 @@ import { X509CertificatePem } from 'aws-rfdk';
 import {
   IRepository,
   RenderQueue,
+  RenderQueueProps,
   ThinkboxDockerRecipes,
 } from 'aws-rfdk/deadline';
+import { ThinkboxDockerImageOverrides } from './ThinkboxDockerImageOverrides';
+
+const DOCKER_IMAGE_OVERRIDES_ENV_VAR = 'RFDK_DOCKER_IMAGE_OVERRIDES';
 
 export interface RenderStructProps {
   readonly integStackTag: string;
@@ -33,6 +37,12 @@ export class RenderStruct extends Construct {
 
     // Retrieve VPC created for _infrastructure stack
     const vpc = Vpc.fromLookup(this, 'Vpc', { tags: { StackName: infrastructureStackName }}) as Vpc;
+
+    // Retrieve Docker image overrides, if available
+    let dockerImageOverrides: (ThinkboxDockerImageOverrides | undefined) = undefined;
+    if (process.env[DOCKER_IMAGE_OVERRIDES_ENV_VAR] !== undefined) {
+      dockerImageOverrides = ThinkboxDockerImageOverrides.fromJSON(this, 'ThinkboxDockerImageOverrides', process.env[DOCKER_IMAGE_OVERRIDES_ENV_VAR]!.toString());
+    }
 
     const host = 'renderqueue';
     const zoneName = Stack.of(this).stackName + '.local';
@@ -74,10 +84,10 @@ export class RenderStruct extends Construct {
     }
 
     //Create the Render Queue
-    var renderQueueProps = {
+    const renderQueueProps: RenderQueueProps = {
       vpc,
       repository: props.repository,
-      images: props.recipes.renderQueueImages,
+      images: dockerImageOverrides?.renderQueueImages ?? props.recipes.renderQueueImages,
       logGroupProps: {
         logGroupPrefix: Stack.of(this).stackName + '-' + id,
       },
