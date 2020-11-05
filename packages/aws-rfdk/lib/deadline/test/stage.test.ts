@@ -8,7 +8,8 @@ import * as path from 'path';
 
 import {
   expect as expectCDK,
-  haveResource,
+  haveResourceLike,
+  stringLike,
 } from '@aws-cdk/assert';
 import {
   App,
@@ -400,7 +401,10 @@ describe('Stage', () => {
 
       // WHEN
       stage.getVersion(stack, 'Version');
-      expectCDK(stack).to(haveResource('Custom::RFDK_DEADLINE_INSTALLERS'));
+      expectCDK(stack).to(haveResourceLike('Custom::RFDK_DEADLINE_INSTALLERS', {
+        forceRun: stringLike('*'),
+        versionString: '10.1.9',
+      }));
     });
   });
 });

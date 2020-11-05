@@ -199,7 +199,8 @@ export class Stage {
    * @param id The construct ID
    */
   public getVersion(scope: Construct, id: string): IVersion {
-    return new VersionQuery(scope, id, { version: this.manifest.version });
+    const releaseVersion = this.getReleaseVersion(this.manifest.version);
+    return new VersionQuery(scope, id, { version: releaseVersion });
   }
 
   /**
@@ -217,5 +218,14 @@ export class Stage {
       directory: this.dirPath,
       ...recipe,
     });
+  }
+
+  /**
+   * This removes the patch version from a full version string. No validation is done as that is handled
+   * in the constructor with the version check.
+   */
+  private getReleaseVersion(fullVersion: string): string {
+    const versionComponents = fullVersion.split('.');
+    return `${versionComponents[0]}.${versionComponents[1]}.${versionComponents[2]}`;
   }
 }

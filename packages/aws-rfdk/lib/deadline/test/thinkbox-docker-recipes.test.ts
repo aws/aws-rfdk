@@ -8,6 +8,7 @@ import * as path from 'path';
 import {
   expect as expectCDK,
   haveResourceLike,
+  stringLike,
 } from '@aws-cdk/assert';
 import { DockerImageAsset } from '@aws-cdk/aws-ecr-assets';
 import {
@@ -57,7 +58,8 @@ describe('ThinkboxDockerRecipes', () => {
   const MINOR_VERSION = 1;
   const RELEASE_VERSION = 9;
   const PATCH_VERSION = 2;
-  const FULL_VERSION_STRING = `${MAJOR_VERSION}.${MINOR_VERSION}.${RELEASE_VERSION}.${PATCH_VERSION}`;
+  const RELEASE_VERSION_STRING = `${MAJOR_VERSION}.${MINOR_VERSION}.${RELEASE_VERSION}`;
+  const FULL_VERSION_STRING = `${RELEASE_VERSION_STRING}.${PATCH_VERSION}`;
 
   beforeEach(() => {
     app = new App();
@@ -139,7 +141,8 @@ describe('ThinkboxDockerRecipes', () => {
     });
 
     expectCDK(stack).to(haveResourceLike('Custom::RFDK_DEADLINE_INSTALLERS', {
-      versionString: FULL_VERSION_STRING,
+      forceRun: stringLike('*'),
+      versionString: RELEASE_VERSION_STRING,
     }));
   });
 
