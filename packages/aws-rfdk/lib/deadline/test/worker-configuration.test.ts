@@ -423,7 +423,7 @@ describe('Test WorkerInstanceConfiguration connect to RenderQueue', () => {
     const instanceSGId = stack.resolve(instanceSG.securityGroupId);
 
     // THEN
-    // White-box testing. We know that we invoked the connection method on the
+    // Open-box testing. We know that we invoked the connection method on the
     // render queue if the security group for the instance has an ingress rule to the RQ.
     expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
       IpProtocol: 'tcp',
@@ -450,7 +450,7 @@ describe('Test WorkerInstanceConfiguration connect to RenderQueue', () => {
     const instanceSGId = stack.resolve(instanceSG.securityGroupId);
 
     // THEN
-    // White-box testing. We know that we invoked the connection method on the
+    // Open-box testing. We know that we invoked the connection method on the
     // render queue if the security group for the instance has an ingress rule to the RQ.
     expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
       IpProtocol: 'tcp',
