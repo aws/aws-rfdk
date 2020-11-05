@@ -9,28 +9,25 @@ import {
   OperatingSystemType,
 } from '@aws-cdk/aws-ec2';
 import {
-  IGrantable,
-} from '@aws-cdk/aws-iam';
-import {
   Construct,
   Duration,
 } from '@aws-cdk/core';
 import {
   CloudWatchAgent,
   CloudWatchConfigBuilder,
-  IScriptHost,
   LogGroupFactory,
   LogGroupFactoryProps,
   ScriptAsset,
 } from '../../core';
-import { Version } from './version';
-
-/**
- * Interface for Deadline clients that can be configured via the ClientConfiguration
- * helper class.
- */
-export interface IConfigurableWorker extends IScriptHost, IGrantable {
-}
+import {
+  IHost,
+} from './host-ref';
+import {
+  IRenderQueue,
+} from './render-queue';
+import {
+  Version,
+} from './version';
 
 /**
  * The Deadline Worker settings that can be configured via the configureWorkerSettings method
@@ -62,6 +59,37 @@ export interface WorkerSettings {
 }
 
 /**
+ * Properties for a WorkerInstanceConfiguration
+ */
+export interface WorkerInstanceConfigurationProps {
+  /**
+   * The Deadline Worker that should be configured.
+   */
+  readonly worker: IHost;
+
+  /**
+   * The RenderQueue that the worker should be configured to connect to
+   *
+   * @default The Worker is not configured to connect to a RenderQueue
+   */
+  readonly renderQueue?: IRenderQueue;
+
+  /**
+   * The configuration for streaming the Deadline Worker logs to AWS CloudWatch.
+   *
+   * @default The Worker logs will not be streamed to CloudWatch.
+   */
+  readonly cloudwatchLogSettings?: LogGroupFactoryProps;
+
+  /**
+   * The settings to apply to the Deadline Worker.
+   *
+   * @default The Worker is assigned the default settings as outlined in the WorkerSettings interface.
+   */
+  readonly workerSettings?: WorkerSettings;
+}
+
+/**
  * This is a helper construct for configuring Deadline Workers to connect to a RenderQueue, send their
  * log files to CloudWatch, and similar common actions.
  *
@@ -73,9 +101,15 @@ export interface WorkerSettings {
  *   bootstrap bucket, or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
  *   environments.
  */
-export class WorkerConfiguration extends Construct {
-  constructor(scope: Construct, id: string) {
+export class WorkerInstanceConfiguration extends Construct {
+  constructor(scope: Construct, id: string, props: WorkerInstanceConfigurationProps) {
     super(scope, id);
+
+    if (props.cloudwatchLogSettings) {
+      this.configureCloudWatchLogStream(props.worker, id, props.cloudwatchLogSettings);
+    }
+    props.renderQueue?.configureClientInstance({ host: props.worker});
+    this.configureWorkerSettings(props.worker, id, props.workerSettings);
   }
 
   /**
@@ -90,8 +124,8 @@ export class WorkerConfiguration extends Construct {
    * @param id Identifier to disambiguate the resources that are created.
    * @param logGroupProps Configuration for the log group in CloudWatch.
    */
-  public configureCloudWatchLogStream(worker: IConfigurableWorker, id: string, logGroupProps?: LogGroupFactoryProps): void {
-    const logGroup = LogGroupFactory.createOrFetch(this, `${id}LogGroupWrapper`, `${id}`, logGroupProps);
+  protected configureCloudWatchLogStream(worker: IHost, id: string, logGroupProps?: LogGroupFactoryProps): void {
+    const logGroup = LogGroupFactory.createOrFetch(this, `${id}LogGroupWrapper`, id, logGroupProps);
 
     logGroup.grantWrite(worker);
 
@@ -119,7 +153,7 @@ export class WorkerConfiguration extends Construct {
         '/var/log/Thinkbox/Deadline10/deadlinelauncher*.log');
     }
 
-    new CloudWatchAgent(this, `${id}WorkerFleetLogsConfig`, {
+    new CloudWatchAgent(this, `${id}LogsConfig`, {
       cloudWatchConfig: cloudWatchConfigurationBuilder.generateCloudWatchConfiguration(),
       host: worker,
     });
@@ -134,8 +168,8 @@ export class WorkerConfiguration extends Construct {
    * @param id Identifier to disambiguate the resources that are created.
    * @param settings The Deadline Worker settings to apply.
    */
-  public configureWorkerSettings(worker: IConfigurableWorker, id: string, settings?: WorkerSettings): void {
-    const configureWorkerScriptAsset = ScriptAsset.fromPathConvention(this, `${id}WorkerConfigurationScript`, {
+  protected configureWorkerSettings(worker: IHost, id: string, settings?: WorkerSettings): void {
+    const configureWorkerScriptAsset = ScriptAsset.fromPathConvention(this, `${id}ConfigScript`, {
       osType: worker.osType,
       baseName: 'configureWorker',
       rootDir: path.join(
@@ -146,8 +180,8 @@ export class WorkerConfiguration extends Construct {
     });
 
     // Converting to lower case, as groups and pools are all stored in lower case in deadline.
-    const groups = settings?.groups?.map(val => val.toLowerCase()).join(',') ?? ''; // props.groups ? props.groups.map(val => val.toLowerCase()).join(',') : '';
-    const pools = settings?.pools?.map(val => val.toLowerCase()).join(',') ?? ''; // props.pools ? props.pools.map(val => val.toLowerCase()).join(',') : '';
+    const groups = settings?.groups?.map(val => val.toLowerCase()).join(',') ?? '';
+    const pools = settings?.pools?.map(val => val.toLowerCase()).join(',') ?? '';
 
     configureWorkerScriptAsset.executeOn({
       host: worker,

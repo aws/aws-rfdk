@@ -9,8 +9,10 @@ import { stringLike } from '@aws-cdk/assert';
 import {
   CWA_ASSET_LINUX,
   CWA_ASSET_WINDOWS,
+  linuxDownloadRunScriptBoilerplate,
+  windowsDownloadRunScriptBoilerplate,
 } from '../../core/test/asset-constants';
-export { CWA_ASSET_LINUX, CWA_ASSET_WINDOWS };
+export { CWA_ASSET_LINUX, CWA_ASSET_WINDOWS, linuxDownloadRunScriptBoilerplate, windowsDownloadRunScriptBoilerplate };
 
 // configureWorker.sh
 export const CONFIG_WORKER_ASSET_LINUX = {

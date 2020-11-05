@@ -433,7 +433,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
           ],
         },
         '\' ',
-        {Ref: 'workerFleetConfigStringParameterF5B0A632'},
+        {Ref: 'workerFleetStringParameterDB3717DA'},
         '\nmkdir -p $(dirname \'/tmp/',
         {
           'Fn::Select': [
@@ -833,7 +833,7 @@ test('default worker fleet is created correctly with groups, pools and region', 
         ],
       },
       "' ",
-      {Ref: 'workerFleetConfigStringParameterF5B0A632'},
+      {Ref: 'workerFleetStringParameterDB3717DA'},
       '\nmkdir -p $(dirname \'/tmp/',
       {
         'Fn::Select': [

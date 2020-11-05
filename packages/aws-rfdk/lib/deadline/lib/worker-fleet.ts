@@ -55,7 +55,7 @@ import {
 } from './render-queue';
 import { Version } from './version';
 import {
-  WorkerConfiguration,
+  WorkerInstanceConfiguration,
   WorkerSettings,
 } from './worker-configuration';
 
@@ -439,20 +439,15 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
     // Configure the health monitoring if provided
     this.configureHealthMonitor(props);
 
-    const workerConfig = new WorkerConfiguration(this, 'Config');
-
-    // Updating the user data with installation logs stream.
-    workerConfig.configureCloudWatchLogStream(this.fleet, id, {
-      logGroupPrefix: WorkerInstanceFleet.DEFAULT_LOG_GROUP_PREFIX,
-      ...props.logGroupProps,
+    new WorkerInstanceConfiguration(this, id, {
+      worker: this.fleet,
+      cloudwatchLogSettings: {
+        logGroupPrefix: WorkerInstanceFleet.DEFAULT_LOG_GROUP_PREFIX,
+        ...props.logGroupProps,
+      },
+      renderQueue: props.renderQueue,
+      workerSettings: props,
     });
-
-    props.renderQueue.configureClientInstance({
-      host: this.fleet,
-    });
-
-    // Updating the user data with deadline repository installation commands.
-    workerConfig.configureWorkerSettings(this.fleet, id, props);
 
     // Updating the user data with successful cfn-signal commands.
     this.fleet.userData.addSignalOnExitCommand(this.fleet);
