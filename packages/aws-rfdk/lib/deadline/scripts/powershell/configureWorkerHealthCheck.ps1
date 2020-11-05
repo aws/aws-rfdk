@@ -42,14 +42,4 @@ if([System.Version]$DeadlineVersion -lt  [System.Version]$minimumSupportedDeadli
 # Adding firewall rule to allow health-checks
 & New-NetFirewallRule -DisplayName "Allow Deadline Health-Checks" -Direction Inbound -Action Allow -Protocol TCP -LocalPort $healthCheckPort  | Out-Default
 
-
-$serviceName="deadline10launcherservice"
-If (Get-Service $serviceName -ErrorAction SilentlyContinue) {
-    Restart-Service $serviceName
-} Else {
-    $DEADLINE_LAUNCHER = $DEADLINE_PATH + '/deadlinelauncher.exe'
-    & $DEADLINE_LAUNCHER -shutdownall | Out-Default
-    & $DEADLINE_LAUNCHER
-}
-
 Write-Host "Script completed successfully."

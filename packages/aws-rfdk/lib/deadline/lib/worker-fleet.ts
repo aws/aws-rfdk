@@ -436,7 +436,9 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
     this.grantPrincipal = this.fleet.grantPrincipal;
     this.connections = this.fleet.connections;
 
-    // Configure the health monitoring if provided
+    // Configure the health monitoring if provided.
+    // Note: This must be done *BEFORE* configuring the worker. We rely on the worker configuration
+    // script restarting the launcher.
     this.configureHealthMonitor(props);
 
     new WorkerInstanceConfiguration(this, id, {

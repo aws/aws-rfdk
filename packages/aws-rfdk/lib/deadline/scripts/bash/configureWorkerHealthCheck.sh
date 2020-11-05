@@ -52,13 +52,4 @@ fi
 # health check port
 "$DEADLINE_COMMAND" -SetIniFileSetting LauncherHealthCheckPort $HEALTH_CHECK_PORT
 
-# Restart service, if it exists, else restart application
-if service --status-all | grep -q 'Deadline 10 Launcher'; then
-  service deadline10launcher restart
-else
-  DEADLINE_LAUNCHER="$DEADLINE_PATH/deadlinelauncher"
-  "$DEADLINE_LAUNCHER" -shutdownall
-  "$DEADLINE_LAUNCHER"
-fi
-
 echo "Script completed successfully."
