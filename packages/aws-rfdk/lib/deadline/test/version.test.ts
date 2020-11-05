@@ -3,16 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable dot-notation */
-
-// import {
-//   expect as expectCDK,
-//   haveResource,
-//   haveResourceLike,
-// } from '@aws-cdk/assert';
-// import {
-//   Stack,
-// } from '@aws-cdk/core';
 import {
   Version,
 } from '../lib';
