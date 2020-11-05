@@ -10,9 +10,10 @@ import { DockerImageAsset } from '@aws-cdk/aws-ecr-assets';
 import { Construct } from '@aws-cdk/core';
 
 import {
+  IVersion,
   Version,
   VersionQuery,
-} from './version';
+} from './';
 
 /**
  * Build arguments to supply to a Docker image build
@@ -197,8 +198,9 @@ export class Stage {
    * @param scope The parent scope
    * @param id The construct ID
    */
-  public getVersion(scope: Construct, id: string) {
-    return VersionQuery.exactString(scope, id, this.manifest.version);
+  public getVersion(scope: Construct, id: string): IVersion {
+    const releaseVersion = this.getReleaseVersion(this.manifest.version);
+    return new VersionQuery(scope, id, { version: releaseVersion });
   }
 
   /**
@@ -216,5 +218,14 @@ export class Stage {
       directory: this.dirPath,
       ...recipe,
     });
+  }
+
+  /**
+   * This removes the patch version from a full version string. No validation is done as that is handled
+   * in the constructor with the version check.
+   */
+  private getReleaseVersion(fullVersion: string): string {
+    const versionComponents = fullVersion.split('.');
+    return `${versionComponents[0]}.${versionComponents[1]}.${versionComponents[2]}`;
   }
 }

@@ -27,7 +27,7 @@ import {
   AssetImage,
   ContainerImage,
 } from '@aws-cdk/aws-ecs';
-import {ArtifactMetadataEntryType} from '@aws-cdk/cloud-assembly-schema';
+import { ArtifactMetadataEntryType } from '@aws-cdk/cloud-assembly-schema';
 import {
   App,
   CfnElement,
@@ -70,20 +70,15 @@ beforeEach(() => {
   });
   vpc = new Vpc(stack, 'VPC');
   rcsImage = ContainerImage.fromAsset(__dirname);
-  const version = VersionQuery.exact(stack, 'Version', {
-    majorVersion: 10,
-    minorVersion: 0,
-    releaseVersion: 0,
-    patchVersion: 0,
-  });
+  const version = new VersionQuery(stack, 'VersionQuery');
   renderQueue = new RenderQueue(stack, 'RQ', {
-    version,
     vpc,
     images: { remoteConnectionServer: rcsImage },
     repository: new Repository(stack, 'Repository', {
       vpc,
       version,
     }),
+    version,
   });
   wfstack = new Stack(app, 'workerFleetStack', {
     env: {

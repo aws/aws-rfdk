@@ -37,10 +37,8 @@ export interface PlatformInstallers {
    *
    * - DeadlineRepository-10.1.8.5-linux-x64-installer.run
    * - DeadlineRepository-10.1.8.5-windows-installer.exe
-   *
-   * @default No repository installer is provided.
    */
-  readonly repository?: Installer;
+  readonly repository: Installer;
 }
 
 /**
@@ -92,14 +90,12 @@ export interface IVersion extends IReleaseVersion {
    *
    * @default No installers for Linux are provided.
    */
-  readonly linuxInstallers?: PlatformInstallers;
+  readonly linuxInstallers: PlatformInstallers;
 
   /**
    * Construct the full version string for the linux patch release referenced in
    * this version object. This is constructed by joining the major, minor,
    * release, and patch versions by dots.
-   *
-   * Will return undefined if the linuxInstallers property is undefined.
    */
-  linuxFullVersionString(): string | undefined;
+  linuxFullVersionString(): string;
 }

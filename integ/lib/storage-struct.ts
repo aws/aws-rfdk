@@ -4,13 +4,36 @@
  */
 
 import { DatabaseCluster } from '@aws-cdk/aws-docdb';
-import { InstanceClass, InstanceSize, InstanceType, Vpc, SubnetType } from '@aws-cdk/aws-ec2';
+import {
+  InstanceClass,
+  InstanceSize,
+  InstanceType,
+  Vpc,
+  SubnetType,
+} from '@aws-cdk/aws-ec2';
 import { FileSystem } from '@aws-cdk/aws-efs';
 import { PrivateHostedZone } from '@aws-cdk/aws-route53';
 import { ISecret } from '@aws-cdk/aws-secretsmanager';
-import { Construct, Duration, RemovalPolicy, Stack } from '@aws-cdk/core';
-import { MongoDbInstance, MongoDbPostInstallSetup, MongoDbSsplLicenseAcceptance, MongoDbVersion, MountableEfs, X509CertificatePem, X509CertificatePkcs12 } from 'aws-rfdk';
-import { DatabaseConnection, Repository, Stage, ThinkboxDockerRecipes } from 'aws-rfdk/deadline';
+import {
+  Construct,
+  Duration,
+  RemovalPolicy,
+  Stack,
+} from '@aws-cdk/core';
+import {
+  MongoDbInstance,
+  MongoDbPostInstallSetup,
+  MongoDbSsplLicenseAcceptance,
+  MongoDbVersion,
+  MountableEfs,
+  X509CertificatePem,
+  X509CertificatePkcs12,
+} from 'aws-rfdk';
+import {
+  DatabaseConnection,
+  IVersion,
+  Repository,
+} from 'aws-rfdk/deadline';
 
 
 // Interface for supplying database connection and accompanying secret for credentials
@@ -27,6 +50,7 @@ export enum DatabaseType {
 
 export interface StorageStructProps {
   readonly integStackTag: string;
+  readonly version: IVersion;
   readonly databaseType?: DatabaseType;
 }
 
@@ -44,16 +68,9 @@ export class StorageStruct extends Construct {
       userAcceptsSSPL === 'true' ? MongoDbSsplLicenseAcceptance.USER_ACCEPTS_SSPL : MongoDbSsplLicenseAcceptance.USER_REJECTS_SSPL;
 
     const infrastructureStackName = 'RFDKIntegInfrastructure' + props.integStackTag;
-    const stagePath = process.env.DEADLINE_STAGING_PATH!.toString();
 
     // Get farm VPC from lookup
     const vpc = Vpc.fromLookup(this, 'Vpc', { tags: { StackName: infrastructureStackName }}) as Vpc;
-
-    // Create recipes object used to prepare the Deadline installers
-    const recipes = new ThinkboxDockerRecipes(this, 'DockerRecipes', {
-      stage: Stage.fromDirectory(stagePath),
-    });
-    const version = recipes.version;
 
     let cacert;
     let database;
@@ -188,7 +205,7 @@ export class StorageStruct extends Construct {
       vpc,
       database: databaseConnection,
       fileSystem: deadlineMountableEfs,
-      version: version,
+      version: props.version,
       repositoryInstallationTimeout: Duration.minutes(20),
       logGroupProps: {
         logGroupPrefix: Stack.of(this).stackName + '-' + id,

@@ -3,46 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable no-console */
 /* eslint-disable dot-notation */
 
-import { Platform, Product, VersionProvider } from '../version-provider';
+import * as path from 'path';
 
-const versionProvider = new VersionProvider('bin/index-test.json');
+import { Version } from '../version';
+import {
+  Platform,
+  Product,
+  VersionProvider,
+} from '../version-provider';
+
+const versionProvider = new VersionProvider(path.join(__dirname, 'index-test.json'));
 const indexTest = versionProvider['readInstallersIndex']();
 
 const productSection = indexTest[Product.deadline];
-
-test('version parsing', () => {
-  const result = versionProvider['parseVersionString']('10.1.10.6');
-
-  expect(result).not.toBeNull();
-
-  if (result === null) { return; }
-  expect(result[0]).toEqual('10.1.10.6');
-  expect(result[1]).toEqual('10');
-  expect(result[2]).toEqual('1');
-  expect(result[3]).toEqual('10');
-  expect(result[4]).toEqual('6');
-});
-
-test('partial version parsing', () => {
-  const result = versionProvider['parseVersionString']('10.1');
-
-  expect(result).not.toBeNull();
-
-  if (result === null) { return; }
-  expect(result[0]).toEqual('10.1');
-  expect(result[1]).toEqual('10');
-  expect(result[2]).toEqual('1');
-  expect(result[3]).toBeUndefined();
-  expect(result[4]).toBeUndefined();
-});
-
-test.each(['10.1.9.2.1', '10.', '10.1.', '10.-1', 'a.b.c'])('incorrect version %s parsing', (versionString: string) => {
-  const result = versionProvider['parseVersionString'](versionString);
-  expect(result).toBeNull();
-});
 
 test.each([[Platform.linux, '10.1.9.2'],
   [Platform.mac, '10.1.9.2'],
@@ -67,21 +42,26 @@ test.each([
   [Platform.mac, {
     bundle: 's3://thinkbox-installers/Deadline/10.1.9.2/Mac/Deadline-10.1.9.2-osx-installers.dmg',
   } ],
-])('get Uri for platform', (platform: Platform, versionedUris: any) => {
-  versionProvider['getUrisForPlatform'](
+])('get Uri for platform', async (platform: Platform, versionedUris: any) => {
+  const result = versionProvider['getUrisForPlatform'](
     Product.deadline,
     productSection,
     platform,
     '10.1.9.2',
-  ).then(result => {
-    expect(result).not.toBeNull();
+  );
 
-    expect(result?.Uris).toEqual(versionedUris);
-  },
-  ).catch(error => {
-    process.stderr.write(`${error.toString()}\n`);
-    process.exit(1);
-  });
+  expect(result).not.toBeNull();
+  expect(result?.Uris).toEqual(versionedUris);
+});
+
+test('get Uri for platform - bad version', async () => {
+  const badVersion = 'badVersionString';
+  expect(() => versionProvider['getUrisForPlatform'](
+    Product.deadline,
+    productSection,
+    Platform.linux,
+    badVersion,
+  )).toThrowError(`Couldn't parse version from ${badVersion}`);
 });
 
 test('get deadline version', async () => {
@@ -160,38 +140,6 @@ test('get deadline version for all platforms', async () => {
   expect(windowsInstallerVersion?.PatchVersion).toEqual('5');
 });
 
-test('validate correct input', async () => {
-  expect(versionProvider.implementsIVersionProviderProperties({
-    product: Product.deadline,
-    versionString: '10.1.9.2',
-    platform: 'linux',
-  })).toBeTruthy();
-});
-
-test('validate non-object input', async () => {
-  expect(versionProvider['implementsIVersionProviderProperties']('test')).toEqual(false);
-});
-
-test('validate input without product', async () => {
-  expect(versionProvider.implementsIVersionProviderProperties({
-    versionString: 'version',
-  })).toEqual(false);
-});
-
-test('validate input with invalid versionString', async () => {
-  expect(versionProvider.implementsIVersionProviderProperties({
-    product: Product.deadline,
-    versionString: 'version',
-  })).toEqual(false);
-});
-
-test('validate input with invalid platform', async () => {
-  expect(versionProvider['implementsIVersionProviderProperties']({
-    product: Product.deadline,
-    platform: 'test',
-  })).toEqual(false);
-});
-
 test('not defined file path', () => {
   expect(() => (new VersionProvider())['readInstallersIndex']()).toThrowError(/File path should be defined./);
 });
@@ -205,39 +153,63 @@ test('get latest version without latest section', () => {
 });
 
 test('get latest version without informtion for platform', () => {
-  expect(() => versionProvider['getLatestVersion']('linux',{latest: {}})).toThrowError(/Information about latest version for platform linux can not be found/);
+  expect(() => versionProvider['getLatestVersion']('linux',{ latest: {} })).toThrowError(/Information about latest version for platform linux can not be found/);
 });
 
 test('get requested Uri version for existing product.', () => {
-  const requestedVersion = versionProvider['parseVersionString']('10.1.9.2');
-  expect(versionProvider['getRequestedUriVersion'](requestedVersion, {
-    10: {
-      1: {
-        9: {
-          2: {
-            linux: 's3://thinkbox-installers/DeadlineDocker/10.1.9.2/DeadlineDocker-10.1.9.2.tar.gz',
+  const requestedVersion = Version.parseFromVersionString('10.1.9.2');
+
+  expect(requestedVersion).not.toBeNull();
+  if (requestedVersion === null) {
+    return;
+  }
+
+  expect(versionProvider['getRequestedUriVersion'](
+    requestedVersion,
+    {
+      10: {
+        1: {
+          9: {
+            2: {
+              linux: 's3://thinkbox-installers/DeadlineDocker/10.1.9.2/DeadlineDocker-10.1.9.2.tar.gz',
+            },
           },
         },
       },
-    }}, Platform.linux, Product.deadlineDocker )).toEqual({
+    },
+    Platform.linux,
+    Product.deadlineDocker,
+  )).toEqual({
     MajorVersion: '10',
     MinorVersion: '1',
     ReleaseVersion: '9',
     PatchVersion: '2',
-    Uris: {bundle: 's3://thinkbox-installers/DeadlineDocker/10.1.9.2/DeadlineDocker-10.1.9.2.tar.gz'},
+    Uris: { bundle: 's3://thinkbox-installers/DeadlineDocker/10.1.9.2/DeadlineDocker-10.1.9.2.tar.gz' },
   });
 });
 
 test('get requested Uri version for not existing product.', () => {
-  const requestedVersion = versionProvider['parseVersionString']('10.1.9.2');
-  expect(versionProvider['getRequestedUriVersion'](requestedVersion, {
-    10: {
-      1: {
-        9: {
-          2: {
-            linux: 's3://thinkbox-installers/DeadlineDocker/10.1.9.2/DeadlineDocker-10.1.9.2.tar.gz',
+  const requestedVersion = Version.parseFromVersionString('10.1.9.2');
+
+  expect(requestedVersion).not.toBeNull();
+  if (requestedVersion === null) {
+    return;
+  }
+
+  expect(versionProvider['getRequestedUriVersion'](
+    requestedVersion,
+    {
+      10: {
+        1: {
+          9: {
+            2: {
+              linux: 's3://thinkbox-installers/DeadlineDocker/10.1.9.2/DeadlineDocker-10.1.9.2.tar.gz',
+            },
           },
         },
       },
-    }}, Platform.windows, Product.deadlineDocker )).toEqual(undefined);
+    },
+    Platform.windows,
+    Product.deadlineDocker,
+  )).toEqual(undefined);
 });
