@@ -21,7 +21,13 @@ export interface IVersionProviderResourceProperties {
   /**
    * The version of Deadline to look up.
    */
-  readonly versionString?: string,
+  readonly versionString?: string;
+
+  /**
+   * A random string that can be used to force the Lambda to run again which is intended to allow for Deadline updates
+   * to be discovered.
+   */
+  readonly forceRun?: string;
 }
 
 /**
@@ -124,6 +130,8 @@ export class VersionProviderResource extends SimpleCustomResource {
         return false;
       }
     }
+
+    if (value.forceRun && typeof(value.forceRun) !== 'string') { return false; }
 
     return true;
   }

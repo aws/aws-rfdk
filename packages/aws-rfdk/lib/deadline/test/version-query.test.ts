@@ -20,13 +20,14 @@ import {
 
 import { VERSION_QUERY_ASSET } from './asset-constants';
 
-test('VersionQuery constructor full', () => {
+test('VersionQuery constructor full version', () => {
   const app = new App();
   const stack = new Stack(app, 'Stack');
-  new VersionQuery(stack, 'VersionQuery', { version: '10.1.9'});
+  new VersionQuery(stack, 'VersionQuery', { version: '10.1.9.2'});
 
   expectCDK(stack).to(haveResourceLike('Custom::RFDK_DEADLINE_INSTALLERS', {
-    versionString: '10.1.9',
+    forceRun: ABSENT,
+    versionString: '10.1.9.2',
   }));
   expectCDK(stack).to(haveResourceLike('AWS::IAM::Role', {
     AssumeRolePolicyDocument: {
@@ -111,6 +112,22 @@ test('VersionQuery constructor no versionString', () => {
   new VersionQuery(stack, 'VersionQuery');
 
   expectCDK(stack).to(haveResourceLike('Custom::RFDK_DEADLINE_INSTALLERS', {
+    forceRun: stringLike('*'),
     versionString: ABSENT,
+  }));
+});
+
+test.each([
+  ['10.1.9'],
+  ['10.1'],
+  ['10'],
+])('VersionQuery constructor partial version: %s', (version: string) => {
+  const app = new App();
+  const stack = new Stack(app, 'Stack');
+  new VersionQuery(stack, 'VersionQuery', { version });
+
+  expectCDK(stack).to(haveResourceLike('Custom::RFDK_DEADLINE_INSTALLERS', {
+    versionString: version,
+    forceRun: stringLike('*'),
   }));
 });

@@ -36,7 +36,8 @@ oss.forEach( os => {
     const componentTier = new Stack(app, 'RFDKInteg-' + testId + '-ComponentTier' + integStackTag, {env});
 
     const stagePath = process.env.DEADLINE_STAGING_PATH!.toString();
-    // Stage docker recipes, which include image used for the render queue instance
+    // Stage docker recipes, which include image used for the render queue instance and the repo
+    // installer (in `recipes.version`)
     const recipes = new ThinkboxDockerRecipes(componentTier, 'DockerRecipes', {
       stage: Stage.fromDirectory(stagePath),
     });

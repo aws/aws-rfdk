@@ -17,6 +17,13 @@ describe('VersionProviderResource', () => {
     test('correct input', async () => {
       expect(versionProviderResource['implementsIVersionProviderResourceProperties']({
         versionString: '10.1.9.2',
+        forceRun: 'testValue',
+      })).toBeTruthy();
+    });
+
+    test('correct input no forceRun', async () => {
+      expect(versionProviderResource['implementsIVersionProviderResourceProperties']({
+        versionString: '10.1.9.2',
       })).toBeTruthy();
     });
 
@@ -31,6 +38,13 @@ describe('VersionProviderResource', () => {
     test('input with invalid versionString', async () => {
       expect(versionProviderResource['implementsIVersionProviderResourceProperties']({
         versionString: 'version',
+      })).toBeFalsy();
+    });
+
+    test('input with invalid forceRun', async () => {
+      expect(versionProviderResource['implementsIVersionProviderResourceProperties']({
+        versionString: '10.1.9.2',
+        forceRun: {},
       })).toBeFalsy();
     });
   });

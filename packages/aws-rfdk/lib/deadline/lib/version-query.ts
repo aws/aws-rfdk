@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { randomBytes } from 'crypto';
 import { join } from 'path';
 
 import {
@@ -127,6 +128,9 @@ export class VersionQuery extends VersionQueryBase {
 
     const deadlineProperties: IVersionProviderResourceProperties = {
       versionString: props?.version,
+      // If we don't have a full static version string, create a random string that will force the Lambda to always
+      // run on redeploys, effectively checking for version updates.
+      forceRun: this.forceRun(props?.version),
     };
 
     const deadlineResource = new CustomResource(this, 'DeadlineResource', {
@@ -157,5 +161,26 @@ export class VersionQuery extends VersionQueryBase {
       : this.linuxInstallers.patchVersion.toString();
 
     return `${major}.${minor}.${release}.${patch}`;
+  }
+
+  /**
+   * Check if we have a full version in the supplied version string. If we don't, we want to make sure the Lambda
+   * that fetches the full version number and the installers for it is always run. This allows for Deadline updates
+   * to be discovered.
+   */
+  private forceRun(version?: string): string | undefined {
+    return !this.isFullVersion(version) ? randomBytes(32).toString('base64').slice(0, 32) : undefined;
+  }
+
+  /**
+   * Checks if the supplied version contains the major, minor, release, and patch version numbers,
+   * and returns true only if all 4 are supplied.
+   */
+  private isFullVersion(version?: string): boolean {
+    const components = version?.split('.').map(x => parseInt(x));
+    if (!components || components?.length != 4) {
+      return false;
+    }
+    return true;
   }
 }
