@@ -387,12 +387,7 @@ describe('Test WorkerInstanceConfiguration connect to RenderQueue', () => {
     stack = new Stack();
     vpc = new Vpc(stack, 'Vpc');
     const rcsImage = ContainerImage.fromAsset(__dirname);
-    const version = VersionQuery.exact(stack, 'Version', {
-      majorVersion: 10,
-      minorVersion: 0,
-      releaseVersion: 0,
-      patchVersion: 0,
-    });
+    const version = new VersionQuery(stack, 'Version');
     renderQueue = new RenderQueue(stack, 'RQ', {
       version,
       vpc,
