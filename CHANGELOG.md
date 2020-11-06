@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### Supported CDK Version
 
-* [1.70.0](https://github.com/aws/aws-cdk/releases/tag/v1.70.0)
+* [1.72.0](https://github.com/aws/aws-cdk/releases/tag/v1.72.0)
 
 ### Bug Fixes
 

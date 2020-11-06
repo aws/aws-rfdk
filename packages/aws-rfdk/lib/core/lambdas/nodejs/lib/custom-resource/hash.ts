@@ -7,22 +7,22 @@ import { createHash, Hash } from 'crypto';
 
 export function calculateSha256Hash(value: any): string {
   // eslint-disable-next-line no-shadow
-  function _updateHashWithValue(hash: Hash, value: any) {
-    if (Array.isArray(value)) {
-      for (const item of value) {
+  function _updateHashWithValue(hash: Hash, val: any) {
+    if (Array.isArray(val)) {
+      for (const item of val) {
         _updateHashWithValue(hash, item);
       }
-    } else if (typeof value === 'object') {
-      for (const [key, item] of Object.entries(value).sort()) {
+    } else if (typeof val === 'object') {
+      for (const [key, item] of Object.entries(val).sort()) {
         hash.update(key);
         _updateHashWithValue(hash, item);
       }
-    } else if (typeof value === 'number') {
-      hash.update(value.toString());
-    } else if (typeof value === 'string') {
-      hash.update(value);
+    } else if (typeof val === 'number') {
+      hash.update(val.toString());
+    } else if (typeof val === 'string') {
+      hash.update(val);
     } else {
-      throw new Error(`Unexpected value type: ${typeof(value)}`);
+      throw new Error(`Unexpected value type: ${typeof(val)}`);
     }
   }
 
