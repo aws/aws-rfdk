@@ -19,7 +19,7 @@ export default function awaitSsmCommand(bastionId: string, params: SSM.SendComma
 
     // Send the command
     // eslint-disable-next-line no-shadow
-    const ssmCommandId = await new Promise<SSM.CommandId> ( (res, rej) => {
+    const ssmCommandId = await new Promise<SSM.CommandId> ( (_res, rej) => {
       // eslint-disable-next-line no-shadow
       ssm.sendCommand(params, (err, data) => {
         if (err) {
@@ -27,7 +27,7 @@ export default function awaitSsmCommand(bastionId: string, params: SSM.SendComma
         }
         else {
           var command = data.Command as SSM.Command;
-          res(command.CommandId);
+          _res(command.CommandId);
         }
       });
     });
@@ -38,7 +38,7 @@ export default function awaitSsmCommand(bastionId: string, params: SSM.SendComma
     function getCommandStatus() {
       // Wait for the command to return a valid status
       // eslint-disable-next-line no-shadow
-      return new Promise<CommandResponse>( (res, rej) => {
+      return new Promise<CommandResponse>( (_res, rej) => {
         // eslint-disable-next-line no-shadow
         var listParams = {
           CommandId: ssmCommandId,
@@ -53,7 +53,7 @@ export default function awaitSsmCommand(bastionId: string, params: SSM.SendComma
             var commandInvocations = data.CommandInvocations!;
             if(!commandInvocations[0]) {
               setTimeout( () => {
-                getCommandStatus().then(res, rej);
+                getCommandStatus().then(_res, rej);
               }, 1000);
             }
             else{
@@ -72,13 +72,13 @@ export default function awaitSsmCommand(bastionId: string, params: SSM.SendComma
                         rej(getErr);
                       }
                       else {
-                        res({output: getData.StandardOutputContent!, responseCode: getData.ResponseCode!});
+                        _res({output: getData.StandardOutputContent!, responseCode: getData.ResponseCode!});
                       }
                     });
                   }
                   // If the output wasn't truncated, return the output from the `listCommandInvocations` response
                   else {
-                    res({output: commandInvocation.CommandPlugins![0].Output!, responseCode: commandInvocation.CommandPlugins![0].ResponseCode!});
+                    _res({output: commandInvocation.CommandPlugins![0].Output!, responseCode: commandInvocation.CommandPlugins![0].ResponseCode!});
                   }
                   break;
                 case 'Failed':
@@ -86,7 +86,7 @@ export default function awaitSsmCommand(bastionId: string, params: SSM.SendComma
                   break;
                 default:
                   setTimeout( () => {
-                    getCommandStatus().then(res, rej);
+                    getCommandStatus().then(_res, rej);
                   }, 1000);
                   break;
               }
