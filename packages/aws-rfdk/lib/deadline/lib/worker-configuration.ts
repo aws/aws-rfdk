@@ -30,8 +30,7 @@ import {
 } from './version';
 
 /**
- * The Deadline Worker settings that can be configured via the configureWorkerSettings method
- * of the WorkerConfiguration helper class.
+ * Configuration settings for Deadline Workers
  */
 export interface WorkerSettings {
   /**
@@ -90,8 +89,10 @@ export interface WorkerInstanceConfigurationProps {
 }
 
 /**
- * This is a helper construct for configuring Deadline Workers to connect to a RenderQueue, send their
- * log files to CloudWatch, and similar common actions.
+ * This construct can be used to configure Deadline Workers on an instance to connect to a RenderQueue, stream their
+ * log files to CloudWatch, and configure various settings of the Deadline Worker.
+ *
+ * The configuration happens on instance start-up using user data scripting.
  *
  * Security Considerations
  * ------------------------
