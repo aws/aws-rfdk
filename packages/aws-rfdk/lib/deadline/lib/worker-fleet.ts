@@ -40,13 +40,10 @@ import {
   Stack,
 } from '@aws-cdk/core';
 import {
-  CloudWatchAgent,
-  CloudWatchConfigBuilder,
   HealthCheckConfig,
   HealthMonitor,
   IHealthMonitor,
   IMonitorableFleet,
-  LogGroupFactory,
   LogGroupFactoryProps,
   ScriptAsset,
 } from '../../core';
@@ -57,6 +54,10 @@ import {
   IRenderQueue,
 } from './render-queue';
 import { Version } from './version';
+import {
+  WorkerInstanceConfiguration,
+  WorkerSettings,
+} from './worker-configuration';
 
 /**
  * Interface for Deadline Worker Fleet.
@@ -67,7 +68,7 @@ export interface IWorkerFleet extends IResource, IConnectable, IGrantable {
 /**
  * Properties for the Deadline Worker Fleet.
  */
-export interface WorkerInstanceFleetProps {
+export interface WorkerInstanceFleetProps extends WorkerSettings {
   /**
    * VPC to launch the worker fleet in.
    */
@@ -149,29 +150,6 @@ export interface WorkerInstanceFleetProps {
    * Endpoint for the RenderQueue, to which the worker fleet needs to be connected.
    */
   readonly renderQueue: IRenderQueue;
-
-  /**
-   * Deadline groups these workers needs to be assigned to. The group is
-   * created if it does not already exist.
-   *
-   * @default - Worker is not assigned to any group
-   */
-  readonly groups?: string[];
-
-  /**
-   * Deadline pools these workers needs to be assigned to. The pool is created
-   * if it does not already exist.
-   *
-   * @default - Worker is not assigned to any pool.
-   */
-  readonly pools?: string[];
-
-  /**
-   * Deadline region these workers needs to be assigned to.
-   *
-   * @default - Worker is not assigned to any region
-   */
-  readonly region?: string;
 
   /**
    * Properties for setting up the Deadline Worker's LogGroup
@@ -458,25 +436,20 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
     this.grantPrincipal = this.fleet.grantPrincipal;
     this.connections = this.fleet.connections;
 
-    this.connections.allowToDefaultPort(props.renderQueue);
+    // Configure the health monitoring if provided.
+    // Note: This must be done *BEFORE* configuring the worker. We rely on the worker configuration
+    // script restarting the launcher.
+    this.configureHealthMonitor(props);
 
-    let healthCheckPort = HealthMonitor.DEFAULT_HEALTH_CHECK_PORT;
-    if (props.healthCheckConfig && props.healthCheckConfig.port) {
-      healthCheckPort = props.healthCheckConfig.port;
-    }
-
-    // Configure the health monitoring if provided
-    this.configureHealthMonitor(props, healthCheckPort);
-
-    // Updating the user data with installation logs stream.
-    this.configureCloudWatchLogStream(this.fleet, id, props.logGroupProps);
-
-    props.renderQueue.configureClientInstance({
-      host: this.fleet,
+    new WorkerInstanceConfiguration(this, id, {
+      worker: this.fleet,
+      cloudwatchLogSettings: {
+        logGroupPrefix: WorkerInstanceFleet.DEFAULT_LOG_GROUP_PREFIX,
+        ...props.logGroupProps,
+      },
+      renderQueue: props.renderQueue,
+      workerSettings: props,
     });
-
-    // Updating the user data with deadline repository installation commands.
-    this.configureWorkerScript(this.fleet, props, healthCheckPort);
 
     // Updating the user data with successful cfn-signal commands.
     this.fleet.userData.addSignalOnExitCommand(this.fleet);
@@ -492,70 +465,6 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
    */
   public addSecurityGroup(securityGroup: ISecurityGroup): void {
     this.fleet.addSecurityGroup(securityGroup);
-  }
-
-  private configureCloudWatchLogStream(fleetInstance: AutoScalingGroup, id: string, logGroupProps?: LogGroupFactoryProps) {
-    const prefix = logGroupProps?.logGroupPrefix ?? WorkerInstanceFleet.DEFAULT_LOG_GROUP_PREFIX;
-    const defaultedLogGroupProps = {
-      ...logGroupProps,
-      logGroupPrefix: prefix,
-    };
-    const logGroup = LogGroupFactory.createOrFetch(this, `${id}LogGroupWrapper`, `${id}`, defaultedLogGroupProps);
-
-    logGroup.grantWrite(fleetInstance);
-
-    const cloudWatchConfigurationBuilder = new CloudWatchConfigBuilder(Duration.seconds(15));
-
-    cloudWatchConfigurationBuilder.addLogsCollectList(logGroup.logGroupName,
-      'UserdataExecution',
-      'C:\\ProgramData\\Amazon\\EC2-Windows\\Launch\\Log\\UserdataExecution.log');
-    cloudWatchConfigurationBuilder.addLogsCollectList(logGroup.logGroupName,
-      'WorkerLogs',
-      'C:\\ProgramData\\Thinkbox\\Deadline10\\logs\\deadlineslave*.log');
-    cloudWatchConfigurationBuilder.addLogsCollectList(logGroup.logGroupName,
-      'LauncherLogs',
-      'C:\\ProgramData\\Thinkbox\\Deadline10\\logs\\deadlinelauncher*.log');
-    cloudWatchConfigurationBuilder.addLogsCollectList(logGroup.logGroupName,
-      'cloud-init-output',
-      '/var/log/cloud-init-output.log');
-    cloudWatchConfigurationBuilder.addLogsCollectList(logGroup.logGroupName,
-      'WorkerLogs',
-      '/var/log/Thinkbox/Deadline10/deadlineslave*.log');
-    cloudWatchConfigurationBuilder.addLogsCollectList(logGroup.logGroupName,
-      'LauncherLogs',
-      '/var/log/Thinkbox/Deadline10/deadlinelauncher*.log');
-
-    new CloudWatchAgent(this, 'WorkerFleetLogsConfig', {
-      cloudWatchConfig: cloudWatchConfigurationBuilder.generateCloudWatchConfiguration(),
-      host: fleetInstance,
-    });
-  }
-
-  private configureWorkerScript(fleetInstance: AutoScalingGroup, props: WorkerInstanceFleetProps, healthCheckPort: number) {
-    const configureWorkerScriptAsset = ScriptAsset.fromPathConvention(this, 'WorkerConfigurationScript', {
-      osType: fleetInstance.osType,
-      baseName: 'configureWorker',
-      rootDir: path.join(
-        __dirname,
-        '..',
-        'scripts/',
-      ),
-    });
-
-    // Converting to lower case, as groups and pools are all stored in lower case in deadline.
-    const groups = props.groups ? props.groups.map(val => val.toLowerCase()).join(',') : '';
-    const pools = props.pools ? props.pools.map(val => val.toLowerCase()).join(',') : '';
-
-    configureWorkerScriptAsset.executeOn({
-      host: fleetInstance,
-      args: [
-        `'${healthCheckPort}'`,
-        `'${groups}'`,
-        `'${pools}'`,
-        `'${props.region || ''}'`,
-        `'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}'`,
-      ],
-    });
   }
 
   private validateProps(props: WorkerInstanceFleetProps) {
@@ -609,8 +518,28 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
     }
   }
 
-  private configureHealthMonitor(props: WorkerInstanceFleetProps, healthCheckPort: number) {
+  private configureHealthMonitor(props: WorkerInstanceFleetProps) {
     if (props.healthMonitor) {
+      const healthCheckPort = props.healthCheckConfig?.port ?? HealthMonitor.DEFAULT_HEALTH_CHECK_PORT;
+
+      const configureHealthMonitorScriptAsset = ScriptAsset.fromPathConvention(this, 'WorkerConfigurationScript', {
+        osType: this.fleet.osType,
+        baseName: 'configureWorkerHealthCheck',
+        rootDir: path.join(
+          __dirname,
+          '..',
+          'scripts/',
+        ),
+      });
+
+      configureHealthMonitorScriptAsset.executeOn({
+        host: this.fleet,
+        args: [
+          `'${healthCheckPort}'`,
+          `'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}'`,
+        ],
+      });
+
       props.healthMonitor.registerFleet(this, props.healthCheckConfig || {
         port: healthCheckPort,
       });

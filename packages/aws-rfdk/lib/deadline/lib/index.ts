@@ -15,3 +15,4 @@ export * from './thinkbox-docker-recipes';
 export * from './version';
 export * from './version-query';
 export * from './version-ref';
+export * from './worker-configuration';

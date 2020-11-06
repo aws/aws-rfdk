@@ -52,6 +52,11 @@ export interface ConventionalScriptPathParams {
  */
 function getConventionalScriptPath(params: ConventionalScriptPathParams): string {
   const { rootDir: scriptDir, baseName: scriptName, osType } = params;
+  // Make sure we have a known osType. The error message is pretty obtuse if we don't:
+  //  The "path" argument must be of type string. Received undefined
+  if (ScriptPathPrefix[osType] === undefined || ScriptExtension[osType] == undefined) {
+    throw Error(`Unknown osType: ${osType}`);
+  }
   return path.join(
     scriptDir,
     ScriptPathPrefix[osType],
