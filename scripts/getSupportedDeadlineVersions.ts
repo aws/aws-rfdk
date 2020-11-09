@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+/**
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 // Get the minimum supported version by pulling it from the Version class in
 // RFDK's Deadline submodule.
