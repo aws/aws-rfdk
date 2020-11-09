@@ -118,7 +118,7 @@ export abstract class TestingTier extends Stack {
   public configureRenderQueue(testSuiteId: string, renderQueue: RenderQueue) {
 
     const port = renderQueue.endpoint.portAsString();
-    const zoneName = Stack.of(renderQueue).stackName + '.local';
+    const zoneName = Stack.of(renderQueue).stackName.slice(0, 45) + '.local';
     let address;
     switch(port) {
       case '8080':

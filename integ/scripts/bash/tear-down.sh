@@ -13,6 +13,7 @@ shopt -s globstar
 INTEG_ROOT="$(pwd)"
 BASH_SCRIPTS="$INTEG_ROOT/scripts/bash"
 INFRASTRUCTURE_APP="$INTEG_ROOT/components/_infrastructure"
+source "$INTEG_ROOT/components/deadline/common/scripts/bash/deploy-utils.sh"
 
 if [ -z ${INTEG_STACK_TAG+x} ]; then
     echo "INTEG_STACK_TAG must be set, exiting..."
@@ -30,6 +31,11 @@ fi
 source $BASH_SCRIPTS/set-test-variables.sh
 
 for COMPONENT in **/cdk.json; do
+    # In case the yarn install was done inside this integ package, there are some example cdk.json files in the aws-cdk
+    # package we want to avoid.
+    if [[ $COMPONENT == *"node_modules"* ]]; then
+        continue
+    fi
     COMPONENT_ROOT="$(dirname "$COMPONENT")"
     COMPONENT_NAME=$(basename "$COMPONENT_ROOT")
     # Use a pattern match to exclude the infrastructure app from the results
@@ -38,6 +44,8 @@ for COMPONENT in **/cdk.json; do
         cd "$INTEG_ROOT/$COMPONENT_ROOT" && ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" --destroy-only
     fi
 done
+
+run_aws_interaction_hook
 
 cd "$INFRASTRUCTURE_APP" && npx cdk destroy "*" -f
 

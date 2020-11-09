@@ -45,7 +45,7 @@ export class RenderStruct extends Construct {
     }
 
     const host = 'renderqueue';
-    const zoneName = Stack.of(this).stackName + '.local';
+    const zoneName = Stack.of(this).stackName.slice(0, 45) + '.local';
 
     let trafficEncryption: any;
     let hostname: any;
