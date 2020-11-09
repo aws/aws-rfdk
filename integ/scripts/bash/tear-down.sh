@@ -30,6 +30,11 @@ fi
 source $BASH_SCRIPTS/set-test-variables.sh
 
 for COMPONENT in **/cdk.json; do
+    # In case the yarn install was done inside this integ package, there are some example cdk.json files in the aws-cdk
+    # package we want to avoid.
+    if [[ $COMPONENT == *"node_modules"* ]]; then
+        continue
+    fi
     COMPONENT_ROOT="$(dirname "$COMPONENT")"
     COMPONENT_NAME=$(basename "$COMPONENT_ROOT")
     # Use a pattern match to exclude the infrastructure app from the results
@@ -39,6 +44,11 @@ for COMPONENT in **/cdk.json; do
     fi
 done
 
+# Invoke hook function if it is exported and name is defined in PRE_COMPONENT_HOOK variable
+if [ ! -z "${PRE_COMPONENT_HOOK+x}" ]  && [ "$(type -t $PRE_COMPONENT_HOOK)" == "function" ]
+then
+    $PRE_COMPONENT_HOOK
+fi
 cd "$INFRASTRUCTURE_APP" && npx cdk destroy "*" -f
 
 cd "$INTEG_ROOT" && yarn run clean

@@ -5,6 +5,14 @@
 
 set -euo pipefail
 
+run_hook() {
+    # Invoke hook function if it is exported and name is defined in PRE_COMPONENT_HOOK variable
+    if [ ! -z "${PRE_COMPONENT_HOOK+x}" ]  && [ "$(type -t $PRE_COMPONENT_HOOK)" == "function" ]
+    then
+      $PRE_COMPONENT_HOOK
+    fi
+}
+
 COMPONENT_NAME=${1:-undefined}
 OPTION=${2:-undefined}
 
@@ -19,12 +27,15 @@ if [[ ! "${SKIP_TEST_CHECK}" = "true" ]]; then
 
   # Load utility functions
   source "../common/scripts/bash/deploy-utils.sh"
-    
+
   if [[ $OPTION != '--destroy-only' ]]; then
+    run_hook
     deploy_component_stacks $COMPONENT_NAME
+    run_hook
     execute_component_test $COMPONENT_NAME
   fi
   if [[ $OPTION != '--deploy-and-test-only' ]]; then
+    run_hook
     destroy_component_stacks $COMPONENT_NAME
   fi
 fi

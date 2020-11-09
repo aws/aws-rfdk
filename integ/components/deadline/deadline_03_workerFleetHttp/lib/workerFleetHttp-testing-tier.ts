@@ -21,7 +21,7 @@ export interface WorkerFleetTestingTierProps extends TestingTierProps {
 }
 
 /**
- * Testing Tier for the Deadline WorkerFleet integration test
+ * Testing Tier for the Deadline WorkerFleet HTTP integration test
  *
  * Creates a test bastion and configures it to connect to one or more Deadline WorkerInstanceFleet constructs for testing.
  *

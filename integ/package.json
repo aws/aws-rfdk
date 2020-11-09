@@ -48,6 +48,7 @@
     "test": "jest",
     "cdk": "cdk",
     "e2e": "./scripts/bash/rfdk-integ-e2e.sh",
+    "e2e-automated": "./scripts/bash/run-e2e-automated.sh",
     "clean": "./scripts/bash/cleanup.sh",
     "deploy-all": "./scripts/bash/deploy-all.sh",
     "tear-down": "./scripts/bash/tear-down.sh",

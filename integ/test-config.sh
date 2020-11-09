@@ -11,7 +11,7 @@ export USER_ACCEPTS_SSPL_FOR_RFDK_TESTS=false
 #   -  If not set here, will default to 10.1.9.2
 export DEADLINE_VERSION
 
-# Qualified path to staged Deadline assets. 
+# Qualified path to staged Deadline assets.
 #   - If not set here, assets will stage automatically to `aws-rfdk/integ/stage`
 #   - If set here, the version found in `manifest.json` at this path will override any value supplied for DEADLINE_VERSION
 export DEADLINE_STAGING_PATH
@@ -24,4 +24,5 @@ export WINDOWS_DEADLINE_AMI_ID
 # Configure test suites to include in end-to-end test
 export SKIP_deadline_01_repository_TEST
 export SKIP_deadline_02_renderQueue_TEST
-export SKIP_deadline_03_workerFleet_TEST
+export SKIP_deadline_03_workerFleetHttp_TEST
+export SKIP_deadline_04_workerFleetHttps_TEST

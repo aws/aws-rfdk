@@ -24,8 +24,8 @@ tsconfig.json
 # Exclude eslint config
 .eslintrc.js
 
-# Exclude jest config
-jest.config.js
+# We want to pack the jest config because the running of the integration tests rely on it
+!jest.config.js
 
 # Exclude nyc
 .nyc_output
