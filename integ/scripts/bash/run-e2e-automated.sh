@@ -30,10 +30,10 @@ refreshcreds() {
 export SKIP_TEST_CONFIG=true
 export DEADLINE_VERSION="10.1.10.6"
 
-# Setup the hook that runs before each cdk deploy/destroy to refresh the credentials being used.
+# Setup the hook that runs before any interactions with AWS to refresh the credentials being used.
 # There is a 1 hour timeout on these credentials that cannot be adjusted.
 export -f refreshcreds
-export PRE_COMPONENT_HOOK=refreshcreds
+export PRE_AWS_INTERACTION_HOOK=refreshcreds
 
 refreshcreds
 

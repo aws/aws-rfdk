@@ -13,6 +13,7 @@ shopt -s globstar
 INTEG_ROOT="$(pwd)"
 BASH_SCRIPTS="$INTEG_ROOT/scripts/bash"
 INFRASTRUCTURE_APP="$INTEG_ROOT/components/_infrastructure"
+source "$INTEG_ROOT/components/deadline/common/scripts/bash/deploy-utils.sh"
 
 if [ -z ${INTEG_STACK_TAG+x} ]; then
     echo "INTEG_STACK_TAG must be set, exiting..."
@@ -44,11 +45,8 @@ for COMPONENT in **/cdk.json; do
     fi
 done
 
-# Invoke hook function if it is exported and name is defined in PRE_COMPONENT_HOOK variable
-if [ ! -z "${PRE_COMPONENT_HOOK+x}" ]  && [ "$(type -t $PRE_COMPONENT_HOOK)" == "function" ]
-then
-    $PRE_COMPONENT_HOOK
-fi
+run_aws_interaction_hook
+
 cd "$INFRASTRUCTURE_APP" && npx cdk destroy "*" -f
 
 cd "$INTEG_ROOT" && yarn run clean

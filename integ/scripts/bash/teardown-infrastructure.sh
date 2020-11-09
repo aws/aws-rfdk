@@ -5,15 +5,13 @@
 
 set -euo pipefail
 
+source "$INTEG_ROOT/components/deadline/common/scripts/bash/deploy-utils.sh"
+
 echo "Test suites completed. Destroying infrastructure stack..."
 INFRASTRUCTURE_APP="$INTEG_ROOT/components/_infrastructure"
 cd "$INFRASTRUCTURE_APP"
 
-# Invoke hook function if it is exported and name is defined in PRE_COMPONENT_HOOK variable
-if [ ! -z "${PRE_COMPONENT_HOOK+x}" ]  && [ "$(type -t $PRE_COMPONENT_HOOK)" == "function" ]
-then
-  $PRE_COMPONENT_HOOK
-fi
+run_aws_interaction_hook
 
 npx cdk destroy "*" -f
 echo "Infrastructure stack destroyed."

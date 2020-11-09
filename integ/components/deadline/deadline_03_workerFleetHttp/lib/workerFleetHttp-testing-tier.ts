@@ -33,7 +33,6 @@ export interface WorkerFleetTestingTierProps extends TestingTierProps {
  * ------------------------
  * - The bastion instance created by this test is configured to access farm resources on their default ports
  *   Test scripts stored on the bastion are used to submit Deadline jobs to farm workers and request information about the workers.
- *   At execution the tests retrieve the value of secrets for the authentication cert.
  */
 export class WorkerFleetTestingTier extends TestingTier {
   constructor(scope: Construct, id: string, props: WorkerFleetTestingTierProps) {
@@ -46,9 +45,6 @@ export class WorkerFleetTestingTier extends TestingTier {
 
       const renderQueue = workerStruct.renderQueue;
       this.configureRenderQueue(testSuiteId, renderQueue);
-
-      const cert = workerStruct.cert;
-      this.configureCert(testSuiteId, cert);
 
       const workerFleet = workerStruct.workerFleet;
       this.configureWorkerFleet(workerFleet);

@@ -46,7 +46,7 @@ oss.forEach( os => {
     databaseType: DatabaseType.DocDB,
     version: recipes.version,
   });
-  // Create render queue with either HTTP or HTTPS protocol
+  // Create render queue with HTTP protocol
   const render = new RenderStruct(componentTier, 'RenderStruct' + testId, {
     integStackTag,
     repository: storage.repo,

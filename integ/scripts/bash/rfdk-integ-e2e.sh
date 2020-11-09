@@ -79,11 +79,6 @@ for COMPONENT in **/cdk.json; do
 
     COMPONENT_ROOT="$(dirname "$COMPONENT")"
     COMPONENT_NAME=$(basename "$COMPONENT_ROOT")
-    # Invoke hook function if it is exported and name is defined in PRE_COMPONENT_HOOK variable
-    if [ ! -z "${PRE_COMPONENT_HOOK+x}" ]  && [ "$(type -t $PRE_COMPONENT_HOOK)" == "function" ]
-    then
-      $PRE_COMPONENT_HOOK $COMPONENT_NAME
-    fi
 
     # Use a pattern match to exclude the infrastructure app from the results
     export ${COMPONENT_NAME}_START_TIME=$SECONDS

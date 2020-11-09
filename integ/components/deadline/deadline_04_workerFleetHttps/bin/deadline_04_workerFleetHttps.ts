@@ -29,7 +29,7 @@ const oss = ['Linux','Windows'];
 let structs: Array<WorkerStruct> = [];
 let i = 1;
 oss.forEach( os => {
-  const testId = 'WFS' + i.toString();
+  const testId = 'WS' + i.toString();
   // Create component stack for structs
   const componentTier = new Stack(app, 'RFDKInteg-' + testId + '-ComponentTier' + integStackTag, {env});
 
@@ -46,7 +46,7 @@ oss.forEach( os => {
     databaseType: DatabaseType.DocDB,
     version: recipes.version,
   });
-  // Create render queue with either HTTP or HTTPS protocol
+  // Create render queue with HTTPS protocol
   const render = new RenderStruct(componentTier, 'RenderStruct' + testId, {
     integStackTag,
     repository: storage.repo,
@@ -62,4 +62,4 @@ oss.forEach( os => {
   i++;
 });
 
-new WorkerFleetTestingTier(app, 'RFDKInteg-WFS-TestingTier' + integStackTag, {env, integStackTag, structs});
+new WorkerFleetTestingTier(app, 'RFDKInteg-WS-TestingTier' + integStackTag, {env, integStackTag, structs});

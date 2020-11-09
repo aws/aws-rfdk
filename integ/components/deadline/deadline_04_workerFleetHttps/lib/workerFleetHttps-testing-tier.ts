@@ -42,7 +42,7 @@ export class WorkerFleetTestingTier extends TestingTier {
     const structs = props.structs;
     structs.forEach( workerStruct => {
 
-      const testSuiteId = 'WFS' + (structs.indexOf(workerStruct) + 1).toString();
+      const testSuiteId = 'WS' + (structs.indexOf(workerStruct) + 1).toString();
 
       const renderQueue = workerStruct.renderQueue;
       this.configureRenderQueue(testSuiteId, renderQueue);

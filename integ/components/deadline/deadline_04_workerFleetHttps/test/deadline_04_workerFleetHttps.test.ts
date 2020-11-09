@@ -3,18 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/* eslint-disable no-console */
+
 import * as CloudFormation from 'aws-sdk/clients/cloudformation';
 import * as AWS from 'aws-sdk/global';
 import awaitSsmCommand from '../../common/functions/awaitSsmCommand';
 
 // Name of testing stack is derived from env variable to ensure uniqueness
-const testingStackName = 'RFDKInteg-WFS-TestingTier' + process.env.INTEG_STACK_TAG?.toString();
+const testingStackName = 'RFDKInteg-WS-TestingTier' + process.env.INTEG_STACK_TAG!.toString();
 
 const cloudformation = new CloudFormation();
 
 const bastionRegex = /bastionId/;
-const rqRegex = /renderQueueEndpointWFS(\d)/;
-const certRegex = /CertSecretARNWF(\d)/;
+const rqRegex = /renderQueueEndpointWS(\d)/;
+const certRegex = /CertSecretARNWS(\d)/;
 
 const testCases: Array<Array<any>> = [
   [ 'Linux Worker HTTPS (TLS) mode', 1 ],
@@ -82,6 +84,7 @@ describe.each(testCases)('Deadline WorkerFleetHttps tests (%s)', (_, id) => {
       return awaitSsmCommand(bastionId, params);
     }
     else {
+      console.error(`Did not find a secrect ARN for ${testingStackName}`);
       return;
     }
   });
@@ -124,23 +127,23 @@ describe.each(testCases)('Deadline WorkerFleetHttps tests (%s)', (_, id) => {
       return awaitSsmCommand(bastionId, params);
     });
 
-    test(`WFS-${id}-1: Workers can be attached to the Render Queue`, async () => {
+    test(`WS-${id}-1: Workers can be attached to the Render Queue`, async () => {
       /**********************************************************************************************************
-       * TestID:          WFS-1
+       * TestID:          WS-1
        * Description:     Confirm that workers can be attached to the farm's render queue
        * Input:           Output from `deadlinecommand Slaves` executed against the farm's render queue via SSM command
        * Expected result: Ouput should be a string beginning with ip- to indicate the worker node is attached to the farm
       **********************************************************************************************************/
       var params = {
         DocumentName: 'AWS-RunShellScript',
-        Comment: 'Execute Test Script WFS-report-workers.sh',
+        Comment: 'Execute Test Script WS-report-workers.sh',
         InstanceIds: [bastionId],
         Parameters: {
           commands: [
             'sudo -i',
             'su - ec2-user >/dev/null',
             'cd ~ec2-user',
-            './testScripts/WFS-report-workers.sh',
+            './testScripts/WS-report-workers.sh',
           ],
         },
       };
@@ -150,23 +153,23 @@ describe.each(testCases)('Deadline WorkerFleetHttps tests (%s)', (_, id) => {
       });
     });
 
-    test(`WFS-${id}-2: Workers can be added to groups, pools and regions`, async () => {
+    test(`WS-${id}-2: Workers can be added to groups, pools and regions`, async () => {
       /**********************************************************************************************************
-       * TestID:          WFS-2
+       * TestID:          WS-2
        * Description:     Confirm that workers can be added to groups, pools, and regions when those parameters are passed to the constructor
        * Input:           Output from `deadline GetSlaveSetting` for each worker executed agains the farm's render queue via SSM command
        * Expected result: Output of the worker settings should indicate that 1 worker is assigned to group "testgroup", pool "testpool" and region "testregion"
       **********************************************************************************************************/
       var params = {
         DocumentName: 'AWS-RunShellScript',
-        Comment: 'Execute Test Script WFS-report-worker-sets.sh',
+        Comment: 'Execute Test Script WS-report-worker-sets.sh',
         InstanceIds: [bastionId],
         Parameters: {
           commands: [
             'sudo -i',
             'su - ec2-user >/dev/null',
             'cd ~ec2-user',
-            './testScripts/WFS-report-worker-sets.sh',
+            './testScripts/WS-report-worker-sets.sh',
           ],
         },
       };
@@ -182,23 +185,23 @@ describe.each(testCases)('Deadline WorkerFleetHttps tests (%s)', (_, id) => {
     ];
 
     // eslint-disable-next-line no-shadow
-    test.each(setConfigs)(`WFS-${id}-%i: Workers can be assigned jobs submitted to a %s`, async (_, name, arg) => {
+    test.each(setConfigs)(`WS-${id}-%i: Workers can be assigned jobs submitted to a %s`, async (_, name, arg) => {
       /**********************************************************************************************************
-       * TestID:          WFS-3, WFS-4
+       * TestID:          WS-3, WS-4
        * Description:     Confirm that jobs sent to a specified group/pool/region are routed to a worker in that set
        * Input:           Output from `deadline GetSlavesRenderingJob` for each test job executed agains the farm's render queue via SSM command
        * Expected result: Output of the worker lists should indicate that 1 worker was assigned a job in group "testgroup", pool "testpool", and region "testregion"
       **********************************************************************************************************/
       var params = {
         DocumentName: 'AWS-RunShellScript',
-        Comment: `Execute Test Script WFS-submit-jobs-to-sets.sh for ${name}`,
+        Comment: `Execute Test Script WS-submit-jobs-to-sets.sh for ${name}`,
         InstanceIds: [bastionId],
         Parameters: {
           commands: [
             'sudo -i',
             'su - ec2-user >/dev/null',
             'cd ~ec2-user',
-            `./testScripts/WFS-submit-jobs-to-sets.sh "${name}" "${arg}"`,
+            `./testScripts/WS-submit-jobs-to-sets.sh "${name}" "${arg}"`,
           ],
         },
       };
