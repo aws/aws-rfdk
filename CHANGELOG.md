@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.20.0](https://github.com/aws/aws-rfdk/compare/v0.19.0...v0.20.0) (2020-11-10)
+
+
+### Supported CDK Version
+
+* [1.72.0](https://github.com/aws/aws-cdk/releases/tag/v1.72.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.11.5](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **deadline:** add WorkerInstanceConfiguration construct ([#209](https://github.com/aws/aws-rfdk/issues/209)) ([bbb82b0](https://github.com/aws/aws-rfdk/commit/bbb82b0d1c68477d82e72420dc4fff7e0dd2f17b))
+* **deadline:** versionquery construct ([#175](https://github.com/aws/aws-rfdk/issues/175)) ([78dcd86](https://github.com/aws/aws-rfdk/commit/78dcd860e6743094e123c12d8e7313e4d19af5a0)), closes [#176](https://github.com/aws/aws-rfdk/issues/176)
+
 ## [0.19.0](https://github.com/aws/aws-rfdk/compare/v0.18.1...v0.19.0) (2020-10-28)
 
 
