@@ -18,17 +18,21 @@ ROOT_DIR=$(readlink -f "${SCRIPT_DIR}/..")
 
 # Determine the ECR region we want to use
 set +e
-# First attempt to use the EC2 instance meta-data to determine the region
-ECR_REGION="$(curl -fs http://169.254.169.254/latest/meta-data/placement/region)"
-if [ "$?" -ne 0 ]; then
-    # Not running on EC2, so get region from AWS CLI configuration
+# First attempt to use the AWS_REGION environment variable which is set by CodeBuild
+# Source: https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-env-vars.html
+if [ -z ${AWS_REGION+x} ]; then
+    # Not running on CodeBuild, so fallback to getting the region from AWS CLI configuration
+    echo "could not get region from AWS_REGION environment variable. Attempting AWS configuration..."
     ECR_REGION="$(aws configure get region)"
-    if [ "$?" -ne 0 || -z "${ECR_REGION}" ]; then
+    if [ "$?" -ne 0 ] || [ -z "${ECR_REGION}" ]; then
         echo "ERROR: Could not determine region"
         exit 1
     fi
+else
+    ECR_REGION="${AWS_REGION}"
 fi
 set -e
+echo "ECR_REGION=${ECR_REGION}"
 
 # Ensure that the docker daemon is running in the background
 # These commands are currently being done here instead of in buildspec due to the following issue: https://github.com/awslabs/aws-delivlib/issues/448
