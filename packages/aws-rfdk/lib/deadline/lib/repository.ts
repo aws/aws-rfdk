@@ -490,6 +490,7 @@ export class Repository extends Construct implements IRepository {
       const instances = props.documentDbInstanceCount ?? Repository.DEFAULT_NUM_DOCDB_INSTANCES;
       const dbCluster = new DatabaseCluster(this, 'DocumentDatabase', {
         masterUser: {username: 'DocDBUser'},
+        engineVersion: '3.6.0',
         instanceProps: {
           instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
           vpc: props.vpc,

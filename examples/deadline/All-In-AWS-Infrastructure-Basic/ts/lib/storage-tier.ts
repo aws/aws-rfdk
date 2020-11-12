@@ -116,6 +116,7 @@ export class StorageTierDocDB extends StorageTier {
       masterUser: {
         username: 'adminuser',
       },
+      engineVersion: '3.6.0',
       backup: {
         // We recommend setting the retention of your backups to 15 days
         // for security reasons. The default retention is just one day.

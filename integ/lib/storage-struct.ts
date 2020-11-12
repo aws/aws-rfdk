@@ -95,6 +95,7 @@ export class StorageStruct extends Construct {
         masterUser: {
           username: 'DocDBUser',
         },
+        engineVersion: '3.6.0',
         backup: {
           retention: Duration.days(15),
         },
