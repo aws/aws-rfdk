@@ -184,7 +184,7 @@ describe.each(testCases)('Deadline WorkerFleet tests (%s)', (_, id) => {
     ];
 
     // eslint-disable-next-line no-shadow
-    test.each(setConfigs)(`WF-${id}-%i: Workers can be assigned jobs submitted to a %s`, async (_, name, arg) => {
+    test.each(setConfigs)(`WF-${id}-%i: Workers can be assigned jobs submitted to a %s`, async (__, name, arg) => {
       /**********************************************************************************************************
        * TestID:          WF-3, WF-4
        * Description:     Confirm that jobs sent to a specified group/pool/region are routed to a worker in that set

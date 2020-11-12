@@ -3,8 +3,6 @@
 
 param (
     [Parameter(Mandatory=$True)]
-    $healthCheckPort,
-    [Parameter(Mandatory=$True)]
     $workerGroups,
     [Parameter(Mandatory=$True)]
     $workerPools,
@@ -49,16 +47,10 @@ if([System.Version]$DeadlineVersion -lt  [System.Version]$minimumSupportedDeadli
 & $DEADLINE_COMMAND -SetIniFileSetting RestartStalledSlave True | Out-Default
 # auto update
 & $DEADLINE_COMMAND -SetIniFileSetting AutoUpdateOverride False | Out-Default
-# enabling the health check port
-& $DEADLINE_COMMAND -SetIniFileSetting ResourceTrackerVersion V2 | Out-Default
-# health check port
-& $DEADLINE_COMMAND -SetIniFileSetting LauncherHealthCheckPort $healthCheckPort | Out-Default
 # Disable S3Backed Cache
 & $DEADLINE_COMMAND -SetIniFileSetting UseS3BackedCache False | Out-Default
 # Blank the S3BackedCache Url
 & $DEADLINE_COMMAND -SetIniFileSetting S3BackedCacheUrl "" | Out-Default
-# Adding firewall rule to allow health-checks
-& New-NetFirewallRule -DisplayName "Allow Deadline Health-Checks" -Direction Inbound -Action Allow -Protocol TCP -LocalPort $healthCheckPort  | Out-Default
 
 # setting the group, pool and region for this worker
 if (![string]::IsNullOrEmpty($workerRegion)) {

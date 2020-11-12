@@ -85,7 +85,8 @@ export abstract class SimpleCustomResource {
     try {
       if (requestType === 'Create') {
         if (!this.validateInput(resourceProperties)) {
-          throw Error('Input did not pass validation check');
+          throw Error(`Input did not pass validation check. Check log group "${context.logGroupName}" ` +
+            `for log stream ${context.logStreamName} for additional information.`);
         }
         cfnData = await this.doCreate(physicalId, resourceProperties);
         console.debug(`Create data: ${JSON.stringify(cfnData)}`);

@@ -121,10 +121,10 @@ class ServiceTier(Stack):
             self,
             'Repository',
             vpc=props.vpc,
-            version=recipes.version,
             database=props.database,
             file_system=props.file_system,
-            repository_installation_timeout=Duration.minutes(20)
+            repository_installation_timeout=Duration.minutes(20),
+            version=recipes.version,
         )
 
         server_cert = X509CertificatePem(
@@ -142,7 +142,6 @@ class ServiceTier(Stack):
             self,
             'RenderQueue',
             vpc=props.vpc,
-            version=recipes.version,
             images=recipes.render_queue_images,
             repository=repository,
             hostname=RenderQueueHostNameProps(
@@ -155,6 +154,7 @@ class ServiceTier(Stack):
                 ),
                 internal_protocol=ApplicationProtocol.HTTPS
             ),
+            version=recipes.version,
             # TODO - Evaluate deletion protection for your own needs. This is set to false to
             # cleanly remove everything when this stack is destroyed. If you would like to ensure
             # that this resource is not accidentally deleted, you should set this to true.

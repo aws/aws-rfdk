@@ -29,3 +29,228 @@ export const INSTALL_MONGODB_3_6_SCRIPT_LINUX = {
 export const MONGODB_INSTANCE_3_6_SCRIPT = {
   Bucket: stringLike('AssetParameters*S3Bucket352E624B'),
 };
+
+export function linuxDownloadRunScriptBoilerplate(script: { Bucket: string, Key: string }) {
+  return [
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+    '\')\naws s3 cp \'s3://',
+    {Ref: script.Bucket},
+    '/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+    '\' \'/tmp/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+    '\'\n' +
+    'set -e\n' +
+    'chmod +x \'/tmp/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {
+              Ref: script.Key,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+    '\'\n\'/tmp/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+  ];
+}
+
+export function windowsDownloadRunScriptBoilerplate(script: { Bucket: string, Key: string }) {
+  return [
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+    '\' ) -ea 0\nRead-S3Object -BucketName \'',
+    {Ref: script.Bucket},
+    '\' -key \'',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+    '\' -file \'C:/temp/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+    '\' -ErrorAction Stop\n&\'C:/temp/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {
+              Ref: script.Key,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: script.Key},
+          ],
+        },
+      ],
+    },
+  ];
+}

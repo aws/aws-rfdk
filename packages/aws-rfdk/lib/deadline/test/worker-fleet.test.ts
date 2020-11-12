@@ -27,7 +27,7 @@ import {
   AssetImage,
   ContainerImage,
 } from '@aws-cdk/aws-ecs';
-import {ArtifactMetadataEntryType} from '@aws-cdk/cloud-assembly-schema';
+import { ArtifactMetadataEntryType } from '@aws-cdk/cloud-assembly-schema';
 import {
   App,
   CfnElement,
@@ -40,6 +40,9 @@ import {
 import {
   testConstructTags,
 } from '../../core/test/tag-helpers';
+import {
+  escapeTokenRegex,
+} from '../../core/test/token-regex-helpers';
 import {
   IRenderQueue,
   RenderQueue,
@@ -70,20 +73,15 @@ beforeEach(() => {
   });
   vpc = new Vpc(stack, 'VPC');
   rcsImage = ContainerImage.fromAsset(__dirname);
-  const version = VersionQuery.exact(stack, 'Version', {
-    majorVersion: 10,
-    minorVersion: 0,
-    releaseVersion: 0,
-    patchVersion: 0,
-  });
+  const version = new VersionQuery(stack, 'VersionQuery');
   renderQueue = new RenderQueue(stack, 'RQ', {
-    version,
     vpc,
     images: { remoteConnectionServer: rcsImage },
     repository: new Repository(stack, 'Repository', {
       vpc,
       version,
     }),
+    version,
   });
   wfstack = new Stack(app, 'workerFleetStack', {
     env: {
@@ -435,7 +433,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
           ],
         },
         '\' ',
-        {Ref: 'workerFleetStringParameterE88827AB'},
+        {Ref: 'workerFleetStringParameterDB3717DA'},
         '\nmkdir -p $(dirname \'/tmp/',
         {
           'Fn::Select': [
@@ -686,7 +684,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             },
           ],
         },
-        `' '6161' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}'`,
+        `' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}'`,
       ],
     ],
   });
@@ -835,7 +833,7 @@ test('default worker fleet is created correctly with groups, pools and region', 
         ],
       },
       "' ",
-      {Ref: 'workerFleetStringParameterE88827AB'},
+      {Ref: 'workerFleetStringParameterDB3717DA'},
       '\nmkdir -p $(dirname \'/tmp/',
       {
         'Fn::Select': [
@@ -1086,7 +1084,7 @@ test('default worker fleet is created correctly with groups, pools and region', 
           },
         ],
       },
-      `' '63415' 'a,b' 'c,d' 'E' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}'`,
+      `' 'a,b' 'c,d' 'E' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}'`,
     ]],
   });
 });
@@ -1395,6 +1393,73 @@ describe('Block Device Tests', () => {
     }));
 
     expect(fleet.node.metadata).toHaveLength(0);
+  });
+});
+
+describe('HealthMonitor Tests', () => {
+  let healthMonitor: HealthMonitor;
+
+  beforeEach(() => {
+    // create a health monitor so it does not trigger warnings
+    healthMonitor = new HealthMonitor(wfstack,'healthMonitor', {
+      vpc,
+    });
+  });
+
+  test('Monitor is configured for Windows', () => {
+    // WHEN
+    const fleet = new WorkerInstanceFleet(wfstack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
+      }),
+      renderQueue,
+      healthMonitor,
+    });
+    const userData = fleet.fleet.userData.render();
+
+    // THEN
+    // Ensure the configuration script is executed with the expected arguments.
+    expect(userData).toMatch(new RegExp(escapeTokenRegex('&\'C:/temp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\' \'63415\' \'10.1.9.2\'')));
+    // Ensure that the health monitor target group has been set up.
+    //  Note: It's sufficient to just check for any resource created by the HealthMonitor registration.
+    //   The HealthMonitor tests cover ensuring that all of the resources are set up.
+    expectCDK(wfstack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
+      HealthCheckIntervalSeconds: 300,
+      HealthCheckPort: '63415',
+      HealthCheckProtocol: 'HTTP',
+      Port: 8081,
+      Protocol: 'HTTP',
+      TargetType: 'instance',
+    }));
+  });
+
+  test('Monitor is configured for Linux', () => {
+    // WHEN
+    const fleet = new WorkerInstanceFleet(wfstack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericLinuxImage({
+        'us-east-1': 'ami-any',
+      }),
+      renderQueue,
+      healthMonitor,
+    });
+    const userData = fleet.fleet.userData.render();
+
+    // THEN
+    // Ensure the configuration script is executed with the expected arguments.
+    expect(userData).toMatch(new RegExp(escapeTokenRegex('\'/tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\' \'63415\' \'10.1.9.2\'')));
+    // Ensure that the health monitor target group has been set up.
+    //  Note: It's sufficient to just check for any resource created by the HealthMonitor registration.
+    //   The HealthMonitor tests cover ensuring that all of the resources are set up.
+    expectCDK(wfstack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
+      HealthCheckIntervalSeconds: 300,
+      HealthCheckPort: '63415',
+      HealthCheckProtocol: 'HTTP',
+      Port: 8081,
+      Protocol: 'HTTP',
+      TargetType: 'instance',
+    }));
   });
 });
 

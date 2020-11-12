@@ -4,6 +4,11 @@
  */
 
 import { App, Stack } from '@aws-cdk/core';
+import {
+  Stage,
+  ThinkboxDockerRecipes,
+} from 'aws-rfdk/deadline';
+
 import { RenderStruct } from '../../../../lib/render-struct';
 import { DatabaseType, StorageStruct } from '../../../../lib/storage-struct';
 import { RenderQueueTestingTier } from '../lib/renderQueue-testing-tier';
@@ -20,10 +25,18 @@ const integStackTag = process.env.INTEG_STACK_TAG!.toString();
 // Create component stack
 const componentTier = new Stack(app, 'RFDKInteg-RQ-ComponentTier' + integStackTag, {env});
 
+const stagePath = process.env.DEADLINE_STAGING_PATH!.toString();
+// Stage docker recipes, which include the image used for the render queue instance and the repo
+// installer (in `recipes.version`)
+const recipes = new ThinkboxDockerRecipes(componentTier, 'DockerRecipes', {
+  stage: Stage.fromDirectory(stagePath),
+});
+
 // Add struct containing Deadline repository (the same repo is used for all test configurations)
 const storage = new StorageStruct(componentTier, 'StorageStruct', {
   integStackTag,
   databaseType: DatabaseType.DocDB,
+  version: recipes.version,
 });
 
 const structs: Array<RenderStruct> = [
@@ -32,12 +45,14 @@ const structs: Array<RenderStruct> = [
     integStackTag,
     repository: storage.repo,
     protocol: 'http',
+    recipes,
   }),
   //Create test struct for Render Queue in https mode
   new RenderStruct(componentTier, 'RenderStructRQ2', {
     integStackTag,
     repository: storage.repo,
     protocol: 'https',
+    recipes,
   }),
 ];
 

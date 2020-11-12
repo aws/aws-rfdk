@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable no-console */
-
 import * as fs from 'fs';
-import * as http from 'http';
+import { IncomingMessage } from 'http';
 import * as https from 'https';
 import * as url from 'url';
+
+import { Version } from './version';
 
 export enum Platform {
   linux = 'linux',
@@ -70,25 +70,24 @@ export interface IVersionedUris {
 }
 
 /**
- * The version provider parse index JSON which can be downloaded or loaded from local file
- * and returns URIs for specific product.
+ * The version provider parses a JSON file containing version information for the Deadline and DockerDeadline products.
+ * It  can be downloaded or loaded from local file and returns URIs for the specific products.
  * By default returns the last version of URIs or specified full or partial version.
  * If platform is not defined returns URIs for each platform.
  */
 export class VersionProvider {
+  private static readonly VERSION_INDEX_URL = 'https://downloads.thinkboxsoftware.com/version_info.json';
+
   private readonly indexFilePath: string|undefined;
-  private readonly VALID_VERSION_REGEX = /^(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?(?:\.(0|[1-9]\d*))?(?:\.(0|[1-9]\d*))?$/;
+
   constructor(indexFilePath?: string) {
     this.indexFilePath = indexFilePath;
   }
 
   /**
    * Returns URIs for specified product
-   *
-   * @param resourceProperties
    */
   public async getVersionUris(resourceProperties: IVersionProviderProperties): Promise<Map<Platform, IVersionedUris>> {
-    /* istanbul ignore next */
     const indexJson = this.indexFilePath ? this.readInstallersIndex() : await this.downloadInstallerIndex();
 
     const productSection = indexJson[resourceProperties.product];
@@ -99,7 +98,7 @@ export class VersionProvider {
 
     let installers = new Map();
     if (resourceProperties.platform) {
-      const versionedUris = await this.getUrisForPlatform(
+      const versionedUris = this.getUrisForPlatform(
         resourceProperties.product,
         productSection,
         resourceProperties.platform,
@@ -108,9 +107,10 @@ export class VersionProvider {
       if (versionedUris) {
         installers.set(resourceProperties.platform, versionedUris);
       }
+
     } else {
       Object.values(Platform).forEach(async p => {
-        const versionedUris = await this.getUrisForPlatform(
+        const versionedUris = this.getUrisForPlatform(
           resourceProperties.product,
           productSection,
           p,
@@ -125,29 +125,8 @@ export class VersionProvider {
     return installers;
   }
 
-  public implementsIVersionProviderProperties(value: any): boolean {
-    if (!value || typeof(value) !== 'object') { return false; }
-
-    if (!value.product || !Object.values(Product).includes(value.product)) {
-      return false;
-    }
-
-    if (value.versionString) {
-      if (null === this.parseVersionString(value.versionString))  { return false; }
-    }
-
-    if (value.platform) {
-      if (!Object.values(Platform).includes(value.platform.toLowerCase()))  { return false; }
-    }
-
-    return true;
-  }
-
-  /* istanbul ignore next */ // @ts-ignore
   private async downloadInstallerIndex() {
-    const productionInfoURL = 'https://downloads.thinkboxsoftware.com/version_info.json';
-
-    const parsedUrl = url.parse(productionInfoURL);
+    const parsedUrl = url.parse(VersionProvider.VERSION_INDEX_URL);
 
     const options = {
       host: parsedUrl.hostname,
@@ -155,7 +134,7 @@ export class VersionProvider {
     };
 
     return new Promise((resolve, reject) => {
-      https.get(options, (res: http.IncomingMessage) => {
+      https.get(options, (res: IncomingMessage) => {
         let json = '';
 
         res.on('data', (chunk: any) => {
@@ -200,29 +179,22 @@ export class VersionProvider {
     return json;
   }
 
-  private parseVersionString(versionString: string): RegExpExecArray | null {
-    return this.VALID_VERSION_REGEX.exec(versionString);
-  }
-
   /**
-   * This method returns IVersionedUris for specific platform
-   *
-   * @param product
-   * @param productSection
-   * @param platform
-   * @param version
+   * This method returns IVersionedUris (the patch version plus installer URI's) for a specific platform.
    */
-  private async getUrisForPlatform(
+  private getUrisForPlatform(
     product: Product,
     productSection: any,
     platform: Platform,
     version?: string,
-  ): Promise<IVersionedUris | undefined> {
+  ): IVersionedUris | undefined {
     const versionString: string = version ? version : this.getLatestVersion(platform, productSection);
+    const requestedVersion = Version.parseFromVersionString(versionString);
 
-    const requestedVersion = this.parseVersionString( versionString );
+    if (!requestedVersion) {
+      throw new Error(`Couldn't parse version from ${versionString}`);
+    }
 
-    // Based on the requested version, fetches the latest patch and its installer file paths.
     return this.getRequestedUriVersion(
       requestedVersion,
       productSection.versions,
@@ -233,9 +205,6 @@ export class VersionProvider {
 
   /**
    * This method returns the latest version for specified platform.
-   *
-   * @param platform
-   * @param indexedVersionInfo
    */
   private getLatestVersion(platform: string, indexedVersionInfo: any): string {
     const latestSection = indexedVersionInfo.latest;
@@ -258,17 +227,13 @@ export class VersionProvider {
    * with the indexed info.
    * If any of the requested version number is missing, it fetches the latest
    * (highest) available version for it.
-   *
-   * @param requestedVersion
-   * @param indexedVersionInfo
    */
   private getRequestedUriVersion(
-    requestedVersion: RegExpExecArray | null,
+    requestedVersion: string[],
     indexedVersionInfo: any,
     platform: Platform,
     product: Product,
   ): IVersionedUris | undefined {
-
     let versionMap = indexedVersionInfo;
     const versionArray: string[] = [];
 
@@ -276,7 +241,7 @@ export class VersionProvider {
     // and get the matching version from the indexed version map.
     for (let versionIndex = 0; versionIndex < 4; versionIndex++) {
       let version: string;
-      if (requestedVersion?.[versionIndex + 1] == null) {
+      if (requestedVersion[versionIndex + 1] == null) {
 
         // version is not provided, get the max version.
         const numberValues: number[] = (Object.keys(versionMap)).map((val: string) => {
@@ -293,18 +258,18 @@ export class VersionProvider {
 
     let uriIndex: IUris | undefined;
     if ((platform in versionMap)) {
+      const platformVersionMap = versionMap[platform];
       if (product == Product.deadline) {
-        const platformVersion = versionMap[platform];
         uriIndex = {
-          bundle: platformVersion.bundle,
-          clientInstaller: versionMap[platform].clientInstaller,
-          repositoryInstaller: versionMap[platform].repositoryInstaller,
-          certificateInstaller: versionMap[platform].certificateInstaller,
+          bundle: platformVersionMap.bundle,
+          clientInstaller: platformVersionMap.clientInstaller,
+          repositoryInstaller: platformVersionMap.repositoryInstaller,
+          certificateInstaller: platformVersionMap.certificateInstaller,
         };
 
       } else { // Product.deadlineDocker
         uriIndex = {
-          bundle: versionMap[platform],
+          bundle: platformVersionMap,
         };
       }
     }

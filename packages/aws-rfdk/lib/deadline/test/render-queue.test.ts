@@ -89,12 +89,7 @@ describe('RenderQueue', () => {
     app = new App();
     dependencyStack = new Stack(app, 'DepStack');
     vpc = new Vpc(dependencyStack, 'Vpc');
-    version = VersionQuery.exact(dependencyStack, 'Version', {
-      majorVersion: 10,
-      minorVersion: 1,
-      releaseVersion: 9,
-      patchVersion: 1,
-    });
+    version = new VersionQuery(dependencyStack, 'Version');
     repository = new Repository(dependencyStack, 'Repo', {
       version,
       vpc,
@@ -1910,12 +1905,7 @@ describe('RenderQueue', () => {
         },
       });
       isolatedVpc = new Vpc(isolatedStack, 'Vpc');
-      isolatedVersion = VersionQuery.exact(isolatedStack, 'Version', {
-        majorVersion: 10,
-        minorVersion: 1,
-        releaseVersion: 9,
-        patchVersion: 1,
-      });
+      isolatedVersion = new VersionQuery(isolatedStack, 'Version');
 
       isolatedRepository = new Repository(isolatedStack, 'Repo', {
         version: isolatedVersion,
