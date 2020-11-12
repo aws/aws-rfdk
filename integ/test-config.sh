@@ -5,7 +5,7 @@
 
 # Accept SSPL license to install MongoDB
 #   - If not set to `true` here, the Repository test component will fail immediately on execution
-export USER_ACCEPTS_SSPL_FOR_RFDK_TESTS=false
+export USER_ACCEPTS_SSPL_FOR_RFDK_TESTS=true
 
 # Version of Deadline to install on farm resources.
 #   -  If not set here, will default to 10.1.9.2
@@ -33,7 +33,7 @@ export LINUX_DEADLINE_AMI_ID
 export WINDOWS_DEADLINE_AMI_ID
 
 # Configure test suites to include in end-to-end test
-export SKIP_deadline_01_repository_TEST
-export SKIP_deadline_02_renderQueue_TEST
-export SKIP_deadline_03_workerFleetHttp_TEST
+export SKIP_deadline_01_repository_TEST=true
+export SKIP_deadline_02_renderQueue_TEST=true
+export SKIP_deadline_03_workerFleetHttp_TEST=true
 export SKIP_deadline_04_workerFleetHttps_TEST
