@@ -27,6 +27,12 @@ These instructions assume that your working directory is `examples/deadline/All-
       // ...
       };
     ```
+
+    ---
+
+    **Note:** The next three steps are for setting up usage based licensing and are optional. You may skip these if you do not need to use licenses for rendering.
+
+    ---
 4.  Create a binary secret in [SecretsManager](https://aws.amazon.com/secrets-manager/) that contains your [Usage-Based Licensing](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/aws-portal/licensing-setup.html?highlight=usage%20based%20licensing) certificates in a `.zip` file:
 
     ```
@@ -53,7 +59,7 @@ These instructions assume that your working directory is `examples/deadline/All-
 
     ---
 
-    **Note:** The next two steps are optional. You may skip these if you do not need   SSH access into your render farm.
+    **Note:** The next two steps are for allowing SSH access to your render farm and are optional. You may skip these if you do not need SSH access into your render farm.
 
     ---
 7.  Create an EC2 key pair to give you SSH access to the render farm:
