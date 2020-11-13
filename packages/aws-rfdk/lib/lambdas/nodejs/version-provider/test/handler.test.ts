@@ -3,14 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable dot-notation */
+/* eslint-disable dot-notation, no-console */
 
 import { VersionProviderResource } from '../handler';
 
 describe('VersionProviderResource', () => {
   let versionProviderResource: VersionProviderResource;
+  const consoleLog = console.log;
   beforeEach(() => {
     versionProviderResource = new VersionProviderResource();
+    // tslint:disable-next-line: no-empty
+    console.log = () => {};
+  });
+
+  afterEach(() => {
+    console.log = consoleLog;
   });
 
   describe('implementsIVersionProviderResourceProperties', () => {

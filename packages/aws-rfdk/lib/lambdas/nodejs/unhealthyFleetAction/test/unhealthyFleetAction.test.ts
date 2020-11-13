@@ -7,7 +7,7 @@
 
 import * as AWS from 'aws-sdk-mock';
 import * as sinon from 'sinon';
-import * as lambdaCode from '../../lambdas/nodejs/unhealthyFleetAction/index';
+import * as lambdaCode from '../index';
 
 AWS.setSDK(require.resolve('aws-sdk'));
 

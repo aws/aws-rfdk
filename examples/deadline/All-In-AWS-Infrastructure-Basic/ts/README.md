@@ -8,7 +8,7 @@
 ---
 **NOTE**
 
-These instructions assume that your working directory is `examples/deadline/All-In-AWS-Infrastructure-Basic-Tiered/ts/` relative to the root of the RFDK package.
+These instructions assume that your working directory is `examples/deadline/All-In-AWS-Infrastructure-Basic/ts/` relative to the root of the RFDK package.
 
 ---
 

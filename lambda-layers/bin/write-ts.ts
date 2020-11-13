@@ -52,7 +52,7 @@ async function writeTsFile(regions: Array<string>): Promise<void> {
 if (process.argv.length < 3) {
   throw new Error('Incorrect number of parameters. Usage:\n node write-json.js <...layerName>');
 }
-const outputFile = '../../packages/aws-rfdk/lib/core/lambdas/lambdaLayerVersionArns.ts';
+const outputFile = '../../packages/aws-rfdk/lib/lambdas/lambdaLayerVersionArns.ts';
 
 const layerNames = process.argv.slice(2);
 const outputFilePath = path.join(__dirname, outputFile);

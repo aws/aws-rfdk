@@ -12,13 +12,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
 import { types } from 'util';
+
+import { Version } from '../lib/deadline';
 import {
   IUris,
   Platform,
   Product,
   VersionProvider,
-} from '../lib/core/lambdas/nodejs/lib/version-provider';
-import { Version } from '../lib/deadline';
+} from '../lib/lambdas/nodejs/lib/version-provider';
 
 const args = process.argv.slice(2);
 
@@ -278,7 +279,7 @@ Usage: stage-deadline [--output <output_dir>] [--verbose]
 Arguments:
     <deadline_release_version>
         Specifies the official release of Deadline that should be staged. This must be of the form "a.b.c.d", "a.b.c", "a.b" or "a".
-        
+
         Note: The minimum supported deadline version is ${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}
 
     -d, --deadlineInstallerURI <deadline_installer_uri>
