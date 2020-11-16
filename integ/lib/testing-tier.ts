@@ -118,14 +118,19 @@ export abstract class TestingTier extends Stack {
   public configureRenderQueue(testSuiteId: string, renderQueue: RenderQueue) {
 
     const port = renderQueue.endpoint.portAsString();
-    const zoneName = Stack.of(renderQueue).stackName.slice(0, 45) + '.local';
+
+    // We are matching the name given to the render queue host in render-struct.ts
+    const host = 'renderqueue';
+    const suffix = '.local';
+    const maxLength = 64 - host.length - '.'.length - suffix.length - 1;
+
     let address;
     switch(port) {
       case '8080':
         address = renderQueue.endpoint.hostname;
         break;
       case '4433':
-        address = 'renderqueue.' + zoneName;
+        address = host + '.' + Stack.of(renderQueue).stackName.slice(0, maxLength) + suffix;
         break;
       default:
         break;

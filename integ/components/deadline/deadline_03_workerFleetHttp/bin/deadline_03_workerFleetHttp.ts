@@ -27,9 +27,8 @@ const integStackTag = process.env.INTEG_STACK_TAG!.toString();
 const oss = ['Linux','Windows'];
 
 let structs: Array<WorkerStruct> = [];
-let i = 1;
-oss.forEach( os => {
-  const testId = 'WF' + i.toString();
+oss.forEach( (os, index) => {
+  const testId = 'WF' + (index + 1).toString();
   // Create component stack for structs
   const componentTier = new Stack(app, 'RFDKInteg-' + testId + '-ComponentTier' + integStackTag, {env});
 
@@ -59,7 +58,6 @@ oss.forEach( os => {
     renderStruct: render,
     os,
   }));
-  i++;
 });
 
 new WorkerFleetTestingTier(app, 'RFDKInteg-WF-TestingTier' + integStackTag, {env, integStackTag, structs});

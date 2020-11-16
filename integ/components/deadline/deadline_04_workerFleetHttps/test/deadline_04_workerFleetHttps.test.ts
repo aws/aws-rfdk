@@ -85,8 +85,7 @@ describe.each(testCases)('Deadline WorkerFleetHttps tests (%s)', (_, id) => {
       return awaitSsmCommand(bastionId, params);
     }
     else {
-      console.error(`Did not find a secrect ARN for ${testingStackName}`);
-      return;
+      throw new Error(`Did not find a secrect ARN for ${testingStackName}`);
     }
   });
 

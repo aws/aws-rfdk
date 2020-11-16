@@ -16,19 +16,23 @@ refreshcreds() {
     unset AWS_ACCESS_KEY_ID
     unset AWS_SECRET_ACCESS_KEY
     unset AWS_SESSION_TOKEN
-    creds=$(mktemp -d)/creds.json
-    AWS_STS_REGIONAL_ENDPOINTS=regional aws sts assume-role \
+
+    # Save new credentials into an env var and then parse that env var to set up the 3 required env
+    # vars for authenticated calls using AWS SDK/CDK
+    export CREDS="$(AWS_STS_REGIONAL_ENDPOINTS=regional aws sts assume-role \
         --role-arn $ROLE_ARN \
         --role-session-name $ROLE_SESSION_NAME \
-        --external-id $ROLE_EXTERNAL_ID > $creds
-    export AWS_ACCESS_KEY_ID="$(cat ${creds} | grep "AccessKeyId" | cut -d'"' -f 4)"
-    export AWS_SECRET_ACCESS_KEY="$(cat ${creds} | grep "SecretAccessKey" | cut -d'"' -f 4)"
-    export AWS_SESSION_TOKEN="$(cat ${creds} | grep "SessionToken" | cut -d'"' -f 4)"
+        --external-id $ROLE_EXTERNAL_ID)"
+    export AWS_ACCESS_KEY_ID="$(printenv CREDS | grep "AccessKeyId" | cut -d'"' -f 4)"
+    export AWS_SECRET_ACCESS_KEY="$(printenv CREDS | grep "SecretAccessKey" | cut -d'"' -f 4)"
+    export AWS_SESSION_TOKEN="$(printenv CREDS | grep "SessionToken" | cut -d'"' -f 4)"
+    # Clean up the env var
+    unset CREDS
 }
 
 # Basic integ test configuration
 export SKIP_TEST_CONFIG=true
-export DEADLINE_VERSION="10.1.10.6"
+export DEADLINE_VERSION="10.1.11.5"
 
 # Setup the hook that runs before any interactions with AWS to refresh the credentials being used.
 # There is a 1 hour timeout on these credentials that cannot be adjusted.
