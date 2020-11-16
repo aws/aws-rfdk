@@ -1,4 +1,4 @@
-# RFDK Sample Application - Deadline - Typescript
+# RFDK Sample Application - Deadline Spot Event Plugin - Typescript
 
 ## Overview
 [Back to overview](../README.md)
@@ -11,7 +11,7 @@
 These instructions assume that your working directory is `examples/deadline/All-In-AWS-Infrastructure-SEP/ts/` relative to the root of the RFDK package.
 
 ---
-1. This sample app on the mainline branch may contain features that have not yet been officially released, and may not be available in the aws-rfdk package installed through npm from npmjs. To work from an example of the latest release, please switch to the release branch. If you would like to try out unreleased features, you can stay on mainline and follow the instructions for building, packing, and installing the aws-rfdk from your local repository.
+1. This sample app on the `mainline` branch may contain features that have not yet been officially released, and may not be available in the `aws-rfdk` package installed through npm from npmjs. To work from an example of the latest release, please switch to the `release` branch. If you would like to try out unreleased features, you can stay on `mainline` and follow the instructions for building and using the `aws-rfdk` from your local repository.
 2. Install the dependencies of the sample app:
 
     ```
@@ -22,9 +22,17 @@ These instructions assume that your working directory is `examples/deadline/All-
     ```
     yarn stage
     ```
-4. Build the sample app:
-
-    ```
+4. Build the `aws-rfdk` package, and then build the sample app. There is some magic in the way yarn workspaces and lerna packages work that will link the built `aws-rfdk` from the base directory as the dependency to be used in the example's directory:
+    ```bash
+    # Navigate to the root directory of the RFDK repository (assumes you started in the example's directory)
+    pushd ../../../..
+    # Enter the Docker container, run the build, and then exit
+    ./scripts/rfdk_build_environment.sh
+    ./build.sh
+    exit
+    # Navigate back to the example directory
+    popd
+    # Run the example's build
     yarn build
     ```
 5. Deploy all the stacks in the sample app:

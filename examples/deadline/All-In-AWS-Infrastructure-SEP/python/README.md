@@ -18,6 +18,20 @@ These instructions assume that your working directory is `examples/deadline/All-
     ```bash
     pip install -r requirements.txt
     ```
+3.  If working on the `release` branch, this step can be skipped. If working on `mainline`, navigate to the base directory where the build and packaging scripts are, then run them and install the result over top of the `aws-rfdk` version that was installed in the previous step:
+    ```bash
+    # Navigate to the root directory of the RFDK repository
+    pushd ../../../..
+    # Enter the Docker container to run the build and pack scripts
+    ./scripts/rfdk_build_environment.sh
+    ./build.sh
+    ./pack.sh
+    # Exit the Docker container
+    exit
+    # Navigate back to the example directory
+    popd
+    pip install ../../../../dist/python/aws-rfdk-<version>.tar.gz
+    ```
 3. Stage the Docker recipes for `RenderQueue`:
 
     ```bash
