@@ -55,6 +55,7 @@ import {
 } from './render-queue';
 import { Version } from './version';
 import {
+  IInstanceUserDataProvider,
   WorkerInstanceConfiguration,
   WorkerSettings,
 } from './worker-configuration';
@@ -189,6 +190,12 @@ export interface WorkerInstanceFleetProps extends WorkerSettings {
    * @default The default devices of the provided ami will be used.
    */
   readonly blockDevices?: BlockDevice[];
+
+  /**
+   * An optional provider of user data commands to be injected at various points during the Worker configuration lifecycle.
+   * You can provide a subclass of InstanceUserDataProvider with the methods overridden as desired.
+   */
+  readonly userDataProvider?: IInstanceUserDataProvider;
 }
 
 /**
@@ -449,6 +456,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
       },
       renderQueue: props.renderQueue,
       workerSettings: props,
+      userDataProvider: props.userDataProvider,
     });
 
     // Updating the user data with successful cfn-signal commands.
