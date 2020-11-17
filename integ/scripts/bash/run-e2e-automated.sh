@@ -9,7 +9,7 @@
 # ROLE_SESSION_NAME - A name for the assume role session
 # ROLE_EXTERNAL_ID - The external ID matching the assume role
 
-set -euo pipefail
+set -euxo pipefail
 
 refreshcreds() {
     echo "Refreshing credentials"
@@ -32,12 +32,16 @@ refreshcreds() {
 
 # Basic integ test configuration
 export SKIP_TEST_CONFIG=true
-export DEADLINE_VERSION="10.1.11.5"
+export DEADLINE_VERSION="10.1.10.6"
 
 # Setup the hook that runs before any interactions with AWS to refresh the credentials being used.
 # There is a 1 hour timeout on these credentials that cannot be adjusted.
 export -f refreshcreds
 export PRE_AWS_INTERACTION_HOOK=refreshcreds
+
+# Don't commit these
+export SKIP_deadline_01_repository_TEST=true
+export SKIP_deadline_02_renderQueue_TEST=true
 
 refreshcreds
 
