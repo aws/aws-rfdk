@@ -19,7 +19,7 @@ if [[ ! "${SKIP_TEST_CHECK}" = "true" ]]; then
 
   # Load utility functions
   source "../common/scripts/bash/deploy-utils.sh"
-    
+
   if [[ $OPTION != '--destroy-only' ]]; then
     deploy_component_stacks $COMPONENT_NAME
     execute_component_test $COMPONENT_NAME

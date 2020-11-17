@@ -45,17 +45,22 @@ export class RenderStruct extends Construct {
     }
 
     const host = 'renderqueue';
-    const zoneName = Stack.of(this).stackName + '.local';
+    const suffix = '.local';
+    // We are calculating the max length we can add to the common name to keep it under the maximum allowed 64
+    // characters and then taking a slice of the stack name so we don't get an error when creating the certificate
+    // with openssl
+    const maxLength = 64 - host.length - '.'.length - suffix.length - 1;
+    const zoneName = Stack.of(this).stackName.slice(0, maxLength) + suffix;
 
     let trafficEncryption: any;
     let hostname: any;
     let cacert: any;
 
     // If configured for HTTPS, the render queue requires a private domain and a signed certificate for authentication
-    if( props.protocol === 'https' ){
+    if( props.protocol === 'https' ) {
       cacert = new X509CertificatePem(this, 'CaCert' + props.integStackTag, {
         subject: {
-          cn: 'ca.renderfarm.local',
+          cn: 'ca.renderfarm' + suffix,
         },
       });
 
@@ -75,10 +80,9 @@ export class RenderStruct extends Construct {
           vpc,
           zoneName: zoneName,
         }),
-        hostname: 'renderqueue',
+        hostname: host,
       };
-    }
-    else {
+    } else {
       trafficEncryption = undefined;
       hostname = undefined;
     }
@@ -99,6 +103,5 @@ export class RenderStruct extends Construct {
     this.renderQueue = new RenderQueue(this, 'RenderQueue', renderQueueProps);
 
     this.cert = cacert;
-
   }
 }

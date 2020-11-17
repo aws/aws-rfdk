@@ -4,7 +4,6 @@
  */
 
 import * as CloudFormation from 'aws-sdk/clients/cloudformation';
-import * as AWS from 'aws-sdk/global';
 import awaitSsmCommand from '../../common/functions/awaitSsmCommand';
 
 // Name of testing stack is derived from env variable to ensure uniqueness
@@ -14,17 +13,13 @@ const cloudformation = new CloudFormation();
 
 const bastionRegex = /bastionId/;
 const rqRegex = /renderQueueEndpointWF(\d)/;
-const certRegex = /CertSecretARNWF(\d)/;
 
 const testCases: Array<Array<any>> = [
   [ 'Linux Worker HTTP mode', 1 ],
-  [ 'Linux Worker HTTPS (TLS) mode', 2 ],
-  [ 'Windows Worker HTTP mode', 3 ],
-  [ 'Windows Worker HTTPS (TLS) mode', 4 ],
+  [ 'Windows Worker HTTP mode', 2 ],
 ];
 let bastionId: any;
 let renderQueueEndpoints: Array<string> = [];
-let secretARNs: Array<string> = [];
 
 beforeAll( () => {
   // Query the TestingStack and await its outputs to use as test inputs
@@ -49,10 +44,6 @@ beforeAll( () => {
               var testId = rqRegex.exec(outputKey)![1];
               renderQueueEndpoints[+testId] = outputValue;
               break;
-            case certRegex.test(outputKey):
-              var testId = certRegex.exec(outputKey)![1];
-              secretARNs[+testId] = outputValue;
-              break;
             default:
               break;
           }
@@ -64,48 +55,6 @@ beforeAll( () => {
 });
 
 describe.each(testCases)('Deadline WorkerFleet tests (%s)', (_, id) => {
-
-  beforeAll( () => {
-    if(secretARNs[id]) {
-      //If the secretARN has been provided for the auth certificate, this command will fetch it to the instance before continuing the tests
-      var params = {
-        DocumentName: 'AWS-RunShellScript',
-        Comment: 'Execute Test Script fetch-cert.sh',
-        InstanceIds: [bastionId],
-        Parameters: {
-          commands: [
-            'sudo -i',
-            'su - ec2-user >/dev/null',
-            'cd ~ec2-user',
-            './utilScripts/fetch-cert.sh \'' + AWS.config.region + '\' \'' + secretARNs[id] + '\'',
-          ],
-        },
-      };
-      return awaitSsmCommand(bastionId, params);
-    }
-    else {
-      return;
-    }
-  });
-
-  // This removes the certification file used to authenticate to the render queue
-  afterAll( () => {
-    var params = {
-      DocumentName: 'AWS-RunShellScript',
-      Comment: 'Execute Test Script cleanup-cert.sh',
-      InstanceIds: [bastionId],
-      Parameters: {
-        commands: [
-          'sudo -i',
-          'su - ec2-user >/dev/null',
-          'cd ~ec2-user',
-          './utilScripts/cleanup-cert.sh',
-        ],
-      },
-    };
-    return awaitSsmCommand(bastionId, params);
-  });
-
   describe('Worker node tests', () => {
 
     // Before testing the render queue, send a command to configure the Deadline client to use that endpoint
@@ -183,8 +132,8 @@ describe.each(testCases)('Deadline WorkerFleet tests (%s)', (_, id) => {
       [4,'pool','-pool testpool'],
     ];
 
-    // eslint-disable-next-line no-shadow
-    test.each(setConfigs)(`WF-${id}-%i: Workers can be assigned jobs submitted to a %s`, async (__, name, arg) => {
+    // eslint-disable-next-line @typescript-eslint/no-shadow
+    test.each(setConfigs)(`WF-${id}-%i: Workers can be assigned jobs submitted to a %s`, async (_, name, arg) => {
       /**********************************************************************************************************
        * TestID:          WF-3, WF-4
        * Description:     Confirm that jobs sent to a specified group/pool/region are routed to a worker in that set

@@ -12,9 +12,10 @@
 
 set -euxo pipefail
 
-SCRIPT_DIR=$(dirname $0)
-SCRIPT_DIR=$(readlink -f $SCRIPT_DIR)
+SCRIPT_DIR=$(dirname "$0")
+SCRIPT_DIR=$(readlink -f "$SCRIPT_DIR")
 ROOT_DIR=$(readlink -f "${SCRIPT_DIR}/..")
+TESTS_DIR=$(readlink -f "$ROOT_DIR/integ")
 
 # Determine the ECR region we want to use
 set +e
@@ -50,6 +51,12 @@ PULL_AL_FROM_ECR_ARGS=(
     "2"      # required for building Deadline docker images for running integration tests
 )
 /bin/bash ${SCRIPT_DIR}/pull_amazonlinux_from_ecr.sh "${PULL_AL_FROM_ECR_ARGS[@]}"
+
+# Run integ tests
+/bin/bash ${ROOT_DIR}/build.sh
+pushd $TESTS_DIR
+yarn run e2e-automated
+popd
 
 # Build and publish lambda layers
 /bin/bash ${SCRIPT_DIR}/publish-all-lambda-layers.sh
