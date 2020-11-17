@@ -1,0 +1,31 @@
+{
+  "name": "all-in-farm-sep",
+  "version": "0.20.0",
+  "bin": {
+    "app": "bin/app.js"
+  },
+  "config": {
+    "deadline_ver": "10.1",
+    "stage_path": "stage"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build+test": "yarn build && yarn test",
+    "cdk": "cdk",
+    "clean": "tsc --build --clean && bash ./clean.sh",
+    "stage": "stage-deadline ${npm_package_config_deadline_ver} --output ${npm_package_config_stage_path}",
+    "test": "echo 'no tests to run'",
+    "watch": "tsc -w"
+  },
+  "devDependencies": {
+    "@types/node": "^14.6.1",
+    "aws-cdk": "1.72.0",
+    "ts-node": "^9.0.0",
+    "typescript": "~3.9.7"
+  },
+  "dependencies": {
+    "@aws-cdk/core": "1.72.0",
+    "aws-rfdk": "0.20.0",
+    "source-map-support": "^0.5.19"
+  }
+}
