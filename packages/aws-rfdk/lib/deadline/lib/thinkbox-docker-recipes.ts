@@ -17,16 +17,16 @@ import {
 /**
  * An enum that is associated with AWS Thinkbox managed recipes that are available in the stage manifest.
  */
-enum ThinkboxManagedDeadlineDockerRecipes {
+export enum ThinkboxManagedDeadlineDockerRecipes {
   /**
    * The Docker Image Asset for the Remote Connection Server.
    */
-  RemoteConnectionServer = 'rcs',
+  REMOTE_CONNECTION_SERVER = 'rcs',
 
   /**
    * The Docker Image Asset for the License Forwarder.
    */
-  LicenseForwarder = 'license-forwarder',
+  LICENSE_FORWARDER = 'license-forwarder',
 }
 
 /**
@@ -106,7 +106,7 @@ export class ThinkboxDockerRecipes extends Construct {
 
     this.version  = props.stage.getVersion(this, 'Version');
 
-    for (const recipe of [ThinkboxManagedDeadlineDockerRecipes.RemoteConnectionServer, ThinkboxManagedDeadlineDockerRecipes.LicenseForwarder]) {
+    for (const recipe of [ThinkboxManagedDeadlineDockerRecipes.REMOTE_CONNECTION_SERVER, ThinkboxManagedDeadlineDockerRecipes.LICENSE_FORWARDER]) {
       if (!props.stage.manifest.recipes[recipe]) {
         throw new Error(`Could not find ${recipe} recipe`);
       }
@@ -115,13 +115,13 @@ export class ThinkboxDockerRecipes extends Construct {
     this.remoteConnectionServer = props.stage.imageFromRecipe(
       this,
       'RemoteConnectionServer',
-      ThinkboxManagedDeadlineDockerRecipes.RemoteConnectionServer.toString(),
+      ThinkboxManagedDeadlineDockerRecipes.REMOTE_CONNECTION_SERVER.toString(),
     );
 
     this.licenseForwarder = props.stage.imageFromRecipe(
       this,
       'LicenseForwarder',
-      ThinkboxManagedDeadlineDockerRecipes.LicenseForwarder.toString(),
+      ThinkboxManagedDeadlineDockerRecipes.LICENSE_FORWARDER.toString(),
     );
 
     this.renderQueueImages = {

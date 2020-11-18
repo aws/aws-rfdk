@@ -57,7 +57,7 @@ const env = {
 };
 let app: App;
 let certificateSecret: ISecret;
-let deadlineVersion: IVersion;
+let versionedInstallers: IVersion;
 let dependencyStack: Stack;
 let dockerContainer: DockerImageAsset;
 let images: UsageBasedLicensingImages;
@@ -77,27 +77,20 @@ describe('UsageBasedLicensing', () => {
 
     dependencyStack = new Stack(app, 'DependencyStack', { env });
 
-    deadlineVersion = VersionQuery.exact(dependencyStack, 'Version', {
-      majorVersion: 10,
-      minorVersion: 1,
-      releaseVersion: 9,
-      patchVersion: 1,
-    });
-
-    expect(deadlineVersion.linuxFullVersionString).toBeDefined();
+    versionedInstallers = new VersionQuery(dependencyStack, 'VersionQuery');
 
     vpc = new Vpc(dependencyStack, 'VPC');
     rcsImage = ContainerImage.fromDockerImageAsset(new DockerImageAsset(dependencyStack, 'Image', {
       directory: __dirname,
     }));
     renderQueue = new RenderQueue(dependencyStack, 'RQ-NonDefaultPort', {
-      version: deadlineVersion,
       vpc,
       images: { remoteConnectionServer: rcsImage },
       repository: new Repository(dependencyStack, 'RepositoryNonDefault', {
         vpc,
-        version: deadlineVersion,
+        version: versionedInstallers,
       }),
+      version: versionedInstallers,
     });
 
     lfCluster = new Cluster(dependencyStack, 'licenseForwarderCluster', {
@@ -489,11 +482,11 @@ describe('UsageBasedLicensing', () => {
       ['Cinema4D', UsageBasedLicense.forCinema4D(10), [5057, 7057]],
       ['Clarisse', UsageBasedLicense.forClarisse(10), [40500]],
       ['Houdini', UsageBasedLicense.forHoudini(10), [1715]],
-      ['Katana', UsageBasedLicense.forKatana(10), [4101, 6101]],
+      ['Katana', UsageBasedLicense.forKatana(10), [4151, 6101]],
       ['KeyShot', UsageBasedLicense.forKeyShot(10), [27003, 2703]],
       ['Krakatoa', UsageBasedLicense.forKrakatoa(10), [27000, 2700]],
       ['Mantra', UsageBasedLicense.forMantra(10), [1716]],
-      ['Maxwell', UsageBasedLicense.forMaxwell(10), [5055, 7055]],
+      ['Maxwell', UsageBasedLicense.forMaxwell(10), [5555, 7055]],
       ['Maya', UsageBasedLicense.forMaya(10), [27002, 2702]],
       ['Nuke', UsageBasedLicense.forNuke(10), [4101, 6101]],
       ['RealFlow', UsageBasedLicense.forRealFlow(10), [5055, 7055]],

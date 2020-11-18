@@ -5,20 +5,18 @@
 
 # This script configures the deadline.ini file with the Remote Server endpoints and restart the launcher service
 # Arguments:
-# $1: healthCheckPort
-# $2: comma separated groups
-# $3: comma separated pools
-# $4: region
-# $5: minimum supported deadline version
+# $1: comma separated groups
+# $2: comma separated pools
+# $3: region
+# $4: minimum supported deadline version
 
 # exit when any command fails
 set -xeuo pipefail
 
-HEALTH_CHECK_PORT="$1"
-WORKER_GROUPS=(${2//,/ })
-WORKER_POOLS=(${3//,/ })
-WORKER_REGION="$4"
-MINIMUM_SUPPORTED_DEADLINE_VERSION=$5
+WORKER_GROUPS=(${1//,/ })
+WORKER_POOLS=(${2//,/ })
+WORKER_REGION="$3"
+MINIMUM_SUPPORTED_DEADLINE_VERSION=$4
 
 # Cloud-init does not load system environment variables. Cherry-pick the
 # environment variable installed by the Deadline Client installer.
@@ -61,10 +59,6 @@ fi
 "$DEADLINE_COMMAND" -SetIniFileSetting RestartStalledSlave True
 # auto update
 "$DEADLINE_COMMAND" -SetIniFileSetting AutoUpdateOverride False
-# enabling the health check port
-"$DEADLINE_COMMAND" -SetIniFileSetting ResourceTrackerVersion V2
-# health check port
-"$DEADLINE_COMMAND" -SetIniFileSetting LauncherHealthCheckPort $HEALTH_CHECK_PORT
 # Disable S3Backed Cache
 "$DEADLINE_COMMAND" -SetIniFileSetting UseS3BackedCache False
 # Blank the S3BackedCache Url

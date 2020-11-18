@@ -4,4 +4,3 @@
  */
 
 export * from './handler';
-export * from './version-provider';

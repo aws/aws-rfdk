@@ -22,13 +22,13 @@ version=${1:-minor}
 
 cd "$(dirname "$0")"
 
-echo "Starting ${version} version bump"
+echo "Starting $version version bump"
 
 export NODE_OPTIONS="--max-old-space-size=4096 ${NODE_OPTIONS:-}"
 
 /bin/bash ./install.sh
 
-npx lerna version ${version} --yes --exact --no-git-tag-version --no-push
+npx lerna version $version --yes --exact --no-git-tag-version --no-push
 
 # Another round of install to fix package-lock.jsons
 /bin/bash ./install.sh
@@ -39,3 +39,36 @@ npx lerna version ${version} --yes --exact --no-git-tag-version --no-push
 
 # Generate CHANGELOG and create a commit
 npx standard-version --skip.tag=true --commit-all
+
+# Get the new version number to do some manual find and replaces
+new_version=$(node -p "require('./package.json').version")
+
+# Update the version of RFDK used in the python examples
+for exampleSetupPy in $(find ./examples/ -name 'setup.py')
+do
+  sed -i "s/\"aws-rfdk==[0-9]*\.[0-9]*\.[0-9]*\"/\"aws-rfdk==$new_version\"/" "$exampleSetupPy"
+done
+
+# When standard-version adds a patch release to the changelog, it makes it a smaller header size. This undoes that.
+if [[ $version == "patch" ]]; then
+  version_header="#\(## \[$new_version](.*) (.*)\)"
+  sed -i "s|$version_header|\1|" ./CHANGELOG.md
+fi
+
+version_header="# \[$new_version](.*) (.*)"
+
+# Add a section to the changelog that states the supported Deadline versions
+DEADLINE_RELEASE_NOTE_URL="https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html"
+DEADLINE_SUPPORTED_VERSIONS=$(node ./scripts/getSupportedDeadlineVersions.ts)
+MIN_DEADLINE_VERSION=$(echo "$DEADLINE_SUPPORTED_VERSIONS" | grep 'Min' | cut -f 2 -d ' ')
+MAX_DEADLINE_VERSION=$(echo "$DEADLINE_SUPPORTED_VERSIONS" | grep 'Max' | cut -f 2 -d ' ')
+deadline_version_section="\n\n\n### Officially Supported Deadline Versions\n\n* [${MIN_DEADLINE_VERSION} to ${MAX_DEADLINE_VERSION}](${DEADLINE_RELEASE_NOTE_URL})"
+sed -i "s|\($version_header\)|\1$deadline_version_section|" ./CHANGELOG.md
+
+# Add a section to the changelog that state the version of CDK being used
+cdk_version=$(node -p "require('./package.json').devDependencies['aws-cdk']")
+cdk_version_section="\n\n\n### Supported CDK Version\n\n* [$cdk_version](https://github.com/aws/aws-cdk/releases/tag/v$cdk_version)"
+sed -i "s|\($version_header\)|\1$cdk_version_section|" ./CHANGELOG.md
+
+git add .
+git commit --amend --no-edit

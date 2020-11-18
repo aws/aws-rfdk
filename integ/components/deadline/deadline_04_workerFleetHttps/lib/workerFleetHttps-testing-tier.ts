@@ -21,7 +21,7 @@ export interface WorkerFleetTestingTierProps extends TestingTierProps {
 }
 
 /**
- * Testing Tier for the Deadline WorkerFleet integration test
+ * Testing Tier for the Deadline WorkerFleet HTTPS integration test
  *
  * Creates a test bastion and configures it to connect to one or more Deadline WorkerInstanceFleet constructs for testing.
  *
@@ -42,7 +42,7 @@ export class WorkerFleetTestingTier extends TestingTier {
     const structs = props.structs;
     structs.forEach( workerStruct => {
 
-      const testSuiteId = 'WF' + (structs.indexOf(workerStruct) + 1).toString();
+      const testSuiteId = 'WFS' + (structs.indexOf(workerStruct) + 1).toString();
 
       const renderQueue = workerStruct.renderQueue;
       this.configureRenderQueue(testSuiteId, renderQueue);

@@ -29,7 +29,7 @@ class AppConfig:
         self.ubl_licenses: List[UsageBasedLicense] = []
 
         # (Optional) The name of the EC2 keypair to associate with the instances.
-        self.key_pair_name: Optional[str] = ''
+        self.key_pair_name: Optional[str] = None
 
         # Whether to use MongoDB to back the render farm.
         # If false, then we use Amazon DocumentDB to back the render farm.

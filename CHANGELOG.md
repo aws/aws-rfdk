@@ -2,6 +2,66 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.20.0](https://github.com/aws/aws-rfdk/compare/v0.19.0...v0.20.0) (2020-11-10)
+
+
+### Supported CDK Version
+
+* [1.72.0](https://github.com/aws/aws-cdk/releases/tag/v1.72.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.11.5](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **deadline:** add WorkerInstanceConfiguration construct ([#209](https://github.com/aws/aws-rfdk/issues/209)) ([bbb82b0](https://github.com/aws/aws-rfdk/commit/bbb82b0d1c68477d82e72420dc4fff7e0dd2f17b))
+* **deadline:** versionquery construct ([#175](https://github.com/aws/aws-rfdk/issues/175)) ([78dcd86](https://github.com/aws/aws-rfdk/commit/78dcd860e6743094e123c12d8e7313e4d19af5a0)), closes [#176](https://github.com/aws/aws-rfdk/issues/176)
+
+## [0.19.0](https://github.com/aws/aws-rfdk/compare/v0.18.1...v0.19.0) (2020-10-28)
+
+
+### Supported CDK Version
+
+* [1.70.0](https://github.com/aws/aws-cdk/releases/tag/v1.70.0)
+
+### Bug Fixes
+
+* **deadline:** Incorrect Usage Based Licensing ports for Katana and Maxwell. ([e648711](https://github.com/aws/aws-rfdk/commit/e6487119444ccfef6fef26f17e47260522fbc292))
+
+### [0.18.1](https://github.com/aws/aws-rfdk/compare/v0.18.0...v0.18.1) (2020-10-16)
+
+
+### Bug Fixes
+
+* **deadline:** remove requirement of aws-sdk in stage-deadline ([3b66c1b](https://github.com/aws/aws-rfdk/commit/3b66c1bd10ff604fdb8523d71097b674b6795520))
+* **deadline:** use HTTPS to download index ([c626ba9](https://github.com/aws/aws-rfdk/commit/c626ba945005c841d5f46a45c917e040248b8e93))
+
+## [0.18.0](https://github.com/aws/aws-rfdk/compare/v0.17.0...v0.18.0) (2020-10-13)
+
+
+### Features
+
+* **bin:** Add simpler way to invoke stage-deadline ([#90](https://github.com/aws/aws-rfdk/issues/90)) ([cb68992](https://github.com/aws/aws-rfdk/commit/cb68992de1c72f7997de6ff81f1b0c09e88dacaf))
+* **deadline:** add ability to add spot event plugin managed policies to RenderQueue ([#141](https://github.com/aws/aws-rfdk/issues/141)) ([b2cf9e0](https://github.com/aws/aws-rfdk/commit/b2cf9e0cd8264b106e8f705f379181beb6916653))
+* **integ:** add ability to use hook function before each component test  ([#155](https://github.com/aws/aws-rfdk/issues/155)) ([792586e](https://github.com/aws/aws-rfdk/commit/792586eeb5befedbe810ca6a91867ed006c029f0))
+* Update stage-deadline script with new version index  ([#139](https://github.com/aws/aws-rfdk/issues/139)) ([9cbf99f](https://github.com/aws/aws-rfdk/commit/9cbf99f1a1f2effbfe85ab0ecbdcaecd418056db))
+
+
+### Bug Fixes
+
+* allowing empty log group prefixes ([#87](https://github.com/aws/aws-rfdk/issues/87)) ([e53571c](https://github.com/aws/aws-rfdk/commit/e53571c7d249f8efb81517af7031f264d0baf1d2))
+* **core:** Remove encryption on lifecycle SNS Topic ([#163](https://github.com/aws/aws-rfdk/issues/163)) ([5b663ca](https://github.com/aws/aws-rfdk/commit/5b663ca17713bdaf3f27aa568a6c4242ef2ceb61)), closes [#162](https://github.com/aws/aws-rfdk/issues/162)
+* **deadline:** adding deadline version check for workers ([#100](https://github.com/aws/aws-rfdk/issues/100)) ([291f903](https://github.com/aws/aws-rfdk/commit/291f9033389157b745a0a812b4cb5584ea5fe05c))
+* **deadline:** adding version check for staging deadline ([#109](https://github.com/aws/aws-rfdk/issues/109)) ([75d0f9f](https://github.com/aws/aws-rfdk/commit/75d0f9fedce52de9dcfe73482965de923fa8941d))
+* **deadline:** Disable client SSL config for HTTP Render Queue ([#167](https://github.com/aws/aws-rfdk/issues/167)) ([fe347fa](https://github.com/aws/aws-rfdk/commit/fe347fa135d1b5008adb7990b93600f6638afc83)), closes [#165](https://github.com/aws/aws-rfdk/issues/165)
+* **examples:** bump cdk core module version ([#122](https://github.com/aws/aws-rfdk/issues/122)) ([20db251](https://github.com/aws/aws-rfdk/commit/20db251d6b8fc53f8560637818e53e47ae106b49))
+* **examples:** Fix instructions and formatting in example app README ([#111](https://github.com/aws/aws-rfdk/issues/111)) ([f050f41](https://github.com/aws/aws-rfdk/commit/f050f41500b8d005d246c37e225895f0489debda)), closes [#105](https://github.com/aws/aws-rfdk/issues/105)
+* **examples:** Minor fixes to Python example app REAME ([84b5ffa](https://github.com/aws/aws-rfdk/commit/84b5ffac9e282510c71f8e0348d24a573b2b337a))
+* **integ:** fix when PRE_COMPONENT_HOOK is undefined ([#166](https://github.com/aws/aws-rfdk/issues/166)) ([b4bfd4e](https://github.com/aws/aws-rfdk/commit/b4bfd4ec475c3e94002ac961c3b2ce6c8abd65ee)), closes [#164](https://github.com/aws/aws-rfdk/issues/164)
+
 ## [0.17.0]() (Link not implemented) (2020-08-26)
 
 

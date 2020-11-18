@@ -6,18 +6,24 @@
 // TODO: Properly import from aws-rfdk. Not ideal
 // to use a relative path here.
 import { stringLike } from '@aws-cdk/assert';
-import {CWA_ASSET_LINUX} from '../../core/test/asset-constants';
-export {CWA_ASSET_LINUX};
+import {
+  CWA_ASSET_LINUX,
+  CWA_ASSET_WINDOWS,
+  linuxDownloadRunScriptBoilerplate,
+  windowsDownloadRunScriptBoilerplate,
+} from '../../core/test/asset-constants';
+export { CWA_ASSET_LINUX, CWA_ASSET_WINDOWS, linuxDownloadRunScriptBoilerplate, windowsDownloadRunScriptBoilerplate };
 
 // configureWorker.sh
 export const CONFIG_WORKER_ASSET_LINUX = {
-  Bucket: 'AssetParameters3915f098ad4813270754c05c4e236d137da778773dfb13912fa54f387cc5929aS3BucketE7DA333E',
-  Key: 'AssetParameters3915f098ad4813270754c05c4e236d137da778773dfb13912fa54f387cc5929aS3VersionKey1C0D482D',
+  Bucket: 'AssetParameterscfbac966c059b6d160d9fe1be830ff2b4e3b3e8583d44c5e6a9ef3cc617cae52S3BucketEC9648BD',
+  Key: 'AssetParameterscfbac966c059b6d160d9fe1be830ff2b4e3b3e8583d44c5e6a9ef3cc617cae52S3VersionKey14E8A825',
 };
 
 // configureWorker.ps1
 export const CONFIG_WORKER_ASSET_WINDOWS = {
-  // NOT USED IN ANY TESTS CURRENTLY
+  Bucket: 'AssetParametersb78a6a7981377c750b127331abdcbd9f1ab312242da73512424611e965eea4c1S3BucketFDCB6ECC',
+  Key: 'AssetParametersb78a6a7981377c750b127331abdcbd9f1ab312242da73512424611e965eea4c1S3VersionKey20AFBF6B',
 };
 
 // installDeadlineRepository.sh
@@ -38,6 +44,11 @@ export const REPO_DC_ASSET = {
 };
 
 export const RQ_CONNECTION_ASSET = {
-  Bucket: 'AssetParameters63694479464606109bdbd3525fb2bef7b2abfbf196d8a132832c8e5d8a3c4796S3BucketF3231D14',
-  Key: 'AssetParameters63694479464606109bdbd3525fb2bef7b2abfbf196d8a132832c8e5d8a3c4796S3VersionKeyE501DFB8',
+  Bucket: 'AssetParameters89a29e05a2a88ec4d4a02e847e3c3c9461d0154b326492f4cad655d4ca0bda98S3BucketC22E185C',
+  Key: 'AssetParameters89a29e05a2a88ec4d4a02e847e3c3c9461d0154b326492f4cad655d4ca0bda98S3VersionKey0833D670',
+};
+
+export const VERSION_QUERY_ASSET = {
+  Bucket: stringLike('AssetParameters*S3Bucket6ABF873D'),
+  Key: stringLike('AssetParameters*S3VersionKey5A5FE29C'),
 };
