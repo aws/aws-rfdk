@@ -5,6 +5,7 @@
 
 import * as path from 'path';
 import {
+  CfnDBCluster,
   CfnDBInstance,
   IDatabaseCluster,
 } from '@aws-cdk/aws-docdb';
@@ -22,6 +23,7 @@ import {
   ISecret,
 } from '@aws-cdk/aws-secretsmanager';
 import {
+  Annotations,
   IConstruct,
   Stack,
 } from '@aws-cdk/core';
@@ -163,6 +165,10 @@ class DocDBDatabaseConnection extends DatabaseConnection {
   constructor(private readonly props: DocDBConnectionOptions) {
     super();
 
+    if (!this.isCompatibleDocDBVersion()) {
+      Annotations.of(props.database).addError('engineVersion must be 3.6.0 to be compatible with Deadline');
+    }
+
     this.containerEnvironment = {
       // The container must fetch the credentials from Secrets Manager
       DB_CREDENTIALS_URI: this.props.login.secretArn,
@@ -255,6 +261,25 @@ class DocDBDatabaseConnection extends DatabaseConnection {
     } else if (this.props.database.node.defaultChild) {
       throw new Error('The internal implementation of the AWS CDK\'s DocumentDB cluster construct may have changed. Please update to a newer RFDK for an updated implementation, or file a ticket if this is the latest release.');
     }
+  }
+
+  /**
+   * Deadline is only compatible with MongoDB 3.6. This function attempts to determine whether
+   * the given DocDB version is compatible.
+   */
+  protected isCompatibleDocDBVersion(): boolean {
+    // The defaultChild of a DocDB DatabaseCluster is a CfnDBCluster, but we only have this
+    // child if the customer didn't import from attributes. We can check the DB version by
+    // checking the value of the engineVersion property of that object.
+    if (this.props.database.node.defaultChild) {
+      const cluster = this.props.database.node.defaultChild! as CfnDBCluster;
+      if (cluster.engineVersion === '3.6.0') {
+        return true;
+      }
+      return false;
+    }
+
+    return true; // No information, assume it's compatible.
   }
 }
 
