@@ -82,6 +82,7 @@ export interface MongoDbInstanceConnectionOptions {
 export abstract class DatabaseConnection {
   /**
    * Creates a DatabaseConnection which allows Deadline to connect to Amazon DocumentDB.
+   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6.
    *
    * Resources Deployed
    * ------------------------
@@ -93,6 +94,7 @@ export abstract class DatabaseConnection {
 
   /**
    * Creates a DatabaseConnection which allows Deadline to connect to MongoDB.
+   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6.
    *
    * Resources Deployed
    * ------------------------
@@ -273,10 +275,7 @@ class DocDBDatabaseConnection extends DatabaseConnection {
     // checking the value of the engineVersion property of that object.
     if (this.props.database.node.defaultChild) {
       const cluster = this.props.database.node.defaultChild! as CfnDBCluster;
-      if (cluster.engineVersion === '3.6.0') {
-        return true;
-      }
-      return false;
+      return cluster.engineVersion?.startsWith('3.6') ?? false;
     }
 
     return true; // No information, assume it's compatible.
