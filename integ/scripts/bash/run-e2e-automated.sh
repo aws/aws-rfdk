@@ -5,6 +5,9 @@
 
 # Used as the entry point to run the tests in an automated way. This expects the following env vars to be set:
 # USER_ACCEPTS_SSPL_FOR_RFDK_TESTS - Needs to be 'true' to use these tests
+#
+# Each of these env vars must be set to assume an IAM role in a separate account.
+# If at least one is not set, an IAM role will not be assumed.
 # ROLE_ARN - The role that will be assumed to deploy the integ tests
 # ROLE_SESSION_NAME - A name for the assume role session
 # ROLE_EXTERNAL_ID - The external ID matching the assume role
@@ -30,16 +33,20 @@ refreshcreds() {
     unset CREDS
 }
 
+if [ ! -z ${ROLE_ARN+x} ] && \
+   [ ! -z ${ROLE_SESSION_NAME+x} ] && \
+   [ ! -z ${ROLE_EXTERNAL_ID+x} ]; then
+  # Setup the hook that runs before any interactions with AWS to refresh the credentials being used.
+  # There is a 1 hour timeout on these credentials that cannot be adjusted.
+  export -f refreshcreds
+  export PRE_AWS_INTERACTION_HOOK=refreshcreds
+
+  refreshcreds
+fi
+
 # Basic integ test configuration
 export SKIP_TEST_CONFIG=true
 export DEADLINE_VERSION="10.1.11.5"
-
-# Setup the hook that runs before any interactions with AWS to refresh the credentials being used.
-# There is a 1 hour timeout on these credentials that cannot be adjusted.
-export -f refreshcreds
-export PRE_AWS_INTERACTION_HOOK=refreshcreds
-
-refreshcreds
 
 ./scripts/bash/rfdk-integ-e2e.sh
 
