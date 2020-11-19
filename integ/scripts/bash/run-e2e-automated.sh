@@ -8,6 +8,7 @@
 # ROLE_ARN - The role that will be assumed to deploy the integ tests
 # ROLE_SESSION_NAME - A name for the assume role session
 # ROLE_EXTERNAL_ID - The external ID matching the assume role
+# DEADLINE_VERSION - Optional, will default to the latest Deadline version if not set, otherwise the specified version will be used.
 
 set -euo pipefail
 
@@ -32,7 +33,6 @@ refreshcreds() {
 
 # Basic integ test configuration
 export SKIP_TEST_CONFIG=true
-export DEADLINE_VERSION="10.1.11.5"
 
 # Setup the hook that runs before any interactions with AWS to refresh the credentials being used.
 # There is a 1 hour timeout on these credentials that cannot be adjusted.

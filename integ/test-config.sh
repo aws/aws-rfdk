@@ -8,7 +8,7 @@
 export USER_ACCEPTS_SSPL_FOR_RFDK_TESTS=false
 
 # Version of Deadline to install on farm resources.
-#   -  If not set here, will default to 10.1.9.2
+#   -  If not set here, will default to the latest
 export DEADLINE_VERSION
 
 # Qualified path to staged Deadline assets.
