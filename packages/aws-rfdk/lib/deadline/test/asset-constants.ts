@@ -47,8 +47,3 @@ export const RQ_CONNECTION_ASSET = {
   Bucket: 'AssetParameters89a29e05a2a88ec4d4a02e847e3c3c9461d0154b326492f4cad655d4ca0bda98S3BucketC22E185C',
   Key: 'AssetParameters89a29e05a2a88ec4d4a02e847e3c3c9461d0154b326492f4cad655d4ca0bda98S3VersionKey0833D670',
 };
-
-export const VERSION_QUERY_ASSET = {
-  Bucket: stringLike('AssetParameters*S3BucketB2F7116E'),
-  Key: stringLike('AssetParameters*S3VersionKey1795D36F'),
-};

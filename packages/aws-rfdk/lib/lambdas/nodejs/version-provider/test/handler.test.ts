@@ -3,21 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable dot-notation, no-console */
+/* eslint-disable dot-notation */
 
 import { VersionProviderResource } from '../handler';
 
 describe('VersionProviderResource', () => {
   let versionProviderResource: VersionProviderResource;
-  const consoleLog = console.log;
+
   beforeEach(() => {
     versionProviderResource = new VersionProviderResource();
-    // tslint:disable-next-line: no-empty
-    console.log = () => {};
+    jest.spyOn(console, 'log').mockReturnValue(undefined);
   });
 
   afterEach(() => {
-    console.log = consoleLog;
+    jest.clearAllMocks();
   });
 
   describe('implementsIVersionProviderResourceProperties', () => {
