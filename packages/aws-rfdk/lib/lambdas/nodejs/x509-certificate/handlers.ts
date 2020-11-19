@@ -174,6 +174,7 @@ export class X509CertificateGenerator extends X509Common {
 
     const subject = new DistinguishedName(resourceProperties.DistinguishedName);
     const passphrase = await Secret.fromArn(resourceProperties.Passphrase, this.secretsManagerClient).getValue() as string;
+    let certExpiry: number = resourceProperties.CertificateValidFor ? Number(resourceProperties.CertificateValidFor) : 1095;
     let signingCert: Certificate | undefined;
     if (resourceProperties.SigningCertificate) {
       const signCert = resourceProperties.SigningCertificate;
@@ -185,7 +186,7 @@ export class X509CertificateGenerator extends X509Common {
         : '';
       signingCert = new Certificate(cert, key, pass, certChain);
     }
-    const newCert = await Certificate.fromGenerated(subject, passphrase, signingCert);
+    const newCert = await Certificate.fromGenerated(subject, passphrase, certExpiry, signingCert);
 
     const now = new Date(Date.now());
     // timeSuffix = "<year>-<month>-<day>-<time since epoch>" -- to disambiguate secrets

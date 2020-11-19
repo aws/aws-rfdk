@@ -104,6 +104,12 @@ export interface IX509CertificateGenerate extends IX509ResourceProperties {
    * @default None; we generate a self-signed certificate
    */
   readonly SigningCertificate?: ISecretCertificate;
+
+  /**
+   * The number of days for which the generated certificate should be valid.
+   * @default 1095 days (i.e. 3 years)
+   */
+  readonly CertificateValidFor?: string;
 }
 
 /**
@@ -165,6 +171,10 @@ export function implementsIX509CertificateGenerate(value: any): boolean {
   if (!implementsIX509ResourceProperties(value)) { return false; }
   if (!implementsDistinguishedNameProps(value.DistinguishedName)) { return false; }
   if (value.SigningCertificate && !implementsISecretCertificate(value.SigningCertificate)) { return false; }
+  if (value.CertificateValidFor) {
+    if (typeof(value.CertificateValidFor) !== 'string') { return false; }
+    if (value.CertificateValidFor === '' || isNaN(Number(value.CertificateValidFor))) { return false; }
+  }
   return true;
 }
 

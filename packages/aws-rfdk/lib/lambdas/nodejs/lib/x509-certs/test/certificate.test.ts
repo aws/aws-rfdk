@@ -58,6 +58,8 @@ test('generate self-signed', async () => {
   const certVerification: string = certOut.stdout;
   const keyOut = await exec(`openssl rsa -noout -text -check -passin env:PW -in ${keyFileName}`, { env: { PW: passphrase }});
   const keyVerification = keyOut.stdout;
+  const expiryDate = new Date();
+  expiryDate.setDate(expiryDate.getDate() + 3*365);
 
   // THEN
   expect(certificate.cert).toContain('-----BEGIN CERTIFICATE-----');
@@ -71,9 +73,37 @@ test('generate self-signed', async () => {
   expect(certVerification).toContain('Subject: CN=TestCN, O=TestO, OU=TestOU');
   expect(certVerification).toContain('Version: 3 (0x2)');
   expect(certVerification).toContain('Public-Key: (2048 bit)');
+  // ex: Not After : May 22 22:13:24 2023 GMT
+  expect(certVerification).toMatch(new RegExp(`Not After.*${expiryDate.getFullYear()} GMT`));
 
   expect(keyVerification).toContain('RSA key ok');
   expect(keyVerification).toContain('Private-Key: (2048 bit)');
+});
+
+test('generate self-signed with expiry', async () => {
+  // GIVEN
+  const name: DistinguishedName = new DistinguishedName({
+    CN: 'TestCN',
+    O: 'TestO',
+    OU: 'TestOU',
+  });
+  const passphrase = 'test_passphrase';
+
+  // WHEN
+  const certificate = await Certificate.fromGenerated(name, passphrase, 5*365);
+
+  const crtFileName = path.join(tmpDir, 'ss-ca.crt');
+  const keyFileName = path.join(tmpDir, 'ss-ca.key');
+  await writeAsciiFile(crtFileName, certificate.cert);
+  await writeAsciiFile(keyFileName, certificate.key);
+  const certOut = await exec(`openssl x509 -noout -text -in ${crtFileName}`);
+  const certVerification: string = certOut.stdout;
+  const expiryDate = new Date();
+  expiryDate.setDate(expiryDate.getDate() + 5*365);
+
+  // THEN
+  // ex: Not After : May 22 22:13:24 2023 GMT
+  expect(certVerification).toMatch(new RegExp(`Not After.*${expiryDate.getFullYear()} GMT`));
 });
 
 test('generate signed certificate', async () => {
@@ -92,7 +122,7 @@ test('generate signed certificate', async () => {
   const passphrase: string = 'test_passphrase';
 
   // WHEN
-  const certificate = await Certificate.fromGenerated(certName, passphrase, ca);
+  const certificate = await Certificate.fromGenerated(certName, passphrase, undefined, ca);
 
   const crtFileName = path.join(tmpDir, 'signed.crt');
   const crtChainFileName = path.join(tmpDir, 'chain.crt');
@@ -111,6 +141,8 @@ test('generate signed certificate', async () => {
     { env: { PATH: process.env.PATH, PW: passphrase }},
   );
   const keyVerification = keyOut.stdout;
+  const expiryDate = new Date();
+  expiryDate.setDate(expiryDate.getDate() + 3*365);
 
   // THEN
   expect(certificate.cert).toContain('-----BEGIN CERTIFICATE-----');
@@ -128,6 +160,8 @@ test('generate signed certificate', async () => {
   expect(certVerification).toContain('Issuer: CN=TestCN, O=TestO, OU=TestOU');
   expect(certVerification).toContain('Subject: CN=CertCN, O=CertO, OU=CertOU');
   expect(certVerification).toContain('Public-Key: (2048 bit)');
+  // ex: Not After : May 22 22:13:24 2023 GMT
+  expect(certVerification).toMatch(new RegExp(`Not After.*${expiryDate.getFullYear()} GMT`));
 
   expect(certChainVerification).toContain('Issuer: CN=TestCN, O=TestO, OU=TestOU');
   expect(certChainVerification).toContain('Subject: CN=TestCN, O=TestO, OU=TestOU');
@@ -136,6 +170,43 @@ test('generate signed certificate', async () => {
   expect(keyVerification).toContain('RSA key ok');
   expect(keyVerification).toContain('Private-Key: (2048 bit)');
 });
+
+test('generate signed certificate with expiry', async () => {
+  // GIVEN
+  const caName: DistinguishedName = new DistinguishedName({
+    CN: 'TestCN',
+    O: 'TestO',
+    OU: 'TestOU',
+  });
+  const certName: DistinguishedName = new DistinguishedName({
+    CN: 'CertCN',
+    O: 'CertO',
+    OU: 'CertOU',
+  });
+  const ca = await Certificate.fromGenerated(caName, 'signing_passphrase');
+  const passphrase: string = 'test_passphrase';
+
+  // WHEN
+  const certificate = await Certificate.fromGenerated(certName, passphrase, 5*365, ca);
+
+  const crtFileName = path.join(tmpDir, 'signed.crt');
+  const crtChainFileName = path.join(tmpDir, 'chain.crt');
+  const keyFileName = path.join(tmpDir, 'signed.key');
+  await writeAsciiFile(crtFileName, certificate.cert);
+  if (certificate.certChain) {
+    await writeAsciiFile(crtChainFileName, certificate.certChain);
+  }
+  await writeAsciiFile(keyFileName, certificate.key);
+  const certOut = await exec(`openssl x509 -noout -text -in ${crtFileName}`);
+  const certVerification: string = certOut.stdout;
+  const expiryDate = new Date();
+  expiryDate.setDate(expiryDate.getDate() + 5*365);
+
+  // THEN
+  // ex: Not After : May 22 22:13:24 2023 GMT
+  expect(certVerification).toMatch(new RegExp(`Not After.*${expiryDate.getFullYear()} GMT`));
+});
+
 
 test('convert to PKCS #12', async () => {
   const caName: DistinguishedName = new DistinguishedName({
@@ -150,7 +221,7 @@ test('convert to PKCS #12', async () => {
   });
   const ca: Certificate = await Certificate.fromGenerated(caName, 'signing_passphrase');
   const passphrase: string = 'test_passphrase';
-  const certificate: Certificate = await Certificate.fromGenerated(certName, passphrase, ca);
+  const certificate: Certificate = await Certificate.fromGenerated(certName, passphrase, undefined, ca);
   const pkcs12Passphrase: string = 'test_passphrase';
 
   // WHEN

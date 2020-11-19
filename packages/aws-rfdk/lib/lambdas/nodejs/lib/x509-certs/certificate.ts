@@ -31,6 +31,7 @@ export class Certificate implements ICertificate {
   public static async fromGenerated(
     subject: DistinguishedName,
     passphrase: string,
+    certValidFor?: number,
     signingCertificate?: Certificate,
   ): Promise<Certificate> {
     const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'tmp.'));
@@ -39,11 +40,11 @@ export class Certificate implements ICertificate {
       let key: string;
       let certChain: string;
       if (!signingCertificate) {
-        [cert, key] = await Certificate.generateSelfSigned(tmpDir, subject, passphrase);
+        [cert, key] = await Certificate.generateSelfSigned(tmpDir, subject, passphrase, certValidFor ?? 1095);
         // certChain cannot be left undefined. CFN expects that attributes will *always* have values.
         certChain = '';
       } else {
-        [cert, key, certChain] = await Certificate.generateSigned(tmpDir, subject, passphrase, signingCertificate);
+        [cert, key, certChain] = await Certificate.generateSigned(tmpDir, subject, passphrase, certValidFor ?? 1095, signingCertificate);
       }
       return new Certificate(cert, key, passphrase, certChain);
     } finally {
@@ -93,6 +94,7 @@ export class Certificate implements ICertificate {
     tmpDir: string,
     subject: DistinguishedName,
     passphrase: string,
+    certValidFor: number,
   ): Promise<[string, string]> {
     const crtFile: string = path.join(tmpDir, 'crt');
     const keyFile: string = path.join(tmpDir, 'key');
@@ -100,7 +102,7 @@ export class Certificate implements ICertificate {
       'openssl req -x509 ' +
       '-passout env:CERT_PASSPHRASE ' +
       '-newkey rsa:2048 ' +
-      '-days 1095 ' +
+      `-days ${certValidFor} ` +
       '-extensions v3_ca ' +
       `-keyout ${keyFile} -out ${crtFile} ` +
       `-subj ${subject.toString()}`;
@@ -118,6 +120,7 @@ export class Certificate implements ICertificate {
     tmpDir: string,
     subject: DistinguishedName,
     passphrase: string,
+    certValidFor: number,
     signingCertificate: Certificate,
   ): Promise<[string, string, string]> {
     const signingCertFile = path.join(tmpDir, 'signing.crt');
@@ -134,13 +137,13 @@ export class Certificate implements ICertificate {
             'openssl req ' +
             '-passout env:CERT_PASSPHRASE ' +
             '-newkey rsa:2048 ' +
-            '-days 1095 ' +
+            `-days ${certValidFor} ` +
             `-out ${csrFile} -keyout ${keyFile} ` +
             `-subj ${subject.toString()}`;
     const crtCreate =
             'openssl x509 -sha256 -req ' +
             '-passin env:SIGNING_PASSPHRASE ' +
-            '-days 1095 ' +
+            `-days ${certValidFor} ` +
             `-in ${csrFile} ` +
             `-CA ${signingCertFile} -CAkey ${signingKeyFile} -CAcreateserial ` +
             `-out ${crtFile}`;
