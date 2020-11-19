@@ -44,7 +44,8 @@ import {
 export interface DocDBConnectionOptions {
 
   /**
-   * The Document DB Cluster this connection is for
+   * The Document DB Cluster this connection is for.
+   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6.
    */
   readonly database: IDatabaseCluster;
 
@@ -61,6 +62,7 @@ export interface DocDBConnectionOptions {
 export interface MongoDbInstanceConnectionOptions {
   /**
    * The MongoDB database to connect to.
+   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6.
    */
   readonly database: IMongoDb;
 
