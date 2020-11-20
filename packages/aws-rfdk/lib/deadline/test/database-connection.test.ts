@@ -31,6 +31,7 @@ import {
 import {
   PrivateHostedZone,
 } from '@aws-cdk/aws-route53';
+import { Secret } from '@aws-cdk/aws-secretsmanager';
 import {
   Duration,
   Stack,
@@ -77,6 +78,7 @@ describe('DocumentDB', () => {
       backup: {
         retention: Duration.days(15),
       },
+      engineVersion: '3.6.0',
     });
 
     if (!database.secret) {
@@ -262,6 +264,141 @@ describe('DocumentDB', () => {
     }).toThrowError('Connecting to the Deadline Database is currently only supported for Linux.');
   });
 
+});
+
+describe('DocumentDB Version Checks', () => {
+  let stack: Stack;
+  let vpc: Vpc;
+  beforeEach(() => {
+    stack = new Stack();
+    vpc = new Vpc(stack, 'VPC');
+  });
+
+  test('Compatible version', () => {
+    // GIVEN
+    const database = new DatabaseCluster(stack, 'DbCluster', {
+      masterUser: {
+        username: 'master',
+      },
+      instanceProps: {
+        instanceType: InstanceType.of(
+          InstanceClass.R5,
+          InstanceSize.XLARGE,
+        ),
+        vpc,
+        vpcSubnets: {
+          onePerAz: true,
+          subnetType: SubnetType.PRIVATE,
+        },
+      },
+      backup: {
+        retention: Duration.days(15),
+      },
+      engineVersion: '3.6.0',
+    });
+
+    // WHEN
+    DatabaseConnection.forDocDB({database, login: database.secret!});
+
+    // THEN
+    expect(database.node.metadata.length).toBe(0);
+  });
+
+  test('When from attributes', () => {
+    // GIVEN
+    const sg = new SecurityGroup(stack, 'SG', {
+      vpc,
+    });
+    const secret = new Secret(stack, 'Secret');
+    const database = DatabaseCluster.fromDatabaseClusterAttributes(stack, 'DbCluster', {
+      clusterEndpointAddress: '1.2.3.4',
+      clusterIdentifier: 'foo',
+      instanceEndpointAddresses: [ '1.2.3.5' ],
+      instanceIdentifiers: [ 'i0' ],
+      port: 27001,
+      readerEndpointAddress: '1.2.3.6',
+      securityGroup: sg,
+    });
+
+    // WHEN
+    DatabaseConnection.forDocDB({database, login: secret});
+
+    // THEN
+    expect(database.node.metadata.length).toBe(0);
+  });
+
+  test('No engineVersion given', () => {
+    // GIVEN
+    const database = new DatabaseCluster(stack, 'DbCluster', {
+      masterUser: {
+        username: 'master',
+      },
+      instanceProps: {
+        instanceType: InstanceType.of(
+          InstanceClass.R5,
+          InstanceSize.XLARGE,
+        ),
+        vpc,
+        vpcSubnets: {
+          onePerAz: true,
+          subnetType: SubnetType.PRIVATE,
+        },
+      },
+      backup: {
+        retention: Duration.days(15),
+      },
+    });
+
+    // WHEN
+    DatabaseConnection.forDocDB({database, login: database.secret!});
+
+    // THEN
+    expect(database.node.metadata).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'aws:cdk:error',
+          data: 'engineVersion must be 3.6.0 to be compatible with Deadline',
+        }),
+      ]),
+    );
+  });
+
+  test('engineVersion not 3.6.0', () => {
+    // GIVEN
+    const database = new DatabaseCluster(stack, 'DbCluster', {
+      masterUser: {
+        username: 'master',
+      },
+      instanceProps: {
+        instanceType: InstanceType.of(
+          InstanceClass.R5,
+          InstanceSize.XLARGE,
+        ),
+        vpc,
+        vpcSubnets: {
+          onePerAz: true,
+          subnetType: SubnetType.PRIVATE,
+        },
+      },
+      backup: {
+        retention: Duration.days(15),
+      },
+      engineVersion: '4.0.0',
+    });
+
+    // WHEN
+    DatabaseConnection.forDocDB({database, login: database.secret!});
+
+    // THEN
+    expect(database.node.metadata).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'aws:cdk:error',
+          data: 'engineVersion must be 3.6.0 to be compatible with Deadline',
+        }),
+      ]),
+    );
+  });
 });
 
 describe('MongoDB', () => {

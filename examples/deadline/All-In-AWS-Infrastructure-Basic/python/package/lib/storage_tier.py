@@ -130,6 +130,7 @@ class StorageTierDocDB(StorageTier):
             # It is recommended that when creating your render farm you use at least 2 instances for redundancy.
             instances=1,
             master_user=Login(username='adminuser'),
+            engine_version='3.6.0',
             backup=BackupProps(
                 # We recommend setting the retention of your backups to 15 days
                 # for security reasons. The default retention is just one day.

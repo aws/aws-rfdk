@@ -5,6 +5,7 @@
 
 import * as path from 'path';
 import {
+  CfnDBCluster,
   CfnDBInstance,
   IDatabaseCluster,
 } from '@aws-cdk/aws-docdb';
@@ -22,6 +23,7 @@ import {
   ISecret,
 } from '@aws-cdk/aws-secretsmanager';
 import {
+  Annotations,
   IConstruct,
   Stack,
 } from '@aws-cdk/core';
@@ -42,7 +44,8 @@ import {
 export interface DocDBConnectionOptions {
 
   /**
-   * The Document DB Cluster this connection is for
+   * The Document DB Cluster this connection is for.
+   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6.
    */
   readonly database: IDatabaseCluster;
 
@@ -59,6 +62,7 @@ export interface DocDBConnectionOptions {
 export interface MongoDbInstanceConnectionOptions {
   /**
    * The MongoDB database to connect to.
+   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6.
    */
   readonly database: IMongoDb;
 
@@ -80,6 +84,7 @@ export interface MongoDbInstanceConnectionOptions {
 export abstract class DatabaseConnection {
   /**
    * Creates a DatabaseConnection which allows Deadline to connect to Amazon DocumentDB.
+   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6.
    *
    * Resources Deployed
    * ------------------------
@@ -91,6 +96,7 @@ export abstract class DatabaseConnection {
 
   /**
    * Creates a DatabaseConnection which allows Deadline to connect to MongoDB.
+   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6.
    *
    * Resources Deployed
    * ------------------------
@@ -162,6 +168,10 @@ class DocDBDatabaseConnection extends DatabaseConnection {
 
   constructor(private readonly props: DocDBConnectionOptions) {
     super();
+
+    if (!this.isCompatibleDocDBVersion()) {
+      Annotations.of(props.database).addError('engineVersion must be 3.6.0 to be compatible with Deadline');
+    }
 
     this.containerEnvironment = {
       // The container must fetch the credentials from Secrets Manager
@@ -255,6 +265,22 @@ class DocDBDatabaseConnection extends DatabaseConnection {
     } else if (this.props.database.node.defaultChild) {
       throw new Error('The internal implementation of the AWS CDK\'s DocumentDB cluster construct may have changed. Please update to a newer RFDK for an updated implementation, or file a ticket if this is the latest release.');
     }
+  }
+
+  /**
+   * Deadline is only compatible with MongoDB 3.6. This function attempts to determine whether
+   * the given DocDB version is compatible.
+   */
+  protected isCompatibleDocDBVersion(): boolean {
+    // The defaultChild of a DocDB DatabaseCluster is a CfnDBCluster, but we only have this
+    // child if the customer didn't import from attributes. We can check the DB version by
+    // checking the value of the engineVersion property of that object.
+    if (this.props.database.node.defaultChild) {
+      const cluster = this.props.database.node.defaultChild! as CfnDBCluster;
+      return cluster.engineVersion?.startsWith('3.6') ?? false;
+    }
+
+    return true; // No information, assume it's compatible.
   }
 }
 

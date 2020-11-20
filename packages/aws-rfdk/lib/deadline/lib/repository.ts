@@ -288,6 +288,7 @@ export interface RepositoryProps {
 
   /**
    * Specify the database where the deadline schema needs to be initialized.
+   * Note that Deadline supports only databases that are compatible with MongoDB 3.6.
    *
    * @default A Document DB Cluster will be created with a single db.r5.large instance.
    */
@@ -490,6 +491,7 @@ export class Repository extends Construct implements IRepository {
       const instances = props.documentDbInstanceCount ?? Repository.DEFAULT_NUM_DOCDB_INSTANCES;
       const dbCluster = new DatabaseCluster(this, 'DocumentDatabase', {
         masterUser: {username: 'DocDBUser'},
+        engineVersion: '3.6.0',
         instanceProps: {
           instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
           vpc: props.vpc,
