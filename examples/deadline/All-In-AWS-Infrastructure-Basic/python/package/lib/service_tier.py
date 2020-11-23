@@ -175,3 +175,5 @@ class ServiceTier(Stack):
                 render_queue=self.render_queue,
                 certificate_secret=ubl_cert_secret,
             )
+        else:
+            self.ubl_licensing = None

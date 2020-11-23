@@ -579,7 +579,6 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
     this.service.node.addDependency(this.asg);
 
     this.node.defaultChild = this.service;
-    this.connections.allowToDefaultPort(props.renderQueue);
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
@@ -594,10 +593,12 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
   public grantPortAccess(workerFleet: IWorkerFleet, licenses: UsageBasedLicense[]) {
     licenses.forEach(license => {
       license.ports.forEach(port => {
-        this.connections.allowFrom(workerFleet, port);
+        // this.connections.allowFrom(workerFleet, port);
+        workerFleet.connections.allowTo(this, port);
       });
     });
-    this.connections.allowFrom(workerFleet, Port.tcp(UsageBasedLicensing.LF_PORT));
+    // this.connections.allowFrom(workerFleet, Port.tcp(UsageBasedLicensing.LF_PORT));
+    workerFleet.connections.allowTo(this, Port.tcp(UsageBasedLicensing.LF_PORT));
   }
 
   /**

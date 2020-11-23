@@ -13,6 +13,8 @@ import * as cdk from '@aws-cdk/core';
 import {
   IRenderQueue,
   IWorkerFleet,
+  UsageBasedLicense,
+  UsageBasedLicensing,
   WorkerInstanceFleet,
 } from 'aws-rfdk/deadline';
 import {
@@ -48,6 +50,16 @@ export interface ComputeTierProps extends cdk.StackProps {
    * The bastion host to allow connection to Worker nodes.
    */
   readonly bastion?: BastionHostLinux;
+
+  /**
+   * Licensing source for UBL for worker nodes.
+   */
+  readonly usageBasedLicensing?: UsageBasedLicensing;
+
+  /**
+   * List of the usage-based liceses that the worker nodes will be served.
+   */
+  readonly licenses?: UsageBasedLicense[];
 }
 
 /**
@@ -89,6 +101,10 @@ export class ComputeTier extends cdk.Stack {
       healthMonitor: this.healthMonitor,
       keyName: props.keyPairName,
     });
+
+    if (props.usageBasedLicensing && props.licenses) {
+      props.usageBasedLicensing.grantPortAccess(this.workerFleet, props.licenses);
+    }
 
     if (props.bastion) {
       this.workerFleet.connections.allowFrom(props.bastion, Port.tcp(22));
