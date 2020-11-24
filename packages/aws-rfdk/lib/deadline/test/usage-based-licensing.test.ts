@@ -420,8 +420,7 @@ describe('UsageBasedLicensing', () => {
 
     test('configures UBL certificates', () => {
       // GIVEN
-      const ubl =       // WHEN
-      new UsageBasedLicensing(stack, 'UBL', {
+      const ubl = new UsageBasedLicensing(stack, 'UBL', {
         certificateSecret,
         images,
         licenses,
@@ -627,9 +626,6 @@ describe('UsageBasedLicensing', () => {
 
       // THEN
       ports.forEach( port => {
-        // const ublAsgSecurityGroup = ubl.asg.connections.securityGroups[0].node.defaultChild;
-        // const ublAsgSecurityGroupLogicalId = stack.getLogicalId(ublAsgSecurityGroup as CfnElement);
-
         expectCDK(workerStack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
           IpProtocol: 'tcp',
           ToPort: port,
@@ -665,7 +661,6 @@ describe('UsageBasedLicensing', () => {
         renderQueue,
         vpc,
       });
-      // const ublAsgSg = ubl.asg.connections.securityGroups[0].node.defaultChild as CfnElement;
 
       expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
         IpProtocol: 'tcp',

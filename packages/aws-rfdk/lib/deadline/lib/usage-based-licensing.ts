@@ -593,11 +593,9 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
   public grantPortAccess(workerFleet: IWorkerFleet, licenses: UsageBasedLicense[]) {
     licenses.forEach(license => {
       license.ports.forEach(port => {
-        // this.connections.allowFrom(workerFleet, port);
         workerFleet.connections.allowTo(this, port);
       });
     });
-    // this.connections.allowFrom(workerFleet, Port.tcp(UsageBasedLicensing.LF_PORT));
     workerFleet.connections.allowTo(this, Port.tcp(UsageBasedLicensing.LF_PORT));
   }
 
