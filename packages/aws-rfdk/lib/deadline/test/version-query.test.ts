@@ -18,8 +18,6 @@ import {
   VersionQuery,
 } from '../lib';
 
-import { VERSION_QUERY_ASSET } from './asset-constants';
-
 test('VersionQuery constructor full version', () => {
   const app = new App();
   const stack = new Stack(app, 'Stack');
@@ -57,44 +55,6 @@ test('VersionQuery constructor full version', () => {
     ],
   }));
   expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function', {
-    Code: {
-      S3Bucket: {
-        Ref: VERSION_QUERY_ASSET.Bucket,
-      },
-      S3Key: {
-        'Fn::Join': [
-          '',
-          [
-            {
-              'Fn::Select': [
-                0,
-                {
-                  'Fn::Split': [
-                    '||',
-                    {
-                      Ref: VERSION_QUERY_ASSET.Key,
-                    },
-                  ],
-                },
-              ],
-            },
-            {
-              'Fn::Select': [
-                1,
-                {
-                  'Fn::Split': [
-                    '||',
-                    {
-                      Ref: VERSION_QUERY_ASSET.Key,
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        ],
-      },
-    },
     Handler: 'version-provider.handler',
     Role: {
       'Fn::GetAtt': [

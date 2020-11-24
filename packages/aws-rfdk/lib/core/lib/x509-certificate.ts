@@ -36,8 +36,8 @@ import {
   Token,
 } from '@aws-cdk/core';
 
-import { ARNS } from '../lambdas/lambdaLayerVersionArns';
-import { IX509CertificateEncodePkcs12, IX509CertificateGenerate } from '../lambdas/nodejs/x509-certificate';
+import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
+import { IX509CertificateEncodePkcs12, IX509CertificateGenerate } from '../../lambdas/nodejs/x509-certificate';
 
 /**
  * The identification for a self-signed CA or Certificate.
@@ -258,7 +258,7 @@ export class X509CertificatePem extends X509CertificateBase implements IX509Cert
 
   constructor(scope: Construct, id: string, props: X509CertificatePemProps) {
     super(scope, id, {
-      lambdaCode: Code.fromAsset(join(__dirname, '..', 'lambdas', 'nodejs')),
+      lambdaCode: Code.fromAsset(join(__dirname, '..', '..', 'lambdas', 'nodejs')),
       lambdaHandler: 'x509-certificate.generate',
       encryptionKey: props.encryptionKey,
     });
@@ -409,7 +409,7 @@ export class X509CertificatePkcs12 extends X509CertificateBase implements IX509C
 
   constructor(scope: Construct, id: string, props: X509CertificatePkcs12Props) {
     super(scope, id, {
-      lambdaCode: Code.fromAsset(join(__dirname, '..', 'lambdas', 'nodejs')),
+      lambdaCode: Code.fromAsset(join(__dirname, '..', '..', 'lambdas', 'nodejs')),
       lambdaHandler: 'x509-certificate.convert',
       encryptionKey: props.encryptionKey,
     });

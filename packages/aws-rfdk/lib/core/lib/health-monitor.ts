@@ -400,7 +400,7 @@ export class HealthMonitor extends HealthMonitorBase {
     this.alarmTopicAction = new SnsAction(this.unhealthyFleetActionTopic);
 
     this.unhealthyFleetActionLambda = new SingletonFunction(this, 'UnhealthyFleetAction', {
-      code: Code.fromAsset(path.join(__dirname, '../lambdas/nodejs/unhealthyFleetAction')),
+      code: Code.fromAsset(path.join(__dirname, '..', '..', 'lambdas', 'nodejs', 'unhealthyFleetAction')),
       runtime: Runtime.NODEJS_12_X,
       handler: 'index.handler',
       lambdaPurpose: 'unhealthyFleetTermination',

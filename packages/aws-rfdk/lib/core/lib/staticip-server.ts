@@ -317,7 +317,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
     let singletonPreExists: boolean = true;
     let eventHandler = stack.node.tryFindChild(functionUniqueId) as LambdaFunction;
     if (!eventHandler) {
-      const handlerCode = Code.fromAsset(path.join(__dirname, '..', 'lambdas', 'nodejs', 'asg-attach-eni'), {
+      const handlerCode = Code.fromAsset(path.join(__dirname, '..', '..', 'lambdas', 'nodejs', 'asg-attach-eni'), {
         exclude: ['**/*', '!index*'],
       });
       eventHandler = new LambdaFunction(stack, functionUniqueId, {

@@ -24,7 +24,7 @@ import {
 
 import {
   IVersionProviderResourceProperties,
-} from '../../core/lambdas/nodejs/version-provider';
+} from '../../lambdas/nodejs/version-provider';
 
 import {
   IVersion,
@@ -114,7 +114,7 @@ export class VersionQuery extends VersionQueryBase {
   constructor(scope: Construct, id: string, props?: VersionQueryProps) {
     super(scope, id);
 
-    const lambdaCode = Code.fromAsset(join(__dirname, '../..', 'core', 'lambdas', 'nodejs'));
+    const lambdaCode = Code.fromAsset(join(__dirname, '..', '..', 'lambdas', 'nodejs'));
 
     const lambdaFunc = new SingletonFunction(this, 'VersionProviderFunction', {
       uuid: '2e19e243-16ee-4d1a-a3c9-18d35eddd446',

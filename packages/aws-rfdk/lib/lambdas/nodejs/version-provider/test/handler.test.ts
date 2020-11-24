@@ -9,8 +9,14 @@ import { VersionProviderResource } from '../handler';
 
 describe('VersionProviderResource', () => {
   let versionProviderResource: VersionProviderResource;
+
   beforeEach(() => {
     versionProviderResource = new VersionProviderResource();
+    jest.spyOn(console, 'log').mockReturnValue(undefined);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('implementsIVersionProviderResourceProperties', () => {

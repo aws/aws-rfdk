@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable no-console */
 /* eslint-disable dot-notation */
 
 import * as AWS from 'aws-sdk';
@@ -151,14 +150,12 @@ describe('readLoginCredentials', () => {
 });
 
 describe('mongoLogin', () => {
-  const consoleLog = console.log;
   beforeEach(() => {
-    // tslint:disable-next-line: no-empty
-    console.log = () => {};
+    jest.spyOn(console, 'log').mockReturnValue(undefined);
   });
 
   afterEach(() => {
-    console.log = consoleLog;
+    jest.clearAllMocks();
   });
 
   test('mongoLogin', async () => {
@@ -360,16 +357,14 @@ describe('userExists', () => {
 });
 
 describe('createUser', () => {
-  const originalConsoleLog = console.log;
-  let consoleLogMock: jest.Mock<any, any>;
+  let consoleLogMock: jest.SpyInstance<any, any>;
 
   beforeEach(() => {
-    consoleLogMock = jest.fn();
-    console.log = consoleLogMock;
+    consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
   });
 
   afterEach(() => {
-    console.log = originalConsoleLog;
+    jest.clearAllMocks();
   });
 
   test('create success with password', async () => {
@@ -452,18 +447,16 @@ describe('createUser', () => {
 });
 
 describe('createPasswordAuthUser', () => {
-  const originalConsoleLog = console.log;
-  let consoleLogMock: jest.Mock<any, any>;
+  let consoleLogMock: jest.SpyInstance<any, any>;
 
   beforeEach(() => {
     setSDKInstance(AWS);
-    consoleLogMock = jest.fn();
-    console.log = consoleLogMock;
+    consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
   });
 
   afterEach(() => {
     restore('SecretsManager');
-    console.log = originalConsoleLog;
+    jest.clearAllMocks();
   });
 
   test.each([
@@ -535,18 +528,15 @@ describe('createPasswordAuthUser', () => {
 });
 
 describe('createX509AuthUser', () => {
-  const originalConsoleLog = console.log;
-  let consoleLogMock: jest.Mock<any, any>;
+  let consoleLogMock: jest.SpyInstance<any, any>;
 
   beforeEach(() => {
     setSDKInstance(AWS);
-    consoleLogMock = jest.fn();
-    console.log = consoleLogMock;
+    consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
   });
 
   afterEach(() => {
     restore('SecretsManager');
-    console.log = originalConsoleLog;
   });
 
   test.each([
@@ -628,14 +618,12 @@ describe('createX509AuthUser', () => {
 });
 
 describe('doCreate', () => {
-  const originalConsoleLog = console.log;
-  let consoleLogMock: jest.Mock<any, any>;
+  let consoleLogMock: jest.SpyInstance<any, any>;
   let mockedHandler: MongoDbConfigure;
   let mockMongoClient: { db: jest.Mock<any, any>; close: jest.Mock<any, any>; };
 
   beforeEach(() => {
-    consoleLogMock = jest.fn();
-    console.log = consoleLogMock;
+    consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
 
     mockMongoClient = {
       db: jest.fn(),
@@ -654,7 +642,7 @@ describe('doCreate', () => {
   });
 
   afterEach(() => {
-    console.log = originalConsoleLog;
+    jest.clearAllMocks();
   });
 
   test('create password auth user', async () => {
