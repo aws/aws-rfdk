@@ -3,6 +3,7 @@
 
 from dataclasses import dataclass
 from typing import (
+    List,
     Optional
 )
 
@@ -23,6 +24,8 @@ from aws_rfdk import (
 )
 from aws_rfdk.deadline import (
     IRenderQueue,
+    UsageBasedLicense,
+    UsageBasedLicensing,
     WorkerInstanceFleet,
 )
 
@@ -42,6 +45,10 @@ class ComputeTierProps(StackProps):
     key_pair_name: Optional[str]
     # The bastion host to  allow connection to Worker nodes.
     bastion: Optional[BastionHostLinux] = None
+    # Licensing source for UBL for worker nodes.
+    usage_based_licensing: Optional[UsageBasedLicensing] = None
+    # List of the usage-based liceses that the worker nodes will be served.
+    licenses: Optional[List[UsageBasedLicense]] = None
 
 
 class ComputeTier(Stack):
@@ -79,6 +86,9 @@ class ComputeTier(Stack):
             health_monitor=self.health_monitor,
             key_name=props.key_pair_name,
         )
+
+        if props.usage_based_licensing and props.licenses:
+            props.usage_based_licensing.grant_port_access(self.worker_fleet, props.licenses)
 
         if props.bastion:
             self.worker_fleet.connections.allow_from(props.bastion, Port.tcp(22))

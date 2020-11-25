@@ -117,4 +117,6 @@ new ComputeTier(app, 'ComputeTier', {
   renderQueue: service.renderQueue,
   workerMachineImage: MachineImage.genericLinux(config.deadlineClientLinuxAmiMap),
   keyPairName: config.keyPairName ? config.keyPairName : undefined,
+  usageBasedLicensing: service.ublLicensing,
+  licenses: config.ublLicenses,
 });
