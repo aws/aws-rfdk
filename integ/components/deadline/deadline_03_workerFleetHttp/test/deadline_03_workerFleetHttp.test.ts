@@ -123,7 +123,8 @@ describe.each(testCases)('Deadline WorkerFleet tests (%s)', (_, id) => {
       };
       return awaitSsmCommand(bastionId, params).then( response => {
         var responseOutput = response.output;
-        expect(responseOutput).toMatch(/testpool\ntestgroup\ntestregion/);
+        // Starting Deadline 10.1.11 regions that wasn't added do not apply to worker and returned as unrecognized.
+        expect(responseOutput).toMatch(/testpool\ntestgroup\n(?:unrecognized|testregion)/);
       });
     });
 

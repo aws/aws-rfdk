@@ -70,6 +70,10 @@ Foreach-Object {
         $WORKER_NAMES+="$WORKER_NAME_PREFIX-$workerConfigName"
     }
 }
+if ( $WORKER_NAMES.count -eq 0 )
+{
+    $WORKER_NAMES+=$WORKER_NAME_PREFIX
+}
 
 $WORKER_NAMES_CSV=$WORKER_NAMES -join ","
 
@@ -99,10 +103,13 @@ if($WORKER_POOLS) {
 
 $serviceName="deadline10launcherservice"
 If (Get-Service $serviceName -ErrorAction SilentlyContinue) {
-    Restart-Service $serviceName
+    Stop-Service $serviceName
+    taskkill /f /fi "IMAGENAME eq deadlineworker.exe"
+    Start-Service $serviceName
 } Else {
     $DEADLINE_LAUNCHER = $DEADLINE_PATH + '/deadlinelauncher.exe'
     & $DEADLINE_LAUNCHER -shutdownall | Out-Default
+    taskkill /f /fi "IMAGENAME eq deadlineworker.exe"
     & $DEADLINE_LAUNCHER
 }
 
