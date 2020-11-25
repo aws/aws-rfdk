@@ -47,6 +47,7 @@ import {
   RemovalPolicy,
   Stack,
   Tags,
+  Token,
 } from '@aws-cdk/core';
 import {
   CloudWatchAgent,
@@ -589,7 +590,13 @@ export class Repository extends Construct implements IRepository {
    */
   public configureClientECS(props: ECSDirectConnectProps): IContainerDirectRepositoryConnection {
     const hostMountPoint = props.containerInstances.filesystemMountPoint ?? '/mnt/repo';
-    const containerMountPoint = props.containers.filesystemMountPoint ?? `/opt/Thinkbox/DeadlineRepository${this.version.majorVersion}`;
+    const majorVersion = Token.isUnresolved(this.version.majorVersion) ?
+      Token.asString(this.version.majorVersion) : this.version.majorVersion.toString();
+    const containerMountPoint = props.containers.filesystemMountPoint ?? `/opt/Thinkbox/DeadlineRepository${majorVersion}`;
+    // Note: pathToFileURL messes up CDK Tokens like the one in majorVersion
+    const containerMountPointURL = props.containers.filesystemMountPoint ?
+      pathToFileURL(props.containers.filesystemMountPoint).toString() :
+      `file:///opt/Thinkbox/DeadlineRepository${majorVersion}`;
 
     // Set up a direct connection on the host machine. This:
     //  - grants IAM permissions to the role associated with the instance profile access to
@@ -604,7 +611,7 @@ export class Repository extends Construct implements IRepository {
     // Build up a mapping of environment variables that are used to configure the container's direct connection to the
     // repository
     const containerEnvironment: { [name: string]: string } = {
-      REPO_URI: pathToFileURL(containerMountPoint).toString(),
+      REPO_URI: containerMountPointURL,
     };
 
     // The role associated with the task definition needs access to connect to the database
