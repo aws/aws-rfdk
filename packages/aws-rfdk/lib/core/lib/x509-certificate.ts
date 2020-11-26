@@ -26,6 +26,7 @@ import {
 import { RetentionDays } from '@aws-cdk/aws-logs';
 import { ISecret, Secret } from '@aws-cdk/aws-secretsmanager';
 import {
+  Annotations,
   Construct,
   CustomResource,
   Duration,
@@ -88,6 +89,13 @@ export interface X509CertificatePemProps {
    * @default: None. The generated certificate will be self-signed
    */
   readonly signingCertificate?: X509CertificatePem;
+
+  /**
+   * The number of days that the generated certificate will be valid for.
+   *
+   * @default 1095 days (3 years)
+   */
+  readonly validFor?: number;
 }
 
 /**
@@ -263,6 +271,10 @@ export class X509CertificatePem extends X509CertificateBase implements IX509Cert
       encryptionKey: props.encryptionKey,
     });
 
+    if ((props.validFor ?? 1) < 1 && !Token.isUnresolved(props.validFor)) {
+      Annotations.of(this).addError('Certificates must be valid for at least one day.');
+    }
+
     props.signingCertificate?.cert.grantRead(this.lambdaFunc);
     props.signingCertificate?.key.grantRead(this.lambdaFunc);
     props.signingCertificate?.passphrase.grantRead(this.lambdaFunc);
@@ -295,6 +307,7 @@ export class X509CertificatePem extends X509CertificateBase implements IX509Cert
         ],
       },
       SigningCertificate: signingCertificate,
+      CertificateValidFor: props.validFor?.toString(),
     };
     const resource = new CustomResource(this, 'Default', {
       serviceToken: this.lambdaFunc.functionArn,

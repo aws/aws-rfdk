@@ -4,6 +4,7 @@
  */
 
 import {
+  anything,
   expect as expectCDK,
   haveResource,
   haveResourceLike,
@@ -39,6 +40,12 @@ test('Generate cert', () => {
       O: 'AWS',
       OU: 'Thinkbox',
     },
+  }));
+  // Cannot have a CertificateValidFor property if not given one. Adding one
+  // would cause existing certificates to be re-generated on re-deploy, and thus
+  // risk breaking customer's setups.
+  expectCDK(stack).notTo(haveResourceLike('Custom::RFDK_X509Generator', {
+    CertificateValidFor: anything(),
   }));
   // Expect the resource for converting to PKCS #12 not to be created
   expectCDK(stack).notTo(haveResource('Custom::RFDK_X509_PKCS12'));
@@ -122,6 +129,9 @@ test('Generate cert', () => {
     }
     return true;
   }));
+
+  // Should not be any errors.
+  expect(cert.node.metadata.length).toBe(0);
 });
 
 test('Generate cert, all options set', () => {
@@ -139,6 +149,7 @@ test('Generate cert, all options set', () => {
     subject,
     encryptionKey,
     signingCertificate,
+    validFor: 3000,
   });
 
   const certPassphraseID = stack.getLogicalId(cert.passphrase.node.defaultChild as CfnSecret);
@@ -168,6 +179,7 @@ test('Generate cert, all options set', () => {
       },
       CertChain: '',
     },
+    CertificateValidFor: '3000',
   }));
   // Expect the resource for converting to PKCS #12 not to be created
   expectCDK(stack).notTo(haveResource('Custom::RFDK_X509_PKCS12'));
@@ -451,6 +463,38 @@ test('Grant full read', () => {
   }));
   // Expect the PKCS #12 generator not to be created
   expectCDK(stack).notTo(haveResource('Custom::RFDK_X509_PKCS12'));
+});
+
+test('Validating expiry', () => {
+  // GIVEN
+  const stack = new Stack(undefined, 'Stack', { env: { region: 'us-west-2' } });
+  const subject = { cn: 'testCN' };
+
+  // WHEN
+  const cert = new X509CertificatePem(stack, 'Cert', {
+    subject,
+    validFor: 0,
+  });
+
+  // THEN
+  expect(cert.node.metadata.length).toBe(1);
+});
+
+test('Validating expiry with token', () => {
+  // GIVEN
+  const stack = new Stack(undefined, 'Stack', { env: { region: 'us-west-2' } });
+  const subject = { cn: 'testCN' };
+  // A numeric CDK token (see: https://docs.aws.amazon.com/cdk/latest/guide/tokens.html#tokens_number)
+  const CDK_NUMERIC_TOKEN = -1.8881545897087626e+289;
+
+  // WHEN
+  const cert = new X509CertificatePem(stack, 'Cert', {
+    subject,
+    validFor: CDK_NUMERIC_TOKEN,
+  });
+
+  // THEN
+  expect(cert.node.metadata.length).toBe(0);
 });
 
 test('Convert to PKCS #12', () => {
