@@ -2,15 +2,15 @@
 # yarn lockfile v1
 
 
-"@types/node@^14.14.6":
-  version "14.14.7"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.7.tgz#8ea1e8f8eae2430cf440564b98c6dfce1ec5945d"
-  integrity sha512-Zw1vhUSQZYw+7u5dAwNbIA9TuTotpzY/OF7sJM9FqPOF3SPjKnxrjoTktXDZgUjybf4cWVBP7O8wvKdSaGHweg==
+"@types/node@^14.14.10":
+  version "14.14.10"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.10.tgz#5958a82e41863cfc71f2307b3748e3491ba03785"
+  integrity sha512-J32dgx2hw8vXrSbu4ZlVhn1Nm3GbeCFNw2FWL8S5QKucHGY0cyNwjdQdO+KMBZ4wpmC7KhLCiNsdk1RFRIYUQQ==
 
-aws-sdk@^2.787.0:
-  version "2.789.0"
-  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.789.0.tgz#a1b0a8b8b4227a7947c04e8d75239ba27d2deb93"
-  integrity sha512-Jqq+M4N0EgkyS4OPf05UHa7IWUcpuBdnpwMRgBnu4Ju6PxpOTh1UQcmYepVmIN3m6YVpLwFctEYzAMJFM3LT1A==
+aws-sdk@^2.799.0:
+  version "2.799.0"
+  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.799.0.tgz#8b1a64c1a9f8ccf5794eb07bdd8051e4cb6adcfd"
+  integrity sha512-NYAoiNU+bJXhlJsC0rFqrmD5t5ho7/VxldmziP6HLPYHfOCI9Uvk6UVjfPmhLWPm0mHnIxhsHqmsNGyjhHNYmw==
   dependencies:
     buffer "4.9.2"
     events "1.1.1"
