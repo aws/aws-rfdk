@@ -11,8 +11,12 @@ import { X509CertificatePem } from 'aws-rfdk';
 import {
   IRepository,
   RenderQueue,
+  RenderQueueProps,
   ThinkboxDockerRecipes,
 } from 'aws-rfdk/deadline';
+import { ThinkboxDockerImageOverrides } from './ThinkboxDockerImageOverrides';
+
+const DOCKER_IMAGE_OVERRIDES_ENV_VAR = 'RFDK_DOCKER_IMAGE_OVERRIDES';
 
 export interface RenderStructProps {
   readonly integStackTag: string;
@@ -34,18 +38,29 @@ export class RenderStruct extends Construct {
     // Retrieve VPC created for _infrastructure stack
     const vpc = Vpc.fromLookup(this, 'Vpc', { tags: { StackName: infrastructureStackName }}) as Vpc;
 
+    // Retrieve Docker image overrides, if available
+    let dockerImageOverrides: (ThinkboxDockerImageOverrides | undefined) = undefined;
+    if (process.env[DOCKER_IMAGE_OVERRIDES_ENV_VAR] !== undefined) {
+      dockerImageOverrides = ThinkboxDockerImageOverrides.fromJSON(this, 'ThinkboxDockerImageOverrides', process.env[DOCKER_IMAGE_OVERRIDES_ENV_VAR]!.toString());
+    }
+
     const host = 'renderqueue';
-    const zoneName = Stack.of(this).stackName + '.local';
+    const suffix = '.local';
+    // We are calculating the max length we can add to the common name to keep it under the maximum allowed 64
+    // characters and then taking a slice of the stack name so we don't get an error when creating the certificate
+    // with openssl
+    const maxLength = 64 - host.length - '.'.length - suffix.length - 1;
+    const zoneName = Stack.of(this).stackName.slice(0, maxLength) + suffix;
 
     let trafficEncryption: any;
     let hostname: any;
     let cacert: any;
 
     // If configured for HTTPS, the render queue requires a private domain and a signed certificate for authentication
-    if( props.protocol === 'https' ){
+    if( props.protocol === 'https' ) {
       cacert = new X509CertificatePem(this, 'CaCert' + props.integStackTag, {
         subject: {
-          cn: 'ca.renderfarm.local',
+          cn: 'ca.renderfarm' + suffix,
         },
       });
 
@@ -65,19 +80,18 @@ export class RenderStruct extends Construct {
           vpc,
           zoneName: zoneName,
         }),
-        hostname: 'renderqueue',
+        hostname: host,
       };
-    }
-    else {
+    } else {
       trafficEncryption = undefined;
       hostname = undefined;
     }
 
     //Create the Render Queue
-    var renderQueueProps = {
+    const renderQueueProps: RenderQueueProps = {
       vpc,
       repository: props.repository,
-      images: props.recipes.renderQueueImages,
+      images: dockerImageOverrides?.renderQueueImages ?? props.recipes.renderQueueImages,
       logGroupProps: {
         logGroupPrefix: Stack.of(this).stackName + '-' + id,
       },
@@ -89,6 +103,5 @@ export class RenderStruct extends Construct {
     this.renderQueue = new RenderQueue(this, 'RenderQueue', renderQueueProps);
 
     this.cert = cacert;
-
   }
 }

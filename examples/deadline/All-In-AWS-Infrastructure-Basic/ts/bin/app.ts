@@ -29,12 +29,12 @@ import { ComputeTier } from '../lib/compute-tier';
   // --- Validate Config Values --- //
   // ------------------------------ //
 
-  if (!config.ublCertificatesSecretArn) {
-    throw new Error('UBL certificates secret ARN is required but was not specified.');
+  if (!config.ublCertificatesSecretArn && config.ublLicenses) {
+    throw new Error('UBL certificates secret ARN is required when using UBL but was not specified.');
   }
 
   if (!config.ublLicenses) {
-    throw new Error('At least one UBL license must be specified');
+    console.warn('No UBL licenses specified. UsageBasedLicensing will be skipped.');
   }
 
   if (!config.keyPairName) {
@@ -117,4 +117,6 @@ new ComputeTier(app, 'ComputeTier', {
   renderQueue: service.renderQueue,
   workerMachineImage: MachineImage.genericLinux(config.deadlineClientLinuxAmiMap),
   keyPairName: config.keyPairName ? config.keyPairName : undefined,
+  usageBasedLicensing: service.ublLicensing,
+  licenses: config.ublLicenses,
 });

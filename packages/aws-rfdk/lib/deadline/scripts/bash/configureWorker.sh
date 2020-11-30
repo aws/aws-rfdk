@@ -81,7 +81,7 @@ for file in /var/lib/Thinkbox/Deadline10/slaves/*
 do
   file="${file##*/}"
   workerSuffix="${file%%.*}"
-  if [ -z "$workerSuffix" ]; then
+  if [[ -z "$workerSuffix" || "$workerSuffix" = "*" ]]; then
     WORKER_NAMES+=( "$WORKER_NAME_PREFIX" )
   else
     WORKER_NAMES+=( "$WORKER_NAME_PREFIX"-$workerSuffix )
@@ -115,10 +115,13 @@ fi
 
 # Restart service, if it exists, else restart application
 if service --status-all | grep -q 'Deadline 10 Launcher'; then
-  service deadline10launcher restart
+  service deadline10launcher stop
+  sudo killall -w deadlineworker || true
+  service deadline10launcher start
 else
   DEADLINE_LAUNCHER="$DEADLINE_PATH/deadlinelauncher"
   "$DEADLINE_LAUNCHER" -shutdownall
+  sudo killall -w deadlineworker || true
   "$DEADLINE_LAUNCHER"
 fi
 

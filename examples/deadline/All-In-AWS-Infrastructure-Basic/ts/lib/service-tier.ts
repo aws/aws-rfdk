@@ -60,16 +60,6 @@ export interface ServiceTierProps extends cdk.StackProps {
   readonly dockerRecipesStagePath: string;
 
   /**
-   * The ARN of the secret containing the UBL certificates .zip file (in binary form).
-   */
-  readonly ublCertsSecretArn: string;
-
-  /**
-   * The UBL licenses to configure.
-   */
-  readonly ublLicenses: UsageBasedLicense[];
-
-  /**
    * Our self-signed root CA certificate for the internal endpoints in the farm.
    */
   readonly rootCa: X509CertificatePem;
@@ -78,6 +68,19 @@ export interface ServiceTierProps extends cdk.StackProps {
    * Internal DNS zone for the VPC.
    */
   readonly dnsZone: IPrivateHostedZone;
+
+  /**
+   * The ARN of the secret containing the UBL certificates .zip file (in binary form).
+   * @default - UBL will not be set up
+   */
+  readonly ublCertsSecretArn?: string;
+
+  /**
+   * The UBL licenses to configure.
+   * @default - No UBL licenses will be configured
+   */
+  readonly ublLicenses?: UsageBasedLicense[];
+
 }
 
 /**
@@ -92,7 +95,7 @@ export class ServiceTier extends cdk.Stack {
   /**
    * The UBL licensing construct. (License Forwarder)
    */
-  public readonly ublLicensing: UsageBasedLicensing;
+  public readonly ublLicensing?: UsageBasedLicensing;
 
   /**
    * A bastion host to connect to the render farm with.
@@ -170,13 +173,19 @@ export class ServiceTier extends cdk.Stack {
     });
     this.renderQueue.connections.allowDefaultPortFrom(this.bastion);
 
-    const ublCertSecret = Secret.fromSecretArn(this, 'UBLCertsSecret', props.ublCertsSecretArn);
-    this.ublLicensing = new UsageBasedLicensing(this, 'UBLLicensing', {
-      vpc: props.vpc,
-      images: recipes.ublImages,
-      licenses: props.ublLicenses,
-      renderQueue: this.renderQueue,
-      certificateSecret: ublCertSecret,
-    });
+    if (props.ublLicenses) {
+      if (!props.ublCertsSecretArn) {
+        throw new Error('UBL licenses were set but no UBL Certs Secret Arn was set.');
+      }
+      const ublCertSecret = Secret.fromSecretArn(this, 'UBLCertsSecret', props.ublCertsSecretArn);
+
+      this.ublLicensing = new UsageBasedLicensing(this, 'UBLLicensing', {
+        vpc: props.vpc,
+        images: recipes.ublImages,
+        licenses: props.ublLicenses,
+        renderQueue: this.renderQueue,
+        certificateSecret: ublCertSecret,
+      });
+    }
   }
 }

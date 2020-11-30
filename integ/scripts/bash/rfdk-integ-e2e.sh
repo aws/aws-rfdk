@@ -42,6 +42,12 @@ mkdir -p $INTEG_TEMP_DIR
 # Stage deadline from script
 $BASH_SCRIPTS/stage-deadline.sh
 
+# Extract the Deadline version to use for Deadline installations on the farm.
+# Tests allow not specifying or specifying a partial version string such as "10.1.11". After staging, we
+# obtain the fully resolved version (e.g. "10.1.11.5") which is required to determine
+# the matching AWS Portal AMI IDs
+export DEADLINE_VERSION=$(node -e $'const json = require(process.argv[1] + \'/manifest.json\'); console.log(json.version)' "$DEADLINE_STAGING_PATH")
+
 # If executing worker fleet tests, find Deadline AMIs based on supplied version
 if [ ! "${SKIP_deadline_03_repository_TEST-}" = true ]; then
     source $BASH_SCRIPTS/fetch-worker-amis.sh
@@ -71,13 +77,14 @@ export INFRASTRUCTURE_DEPLOY_FINISH_TIME=$SECONDS
 
 # Pull the top level directory for each cdk app in the components directory
 for COMPONENT in **/cdk.json; do
+    # In case the yarn install was done inside this integ package, there are some example cdk.json files in the aws-cdk
+    # package we want to avoid.
+    if [[ $COMPONENT == *"node_modules"* ]]; then
+        continue
+    fi
+
     COMPONENT_ROOT="$(dirname "$COMPONENT")"
     COMPONENT_NAME=$(basename "$COMPONENT_ROOT")
-    # Invoke hook function if it is exported and name is defined in PRE_COMPONENT_HOOK variable
-    if [ ! -z "${PRE_COMPONENT_HOOK+x}" ]  && [ "$(type -t $PRE_COMPONENT_HOOK)" == "function" ]
-    then
-      $PRE_COMPONENT_HOOK $COMPONENT_NAME
-    fi
 
     # Use a pattern match to exclude the infrastructure app from the results
     export ${COMPONENT_NAME}_START_TIME=$SECONDS

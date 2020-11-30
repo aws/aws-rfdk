@@ -30,6 +30,67 @@ import {
 } from './version';
 
 /**
+ * Provider for adding user data scripts
+ * Methods of this interface will be invoked in WorkerInstanceConfiguration
+ * on different stages of worker configuration
+ */
+export interface IInstanceUserDataProvider {
+  /**
+   * Method that is invoked before configuring the Cloud Watch Agent.
+   */
+  preCloudWatchAgent(host: IHost): void;
+
+  /**
+   * Method that is invoked before the render queue configuration.
+   */
+  preRenderQueueConfiguration(host: IHost): void;
+
+  /**
+   * Method that is invoked after configuring the connection to the render queue and before configuring the Deadline Worker.
+   */
+  preWorkerConfiguration(host: IHost): void;
+
+  /**
+   * Method that is invoked after all configuration is done and worker started.
+   */
+  postWorkerLaunch(host: IHost): void;
+}
+
+/**
+ * Implementation of {@link IInstanceUserDataProvider}.
+ * Can be used as sub-class with override the desired methods
+ * to add custom user data commands for WorkerInstanceFleet or WorkerInstanceConfiguration.
+ */
+export class InstanceUserDataProvider extends Construct  implements IInstanceUserDataProvider{
+  constructor(scope: Construct, id: string) {
+    super(scope, id);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  preCloudWatchAgent(_host: IHost): void {
+  }
+
+  /**
+   * @inheritdoc
+   */
+  preRenderQueueConfiguration(_host: IHost): void {
+  }
+
+  /**
+   * @inheritdoc
+   */
+  preWorkerConfiguration(_host: IHost): void {
+  }
+
+  /**
+   * @inheritdoc
+   */
+  postWorkerLaunch(_host: IHost): void {
+  }
+}
+/**
  * Configuration settings for Deadline Workers
  */
 export interface WorkerSettings {
@@ -86,6 +147,12 @@ export interface WorkerInstanceConfigurationProps {
    * @default The Worker is assigned the default settings as outlined in the WorkerSettings interface.
    */
   readonly workerSettings?: WorkerSettings;
+
+  /**
+   * An optional provider of user data commands to be injected at various points during the Worker configuration lifecycle.
+   * You can provide a subclass of InstanceUserDataProvider with the methods overridden as desired.
+   */
+  readonly userDataProvider?: IInstanceUserDataProvider;
 }
 
 /**
@@ -93,6 +160,14 @@ export interface WorkerInstanceConfigurationProps {
  * log files to CloudWatch, and configure various settings of the Deadline Worker.
  *
  * The configuration happens on instance start-up using user data scripting.
+ *
+ * This configuration performs the following steps in order:
+ * 1) Configure Cloud Watch Agent
+ * 2) Configure Deadline Worker RenderQueue connection
+ * 3) Configure Deadline Worker settings
+ *
+ * A `userDataProvider` can be specified that defines callback functions.
+ * These callbacks can be used to inject user data commands at different points during the Worker instance configuration.
  *
  * Security Considerations
  * ------------------------
@@ -105,12 +180,15 @@ export interface WorkerInstanceConfigurationProps {
 export class WorkerInstanceConfiguration extends Construct {
   constructor(scope: Construct, id: string, props: WorkerInstanceConfigurationProps) {
     super(scope, id);
-
+    props.userDataProvider?.preCloudWatchAgent(props.worker);
     if (props.cloudwatchLogSettings) {
       this.configureCloudWatchLogStream(props.worker, id, props.cloudwatchLogSettings);
     }
+    props.userDataProvider?.preRenderQueueConfiguration(props.worker);
     props.renderQueue?.configureClientInstance({ host: props.worker});
+    props.userDataProvider?.preWorkerConfiguration(props.worker);
     this.configureWorkerSettings(props.worker, id, props.workerSettings);
+    props.userDataProvider?.postWorkerLaunch(props.worker);
   }
 
   /**

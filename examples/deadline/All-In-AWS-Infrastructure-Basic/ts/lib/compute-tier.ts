@@ -11,14 +11,20 @@ import {
 } from '@aws-cdk/aws-ec2';
 import * as cdk from '@aws-cdk/core';
 import {
+  IHost,
+  InstanceUserDataProvider,  
   IRenderQueue,
   IWorkerFleet,
+  UsageBasedLicense,
+  UsageBasedLicensing,
   WorkerInstanceFleet,
 } from 'aws-rfdk/deadline';
 import {
   HealthMonitor,
   IHealthMonitor,
 } from 'aws-rfdk';
+import { Asset } from '@aws-cdk/aws-s3-assets';
+import * as path from 'path'
 
 /**
  * Properties for {@link ComputeTier}.
@@ -48,6 +54,46 @@ export interface ComputeTierProps extends cdk.StackProps {
    * The bastion host to allow connection to Worker nodes.
    */
   readonly bastion?: BastionHostLinux;
+
+  /**
+   * Licensing source for UBL for worker nodes.
+   */
+  readonly usageBasedLicensing?: UsageBasedLicensing;
+
+  /**
+   * List of the usage-based liceses that the worker nodes will be served.
+   */
+  readonly licenses?: UsageBasedLicense[];
+}
+
+class UserDataProvider extends InstanceUserDataProvider {
+  preCloudWatchAgent(host: IHost): void {
+    host.userData.addCommands('echo preCloudWatchAgent');
+  }
+  preRenderQueueConfiguration(host: IHost): void {
+    host.userData.addCommands('echo preRenderQueueConfiguration');
+  }  
+  preWorkerConfiguration(host: IHost): void {
+    host.userData.addCommands('echo preWorkerConfiguration');
+  }
+  postWorkerLaunch(host: IHost): void {
+    host.userData.addCommands('echo postWorkerLaunch');
+    if (host.node.scope != undefined) {
+      const testScript = new Asset(
+        host.node.scope as cdk.Construct, 
+        'SampleAsset',
+        {path: path.join(__dirname, '..', '..', 'scripts', 'configure_worker.sh')},
+      );
+      testScript.grantRead(host);
+      const localPath = host.userData.addS3DownloadCommand({
+        bucket: testScript.bucket,
+        bucketKey: testScript.s3ObjectKey,
+      });
+      host.userData.addExecuteFileCommand({
+        filePath: localPath,
+      })
+    }
+  }
 }
 
 /**
@@ -88,7 +134,12 @@ export class ComputeTier extends cdk.Stack {
       workerMachineImage: props.workerMachineImage,
       healthMonitor: this.healthMonitor,
       keyName: props.keyPairName,
+      userDataProvider: new UserDataProvider(this, 'UserDataProvider'),
     });
+
+    if (props.usageBasedLicensing && props.licenses) {
+      props.usageBasedLicensing.grantPortAccess(this.workerFleet, props.licenses);
+    }
 
     if (props.bastion) {
       this.workerFleet.connections.allowFrom(props.bastion, Port.tcp(22));

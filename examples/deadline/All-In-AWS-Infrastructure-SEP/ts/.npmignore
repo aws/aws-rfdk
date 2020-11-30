@@ -1,0 +1,18 @@
+################################################
+# if .npmignore exists, NPM ignores .gitignore #
+################################################
+
+# Exclude typescript source and config files
+*.ts
+tsconfig.json
+*.tsbuildinfo
+
+# Include typescript declarations
+!*.d.ts
+
+# Exclude jest config
+jest.config.js
+
+# Exclude packaging artifacts
+dist
+.LAST_PACKAGE

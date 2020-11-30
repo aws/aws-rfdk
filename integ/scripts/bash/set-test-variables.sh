@@ -26,8 +26,3 @@ elif [ $(ls "$DEADLINE_STAGING_PATH/manifest.json" 2> /dev/null) ]; then
     #If path is set, extract the Deadline version to use for Deadline installations on the farm. This will override any other Deadline version provided.
     export DEADLINE_VERSION=$(node -e $'const json = require(process.argv[1] + \'/manifest.json\'); console.log(json.version)' "$DEADLINE_STAGING_PATH")
 fi
-
-# Set Deadline version to default if not overridden
-if [ -z ${DEADLINE_VERSION+x} ]; then
-    export DEADLINE_VERSION="10.1.9.2"
-fi

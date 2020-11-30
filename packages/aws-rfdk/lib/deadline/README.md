@@ -319,3 +319,23 @@ const workerFleet = new WorkerInstanceFleet(stack, 'WorkerFleet', {
   }
 });
 ```
+
+### User data scripts for the Worker configuration
+
+You have possibility to run user data scripts at various points during the Worker configuration lifecycle.
+
+To do this, subclass `InstanceUserDataProvider` and override desired methods:
+```ts
+class UserDataProvider extends InstanceUserDataProvider {
+  preCloudWatchAgent(host: IHost): void {
+    host.userData.addCommands('echo preCloudWatchAgent');
+  }
+}
+const fleet = new WorkerInstanceFleet(stack, 'WorkerFleet', {
+  vpc,
+  renderQueue,
+  workerMachineImage: /* ... */,
+  userDataProvider: new UserDataProvider(stack, 'UserDataProvider'),
+});
+
+```

@@ -120,6 +120,8 @@ def main():
         render_queue=service.render_queue,
         worker_machine_image=deadline_client_image,
         key_pair_name=config.key_pair_name,
+        usage_based_licensing=service.ubl_licensing,
+        licenses=config.ubl_licenses
     )
     _compute = compute_tier.ComputeTier(app, 'ComputeTier', props=compute_props, env=env)
 

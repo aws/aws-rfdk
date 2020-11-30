@@ -26,6 +26,7 @@ import {
 import { RetentionDays } from '@aws-cdk/aws-logs';
 import { ISecret, Secret } from '@aws-cdk/aws-secretsmanager';
 import {
+  Annotations,
   Construct,
   CustomResource,
   Duration,
@@ -36,8 +37,8 @@ import {
   Token,
 } from '@aws-cdk/core';
 
-import { ARNS } from '../lambdas/lambdaLayerVersionArns';
-import { IX509CertificateEncodePkcs12, IX509CertificateGenerate } from '../lambdas/nodejs/x509-certificate';
+import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
+import { IX509CertificateEncodePkcs12, IX509CertificateGenerate } from '../../lambdas/nodejs/x509-certificate';
 
 /**
  * The identification for a self-signed CA or Certificate.
@@ -88,6 +89,13 @@ export interface X509CertificatePemProps {
    * @default: None. The generated certificate will be self-signed
    */
   readonly signingCertificate?: X509CertificatePem;
+
+  /**
+   * The number of days that the generated certificate will be valid for.
+   *
+   * @default 1095 days (3 years)
+   */
+  readonly validFor?: number;
 }
 
 /**
@@ -258,10 +266,14 @@ export class X509CertificatePem extends X509CertificateBase implements IX509Cert
 
   constructor(scope: Construct, id: string, props: X509CertificatePemProps) {
     super(scope, id, {
-      lambdaCode: Code.fromAsset(join(__dirname, '..', 'lambdas', 'nodejs')),
+      lambdaCode: Code.fromAsset(join(__dirname, '..', '..', 'lambdas', 'nodejs')),
       lambdaHandler: 'x509-certificate.generate',
       encryptionKey: props.encryptionKey,
     });
+
+    if ((props.validFor ?? 1) < 1 && !Token.isUnresolved(props.validFor)) {
+      Annotations.of(this).addError('Certificates must be valid for at least one day.');
+    }
 
     props.signingCertificate?.cert.grantRead(this.lambdaFunc);
     props.signingCertificate?.key.grantRead(this.lambdaFunc);
@@ -295,6 +307,7 @@ export class X509CertificatePem extends X509CertificateBase implements IX509Cert
         ],
       },
       SigningCertificate: signingCertificate,
+      CertificateValidFor: props.validFor?.toString(),
     };
     const resource = new CustomResource(this, 'Default', {
       serviceToken: this.lambdaFunc.functionArn,
@@ -409,7 +422,7 @@ export class X509CertificatePkcs12 extends X509CertificateBase implements IX509C
 
   constructor(scope: Construct, id: string, props: X509CertificatePkcs12Props) {
     super(scope, id, {
-      lambdaCode: Code.fromAsset(join(__dirname, '..', 'lambdas', 'nodejs')),
+      lambdaCode: Code.fromAsset(join(__dirname, '..', '..', 'lambdas', 'nodejs')),
       lambdaHandler: 'x509-certificate.convert',
       encryptionKey: props.encryptionKey,
     });

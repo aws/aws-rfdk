@@ -32,8 +32,8 @@ import {
   Token,
 } from '@aws-cdk/core';
 
-import { ARNS } from '../lambdas/lambdaLayerVersionArns';
-import { IAcmImportCertProps } from '../lambdas/nodejs/x509-certificate';
+import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
+import { IAcmImportCertProps } from '../../lambdas/nodejs/x509-certificate';
 
 /**
  * Properties for importing a Certificate from Secrets into ACM.
@@ -129,7 +129,7 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
 
     const lambda = new SingletonFunction(this, 'AcmImporter', {
       uuid: ImportedAcmCertificate.IMPORTER_UUID,
-      code: Code.fromAsset(join(__dirname, '..', 'lambdas', 'nodejs')),
+      code: Code.fromAsset(join(__dirname, '..', '..', 'lambdas', 'nodejs')),
       handler: 'x509-certificate.importCert',
       environment: {
         DATABASE: this.database.tableName,

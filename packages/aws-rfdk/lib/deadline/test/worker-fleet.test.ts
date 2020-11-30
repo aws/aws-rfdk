@@ -44,6 +44,8 @@ import {
   escapeTokenRegex,
 } from '../../core/test/token-regex-helpers';
 import {
+  IHost,
+  InstanceUserDataProvider,
   IRenderQueue,
   RenderQueue,
   Repository,
@@ -1460,6 +1462,40 @@ describe('HealthMonitor Tests', () => {
       Protocol: 'HTTP',
       TargetType: 'instance',
     }));
+  });
+
+  test('UserData is added', () => {
+    // WHEN
+    class UserDataProvider extends InstanceUserDataProvider {
+      preCloudWatchAgent(host: IHost): void {
+        host.userData.addCommands('echo preCloudWatchAgent');
+      }
+      preRenderQueueConfiguration(host: IHost): void {
+        host.userData.addCommands('echo preRenderQueueConfiguration');
+      }
+      preWorkerConfiguration(host: IHost): void {
+        host.userData.addCommands('echo preWorkerConfiguration');
+      }
+      postWorkerLaunch(host: IHost): void {
+        host.userData.addCommands('echo postWorkerLaunch');
+      }
+    }
+    const fleet = new WorkerInstanceFleet(wfstack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericLinuxImage({
+        'us-east-1': 'ami-any',
+      }),
+      renderQueue,
+      healthMonitor,
+      userDataProvider: new UserDataProvider(wfstack, 'UserDataProvider'),
+    });
+    const userData = fleet.fleet.userData.render();
+
+    // THEN
+    expect(userData).toContain('echo preCloudWatchAgent');
+    expect(userData).toContain('echo preRenderQueueConfiguration');
+    expect(userData).toContain('echo preWorkerConfiguration');
+    expect(userData).toContain('echo postWorkerLaunch');
   });
 });
 

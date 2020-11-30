@@ -16,14 +16,14 @@ export { CWA_ASSET_LINUX, CWA_ASSET_WINDOWS, linuxDownloadRunScriptBoilerplate, 
 
 // configureWorker.sh
 export const CONFIG_WORKER_ASSET_LINUX = {
-  Bucket: 'AssetParameterscfbac966c059b6d160d9fe1be830ff2b4e3b3e8583d44c5e6a9ef3cc617cae52S3BucketEC9648BD',
-  Key: 'AssetParameterscfbac966c059b6d160d9fe1be830ff2b4e3b3e8583d44c5e6a9ef3cc617cae52S3VersionKey14E8A825',
+  Bucket: 'AssetParameterse90d5322c2b7457e7dbbacdfc3a350aa501f6a63b939475977f2464abb268b73S3Bucket1840D7FB',
+  Key: 'AssetParameterse90d5322c2b7457e7dbbacdfc3a350aa501f6a63b939475977f2464abb268b73S3VersionKey7BA1309D',
 };
 
 // configureWorker.ps1
 export const CONFIG_WORKER_ASSET_WINDOWS = {
-  Bucket: 'AssetParametersb78a6a7981377c750b127331abdcbd9f1ab312242da73512424611e965eea4c1S3BucketFDCB6ECC',
-  Key: 'AssetParametersb78a6a7981377c750b127331abdcbd9f1ab312242da73512424611e965eea4c1S3VersionKey20AFBF6B',
+  Bucket: 'AssetParametersb1df82abec8605ca7a4666803d27eafda3bd66a9db0e5366d61cdf3d184af8b2S3BucketD9C14531',
+  Key: 'AssetParametersb1df82abec8605ca7a4666803d27eafda3bd66a9db0e5366d61cdf3d184af8b2S3VersionKey40FA52FC',
 };
 
 // installDeadlineRepository.sh
@@ -46,9 +46,4 @@ export const REPO_DC_ASSET = {
 export const RQ_CONNECTION_ASSET = {
   Bucket: 'AssetParameters89a29e05a2a88ec4d4a02e847e3c3c9461d0154b326492f4cad655d4ca0bda98S3BucketC22E185C',
   Key: 'AssetParameters89a29e05a2a88ec4d4a02e847e3c3c9461d0154b326492f4cad655d4ca0bda98S3VersionKey0833D670',
-};
-
-export const VERSION_QUERY_ASSET = {
-  Bucket: stringLike('AssetParameters*S3Bucket6ABF873D'),
-  Key: stringLike('AssetParameters*S3VersionKey5A5FE29C'),
 };

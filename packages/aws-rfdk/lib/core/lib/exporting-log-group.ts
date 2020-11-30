@@ -134,7 +134,7 @@ export class ExportingLogGroup extends Construct {
 
   private setupLogsExporter(): SingletonFunction {
     const exportLogsFunction = new SingletonFunction(this, 'LogExporterFunction', {
-      code: Code.fromAsset(path.join(__dirname, '../lambdas/nodejs/export-logs')),
+      code: Code.fromAsset(path.join(__dirname, '..', '..', 'lambdas', 'nodejs', 'export-logs')),
       handler: 'index.handler',
       lambdaPurpose: 'LogGroupExporter',
       logRetention: RetentionDays.ONE_DAY,

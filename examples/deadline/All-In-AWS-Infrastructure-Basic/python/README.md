@@ -8,7 +8,7 @@
 ---
 **NOTE**
 
-These instructions assume that your working directory is `examples/deadline/All-In-AWS-Infrastructure-Basic-Tiered/python/` relative to the root of the AWS-RFDK package.
+These instructions assume that your working directory is `examples/deadline/All-In-AWS-Infrastructure-Basic/python/` relative to the root of the AWS-RFDK package.
 
 ---
 
