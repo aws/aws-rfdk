@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.21.0](https://github.com/aws/aws-rfdk/compare/v0.20.0...v0.21.0) (2020-11-27)
+
+
+### Supported CDK Version
+
+* [1.75.0](https://github.com/aws/aws-cdk/releases/tag/v1.75.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.11.5](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **core:** Add configurable expiry to X.509 certificates ([#242](https://github.com/aws/aws-rfdk/issues/242)) ([ae7c153](https://github.com/aws/aws-rfdk/commit/ae7c1536c009909fe72e45385e56271d3b1cab0e))
+* **deadline:** add custom user data commands to Worker instance startup ([#239](https://github.com/aws/aws-rfdk/issues/239)) ([bdef391](https://github.com/aws/aws-rfdk/commit/bdef391df283864bbb0d05dea1e094785c333b33))
+* **examples:**  Added examples for Spot Event Plugin Deployment ([#180](https://github.com/aws/aws-rfdk/issues/180)) ([49e22bf](https://github.com/aws/aws-rfdk/commit/49e22bff5e89164e3f1daeeb24088e5112c7f8d8))
+* **integ:** use configurable version of Deadline for integration tests ([#160](https://github.com/aws/aws-rfdk/issues/160)) ([263021c](https://github.com/aws/aws-rfdk/commit/263021c1116ed81e091a7e9363122ace14e81e84))
+
+
+### Bug Fixes
+
+* **deadline:** bad file path for Repository when using VersionQuery ([#252](https://github.com/aws/aws-rfdk/issues/252)) ([84a20de](https://github.com/aws/aws-rfdk/commit/84a20de3f3e9fc49017626f2233929cf03d2e277))
+* **deadline:** Fix cyclic stack dependency when using UBL ([#246](https://github.com/aws/aws-rfdk/issues/246)) ([12f7db2](https://github.com/aws/aws-rfdk/commit/12f7db23cf18e71fb0fa4c7657fbe9f5455ac4f4))
+* **deadline:** lock down DocDC engine to version 3.6.0 ([#230](https://github.com/aws/aws-rfdk/issues/230)) ([2f46944](https://github.com/aws/aws-rfdk/commit/2f46944ff35123a828be30a7bdf9e7e0ca944b14))
+* **deadline:** Launcher restarts Workers reliably. RFDK assumed Workers connected to the Deadline Render Queue when configuring them ([#248](https://github.com/aws/aws-rfdk/issues/248)) ([dfdbda5](https://github.com/aws/aws-rfdk/commit/dfdbda518c43b981eb3835b23592896817b984cb))
+
 ## [0.20.0](https://github.com/aws/aws-rfdk/compare/v0.19.0...v0.20.0) (2020-11-10)
 
 
