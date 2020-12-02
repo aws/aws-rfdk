@@ -5,12 +5,12 @@
  */
 
 import 'source-map-support/register';
-import * as path from 'path';
-import * as pkg from '../package.json';
 import { config } from './config';
 import * as cdk from '@aws-cdk/core';
 import { NetworkTier } from '../lib/network-tier';
-import { ServiceTier } from '../lib/service-tier';
+import {
+  ServiceTier,
+} from '../lib/service-tier';
 import {
   StorageTier,
   StorageTierDocDB,
@@ -100,7 +100,7 @@ const service = new ServiceTier(app, 'ServiceTier', {
   database: storage.database,
   fileSystem: storage.fileSystem,
   vpc: network.vpc,
-  dockerRecipesStagePath: path.join(__dirname, '..', pkg.config.stage_path), // Stage directory in config is relative, make it absolute
+  deadlineVersion: config.deadlineVersion,
   ublCertsSecretArn: config.ublCertificatesSecretArn,
   ublLicenses: config.ublLicenses,
   rootCa: security.rootCa,

@@ -5,7 +5,6 @@
 
 import { EventEmitter } from 'events';
 import * as fs from 'fs';
-import * as https from 'https';
 
 import { ThinkboxEcrProvider } from '../../lib/ecr-provider';
 
@@ -55,11 +54,50 @@ describe('ThinkboxEcrProvider', () => {
       ecrProvider = new ThinkboxEcrProvider();
     });
 
-    afterEach(() => {
-      // THEN
+    const EXPECTED_URL = 'https://downloads.thinkboxsoftware.com/deadline_ecr.json';
+    test(`gets ${EXPECTED_URL} for global lookup`, async () => {
+      // GIVEN
+      const mockBaseArn = 'baseARN';
+      const mockData = {
+        global: mockBaseArn,
+      };
 
-      // each invocation should make an HTTPS request for the ECR index
-      expect(https.get).toBeCalledWith('https://downloads.thinkboxsoftware.com/deadline_ecr.json', expect.any(Function));
+      // WHEN
+      const promise = ecrProvider.getGlobalEcrBaseURI();
+      response.emit('data', JSON.stringify(mockData));
+      response.emit('end');
+      await promise;
+
+      // THEN
+      // should make an HTTPS request for the ECR index
+      expect(jest.requireMock('https').get)
+        .toBeCalledWith(
+          EXPECTED_URL,
+          expect.any(Function),
+        );
+    });
+
+    test(`gets ${EXPECTED_URL} for regional lookup`, async () => {
+      // GIVEN
+      const mockData = {
+        regional: {
+          'us-west-2': 'baseUri',
+        },
+      };
+
+      // WHEN
+      const promise = ecrProvider.getRegionalEcrBaseArn('us-west-2');
+      response.emit('data', JSON.stringify(mockData));
+      response.emit('end');
+      await promise;
+
+      // THEN
+      // should make an HTTPS request for the ECR index
+      expect(jest.requireMock('https').get)
+        .toBeCalledWith(
+          EXPECTED_URL,
+          expect.any(Function),
+        );
     });
 
     describe('.getGlobalEcrBaseArn()', () => {
@@ -395,7 +433,8 @@ describe('ThinkboxEcrProvider', () => {
 
       test('reads file', async () => {
         // THEN
-        await expect(baseURIPromise);
+        await expect(baseURIPromise)
+          .resolves.toEqual(globalURIPrefix);
         expect(fs.existsSync).toBeCalledTimes(1);
         expect(fs.readFileSync).toBeCalledWith(indexPath, 'utf8');
       });

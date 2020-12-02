@@ -41,10 +41,10 @@ from aws_rfdk.deadline import (
     RenderQueueTrafficEncryptionProps,
     RenderQueueExternalTLSProps,
     Repository,
-    Stage,
-    ThinkboxDockerRecipes,
+    ThinkboxDockerImages,
     UsageBasedLicense,
     UsageBasedLicensing,
+    VersionQuery,
 )
 
 
@@ -69,6 +69,8 @@ class ServiceTierProps(StackProps):
     root_ca: X509CertificatePem
     # Internal DNS zone for the VPC
     dns_zone: IPrivateHostedZone
+    # Version of Deadline to use
+    version: str
 
 
 class ServiceTier(Stack):
@@ -113,10 +115,10 @@ class ServiceTier(Stack):
             location='/mnt/efs'
         )
 
-        recipes = ThinkboxDockerRecipes(
+        self.version = VersionQuery(
             self,
-            'Image',
-            stage=Stage.from_directory(props.docker_recipes_stage_path)
+            'Version',
+            version=props.version,
         )
 
         repository = Repository(
@@ -126,7 +128,13 @@ class ServiceTier(Stack):
             database=props.database,
             file_system=props.file_system,
             repository_installation_timeout=Duration.minutes(20),
-            version=recipes.version,
+            version=self.version,
+        )
+
+        images = ThinkboxDockerImages(
+            self,
+            'Images',
+            version=self.version
         )
 
         server_cert = X509CertificatePem(
@@ -144,7 +152,7 @@ class ServiceTier(Stack):
             self,
             'RenderQueue',
             vpc=props.vpc,
-            images=recipes.render_queue_images,
+            images=images,
             repository=repository,
             hostname=RenderQueueHostNameProps(
                 hostname='renderqueue',
@@ -156,7 +164,7 @@ class ServiceTier(Stack):
                 ),
                 internal_protocol=ApplicationProtocol.HTTPS
             ),
-            version=recipes.version,
+            version=self.version,
             # TODO - Evaluate deletion protection for your own needs. This is set to false to
             # cleanly remove everything when this stack is destroyed. If you would like to ensure
             # that this resource is not accidentally deleted, you should set this to true.
@@ -178,9 +186,9 @@ class ServiceTier(Stack):
             ubl_cert_secret = Secret.from_secret_arn(self, 'ublcertssecret', props.ubl_certs_secret_arn)
             self.ubl_licensing = UsageBasedLicensing(
                 self,
-                'usagebasedlicensing',
+                'UsageBasedLicensing',
                 vpc=props.vpc,
-                images=recipes.ubl_images,
+                images=images,
                 licenses=props.ubl_licenses,
                 render_queue=self.render_queue,
                 certificate_secret=ubl_cert_secret,

@@ -18,6 +18,10 @@ class AppConfig:
     TODO: Fill these in with your own values.
     """
     def __init__(self):
+        # The version of Deadline to use on the render farm. Leave as None for the latest release or specify a version
+        # to pin to. Some examples of pinned version values are "10", "10.1", or "10.1.12"
+        self.deadline_version: Optional[str] = None
+
         # A map of regions to Deadline Client Linux AMIs.As an example, the Linux Deadline 10.1.12.1 AMI ID
         # from us-west-2 is filled in. It can be used as-is, added to, or replaced. Ideally the version here
         #  should match the one used for staging the render queue and usage based licensing recipes.

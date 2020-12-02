@@ -107,7 +107,8 @@ def main():
         ubl_certs_secret_arn=config.ubl_certificate_secret_arn,
         ubl_licenses=config.ubl_licenses,
         root_ca=security.root_ca,
-        dns_zone=network.dns_zone
+        dns_zone=network.dns_zone,
+        version=config.deadline_version
     )
     service = service_tier.ServiceTier(app, 'ServiceTier', props=service_props, env=env)
 

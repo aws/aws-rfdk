@@ -13,6 +13,11 @@ import { MongoDbSsplLicenseAcceptance } from 'aws-rfdk';
  * TODO: Fill these in with your own values.
  */
 class AppConfig {
+  /**
+   * The version of Deadline to run on the farm (matches the example AMI for 10.1.11.5 above).
+   * @default The latest available version of Deadline is used
+   */
+  public readonly deadlineVersion?: string;
 
   /**
    * A map of regions to Deadline Client Linux AMIs. As an example, the Linux Deadline 10.1.12.1 AMI ID from us-west-2
@@ -49,7 +54,6 @@ class AppConfig {
    * if you wish to accept the SSPL and proceed with MongoDB deployment.
    */
   public readonly acceptSsplLicense: MongoDbSsplLicenseAcceptance = MongoDbSsplLicenseAcceptance.USER_REJECTS_SSPL;
-
 }
 
 export const config = new AppConfig();
