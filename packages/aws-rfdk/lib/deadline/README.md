@@ -21,12 +21,14 @@ _**Note:** RFDK constructs currently support Deadline 10.1.9 and later._
   - [Configuring Deadline Client Connections](#configuring-deadline-client-connections)
 - [Stage](#stage)
   - [Staging Docker Recipes](#staging-docker-recipes)
+- [ThinkboxDockerImages](#thinkbox-docker-images)
 - [Usage Based Licensing](#usage-based-licensing-ubl)
   - [Docker Container Images](#usage-based-licensing-docker-container-images)
   - [Uploading Binary Secrets to SecretsManager](#uploading-binary-secrets-to-secretsmanager)
 - [VersionQuery](#versionquery)
 - [Worker Fleet](#worker-fleet)
   - [Health Monitoring](#worker-fleet-health-monitoring)
+  - [Custom Worker Instance Startup](#custom-worker-instance-startup)
 
 ## Render Queue
 
@@ -46,15 +48,15 @@ _**Note:** The number of instances running the Render Queue is currently limited
 The following example outlines how to construct a `RenderQueue`:
 
 ```ts
-const recipes = new ThinkboxDockerRecipes(stack, 'Recipes', {
-  stage: Stage.fromDirectory(/* ... */)
-});
 const version = VersionQuery.exactString(stack, 'Version', '1.2.3.4');
+const images = new ThinkboxDockerImages(stack, 'Images', {
+  version: version,
+});
 const repository = new Repository(stack, 'Repository', { /* ...*/});
 
 const renderQueue = new RenderQueue(stack, 'RenderQueue', {
   vpc: vpc,
-  images: recipes.renderQueueImages,
+  images: images,
   version: version,
   repository: repository,
 });
@@ -62,13 +64,11 @@ const renderQueue = new RenderQueue(stack, 'RenderQueue', {
 
 ### Render Queue Docker Container Images
 
-The `RenderQueue` currently requires only one Docker container image for the Deadline Remote Connection Server (RCS). An RCS image must satisfy the following criteria to be compatible with RFDK:
+The `RenderQueue` currently requires only one Docker container image for the Deadline Remote Connection Server (RCS).
 
-- Deadline Client must be installed
-- The port the RCS will be listening on must be exposed
-- The default command must launch the RCS
+AWS Thinkbox provides Docker recipes and images that set these up for you. These can be accessed with the `ThinkboxDockerRecipes` and `ThinkboxDockerImages` constructs (see [Staging Docker Recipes](#staging-docker-recipes) and [Thinkbox Docker Images](#thinkbox-docker-images) respectively).
 
-AWS Thinkbox provides Docker recipes that set these up for you. These can be accessed with the `ThinkboxDockerRecipes` class (see [Staging Docker Recipes](#staging-docker-recipes)).
+If you need to customize the Docker images of your Render Queue, it is recommended that you stage the recipes and modify them as desired. Once staged to a directory, consult the `README.md` file in the root for details on how to extend the recipes.
 
 ### Render Queue Encryption
 
@@ -217,6 +217,54 @@ We recommend adding a `script` field in your `package.json` that runs the `stage
 
 With this in place, staging the Deadline Docker recipes can be done simply by running `npm run stage`.
 
+## Thinkbox Docker Images
+
+Thinkbox publishes Docker images for use with RFDK to a public ECR repository. The `ThinkboxDockerImages` construct
+simplifies using these images. To use it, simply create one:
+
+```ts
+// This will provide Docker container images for the latest Deadline release
+const images = new ThinkboxDockerImages(scope, 'Images');
+```
+
+If you desire a specific version of Deadline, you can supply a version with:
+
+```ts
+// Specify a version of Deadline
+const version = new VersionQuery(scope, 'Version', {
+  version: '10.1.11',
+});
+
+// This will provide Docker container images for the specified version of Deadline
+const images = new ThinkboxDockerImages(scope, 'Images', {
+  version: version,
+});
+```
+
+To use these images, you can use the expressive methods or provide the instance directly to downstream constructs:
+
+```ts
+const renderQueue = new RenderQueue(scope, 'RenderQueue', {
+  images: images,
+  // ...
+});
+const ubl = new UsageBasedLicensing(scope, 'RenderQueue', {
+  images: images,
+  // ...
+});
+
+// OR
+
+const renderQueue = new RenderQueue(scope, 'RenderQueue', {
+  images: images.forRenderQueue(),
+  // ...
+});
+const ubl = new UsageBasedLicensing(scope, 'RenderQueue', {
+  images: images.forUsageBasedLicensing(),
+  // ...
+});
+```
+
 ## Usage-Based Licensing (UBL)
 
 Usage-Based Licensing is an on-demand licensing model (see [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/licensing-usage-based.html)). The RFDK supports this type of licensing with the `UsageBasedLicensing` construct. This construct contains the following components:
@@ -236,14 +284,15 @@ _**Note:** This construct is not usable in any China region._
 The following example outlines how to construct `UsageBasedLicensing`:
 
 ```ts
-const recipes = new ThinkboxDockerRecipes(stack, 'Recipes', {
-  stage: Stage.fromDirectory(/* ... */)
+const version = VersionQuery.exactString(stack, 'Version', '1.2.3.4');
+const images = new ThinkboxDockerImages(stack, 'Images', {
+  version: version,
 });
 
 const ubl = new UsageBasedLicensing(stack, 'UsageBasedLicensing', {
   vpc: vpc,
   renderQueue: renderQueue,
-  images: recipes.ublImages,
+  images: images,
   licenses: [ UsageBasedLicense.forKrakatoa(/* ... */), /* ... */ ],
   certificateSecret: /* ... */, // This must be a binary secret (see below)
   memoryReservationMiB: /* ... */
@@ -252,12 +301,9 @@ const ubl = new UsageBasedLicensing(stack, 'UsageBasedLicensing', {
 
 ### Usage-Based Licensing Docker Container Images
 
-`UsageBasedLicensing` currently requires only one Docker container image for the Deadline License Forwarder. A License Forwarder image must satisfy the following criteria to be compatible with RFDK:
+`UsageBasedLicensing` currently requires only one Docker container image for the Deadline License Forwarder.
 
-- Deadline Client must be installed
-- The default command must launch the License Forwarder
-
-AWS Thinkbox provides Docker recipes that sets these up for you. These can be accessed with the `ThinkboxDockerRecipes` class (see [Staging Docker Recipes](#staging-docker-recipes)).
+AWS Thinkbox provides Docker recipes that sets these up for you. These can be accessed with the `ThinkboxDockerRecipes` and `ThinkboxDockerImages` constructs (see [Staging Docker Recipes](#staging-docker-recipes) and [Thinkbox Docker Images](#thinkbox-docker-images) respectively).
 
 ### Uploading Binary Secrets to SecretsManager
 
@@ -320,11 +366,12 @@ const workerFleet = new WorkerInstanceFleet(stack, 'WorkerFleet', {
 });
 ```
 
-### User data scripts for the Worker configuration
+### Custom Worker Instance Startup
 
 You have possibility to run user data scripts at various points during the Worker configuration lifecycle.
 
 To do this, subclass `InstanceUserDataProvider` and override desired methods:
+
 ```ts
 class UserDataProvider extends InstanceUserDataProvider {
   preCloudWatchAgent(host: IHost): void {
@@ -337,5 +384,4 @@ const fleet = new WorkerInstanceFleet(stack, 'WorkerFleet', {
   workerMachineImage: /* ... */,
   userDataProvider: new UserDataProvider(stack, 'UserDataProvider'),
 });
-
 ```

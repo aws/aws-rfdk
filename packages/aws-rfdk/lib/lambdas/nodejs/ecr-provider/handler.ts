@@ -1,0 +1,117 @@
+/**
+ * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/* eslint-disable no-console */
+
+import * as path from 'path';
+
+import { LambdaContext } from '../lib/aws-lambda';
+import { CfnRequestEvent, SimpleCustomResource } from '../lib/custom-resource';
+import {
+  ThinkboxEcrProvider,
+} from '../lib/ecr-provider';
+
+/**
+ * The input to this Custom Resource
+ */
+export interface ThinkboxEcrProviderResourceProperties {
+  /**
+   * The desired ECR region. If not provided, the global ECR is used.
+   */
+  readonly Region?: string;
+
+  /**
+   * A random string that forces the Lambda to run again and obtain the latest ECR.
+   */
+  readonly ForceRun?: string;
+}
+
+/**
+ * Output of this Custom Resource.
+ */
+export interface ThinkboxEcrProviderResourceOutput {
+  /**
+   * The ARN prefix of the ECR repository. This can be suffixed with the recipe name to get the final ECR repository
+   * ARN.
+   */
+  readonly EcrArnPrefix: string;
+}
+
+/**
+ * This custom resource will parse and return the base ECR ARN or URI containing Thinkbox published Docker Images. A
+ * region can be specified to get a regional ECR base ARN. Otherwise, the global ECR base URI is returned.
+ */
+export class ThinkboxEcrProviderResource extends SimpleCustomResource {
+  readonly ecrProvider: ThinkboxEcrProvider;
+
+  constructor() {
+    super();
+    this.ecrProvider = new ThinkboxEcrProvider(path.join(
+      __dirname,
+      '..',
+      'lib',
+      'ecr-provider',
+      'mock-data.json',
+    ));
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public validateInput(data: object): boolean {
+    return this.isEcrProviderResourceProperties(data);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public async doCreate(_physicalId: string, resourceProperties: ThinkboxEcrProviderResourceProperties): Promise<ThinkboxEcrProviderResourceOutput> {
+    let result: any;
+    if (resourceProperties.Region) {
+      result = {
+        EcrArnPrefix: await this.ecrProvider.getRegionalEcrBaseArn(resourceProperties.Region),
+      };
+    }
+    else {
+      result = {
+        EcrURIPrefix: await this.ecrProvider.getGlobalEcrBaseURI(),
+      };
+    }
+    console.log('result = ');
+    console.log(JSON.stringify(result, null, 4));
+    return result;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  /* istanbul ignore next */
+  public async doDelete(_physicalId: string, _resourceProperties: ThinkboxEcrProviderResourceProperties): Promise<void> {
+    // Nothing to do -- we don't modify anything.
+    return;
+  }
+
+  private isEcrProviderResourceProperties(value: any): value is ThinkboxEcrProviderResourceProperties {
+    if (!value || typeof(value) !== 'object' || Array.isArray(value)) { return false; }
+
+    function isOptionalString(val: any): val is string | undefined {
+      return val === undefined || typeof(val) == 'string';
+    }
+
+    return (
+      isOptionalString(value.Region) &&
+      isOptionalString(value.ForceRun)
+    );
+  }
+}
+
+/**
+ * The handler used to provide the installer links for the requested version
+ */
+/* istanbul ignore next */
+export async function handler(event: CfnRequestEvent, context: LambdaContext): Promise<string> {
+  const ecrProvider = new ThinkboxEcrProviderResource();
+  return await ecrProvider.handler(event, context);
+}
