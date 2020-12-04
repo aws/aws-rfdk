@@ -8,6 +8,7 @@ import * as path from 'path';
 import {
   OperatingSystemType,
 } from '@aws-cdk/aws-ec2';
+import { Asset } from '@aws-cdk/aws-s3-assets';
 import {
   Construct,
   Duration,
@@ -116,6 +117,16 @@ export interface WorkerSettings {
    * @default - Worker is not assigned to any region
    */
   readonly region?: string;
+
+  /**
+   * The port to configure the worker to listen on for remote commands such as
+   * requests for its log stream. If more than one worker is present on a single
+   * host, connsecutive ports will be opened, starting with the supplied port,
+   * up to the maximum number of workers defined by the WorkerInstanceFleet.
+   *
+   * @default 56032
+   */
+  readonly listenerPort?: number;
 }
 
 /**
@@ -178,6 +189,16 @@ export interface WorkerInstanceConfigurationProps {
  *   environments.
  */
 export class WorkerInstanceConfiguration extends Construct {
+  /**
+   * The default port to use for a worker to listen on for remote commands.
+   */
+  private static readonly DEFAULT_LISTENER_PORT = 56032;
+
+  /**
+   * @inheritdoc
+   */
+  public readonly listenerPort: number;
+
   constructor(scope: Construct, id: string, props: WorkerInstanceConfigurationProps) {
     super(scope, id);
     props.userDataProvider?.preCloudWatchAgent(props.worker);
@@ -185,9 +206,12 @@ export class WorkerInstanceConfiguration extends Construct {
       this.configureCloudWatchLogStream(props.worker, id, props.cloudwatchLogSettings);
     }
     props.userDataProvider?.preRenderQueueConfiguration(props.worker);
-    props.renderQueue?.configureClientInstance({ host: props.worker});
+    props.renderQueue?.configureClientInstance({ host: props.worker });
     props.userDataProvider?.preWorkerConfiguration(props.worker);
+
+    this.listenerPort = props.workerSettings?.listenerPort ?? WorkerInstanceConfiguration.DEFAULT_LISTENER_PORT;
     this.configureWorkerSettings(props.worker, id, props.workerSettings);
+
     props.userDataProvider?.postWorkerLaunch(props.worker);
   }
 
@@ -257,6 +281,14 @@ export class WorkerInstanceConfiguration extends Construct {
         'scripts/',
       ),
     });
+    const configureWorkerPortAsset = new Asset(this, `${id}WorkerListenerScript`, {
+      path: path.join(__dirname, '..', 'scripts', 'python', 'worker-listening-port.py'),
+    });
+
+    const configWorkerPortLocalPath = worker.userData.addS3DownloadCommand({
+      bucket: configureWorkerPortAsset.bucket,
+      bucketKey: configureWorkerPortAsset.s3ObjectKey,
+    });
 
     // Converting to lower case, as groups and pools are all stored in lower case in deadline.
     const groups = settings?.groups?.map(val => val.toLowerCase()).join(',') ?? '';
@@ -269,6 +301,8 @@ export class WorkerInstanceConfiguration extends Construct {
         `'${pools}'`,
         `'${settings?.region ?? ''}'`,
         `'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}'`,
+        this.listenerPort.toString(),
+        configWorkerPortLocalPath,
       ],
     });
   }
