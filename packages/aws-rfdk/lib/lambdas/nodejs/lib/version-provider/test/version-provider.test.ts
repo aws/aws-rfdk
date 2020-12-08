@@ -213,3 +213,32 @@ test('get requested Uri version for not existing product.', () => {
     Product.deadlineDocker,
   )).toEqual(undefined);
 });
+
+
+test('get requested Uri version for not existing product version.', () => {
+  const requestedVersion = Version.parseFromVersionString('10.2');
+
+  expect(requestedVersion).not.toBeNull();
+  if (requestedVersion === null) {
+    return;
+  }
+
+  expect(() => {
+    versionProvider['getRequestedUriVersion'](
+      requestedVersion,
+      {
+        10: {
+          1: {
+            9: {
+              2: {
+                linux: 's3://thinkbox-installers/DeadlineDocker/10.1.9.2/DeadlineDocker-10.1.9.2.tar.gz',
+              },
+            },
+          },
+        },
+      },
+      Platform.windows,
+      Product.deadlineDocker,
+    );
+  }).toThrow('DeadlineDocker version 10.2 is not available on windows');
+});
