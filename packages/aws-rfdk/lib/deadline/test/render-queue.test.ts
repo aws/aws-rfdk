@@ -1696,6 +1696,9 @@ describe('RenderQueue', () => {
       vpcSubnets: {
         subnets,
       },
+      vpcSubnetsAlb: {
+        subnets,
+      },
     };
     const isolatedStack = new Stack(app, 'IsolatedStack');
 
@@ -1707,6 +1710,12 @@ describe('RenderQueue', () => {
         'SubnetID1',
         'SubnetID2',
       ),
+    }));
+    expectCDK(isolatedStack).to(haveResource('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+      Subnets: [
+        'SubnetID1',
+        'SubnetID2',
+      ],
     }));
   });
 
