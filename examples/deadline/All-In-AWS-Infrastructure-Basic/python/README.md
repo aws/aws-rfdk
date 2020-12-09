@@ -32,8 +32,16 @@ These instructions assume that your working directory is `examples/deadline/All-
     popd
     pip install ../../../../dist/python/aws-rfdk-<version>.tar.gz
     ```
-4.  Change the value in the `deadline_client_linux_ami_map` variable in `package/config.py` to include the region + AMI ID mapping of your EC2 AMI(s) with Deadline Worker.
+4.  Change the value in the `deadline_client_linux_ami_map` variable in `package/config.py` to include the region + AMI ID mapping of your EC2 AMI(s) with Deadline Worker. You can use the following AWS CLI query to find AMI ID's:
+    ```bash
+    aws --region <region> ec2 describe-images \
+    --owners 357466774442 \
+    --filters "Name=name,Values=*Worker*" "Name=name,Values=*<version>*" \
+    --query 'Images[*].[ImageId, Name]' \
+    --output text
+    ```
 
+    And enter it into this section of `package/config.py`:
     ```python
     # For example, in the us-west-2 region
     self.deadline_client_linux_ami_map: Mapping[str, str] = {
@@ -104,10 +112,7 @@ These instructions assume that your working directory is `examples/deadline/All-
     # Set this value to the version of AWS Thinkbox Deadline you'd like to deploy to your farm. Deadline 10.1.9 and up are supported.
     RFDK_DEADLINE_VERSION=<version_of_deadline>
 
-    npx --package=aws-rfdk@${RFDK_VERSION} stage-deadline \
-        --deadlineInstallerURI s3://thinkbox-installers/Deadline/${RFDK_DEADLINE_VERSION}/Linux/DeadlineClient-${RFDK_DEADLINE_VERSION}-linux-x64-installer.run \
-        --dockerRecipesURI s3://thinkbox-installers/DeadlineDocker/${RFDK_DEADLINE_VERSION}/DeadlineDocker-${RFDK_DEADLINE_VERSION}.tar.gz \
-        --output stage
+    npx --package=aws-rfdk@${RFDK_VERSION} stage-deadline ${RFDK_DEADLINE_VERSION} --output stage
     ```
 12. Deploy all the stacks in the sample app:
 

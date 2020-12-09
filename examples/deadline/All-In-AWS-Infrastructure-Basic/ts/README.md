@@ -18,8 +18,16 @@ These instructions assume that your working directory is `examples/deadline/All-
     ```
     yarn install
     ```
-3.  Change the value in the `deadlineClientLinuxAmiMap` variable in `bin/config.ts` to include the region + AMI ID mapping of your EC2 AMI(s) with Deadline Worker.
+3.  Change the value in the `deadlineClientLinuxAmiMap` variable in `bin/config.ts` to include the region + AMI ID mapping of your EC2 AMI(s) with Deadline Worker. You can use the following AWS CLI query to find AMI ID's:
+    ```
+    aws --region <region> ec2 describe-images \
+    --owners 357466774442 \
+    --filters "Name=name,Values=*Worker*" "Name=name,Values=*<version>*" \
+    --query 'Images[*].[ImageId, Name]' \
+    --output text
+    ```
 
+    And enter it into this section of `bin/config.ts`:
     ```ts
     // For example, in the us-west-2 region
     public readonly deadlineClientLinuxAmiMap: Record<string, string> = {
