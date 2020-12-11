@@ -131,6 +131,9 @@ def configure_deadline( config ):
     :param config: The parsed configuration object
     """
 
+    # Ensure that the client is configured to connect to a Remote RCS.
+    call_deadline_command(['SetIniFileSetting', 'ConnectionType', 'Remote'])
+
     repo_args = ['ChangeRepository','Proxy',config.render_queue.address]
     if config.render_queue.scheme == 'http':
         print( "Configuring Deadline to connect to the Render Queue (%s) using HTTP Traffic" % config.render_queue.address )

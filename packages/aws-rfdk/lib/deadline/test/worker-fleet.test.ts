@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/* eslint-disable dot-notation */
+
 import {
   ABSENT,
   expect as expectCDK,
@@ -19,6 +21,7 @@ import {
   InstanceSize,
   InstanceType,
   IVpc,
+  Peer,
   SecurityGroup,
   SubnetType,
   Vpc,
@@ -51,10 +54,12 @@ import {
   Repository,
   Version,
   VersionQuery,
+  WorkerInstanceConfiguration,
   WorkerInstanceFleet,
 } from '../lib';
 import {
   CONFIG_WORKER_ASSET_LINUX,
+  CONFIG_WORKER_ASSET_WINDOWS,
   CWA_ASSET_LINUX,
   RQ_CONNECTION_ASSET,
 } from './asset-constants';
@@ -178,6 +183,158 @@ test('WorkerFleet uses given security group', () => {
       'sg-123456789',
     ],
   }));
+});
+
+describe('allowing log listener port', () => {
+  test('from CIDR', () => {
+    // WHEN
+    const fleet = new WorkerInstanceFleet(stack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
+      }),
+      renderQueue,
+    });
+
+    fleet.allowListenerPortFrom(Peer.ipv4('127.0.0.1/24').connections);
+
+    // THEN
+    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroup', {
+      SecurityGroupEgress: [{ CidrIp: '0.0.0.0/0' }],
+      SecurityGroupIngress: [
+        {
+          CidrIp: '127.0.0.1/24',
+          Description: 'Worker remote command listening port',
+          FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
+          IpProtocol: 'tcp',
+          ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + WorkerInstanceFleet['MAX_WORKERS_PER_HOST'],
+        },
+      ],
+    }));
+  });
+
+  test('to CIDR', () => {
+    // WHEN
+    const fleet = new WorkerInstanceFleet(stack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
+      }),
+      renderQueue,
+    });
+
+    fleet.allowListenerPortTo(Peer.ipv4('127.0.0.1/24').connections);
+
+    // THEN
+    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroup', {
+      SecurityGroupEgress: [{ CidrIp: '0.0.0.0/0' }],
+      SecurityGroupIngress: [
+        {
+          CidrIp: '127.0.0.1/24',
+          Description: 'Worker remote command listening port',
+          FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
+          IpProtocol: 'tcp',
+          ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + WorkerInstanceFleet['MAX_WORKERS_PER_HOST'],
+        },
+      ],
+    }));
+  });
+
+  test('from SecurityGroup', () => {
+    // WHEN
+    const fleet = new WorkerInstanceFleet(stack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
+      }),
+      renderQueue,
+    });
+    const securityGroup = SecurityGroup.fromSecurityGroupId(stack, 'SG', 'sg-123456789');
+
+    fleet.allowListenerPortFrom(securityGroup);
+
+    // THEN
+    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+      FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
+      IpProtocol: 'tcp',
+      SourceSecurityGroupId: 'sg-123456789',
+      ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + WorkerInstanceFleet['MAX_WORKERS_PER_HOST'],
+    }));
+  });
+
+  test('to SecurityGroup', () => {
+    // WHEN
+    const fleet = new WorkerInstanceFleet(stack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
+      }),
+      renderQueue,
+    });
+    const securityGroup = SecurityGroup.fromSecurityGroupId(stack, 'SG', 'sg-123456789');
+
+    fleet.allowListenerPortTo(securityGroup);
+
+    // THEN
+    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+      FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
+      IpProtocol: 'tcp',
+      SourceSecurityGroupId: 'sg-123456789',
+      ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + WorkerInstanceFleet['MAX_WORKERS_PER_HOST'],
+    }));
+  });
+
+  test('from other stack', () => {
+    const otherStack = new Stack(app, 'otherStack', {
+      env: { region: 'us-east-1' },
+    });
+
+    // WHEN
+    const fleet = new WorkerInstanceFleet(stack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
+      }),
+      renderQueue,
+    });
+    const securityGroup = SecurityGroup.fromSecurityGroupId(otherStack, 'SG', 'sg-123456789');
+
+    fleet.allowListenerPortFrom(securityGroup);
+
+    // THEN
+    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+      FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
+      IpProtocol: 'tcp',
+      SourceSecurityGroupId: 'sg-123456789',
+      ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + WorkerInstanceFleet['MAX_WORKERS_PER_HOST'],
+    }));
+  });
+
+  test('to other stack', () => {
+    const otherStack = new Stack(app, 'otherStack', {
+      env: { region: 'us-east-1' },
+    });
+
+    // WHEN
+    const fleet = new WorkerInstanceFleet(stack, 'workerFleet', {
+      vpc,
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
+      }),
+      renderQueue,
+    });
+    const securityGroup = SecurityGroup.fromSecurityGroupId(otherStack, 'SG', 'sg-123456789');
+
+    fleet.allowListenerPortTo(securityGroup);
+
+    // THEN
+    expectCDK(otherStack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+      FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
+      IpProtocol: 'tcp',
+      SourceSecurityGroupId: 'sg-123456789',
+      ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + WorkerInstanceFleet['MAX_WORKERS_PER_HOST'],
+    }));
+  });
 });
 
 test('default worker fleet is created correctly with linux image', () => {
@@ -320,7 +477,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CWA_ASSET_LINUX.Key},
+                { Ref: CWA_ASSET_LINUX.Key },
               ],
             },
           ],
@@ -331,13 +488,13 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CWA_ASSET_LINUX.Key},
+                { Ref: CWA_ASSET_LINUX.Key },
               ],
             },
           ],
         },
-        '\')\naws s3 cp \'s3://',
-        {Ref: CWA_ASSET_LINUX.Bucket},
+        "\')\naws s3 cp 's3://",
+        { Ref: CWA_ASSET_LINUX.Bucket },
         '/',
         {
           'Fn::Select': [
@@ -345,7 +502,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CWA_ASSET_LINUX.Key},
+                { Ref: CWA_ASSET_LINUX.Key },
               ],
             },
           ],
@@ -356,19 +513,19 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CWA_ASSET_LINUX.Key},
+                { Ref: CWA_ASSET_LINUX.Key },
               ],
             },
           ],
         },
-        '\' \'/tmp/',
+        "' '/tmp/",
         {
           'Fn::Select': [
             0,
             {
               'Fn::Split': [
                 '||',
-                {Ref: CWA_ASSET_LINUX.Key},
+                { Ref: CWA_ASSET_LINUX.Key },
               ],
             },
           ],
@@ -379,7 +536,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CWA_ASSET_LINUX.Key},
+                { Ref: CWA_ASSET_LINUX.Key },
               ],
             },
           ],
@@ -393,9 +550,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {
-                  Ref: CWA_ASSET_LINUX.Key,
-                },
+                { Ref: CWA_ASSET_LINUX.Key },
               ],
             },
           ],
@@ -406,7 +561,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CWA_ASSET_LINUX.Key},
+                { Ref: CWA_ASSET_LINUX.Key },
               ],
             },
           ],
@@ -418,7 +573,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CWA_ASSET_LINUX.Key},
+                { Ref: CWA_ASSET_LINUX.Key },
               ],
             },
           ],
@@ -429,7 +584,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CWA_ASSET_LINUX.Key},
+                { Ref: CWA_ASSET_LINUX.Key },
               ],
             },
           ],
@@ -443,7 +598,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: RQ_CONNECTION_ASSET.Key},
+                { Ref: RQ_CONNECTION_ASSET.Key },
               ],
             },
           ],
@@ -454,13 +609,13 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: RQ_CONNECTION_ASSET.Key},
+                { Ref: RQ_CONNECTION_ASSET.Key },
               ],
             },
           ],
         },
         '\')\naws s3 cp \'s3://',
-        {Ref: RQ_CONNECTION_ASSET.Bucket},
+        { Ref: RQ_CONNECTION_ASSET.Bucket },
         '/',
         {
           'Fn::Select': [
@@ -468,7 +623,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: RQ_CONNECTION_ASSET.Key},
+                { Ref: RQ_CONNECTION_ASSET.Key },
               ],
             },
           ],
@@ -479,7 +634,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: RQ_CONNECTION_ASSET.Key},
+                { Ref: RQ_CONNECTION_ASSET.Key },
               ],
             },
           ],
@@ -491,7 +646,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: RQ_CONNECTION_ASSET.Key},
+                { Ref: RQ_CONNECTION_ASSET.Key },
               ],
             },
           ],
@@ -502,7 +657,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: RQ_CONNECTION_ASSET.Key},
+                { Ref: RQ_CONNECTION_ASSET.Key },
               ],
             },
           ],
@@ -518,7 +673,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: RQ_CONNECTION_ASSET.Key},
+                { Ref: RQ_CONNECTION_ASSET.Key },
               ],
             },
           ],
@@ -529,7 +684,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: RQ_CONNECTION_ASSET.Key},
+                { Ref: RQ_CONNECTION_ASSET.Key },
               ],
             },
           ],
@@ -549,7 +704,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: RQ_CONNECTION_ASSET.Key},
+                { Ref: RQ_CONNECTION_ASSET.Key },
               ],
             },
           ],
@@ -560,7 +715,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: RQ_CONNECTION_ASSET.Key},
+                { Ref: RQ_CONNECTION_ASSET.Key },
               ],
             },
           ],
@@ -576,7 +731,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
               ],
             },
           ],
@@ -587,13 +742,13 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
               ],
             },
           ],
         },
-        "')\naws s3 cp 's3://",
-        {Ref: CONFIG_WORKER_ASSET_LINUX.Bucket},
+        '\')\naws s3 cp \'s3://',
+        { Ref: CONFIG_WORKER_ASSET_WINDOWS.Bucket },
         '/',
         {
           'Fn::Select': [
@@ -601,7 +756,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
               ],
             },
           ],
@@ -612,7 +767,78 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
+              ],
+            },
+          ],
+        },
+        '\' \'/tmp/',
+        {
+          'Fn::Select': [
+            0,
+            {
+              'Fn::Split': [
+                '||',
+                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
+              ],
+            },
+          ],
+        },
+        {
+          'Fn::Select': [
+            1,
+            {
+              'Fn::Split': [
+                '||',
+                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
+              ],
+            },
+          ],
+        },
+        "'\nmkdir -p $(dirname '/tmp/",
+        {
+          'Fn::Select': [
+            0,
+            {
+              'Fn::Split': [
+                '||',
+                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
+              ],
+            },
+          ],
+        },
+        {
+          'Fn::Select': [
+            1,
+            {
+              'Fn::Split': [
+                '||',
+                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
+              ],
+            },
+          ],
+        },
+        "')\naws s3 cp 's3://",
+        { Ref: CONFIG_WORKER_ASSET_LINUX.Bucket },
+        '/',
+        {
+          'Fn::Select': [
+            0,
+            {
+              'Fn::Split': [
+                '||',
+                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
+              ],
+            },
+          ],
+        },
+        {
+          'Fn::Select': [
+            1,
+            {
+              'Fn::Split': [
+                '||',
+                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
               ],
             },
           ],
@@ -624,7 +850,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
               ],
             },
           ],
@@ -635,7 +861,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
               ],
             },
           ],
@@ -647,7 +873,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
               ],
             },
           ],
@@ -658,7 +884,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
               ],
             },
           ],
@@ -670,7 +896,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
               ],
             },
           ],
@@ -681,12 +907,34 @@ test('default worker fleet is created correctly custom subnet values', () => {
             {
               'Fn::Split': [
                 '||',
-                {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
               ],
             },
           ],
         },
-        `' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}'`,
+        `' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} /tmp/`,
+        {
+          'Fn::Select': [
+            0,
+            {
+              'Fn::Split': [
+                '||',
+                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
+              ],
+            },
+          ],
+        },
+        {
+          'Fn::Select': [
+            1,
+            {
+              'Fn::Split': [
+                '||',
+                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
+              ],
+            },
+          ],
+        },
       ],
     ],
   });
@@ -740,7 +988,7 @@ test('default worker fleet is created correctly with groups, pools and region', 
           },
         ],
       },
-      "')\naws s3 cp 's3://",
+      '\')\naws s3 cp \'s3://',
       {Ref: CWA_ASSET_LINUX.Bucket},
       '/',
       {
@@ -976,6 +1224,83 @@ test('default worker fleet is created correctly with groups, pools and region', 
           {
             'Fn::Split': [
               '||',
+              {
+                Ref: CONFIG_WORKER_ASSET_WINDOWS.Key,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        'Fn::Select': [
+          1,
+          {
+            'Fn::Split': [
+              '||',
+              {
+                Ref: CONFIG_WORKER_ASSET_WINDOWS.Key,
+              },
+            ],
+          },
+        ],
+      },
+      "')\naws s3 cp 's3://",
+      {
+        Ref: CONFIG_WORKER_ASSET_WINDOWS.Bucket,
+      },
+      '/',
+      {
+        'Fn::Select': [
+          0,
+          {
+            'Fn::Split': [
+              '||',
+              { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
+            ],
+          },
+        ],
+      },
+      {
+        'Fn::Select': [
+          1,
+          {
+            'Fn::Split': [
+              '||',
+              { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
+            ],
+          },
+        ],
+      },
+      "' '/tmp/",
+      {
+        'Fn::Select': [
+          0,
+          {
+            'Fn::Split': [
+              '||',
+              { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
+            ],
+          },
+        ],
+      },
+      {
+        'Fn::Select': [
+          1,
+          {
+            'Fn::Split': [
+              '||',
+              { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
+            ],
+          },
+        ],
+      },
+      "'\nmkdir -p $(dirname '/tmp/",
+      {
+        'Fn::Select': [
+          0,
+          {
+            'Fn::Split': [
+              '||',
               {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
             ],
           },
@@ -1086,7 +1411,33 @@ test('default worker fleet is created correctly with groups, pools and region', 
           },
         ],
       },
-      `' 'a,b' 'c,d' 'E' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}'`,
+      `' 'a,b' 'c,d' 'E' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} /tmp/`,
+      {
+        'Fn::Select': [
+          0,
+          {
+            'Fn::Split': [
+              '||',
+              {
+                Ref: CONFIG_WORKER_ASSET_WINDOWS.Key,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        'Fn::Select': [
+          1,
+          {
+            'Fn::Split': [
+              '||',
+              {
+                Ref: CONFIG_WORKER_ASSET_WINDOWS.Key,
+              },
+            ],
+          },
+        ],
+      },
     ]],
   });
 });

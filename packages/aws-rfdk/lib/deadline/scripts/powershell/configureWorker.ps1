@@ -9,7 +9,11 @@ param (
     [Parameter(Mandatory=$True)]
     $workerRegion,
     [Parameter(Mandatory=$True)]
-    $minimumSupportedDeadlineVersion
+    $minimumSupportedDeadlineVersion,
+    [Parameter(Mandatory=$True)]
+    $workerListeningPort,
+    [Parameter(Mandatory=$True)]
+    $workerListeningPortConfigScript
 )
 
 Set-PSDebug -Trace 1
@@ -99,6 +103,19 @@ if($WORKER_POOLS) {
         }
     }
     & $DEADLINE_COMMAND -SetPoolsForSlave $WORKER_NAMES_CSV $workerPools | Out-Default
+}
+
+# Setting listening port for the workers on this node (we cannot have multiple workers listening on the same port)
+[int]$portOffset=0
+if ($WORKER_NAMES) {
+    foreach ($workerName in $WORKER_NAMES) {
+        $currentPort=([int]$workerListeningPort + $portOffset)
+
+        & $DEADLINE_COMMAND -ExecuteScriptNoGui "$workerListeningPortConfigScript" -n $workerName -p $currentPort | Out-Default
+        & netsh advfirewall firewall add rule name="Worker Log Listening" dir=in action=allow protocol=TCP localport=$currentPort | Out-Default
+
+        $portOffset++
+    }
 }
 
 $serviceName="deadline10launcherservice"

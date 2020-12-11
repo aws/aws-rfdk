@@ -20,6 +20,7 @@ import {
   InstanceType,
   ISecurityGroup,
   IVpc,
+  Port,
   SubnetSelection,
   SubnetType,
 } from '@aws-cdk/aws-ec2';
@@ -64,6 +65,35 @@ import {
  * Interface for Deadline Worker Fleet.
  */
 export interface IWorkerFleet extends IResource, IConnectable, IGrantable {
+  /**
+   * Allow access to the worker's remote command listener port (configured as a part of the
+   * WorkerConfiguration) for an IConnectable that is either in this stack, or in a stack that
+   * depends on this stack. If this stack depends on the other stack, use allowListenerPortTo().
+   *
+   * Common uses are:
+   *
+   *   Adding a SecurityGroup:
+   *     `workerFleet.allowListenerPortFrom(securityGroup)`
+   *
+   *   Adding a CIDR:
+   *     `workerFleet.allowListenerPortFrom(Peer.ipv4('10.0.0.0/24').connections)`
+   */
+  allowListenerPortFrom(other: IConnectable): void;
+
+  /**
+   * Allow access to the worker's remote command listener port (configured as a part of the
+   * WorkerConfiguration) for an IConnectable that is either in this stack, or in a stack that this
+   * stack depends on. If the other stack depends on this stack, use allowListenerPortFrom().
+   *
+   * Common uses are:
+   *
+   *   Adding a SecurityGroup:
+   *     `workerFleet.allowListenerPortTo(securityGroup)`
+   *
+   *   Adding a CIDR:
+   *     `workerFleet.allowListenerPortTo(Peer.ipv4('10.0.0.0/24').connections)`
+   */
+  allowListenerPortTo(other: IConnectable): void;
 }
 
 /**
@@ -86,8 +116,6 @@ export interface WorkerInstanceFleetProps extends WorkerSettings {
    * An IAM role to associate with the instance profile assigned to its resources.
    *
    * The role must be assumable by the service principal `ec2.amazonaws.com`:
-   *
-   * @example
    *
    *    const role = new iam.Role(this, 'MyRole', {
    *      assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com')
@@ -262,6 +290,16 @@ abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet
    * like TargetGroups, Listener etc.
    */
   public abstract readonly targetScope: Construct;
+
+  /**
+   * @inheritdoc
+   */
+  public abstract allowListenerPortFrom(other: IConnectable): void;
+
+  /**
+   * @inheritdoc
+   */
+  public abstract allowListenerPortTo(other: IConnectable): void;
 }
 
 /**
@@ -295,7 +333,6 @@ abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet
  *   https://docs.aws.amazon.com/rfdk/latest/guide/patching-software.html for more information.
  */
 export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
-
   /**
    * The min limit for spot price.
    */
@@ -311,12 +348,19 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
    * Resource Tracker does deep ping every 5 minutes. These checks should be more frequent so
    * that any EC2 level issues are identified ASAP. Hence setting it to 1 minute.
    */
-  private static DEFAULT_HEALTH_CHECK_INTERVAL = Duration.minutes(1);
+  private static readonly DEFAULT_HEALTH_CHECK_INTERVAL = Duration.minutes(1);
 
   /**
    * Default prefix for a LogGroup if one isn't provided in the props.
    */
   private static readonly DEFAULT_LOG_GROUP_PREFIX: string = '/renderfarm/';
+
+  /**
+   * This is the current maximum for number of workers that can be started on a single host. Currently the
+   * only thing using this limit is the configuration of the listener ports. More than 8 workers can be started,
+   * but only the first 8 will have their ports opened in the workers' security group.
+   */
+  private static readonly MAX_WORKERS_PER_HOST = 8;
 
   /**
    * Setting the default signal timeout to 15 min. This is the max time, a single instance is expected
@@ -349,6 +393,11 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
    * The environment this resource belongs to.
    */
   public readonly env: ResourceEnvironment;
+
+  /**
+   * The port workers listen on to share their logs.
+   */
+  public readonly listeningPorts: Port;
 
   /**
    * This field implements the base capacity metric of the fleet against
@@ -448,7 +497,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
     // script restarting the launcher.
     this.configureHealthMonitor(props);
 
-    new WorkerInstanceConfiguration(this, id, {
+    const workerConfig = new WorkerInstanceConfiguration(this, id, {
       worker: this.fleet,
       cloudwatchLogSettings: {
         logGroupPrefix: WorkerInstanceFleet.DEFAULT_LOG_GROUP_PREFIX,
@@ -458,6 +507,10 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
       workerSettings: props,
       userDataProvider: props.userDataProvider,
     });
+    this.listeningPorts = Port.tcpRange(
+      workerConfig.listenerPort,
+      workerConfig.listenerPort + WorkerInstanceFleet.MAX_WORKERS_PER_HOST,
+    );
 
     // Updating the user data with successful cfn-signal commands.
     this.fleet.userData.addSignalOnExitCommand(this.fleet);
@@ -473,6 +526,20 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
    */
   public addSecurityGroup(securityGroup: ISecurityGroup): void {
     this.fleet.addSecurityGroup(securityGroup);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public allowListenerPortFrom(other: IConnectable): void {
+    this.connections.allowFrom(other.connections, this.listeningPorts, 'Worker remote command listening port');
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public allowListenerPortTo(other: IConnectable): void {
+    other.connections.allowTo(this.connections, this.listeningPorts, 'Worker remote command listening port');
   }
 
   private validateProps(props: WorkerInstanceFleetProps) {
