@@ -43,8 +43,8 @@ mkdir -p $INTEG_TEMP_DIR
 $BASH_SCRIPTS/stage-deadline.sh
 
 # Extract the Deadline version to use for Deadline installations on the farm.
-# Tests allow not specifying or specifying a partial version string such as "10.1.11". After staging, we
-# obtain the fully resolved version (e.g. "10.1.11.5") which is required to determine
+# Tests allow not specifying or specifying a partial version string such as "10.1.12". After staging, we
+# obtain the fully resolved version (e.g. "10.1.12.1") which is required to determine
 # the matching AWS Portal AMI IDs
 export DEADLINE_VERSION=$(node -e $'const json = require(process.argv[1] + \'/manifest.json\'); console.log(json.version)' "$DEADLINE_STAGING_PATH")
 

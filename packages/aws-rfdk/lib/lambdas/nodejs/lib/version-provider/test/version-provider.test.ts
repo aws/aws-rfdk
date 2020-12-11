@@ -22,7 +22,7 @@ const productSection = indexTest[Product.deadline];
 test.each([[Platform.linux, '10.1.9.2'],
   [Platform.mac, '10.1.9.2'],
   [Platform.windows, '10.1.8.5'],
-])('latest version ', (platform: Platform, versionString: string) => {
+])('latest version', (platform: Platform, versionString: string) => {
   const result = versionProvider['getLatestVersion'](platform, productSection);
 
   expect(result).toEqual(versionString);

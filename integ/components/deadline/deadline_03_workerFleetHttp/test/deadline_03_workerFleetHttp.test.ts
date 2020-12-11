@@ -23,7 +23,7 @@ let renderQueueEndpoints: Array<string> = [];
 
 beforeAll( () => {
   // Query the TestingStack and await its outputs to use as test inputs
-  return new Promise( (res,rej) => {
+  return new Promise<void>( (res,rej) => {
     var params = {
       StackName: testingStackName,
     };
