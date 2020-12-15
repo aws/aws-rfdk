@@ -50,14 +50,12 @@ describe('Version', () => {
     });
   });
 
-  describe('.isGreaterThan constructor', () => {
-
+  test('.isGreaterThan constructor', () => {
     // WHEN
     const lhs = new Version([10, 1, 9, 2]);
     const result = lhs.isGreaterThan(Version.parse('10.0.9.2'));
 
     expect(result).toEqual(true);
-
   });
 
   describe('.isLessThan', () => {
@@ -137,8 +135,7 @@ describe('Version', () => {
     });
   });
 
-  describe('.isLessThan using constructor', () => {
-
+  test('.isLessThan using constructor', () => {
     // WHEN
     const lhs = new Version([10, 0, 9, 2]);
     const result = lhs.isLessThan(Version.parse('10.1.9.2'));

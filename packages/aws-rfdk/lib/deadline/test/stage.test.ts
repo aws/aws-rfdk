@@ -82,28 +82,25 @@ describe('Stage', () => {
     });
   });
 
-  describe('.fromDirectory', () => {
-    test('not supported version failure', () => {
-      // GIVEN
-      const manifest: Manifest = {
-        schema: 1,
-        version: '10.1.8.0',
-        recipes: {},
-      };
+  test('.fromDirectory not supported version failure', () => {
+    // GIVEN
+    const manifest: Manifest = {
+      schema: 1,
+      version: '10.1.8.0',
+      recipes: {},
+    };
 
-      // WHEN
-      const readFileSync = jest.spyOn(fs, 'readFileSync');
-      readFileSync.mockReturnValue(JSON.stringify(manifest));
+    // WHEN
+    const readFileSync = jest.spyOn(fs, 'readFileSync');
+    readFileSync.mockReturnValue(JSON.stringify(manifest));
 
-      // THEN
-      expect(() => {
-        require('../lib').Stage.fromDirectory(STAGE_PATH) // eslint-disable-line
-      }).toThrow('Staged Deadline Version (10.1.8.0) is less than the minimum supported version (10.1.9.2)');
+    // THEN
+    expect(() => {
+      require('../lib').Stage.fromDirectory(STAGE_PATH) // eslint-disable-line
+    }).toThrow('Staged Deadline Version (10.1.8.0) is less than the minimum supported version (10.1.9.2)');
 
-      readFileSync.mockRestore();
-      jest.resetModules();
-    });
-
+    readFileSync.mockRestore();
+    jest.resetModules();
   });
 
   test('has manifest', () => {
