@@ -252,6 +252,9 @@ export class VersionProvider {
       } else {
         version = requestedVersion[versionIndex + 1];
       }
+      if (versionMap[version] === undefined) {
+        throw new Error(`${product} version ${requestedVersion[0]} is not available on ${platform}`);
+      }
       versionArray[versionIndex] = version;
       versionMap = versionMap[version];
     }
