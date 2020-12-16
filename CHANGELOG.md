@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.22.0](https://github.com/aws/aws-rfdk/compare/v0.21.0...v0.22.0) (2020-12-16)
+
+
+### Supported CDK Version
+
+* [1.78.0](https://github.com/aws/aws-cdk/releases/tag/v1.78.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.12.1](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **deadline:** configure worker listener port ([#257](https://github.com/aws/aws-rfdk/issues/257)) ([6e518d4](https://github.com/aws/aws-rfdk/commit/6e518d4c9e85f53edfba4a9f8f97d7712d882fe1)), closes [#190](https://github.com/aws/aws-rfdk/issues/190)
+
+
+### Bug Fixes
+
+* **deadline:** Improve error message when querying non-existant Deadline version ([#262](https://github.com/aws/aws-rfdk/issues/262)) ([cabdb58](https://github.com/aws/aws-rfdk/commit/cabdb58efbaa152de94d83702d357da951c98204))
+
 ## [0.21.0](https://github.com/aws/aws-rfdk/compare/v0.20.0...v0.21.0) (2020-11-27)
 
 
