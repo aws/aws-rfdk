@@ -36,7 +36,7 @@
   "devDependencies": {
     "@types/fs-extra": "^9.0.5",
     "@types/jest": "^26.0.19",
-    "@types/yargs": "^15.0.11",
+    "@types/yargs": "^15.0.12",
     "eslint-plugin-license-header": "^0.2.0",
     "pkglint": "0.22.0"
   },
