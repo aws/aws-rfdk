@@ -15,7 +15,8 @@ module.exports = {
   plugins: [
     '@typescript-eslint',
     'import',
-    'license-header'
+    'license-header',
+    'jest',
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
@@ -24,7 +25,8 @@ module.exports = {
     project: './tsconfig.json',
   },
   extends: [
-    'plugin:import/typescript'
+    'plugin:import/typescript',
+    'plugin:jest/recommended',
   ],
   settings: {
     'import/parsers': {
@@ -183,6 +185,12 @@ module.exports = {
         "method",
       ]
     }],
+
+    // Overrides for plugin:jest/recommended
+
+    // We can disable this when we migrate from using `import { expect as expectCDK } from '@aws-cdk/assert';`
+    // to `import '@aws-cdk/assert/jest';`
+    "jest/expect-expect": "off",
 
     "license-header/header": [ "error", "./license-header.js" ]
   }

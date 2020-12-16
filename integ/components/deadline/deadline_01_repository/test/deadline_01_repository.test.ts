@@ -33,7 +33,7 @@ let certSecretARNs: Array<any> = [];
 
 beforeAll( () => {
   // Query the TestingStack and await its outputs to use as test inputs
-  return new Promise( (res,rej) => {
+  return new Promise<void>( (res,rej) => {
     var params = {
       StackName: testingStackName,
     };
@@ -203,7 +203,7 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
       var params = {
         logGroupName: logGroupNames[id],
       };
-      return new Promise( (res,rej) => {
+      return new Promise<void>( (res,rej) => {
         logs.describeLogStreams(params, (err, data) => {
           if (err) {
             rej(err);
@@ -241,7 +241,7 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
       let logEvents: Object;
 
       beforeAll( () => {
-        return new Promise( (res, rej) => {
+        return new Promise<void>( (res, rej) => {
           var params = {
             logGroupName: logGroupNames[id],
             logStreamName: cloudInitLogName,
@@ -299,7 +299,7 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
       let logEvents: Object;
 
       beforeAll( () => {
-        return new Promise( (res, rej) => {
+        return new Promise<void>( (res, rej) => {
           var params = {
             logGroupName: logGroupNames[id],
             logStreamName: deadlineLogName,

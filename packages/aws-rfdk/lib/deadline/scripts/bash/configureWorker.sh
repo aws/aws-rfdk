@@ -9,6 +9,8 @@
 # $2: comma separated pools
 # $3: region
 # $4: minimum supported deadline version
+# $5: worker listening port
+# $6: worker listening port configuration script
 
 # exit when any command fails
 set -xeuo pipefail
@@ -17,6 +19,8 @@ WORKER_GROUPS=(${1//,/ })
 WORKER_POOLS=(${2//,/ })
 WORKER_REGION="$3"
 MINIMUM_SUPPORTED_DEADLINE_VERSION=$4
+WORKER_LISTENING_PORT=$5
+WORKER_LISTENING_PORT_CONFIG_SCRIPT=$6
 
 # Cloud-init does not load system environment variables. Cherry-pick the
 # environment variable installed by the Deadline Client installer.
@@ -112,6 +116,13 @@ if [ ${#WORKER_POOLS[@]} -gt 0 ]; then
   done
   "$DEADLINE_COMMAND" -SetPoolsForSlave $(IFS=, ; echo "${WORKER_NAMES[*]}") $(IFS=, ; echo "${WORKER_POOLS[*]}")
 fi
+
+# Setting listening port for the workers on this node (we cannot have multiple workers listening on the same port)
+port_offset=0
+for worker_name in "${WORKER_NAMES[@]}"; do
+  "$DEADLINE_COMMAND" -ExecuteScriptNoGui "$WORKER_LISTENING_PORT_CONFIG_SCRIPT" -n $worker_name -p $(($WORKER_LISTENING_PORT+$port_offset))
+  port_offset=$((port_offset+1))
+done
 
 # Restart service, if it exists, else restart application
 if service --status-all | grep -q 'Deadline 10 Launcher'; then

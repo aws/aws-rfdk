@@ -96,6 +96,7 @@ interface TestConstructTagsArgs {
  *
  * @param args Arguments to configure the creation of construct tagging tests
  */
+/* eslint-disable-next-line jest/no-export */
 export function testConstructTags(args: TestConstructTagsArgs) {
   const { constructName, createConstruct, resourceTypeCounts } = args;
   const entries = Object.entries(resourceTypeCounts);
