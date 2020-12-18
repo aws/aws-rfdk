@@ -22,7 +22,6 @@ import {
 } from 'aws-rfdk';
 import {
   DatabaseConnection,
-  IRenderQueue,
   RenderQueue,
   Repository,
   Stage,
@@ -34,6 +33,7 @@ import {
   Secret,
 } from '@aws-cdk/aws-secretsmanager';
 import { Duration } from '@aws-cdk/core';
+import { SessionManagerHelper } from 'aws-rfdk/lib/core';
 
 /**
  * Properties for {@link ServiceTier}.
@@ -90,7 +90,7 @@ export class ServiceTier extends cdk.Stack {
   /**
    * The render queue.
    */
-  public readonly renderQueue: IRenderQueue;
+  public readonly renderQueue: RenderQueue;
 
   /**
    * The UBL licensing construct. (License Forwarder)
@@ -111,8 +111,10 @@ export class ServiceTier extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props: ServiceTierProps) {
     super(scope, id, props);
 
-    // Bastion instance for convenience (e.g. SSH into RenderQueue and WorkerFleet instances)
-    // Not a critical component of the farm, so this can be safely removed
+    // Bastion instance for convenience (e.g. SSH into RenderQueue and WorkerFleet instances).
+    // Not a critical component of the farm, so this can be safely removed. An alternative way
+    // to access your hosts is also provided by the Session Manager, which is also configured
+    // later in this example.
     this.bastion = new BastionHostLinux(this, 'Bastion', {
       vpc: props.vpc,
       subnetSelection: {
@@ -173,11 +175,19 @@ export class ServiceTier extends cdk.Stack {
     });
     this.renderQueue.connections.allowDefaultPortFrom(this.bastion);
 
+    // This is an optional feature that will set up your EC2 instances to be enabled for use with
+    // the Session Manager. RFDK deploys EC2 instances that aren't available through a public subnet,
+    // so connecting to them by SSH isn't easy. This is an option to quickly access hosts without
+    // using a bastion instance.
+    // It's important to note that the permissions need to be granted to the render queue's ASG,
+    // rather than the render queue itself.
+    SessionManagerHelper.grantPermissionsTo(this.renderQueue.asg);
+
     if (props.ublLicenses) {
       if (!props.ublCertsSecretArn) {
         throw new Error('UBL licenses were set but no UBL Certs Secret Arn was set.');
       }
-      const ublCertSecret = Secret.fromSecretArn(this, 'UBLCertsSecret', props.ublCertsSecretArn);
+      const ublCertSecret = Secret.fromSecretCompleteArn(this, 'UBLCertsSecret', props.ublCertsSecretArn);
 
       this.ublLicensing = new UsageBasedLicensing(this, 'UBLLicensing', {
         vpc: props.vpc,
@@ -186,6 +196,11 @@ export class ServiceTier extends cdk.Stack {
         renderQueue: this.renderQueue,
         certificateSecret: ublCertSecret,
       });
+
+      // Another optional usage of the SessionManagerHelper that demonstrates how to configure the UBL
+      // construct's ASG for access. Note that this construct also requires you to apply the permissions
+      // to its ASG property.
+      SessionManagerHelper.grantPermissionsTo(this.ublLicensing.asg);
     }
   }
 }

@@ -31,6 +31,7 @@ from aws_cdk.aws_route53 import (
 from aws_rfdk import (
     DistinguishedName,
     IMountableLinuxFilesystem,
+    SessionManagerHelper,
     X509CertificatePem
 )
 from aws_rfdk.deadline import (
@@ -86,9 +87,10 @@ class ServiceTier(Stack):
         """
         super().__init__(scope, stack_id, **kwargs)
 
-        # A bastion host to connect to the render farm with.
-        # The bastion host is for convenience (e.g. SSH into RenderQueue and WorkerFleet instances).
-        # This is not a critical component of the farm, so can safely be removed.
+        # Bastion instance for convenience (e.g. SSH into RenderQueue and WorkerFleet instances).
+        # Not a critical component of the farm, so this can be safely removed. An alternative way
+        # to access your hosts is also provided by the Session Manager, which is also configured
+        # later in this example.
         self.bastion = BastionHostLinux(
             self,
             'Bastion',
@@ -162,6 +164,14 @@ class ServiceTier(Stack):
         )
         self.render_queue.connections.allow_default_port_from(self.bastion)
 
+        # This is an optional feature that will set up your EC2 instances to be enabled for use with
+        # the Session Manager. RFDK deploys EC2 instances that aren't available through a public subnet,
+        # so connecting to them by SSH isn't easy. This is an option to quickly access hosts without
+        # using a bastion instance.
+        # It's important to note that the permissions need to be granted to the render queue's ASG,
+        # rather than the render queue itself.
+        SessionManagerHelper.grant_permissions_to(self.render_queue.asg)
+
         if props.ubl_licenses:
             if not props.ubl_certs_secret_arn:
                 raise ValueError('UBL certificates secret ARN is required when using UBL but was not specified.')
@@ -175,5 +185,10 @@ class ServiceTier(Stack):
                 render_queue=self.render_queue,
                 certificate_secret=ubl_cert_secret,
             )
+
+            # Another optional usage of the SessionManagerHelper that demonstrates how to configure the UBL
+            # construct's ASG for access. Note that this construct also requires you to apply the permissions
+            # to its ASG property.
+            SessionManagerHelper.grant_permissions_to(self.ubl_licensing.asg)
         else:
             self.ubl_licensing = None
