@@ -564,7 +564,7 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
     this.service = new Ec2Service(this, 'Service', {
       cluster: this.cluster,
       taskDefinition,
-      desiredCount: props.desiredCount,
+      desiredCount: props.desiredCount ?? 1,
       placementConstraints: [PlacementConstraint.distinctInstances()],
       // This is required to right-size our host capacity and not have the ECS service block on updates. We set a memory
       // reservation, but no memory limit on the container. This allows the container's memory usage to grow unbounded.
