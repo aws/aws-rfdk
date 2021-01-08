@@ -94,7 +94,7 @@
     "lerna": "^3.22.1",
     "nodeunit": "^0.11.3",
     "nyc": "^15.1.0",
-    "standard-version": "^9.0.0",
+    "standard-version": "^9.1.0",
     "ts-jest": "^26.4.4",
     "typescript": "~4.1.3"
   },
