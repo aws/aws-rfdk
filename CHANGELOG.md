@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.23.0](https://github.com/aws/aws-rfdk/compare/v0.22.0...v0.23.0) (2021-01-08)
+
+
+### Supported CDK Version
+
+* [1.83.0](https://github.com/aws/aws-cdk/releases/tag/v1.83.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.12.1](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **core:** Addition of SessionManagerHelper ([#266](https://github.com/aws/aws-rfdk/issues/266)) ([08bd333](https://github.com/aws/aws-rfdk/commit/08bd333d65ac8821812fdd15520f8b3ff6a0c6dc)), closes [#265](https://github.com/aws/aws-rfdk/issues/265)
+* **deadline:** allow providing subnets for RenderQueue's ALB ([#264](https://github.com/aws/aws-rfdk/issues/264)) ([53088fb](https://github.com/aws/aws-rfdk/commit/53088fb788851cb8132dacfea77562951f1d89ca))
+
 ## [0.22.0](https://github.com/aws/aws-rfdk/compare/v0.21.0...v0.22.0) (2020-12-16)
 
 
