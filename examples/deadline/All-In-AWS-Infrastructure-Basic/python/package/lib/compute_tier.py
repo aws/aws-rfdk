@@ -24,6 +24,7 @@ from aws_cdk.aws_s3_assets import (
 
 from aws_rfdk import (
     HealthMonitor,
+    SessionManagerHelper,
 )
 from aws_rfdk.deadline import (
     InstanceUserDataProvider,
@@ -116,6 +117,11 @@ class ComputeTier(Stack):
             key_name=props.key_pair_name,
             user_data_provider=UserDataProvider(self, 'UserDataProvider')
         )
+
+        # This is an optional feature that will set up your EC2 instances to be enabled for use with
+        # the Session Manager. These worker fleet instances aren't available through a public subnet,
+        # so connecting to them directly through SSH isn't easy.
+        SessionManagerHelper.grant_permissions_to(self.worker_fleet)
 
         if props.usage_based_licensing and props.licenses:
             props.usage_based_licensing.grant_port_access(self.worker_fleet, props.licenses)

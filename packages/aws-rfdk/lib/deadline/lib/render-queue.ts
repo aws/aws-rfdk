@@ -334,6 +334,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
 
     const loadBalancer = new ApplicationLoadBalancer(this, 'LB', {
       vpc: this.cluster.vpc,
+      vpcSubnets: props.vpcSubnetsAlb ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
       internetFacing: false,
       deletionProtection: props.deletionProtection ?? true,
     });

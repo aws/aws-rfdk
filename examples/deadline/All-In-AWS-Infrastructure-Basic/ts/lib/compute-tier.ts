@@ -12,7 +12,7 @@ import {
 import * as cdk from '@aws-cdk/core';
 import {
   IHost,
-  InstanceUserDataProvider,  
+  InstanceUserDataProvider,
   IRenderQueue,
   IWorkerFleet,
   UsageBasedLicense,
@@ -22,6 +22,7 @@ import {
 import {
   HealthMonitor,
   IHealthMonitor,
+  SessionManagerHelper,
 } from 'aws-rfdk';
 import { Asset } from '@aws-cdk/aws-s3-assets';
 import * as path from 'path'
@@ -72,7 +73,7 @@ class UserDataProvider extends InstanceUserDataProvider {
   }
   preRenderQueueConfiguration(host: IHost): void {
     host.userData.addCommands('echo preRenderQueueConfiguration');
-  }  
+  }
   preWorkerConfiguration(host: IHost): void {
     host.userData.addCommands('echo preWorkerConfiguration');
   }
@@ -80,7 +81,7 @@ class UserDataProvider extends InstanceUserDataProvider {
     host.userData.addCommands('echo postWorkerLaunch');
     if (host.node.scope != undefined) {
       const testScript = new Asset(
-        host.node.scope as cdk.Construct, 
+        host.node.scope as cdk.Construct,
         'SampleAsset',
         {path: path.join(__dirname, '..', '..', 'scripts', 'configure_worker.sh')},
       );
@@ -119,7 +120,7 @@ export class ComputeTier extends cdk.Stack {
    */
   constructor(scope: cdk.Construct, id: string, props: ComputeTierProps) {
     super(scope, id, props);
-    
+
     this.healthMonitor = new HealthMonitor(this, 'HealthMonitor', {
       vpc: props.vpc,
       // TODO - Evaluate deletion protection for your own needs. This is set to false to
@@ -136,6 +137,11 @@ export class ComputeTier extends cdk.Stack {
       keyName: props.keyPairName,
       userDataProvider: new UserDataProvider(this, 'UserDataProvider'),
     });
+
+    // This is an optional feature that will set up your EC2 instances to be enabled for use with
+    // the Session Manager. These worker fleet instances aren't available through a public subnet,
+    // so connecting to them directly through SSH isn't easy.
+    SessionManagerHelper.grantPermissionsTo(this.workerFleet);
 
     if (props.usageBasedLicensing && props.licenses) {
       props.usageBasedLicensing.grantPortAccess(this.workerFleet, props.licenses);

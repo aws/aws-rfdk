@@ -18,5 +18,6 @@ export * from './mountable-efs';
 export * from './mountable-filesystem';
 export { RFDK_VERSION } from './runtime-info';
 export * from './script-assets';
+export * from './session-manager-helper';
 export * from './staticip-server';
 export * from './x509-certificate';
