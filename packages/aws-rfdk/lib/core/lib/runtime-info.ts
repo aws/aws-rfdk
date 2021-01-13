@@ -13,7 +13,7 @@ import {
 /**
  * The name of the tag used to associate the RFDK version and construct that deploys a given resources.
  */
-const TAG_NAME = 'aws-rfdk';
+export const TAG_NAME = 'aws-rfdk';
 
 /**
  * Function that reads in the version of RFDK from the `package.json` file.
