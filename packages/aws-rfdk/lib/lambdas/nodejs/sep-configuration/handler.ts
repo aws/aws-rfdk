@@ -11,7 +11,7 @@
 //import { LambdaContext } from '../lib/aws-lambda';
 // import { CfnRequestEvent, DynamoBackedCustomResource } from '../lib/custom-resource';
 // import {
-//   SEP_SpotFleet,
+//   SEPSpotFleet,
 // } from '../lib/sep-configuration';
 //import { Secret } from '../lib/secrets-manager';
 
@@ -19,11 +19,11 @@
  * TODO
  */
 export class SEPConfiguratorResource { // TODO: extends DynamoBackedCustomResource
-  // readonly SEPSpotFleet: SEP_SpotFleet;
+  // readonly SEPSpotFleet: SEPSpotFleet;
 
   constructor() {
     // super(); TODO
-    // this.SEPSpotFleet = new SEP_SpotFleet();
+    // this.SEPSpotFleet = new SEPSpotFleet();
   }
 
   //   /**
