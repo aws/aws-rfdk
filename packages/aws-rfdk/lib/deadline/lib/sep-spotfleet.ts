@@ -11,7 +11,6 @@ import {
   EbsDeviceVolumeType,
 } from '@aws-cdk/aws-autoscaling';
 import {
-  CfnSpotFleet,
   Connections,
   IConnectable,
   IMachineImage,
@@ -62,33 +61,6 @@ import {
   WorkerInstanceConfiguration,
 } from './worker-configuration';
 
-/**
- * Interface for defining the tag specification of a Launch Specification.
- */
-export interface ILaunchSpecificationTag {
-  /**
-   * The types of resources that are tagged with the given tags. Note that there are
-   * restrictions regarding which resources can be tagged when created. See the following
-   * for additional information.
-   *
-   * @see https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-launchtemplate-tagspecification.html#cfn-ec2-launchtemplate-tagspecification-resourcetype
-   */
-  readonly resourceTypes: ILaunchSpecificationTagResourceType[];
-
-  /**
-   * The tags to apply to the resources.
-   */
-  readonly tags: CfnTag[];
-}
-
-export enum ILaunchSpecificationTagResourceType {
-  // These are the only resoutce types that presently support tag on create.
-  /**
-   * EC2 Instances.
-   */
-  INSTANCE = 'instance',
-}
-
 export enum SEPSpotFleetAllocationStrategy {
   /**
    * Spot Fleet launches instances from the Spot Instance pools with the lowest price.
@@ -102,6 +74,19 @@ export enum SEPSpotFleetAllocationStrategy {
    * Spot Fleet launches instances from Spot Instance pools with optimal capacity for the number of instances that are launching.
    */
   CAPACITY_OPTIMIZED = 'capacityOptimized',
+}
+
+enum ISpotFleetResourceType {
+  // These are the only resource types that presently support tag on create.
+  /**
+   * EC2 Instances.
+   */
+  INSTANCE = 'instance',
+
+  /**
+   * EC2 Instances.
+   */
+  SPOT_FLEET_REQUEST = 'spot-fleet-request',
 }
 
 export interface ISEPSpotFleetRequestConfigDataOptions {
@@ -229,43 +214,14 @@ export interface ISEPSpotFleetRequestConfigDataOptions {
    *
    * @default - Only RFDK tags are applied.
    */
-  readonly instanceTags?: ILaunchSpecificationTag[];
+  readonly instanceTags?: CfnTag[];
 
-  // /**
-  //  * The tags to apply during creation of Spot Fleet request.
-  //  *
-  //  * @default - Only RFDK tags are applied.
-  //  */
-  // readonly spotFleetRequestTags?: ILaunchSpecificationTag[];
-}
-
-/**
- * Convert the tag specification from the input form into the form required of the
- * Launch Specification L1 construct.
- */
-function convertTagSpecList(tagSpecifications?: ILaunchSpecificationTag[]): CfnSpotFleet.SpotFleetTagSpecificationProperty[] | undefined {
-  if (tagSpecifications === undefined) {
-    return undefined;
-  }
-
-  let tagMapping: { [key: string]: CfnTag[] } = {};
-  tagSpecifications.forEach(spec => {
-    spec.resourceTypes.forEach(res => {
-      tagMapping[res] = tagMapping[res] ?? [];
-      tagMapping[res] = tagMapping[res].concat(spec.tags);
-    });
-  });
-
-  let result = Object.keys(tagMapping)
-    .filter(res => tagMapping[res].length > 0)
-    .map(resourceType => {
-      return {
-        resourceType: resourceType,
-        tags: tagMapping[resourceType],
-      };
-    });
-
-  return result.length > 0 ? result : undefined;
+  /**
+   * The tags to apply during creation of Spot Fleet request.
+   *
+   * @default - Only RFDK tags are applied.
+   */
+  readonly spotFleetRequestTags?: CfnTag[];
 }
 
 /**
@@ -443,7 +399,12 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
   /**
    * The tags to apply during creation of instances.
    */
-  public instanceTagSpecifications: ILaunchSpecificationTag[];
+  public instanceTags: CfnTag[];
+
+  /**
+   * The tags to apply during creation of the Spot Fleet Request.
+   */
+  public spotFleetRequestTags: CfnTag[];
 
   /**
    * An IAM role that grants the Spot Fleet the permission to request, launch, terminate, and tag instances on your behalf.
@@ -511,9 +472,13 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
       workerConfig.listenerPort + SEPSpotFleet.MAX_WORKERS_PER_HOST,
     );
 
-    this.instanceTagSpecifications = props.instanceTags ?? [];
     const rfdkTag = this.rfdkTagSpecification();
-    this.instanceTagSpecifications.push(rfdkTag);
+
+    this.instanceTags = props.instanceTags ?? [];
+    this.instanceTags.push(rfdkTag);
+
+    this.spotFleetRequestTags = props.spotFleetRequestTags ?? [];
+    this.spotFleetRequestTags.push(rfdkTag);
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
@@ -522,10 +487,6 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
   }
 
   private generateSpotFleetRequestConfig(props: ISEPSpotFleetRequestConfigDataOptions) {
-    // TODO Q: why do we need to use Lazy here? Can we just use here existing type and then Stringify it. Or do we need to use Lazy?
-    const instanceTagSpecificationsToken = Lazy.any({ produce: () => convertTagSpecList(this.instanceTagSpecifications) });
-    // const tagSpecifications = convertTagSpecList(this.instanceTagSpecifications);
-
     const iamProfile = new CfnInstanceProfile(this, 'InstanceProfile', {
       roles: [this.role.roleName],
     });
@@ -555,7 +516,10 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
         KeyName: props.keyName,
         SecurityGroups: securityGroupsToken,
         SubnetId: subnetId,
-        TagSpecifications: instanceTagSpecificationsToken,
+        TagSpecifications: {
+          ResourceType: ISpotFleetResourceType.INSTANCE,
+          tags: this.instanceTags,
+        },
         UserData: userDataToken,
         InstanceType: instanceType.toString(),
       };
@@ -571,6 +535,10 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
       TerminateInstancesWithExpiration: true,
       Type: 'maintain',
       ValidUntil: props.validUntil ? props.validUntil?.date.toUTCString() : undefined,
+      TagSpecifications: {
+        ResourceType: ISpotFleetResourceType.SPOT_FLEET_REQUEST,
+        tags: this.spotFleetRequestTags,
+      },
     };
 
     let sepSpotFleetRequestConfigurations: any[] = [];
@@ -586,16 +554,10 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
   private rfdkTagSpecification() {
     const className = this.constructor.name;
     const tagValue = `${RFDK_VERSION}:${className}`;
-    const rfdkTag: ILaunchSpecificationTag = {
-      resourceTypes: [ ILaunchSpecificationTagResourceType.INSTANCE ],
-      tags: [
-        {
-          key: TAG_NAME,
-          value: tagValue,
-        },
-      ],
+    return {
+      key: TAG_NAME,
+      value: tagValue,
     };
-    return rfdkTag;
   }
 
   private validateProps(props: ISEPSpotFleetRequestConfigDataOptions) {

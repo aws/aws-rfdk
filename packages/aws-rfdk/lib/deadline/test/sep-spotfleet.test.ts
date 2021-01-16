@@ -64,7 +64,6 @@ import {
   WorkerInstanceConfiguration,
   SEPSpotFleetAllocationStrategy,
   SEPSpotFleet,
-  ILaunchSpecificationTagResourceType,
 } from '../lib';
 //   import {
 //     CONFIG_WORKER_ASSET_LINUX,
@@ -128,7 +127,8 @@ test('default spot fleet is created correctly', () => {
   expect(fleet.connections).toBeDefined();
   expect(fleet.env).toBeDefined();
   expect(fleet.grantPrincipal).toBeDefined();
-  expect(fleet.instanceTagSpecifications).toBeDefined();
+  expect(fleet.instanceTags).toBeDefined();
+  expect(fleet.spotFleetRequestTags).toBeDefined();
   expect(fleet.listeningPorts).toBeDefined();
   expect(fleet.osType).toBeDefined();
   expect(fleet.role).toBeDefined();
@@ -189,45 +189,8 @@ test('security group is not created if provided', () => {
   expectCDK(spotFleetStack).notTo(haveResource('AWS::EC2::SecurityGroup'));
 });
 
-// TODO Q: do we want such kind of tests?
-test('security group is used if provided', () => {
-  // GIVEN
-  const sg = SecurityGroup.fromSecurityGroupId(stack, 'SG', 'sg-123456789', {
-    allowAllOutbound: false,
-  });
-
-  // WHEN
-  new SEPSpotFleet(spotFleetStack, 'spotFleet', {
-    vpc,
-    renderQueue: renderQueue,
-    deadlineGroups: [
-      'group_name',
-    ],
-    instanceTypes: [
-      InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-    ],
-    workerMachineImage: new GenericWindowsImage({
-      'us-east-1': 'ami-any',
-    }),
-    targetCapacity: 1,
-    securityGroups: [
-      sg,
-    ],
-  });
-
-  // THEN
-  // TODO Q: replace the condition later instead of TOKEN. Now can't check ids
-  expectCDK(spotFleetStack).notTo(haveResource('AWS::EC2::SecurityGroup'));
-  //const result = fleet.sepSpotFleetRequestConfigurations;
-  //TODO Q : expect(result[0]['group_name']['LaunchSpecifications'][0]['SecurityGroups']).toBe('sg-123456789');
-});
-
 test('setting role works correctly', () => {
   // GIVEN
-  // const otherStack = new Stack(app, 'otherStack', {
-  //   env: { region: 'us-east-1' },
-  // });
-
   const roleName = 'DeadlineSpotWorkerRole';
   const expectedRole = new Role(stack, 'SpotWorkerRole', {
     assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
@@ -238,8 +201,6 @@ test('setting role works correctly', () => {
   });
 
   // WHEN
-  // TODO Q: if I change here to spotFleetStack and Role uses stack - I get cyclomatic dependency with LogGroupName
-  // TODO: if I change here to spotFleetStack and Role uses otherStack - I get cyclomatic dependency with LogGroupName
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
@@ -258,10 +219,6 @@ test('setting role works correctly', () => {
 
   // THEN
   expect(fleet.role).toBe(expectedRole);
-  // TODO: can't do this because of the cyclomatic dependency
-  // expectCDK(spotFleetStack).notTo(haveResourceLike('AWS::IAM::Role', {
-  //   RoleName: roleName,
-  // }));
 });
 
 test('deafult role is created automatically if not provided', () => {
@@ -283,9 +240,6 @@ test('deafult role is created automatically if not provided', () => {
 
   // THEN
   expect(fleet.role).toBeDefined();
-
-  // TODO: can't use here because we only have TOKENs
-  // expect(fleet.role.roleName).toMatch(new RegExp('DeadlineSpot'));
 
   expectCDK(spotFleetStack).to(haveResourceLike('AWS::IAM::Role', {
     AssumeRolePolicyDocument: objectLike({
@@ -406,11 +360,8 @@ test('user data is added correctly', () => {
 test('instance tags are added correctly', () => {
   // GIVEN
   const someTag = {
-    resourceTypes: [ ILaunchSpecificationTagResourceType.INSTANCE ],
-    tags: [{
-      key: 'name',
-      value: 'tagValue',
-    }],
+    key: 'name',
+    value: 'tagValue',
   };
 
   // WHEN
@@ -431,8 +382,37 @@ test('instance tags are added correctly', () => {
   });
 
   // THEN
-  expect(fleet.instanceTagSpecifications).toBeDefined();
-  expect(fleet.instanceTagSpecifications).toContain(someTag);
+  expect(fleet.instanceTags).toBeDefined();
+  expect(fleet.instanceTags).toContain(someTag);
+});
+
+test('spot fleet request tags are added correctly', () => {
+  // GIVEN
+  const someTag = {
+    key: 'name',
+    value: 'tagValue',
+  };
+
+  // WHEN
+  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+    vpc,
+    renderQueue: renderQueue,
+    deadlineGroups: [
+      'group_name',
+    ],
+    instanceTypes: [
+      InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+    ],
+    workerMachineImage: new GenericWindowsImage({
+      'us-east-1': 'ami-any',
+    }),
+    targetCapacity: 1,
+    spotFleetRequestTags: [ someTag ],
+  });
+
+  // THEN
+  expect(fleet.spotFleetRequestTags).toBeDefined();
+  expect(fleet.spotFleetRequestTags).toContain(someTag);
 });
 
 test('works fine if no subnets provided', () => {
