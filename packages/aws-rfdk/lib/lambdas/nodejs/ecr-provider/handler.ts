@@ -18,11 +18,6 @@ import {
  */
 export interface ThinkboxEcrProviderResourceProperties {
   /**
-   * The desired ECR region. If not provided, the global ECR is used.
-   */
-  readonly Region?: string;
-
-  /**
    * A random string that forces the Lambda to run again and obtain the latest ECR.
    */
   readonly ForceRun?: string;
@@ -40,8 +35,8 @@ export interface ThinkboxEcrProviderResourceOutput {
 }
 
 /**
- * This custom resource will parse and return the base ECR ARN or URI containing Thinkbox published Docker Images. A
- * region can be specified to get a regional ECR base ARN. Otherwise, the global ECR base URI is returned.
+ * This custom resource will parse and return the base ECR ARN or URI containing Thinkbox published Docker Images.
+ * A global ECR base URI is returned.
  */
 export class ThinkboxEcrProviderResource extends SimpleCustomResource {
   readonly ecrProvider: ThinkboxEcrProvider;
@@ -67,18 +62,11 @@ export class ThinkboxEcrProviderResource extends SimpleCustomResource {
   /**
    * @inheritdoc
    */
-  public async doCreate(_physicalId: string, resourceProperties: ThinkboxEcrProviderResourceProperties): Promise<ThinkboxEcrProviderResourceOutput> {
+  public async doCreate(_physicalId: string, _resourceProperties: ThinkboxEcrProviderResourceProperties): Promise<ThinkboxEcrProviderResourceOutput> {
     let result: any;
-    if (resourceProperties.Region) {
-      result = {
-        EcrArnPrefix: await this.ecrProvider.getRegionalEcrBaseArn(resourceProperties.Region),
-      };
-    }
-    else {
-      result = {
-        EcrURIPrefix: await this.ecrProvider.getGlobalEcrBaseURI(),
-      };
-    }
+    result = {
+      EcrURIPrefix: await this.ecrProvider.getGlobalEcrBaseURI(),
+    };
     console.log('result = ');
     console.log(JSON.stringify(result, null, 4));
     return result;
@@ -100,10 +88,7 @@ export class ThinkboxEcrProviderResource extends SimpleCustomResource {
       return val === undefined || typeof(val) == 'string';
     }
 
-    return (
-      isOptionalString(value.Region) &&
-      isOptionalString(value.ForceRun)
-    );
+    return isOptionalString(value.ForceRun);
   }
 }
 

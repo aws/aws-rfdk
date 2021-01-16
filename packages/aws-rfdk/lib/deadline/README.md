@@ -232,7 +232,7 @@ If you desire a specific version of Deadline, you can supply a version with:
 ```ts
 // Specify a version of Deadline
 const version = new VersionQuery(scope, 'Version', {
-  version: '10.1.11',
+  version: '10.1.12',
 });
 
 // This will provide Docker container images for the specified version of Deadline
@@ -284,7 +284,7 @@ _**Note:** This construct is not usable in any China region._
 The following example outlines how to construct `UsageBasedLicensing`:
 
 ```ts
-const version = VersionQuery.exactString(stack, 'Version', '1.2.3.4');
+const version = new VersionQuery(stack, 'Version', '1.2.3.4');
 const images = new ThinkboxDockerImages(stack, 'Images', {
   version: version,
 });

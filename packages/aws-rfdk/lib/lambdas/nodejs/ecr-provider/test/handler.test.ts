@@ -11,20 +11,13 @@ jest.mock('../../lib/ecr-provider', () => {
   class ThinkboxEcrProviderMock {
     static readonly mocks = {
       constructor: jest.fn(),
-      getRegionalEcrBaseArn: jest.fn<Promise<string>, [string]>((region) => {
-        return Promise.resolve(`arn:aws:ecr:${region}:258503199323:repository/deadline/`);
-      }),
       getGlobalEcrBaseURI: jest.fn<Promise<string>, []>(() => {
-        return Promise.resolve('global.dkr.ecr.amazonaws.com/deadline/');
+        return Promise.resolve('public.ecr.aws/deadline/');
       }),
     };
 
     constructor(indexFilePath?: string) {
       ThinkboxEcrProviderMock.mocks.constructor(indexFilePath);
-    }
-
-    getRegionalEcrBaseArn(region: string) {
-      return ThinkboxEcrProviderMock.mocks.getRegionalEcrBaseArn(region);
     }
 
     getGlobalEcrBaseURI() {
@@ -40,10 +33,7 @@ jest.mock('../../lib/ecr-provider', () => {
 jest.mock('https');
 
 describe('ThinkboxEcrProviderResource', () => {
-  const DEFAULT_REGION = 'us-west-2';
-
   let ecrProviderResource: ThinkboxEcrProviderResource;
-  let region: string = DEFAULT_REGION;
 
   beforeAll(() => {
     // Suppress console output during tests
@@ -55,7 +45,6 @@ describe('ThinkboxEcrProviderResource', () => {
 
   beforeEach(() => {
     ecrProviderResource = new ThinkboxEcrProviderResource();
-    region = DEFAULT_REGION;
   });
 
   afterEach(() => {
@@ -69,15 +58,12 @@ describe('ThinkboxEcrProviderResource', () => {
   describe('.validateInput()', () => {
     // Valid configurations
     describe('should return true if', () => {
-      test.each<[string | undefined, string | undefined]>([
-        [region, undefined],
-        [undefined, 'testValue'],
-        [region, 'testValue'],
-        [undefined, undefined],
-      ])('{Region=%s, ForceRun=%s}', async (regionInput: string | undefined, forceRun: string | undefined) => {
+      test.each<string | undefined>([
+        'testValue',
+        undefined,
+      ])('{ForceRun=%s}', async (forceRun: string | undefined) => {
         // GIVEN
         const input = {
-          region: regionInput,
           forceRun,
         };
 
@@ -91,9 +77,6 @@ describe('ThinkboxEcrProviderResource', () => {
 
     // Invalid configurations
     const invalidConfigs = [
-      { Region: 1 },
-      { Region: [1] },
-      { Region: { a: 1 } },
       { ForceRun: 1 },
       { ForceRun: [1] },
       { ForceRun: { a: 1 } },
@@ -131,27 +114,6 @@ describe('ThinkboxEcrProviderResource', () => {
       expect(ThinkboxEcrProvider.mocks.getGlobalEcrBaseURI).toHaveBeenCalledTimes(1);
       expect(result).toEqual({
         EcrURIPrefix: mockBaseURI,
-      });
-    });
-
-    test('regional', async () => {
-      // GIVEN
-      const mockBaseArn = 'baseARN';
-      const ThinkboxEcrProvider = jest.requireMock('../../lib/ecr-provider').ThinkboxEcrProvider;
-      ThinkboxEcrProvider.mocks.getRegionalEcrBaseArn.mockReturnValue(Promise.resolve(mockBaseArn));
-
-      // WHEN
-      const promise = ecrProviderResource.doCreate('someID', {
-        ForceRun: 'forceRun',
-        Region: region,
-      });
-      const result = await promise;
-
-      // THEN
-      expect(ThinkboxEcrProvider.mocks.constructor).toHaveBeenCalledTimes(1);
-      expect(ThinkboxEcrProvider.mocks.getRegionalEcrBaseArn).toHaveBeenCalledWith(region);
-      expect(result).toEqual({
-        EcrArnPrefix: mockBaseArn,
       });
     });
   });

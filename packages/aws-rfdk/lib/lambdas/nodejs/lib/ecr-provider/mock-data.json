@@ -1,31 +1,3 @@
 {
-  "image_repos": {
-    "base": "deadline/base",
-    "rcs": "deadline/rcs",
-    "license-forwarder": "deadline/license-forwarder"
-  },
-  "regional": {
-    "af-south-1": "arn:aws:ecr:af-south-1:258503199323:repository/deadline/",
-    "eu-north-1": "arn:aws:ecr:eu-north-1:258503199323:repository/deadline/",
-    "ap-south-1": "arn:aws:ecr:ap-south-1:258503199323:repository/deadline/",
-    "eu-west-3": "arn:aws:ecr:eu-west-3:258503199323:repository/deadline/",
-    "eu-west-2": "arn:aws:ecr:eu-west-2:258503199323:repository/deadline/",
-    "eu-south-1": "arn:aws:ecr:eu-south-1:258503199323:repository/deadline/",
-    "eu-west-1": "arn:aws:ecr:eu-west-1:258503199323:repository/deadline/",
-    "ap-northeast-3": "arn:aws:ecr:ap-northeast-3:258503199323:repository/deadline/",
-    "ap-northeast-2": "arn:aws:ecr:ap-northeast-2:258503199323:repository/deadline/",
-    "me-south-1": "arn:aws:ecr:me-south-1:258503199323:repository/deadline/",
-    "ap-northeast-1": "arn:aws:ecr:ap-northeast-1:258503199323:repository/deadline/",
-    "sa-east-1": "arn:aws:ecr:sa-east-1:258503199323:repository/deadline/",
-    "ca-central-1": "arn:aws:ecr:ca-central-1:258503199323:repository/deadline/",
-    "ap-east-1": "arn:aws:ecr:ap-east-1:258503199323:repository/deadline/",
-    "ap-southeast-1": "arn:aws:ecr:ap-southeast-1:258503199323:repository/deadline/",
-    "ap-southeast-2": "arn:aws:ecr:ap-southeast-2:258503199323:repository/deadline/",
-    "eu-central-1": "arn:aws:ecr:eu-central-1:258503199323:repository/deadline/",
-    "us-east-1": "arn:aws:ecr:us-east-1:258503199323:repository/deadline/",
-    "us-east-2": "arn:aws:ecr:us-east-2:258503199323:repository/deadline/",
-    "us-west-1": "arn:aws:ecr:us-west-1:258503199323:repository/deadline/",
-    "us-west-2": "arn:aws:ecr:us-west-2:258503199323:repository/deadline/"
-  },
   "global": "public.ecr.aws/v1q2r3m5/deadline/"
 }

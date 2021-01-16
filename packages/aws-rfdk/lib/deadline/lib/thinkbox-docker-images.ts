@@ -7,9 +7,6 @@ import { randomBytes } from 'crypto';
 import * as path from 'path';
 
 import {
-  Repository,
-} from '@aws-cdk/aws-ecr';
-import {
   ContainerImage,
 } from '@aws-cdk/aws-ecs';
 import {
@@ -37,12 +34,6 @@ import {
  */
 export interface ThinkboxDockerImagesProps {
   /**
-   * An optional region for the ECR repository.
-   * @default global
-   */
-  readonly region?: string;
-
-  /**
    * The Deadline version to obtain images for.
    * @default latest
    */
@@ -64,7 +55,7 @@ export interface ThinkboxDockerImagesProps {
  * const app = new App();
  * const stack = new Stack(app, 'Stack');
  * const vpc = new Vpc(app, stack);
- * const images = new ThinkboxDockerImages(stack, 'Image'});
+ * const images = new ThinkboxDockerImages(stack, 'Image');
  * const repository = new Repository(stack, 'Repository', {
  *   vpc,
  *   version: recipes.version
@@ -119,7 +110,6 @@ export class ThinkboxDockerImages extends Construct {
     const ecrProvider = new CustomResource(this, 'ThinkboxEcrProvider', {
       serviceToken: lambdaFunc.functionArn,
       properties: {
-        Region: props?.region,
         // create a random string that will force the Lambda to always run on redeploys. Changes to its output will be
         // propagated to any CloudFormation resource providers that reference the output ARN
         ForceRun: this.forceRun(),
@@ -130,49 +120,18 @@ export class ThinkboxDockerImages extends Construct {
     this.node.defaultChild = ecrProvider;
 
     const versionString = this.versionString(props?.version);
+    const ecrBaseURI = ecrProvider.getAtt('EcrURIPrefix').toString();
 
-    if (props?.region) {
-      const ecrBaseArn = ecrProvider.getAtt('EcrArnPrefix').toString();
-
-      this.remoteConnectionServer = ContainerImage.fromEcrRepository(
-        this.regionalRepoForRecipe(
-          ecrBaseArn,
-          ThinkboxManagedDeadlineDockerRecipes.REMOTE_CONNECTION_SERVER,
-        ),
-        versionString,
-      );
-
-      this.licenseForwarder = ContainerImage.fromEcrRepository(
-        this.regionalRepoForRecipe(
-          ecrBaseArn,
-          ThinkboxManagedDeadlineDockerRecipes.LICENSE_FORWARDER,
-        ),
-        versionString,
-      );
-    } else {
-      const ecrBaseURI = ecrProvider.getAtt('EcrURIPrefix').toString();
-
-      this.remoteConnectionServer = this.globalImageForRecipe(
-        ecrBaseURI,
-        ThinkboxManagedDeadlineDockerRecipes.REMOTE_CONNECTION_SERVER,
-        versionString,
-      );
-      this.licenseForwarder = this.globalImageForRecipe(
-        ecrBaseURI,
-        ThinkboxManagedDeadlineDockerRecipes.LICENSE_FORWARDER,
-        versionString,
-      );
-    }
-  }
-
-  private regionalRepoForRecipe(
-    ecrBaseArn: string,
-    recipe: string,
-  ) {
-    return Repository.fromRepositoryAttributes(this, `Repository${recipe}`, {
-      repositoryArn: `${ecrBaseArn}${recipe}`,
-      repositoryName: `deadline/${recipe}`,
-    });
+    this.remoteConnectionServer = this.globalImageForRecipe(
+      ecrBaseURI,
+      ThinkboxManagedDeadlineDockerRecipes.REMOTE_CONNECTION_SERVER,
+      versionString,
+    );
+    this.licenseForwarder = this.globalImageForRecipe(
+      ecrBaseURI,
+      ThinkboxManagedDeadlineDockerRecipes.LICENSE_FORWARDER,
+      versionString,
+    );
   }
 
   private globalImageForRecipe(

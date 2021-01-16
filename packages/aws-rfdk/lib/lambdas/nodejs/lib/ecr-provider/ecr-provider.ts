@@ -8,18 +8,8 @@ import { IncomingMessage } from 'http';
 import * as https from 'https';
 
 /**
- * Properties for constructing a {@link ThinkboxEcrProvider}
- */
-export interface ThinkboxEcrProviderProperties {
-  /**
-   * The region of the desired ECR
-   */
-  readonly region: string;
-}
-
-/**
  * The version provider parses a JSON file containing references to ECRs that serve Thinkbox's Deadline Docker images.
- * It  can be downloaded or loaded from local file and returns the ECR ARN prefix for a given region.
+ * It can be downloaded or loaded from local file and returns the ECR ARN prefix.
  */
 export class ThinkboxEcrProvider {
   /**
@@ -59,27 +49,6 @@ export class ThinkboxEcrProvider {
       });
     }
     return this.indexJsonPromise;
-  }
-
-  /**
-   * Gets the regional ECR base ARN for Thinkbox published Deadline Docker images for a given region.
-   * @param region The target region
-   */
-  public async getRegionalEcrBaseArn(region: string) {
-    const indexJson = await this.indexJson;
-
-    const regionalEcrBaseArns = indexJson.regional;
-    if (!regionalEcrBaseArns) {
-      throw new Error('No regional ECR repositories');
-    }
-    const regionalEcrBaseArn = regionalEcrBaseArns[region];
-    if (!regionalEcrBaseArn) {
-      throw new Error(`No regional ECR repositories for region "${region}"`);
-    }
-    if (typeof(regionalEcrBaseArn) != 'string') {
-      throw new Error(`Unexpected type for regional base ECR arn: "${typeof(regionalEcrBaseArn)}`);
-    }
-    return regionalEcrBaseArn;
   }
 
   /**

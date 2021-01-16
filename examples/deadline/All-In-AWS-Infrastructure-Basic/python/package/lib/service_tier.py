@@ -59,8 +59,6 @@ class ServiceTierProps(StackProps):
     database: DatabaseConnection
     # The file system to install Deadline Repository to.
     file_system: IMountableLinuxFilesystem
-    # The path to the directory where the staged Deadline Docker recipes are.
-    docker_recipes_stage_path: str
     # The ARN of the secret containing the UBL certificates .zip file (in binary form).
     ubl_certs_secret_arn: typing.Optional[str]
     # The UBL licenses to configure
@@ -70,7 +68,7 @@ class ServiceTierProps(StackProps):
     # Internal DNS zone for the VPC
     dns_zone: IPrivateHostedZone
     # Version of Deadline to use
-    version: str
+    deadline_version: str
 
 
 class ServiceTier(Stack):
@@ -118,7 +116,7 @@ class ServiceTier(Stack):
         self.version = VersionQuery(
             self,
             'Version',
-            version=props.version,
+            version=props.deadline_version,
         )
 
         repository = Repository(
