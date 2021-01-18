@@ -8,9 +8,7 @@
 /* eslint-disable dot-notation */
 
 import {
-  // ABSENT,
   arrayWith,
-  // countResources,
   expect as expectCDK,
   haveResource,
   haveResourceLike,
@@ -21,7 +19,6 @@ import {
   BlockDeviceVolume,
 } from '@aws-cdk/aws-autoscaling';
 import {
-  // GenericLinuxImage,
   GenericWindowsImage,
   InstanceClass,
   InstanceSize,
@@ -47,9 +44,6 @@ import {
   CfnElement,
   Stack,
 } from '@aws-cdk/core';
-//   import {
-//     testConstructTags,
-//   } from '../../core/test/tag-helpers';
 import {
   escapeTokenRegex,
 } from '../../core/test/token-regex-helpers';
@@ -59,18 +53,11 @@ import {
   IRenderQueue,
   RenderQueue,
   Repository,
-  // Version,
   VersionQuery,
   WorkerInstanceConfiguration,
   SEPSpotFleetAllocationStrategy,
   SEPSpotFleet,
 } from '../lib';
-//   import {
-//     CONFIG_WORKER_ASSET_LINUX,
-//     CONFIG_WORKER_ASSET_WINDOWS,
-//     CWA_ASSET_LINUX,
-//     RQ_CONNECTION_ASSET,
-//   } from './asset-constants';
 
 let app: App;
 let stack: Stack;

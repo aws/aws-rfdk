@@ -6,126 +6,120 @@
 /* eslint-disable no-console */
 
 // eslint-disable-next-line import/no-extraneous-dependencies
-//import { DynamoDB, SecretsManager } from 'aws-sdk';
+import { SecretsManager } from 'aws-sdk';
+import { LambdaContext } from '../lib/aws-lambda';
+import { CfnRequestEvent, SimpleCustomResource } from '../lib/custom-resource';
+import {
+  Secret,
+} from '../lib/secrets-manager';
 
-//import { LambdaContext } from '../lib/aws-lambda';
-// import { CfnRequestEvent, DynamoBackedCustomResource } from '../lib/custom-resource';
-// import {
-//   SEPSpotFleet,
-// } from '../lib/sep-configuration';
-//import { Secret } from '../lib/secrets-manager';
+// TODO: remove this, we will import it properly
+export class EventPluginRequests {
+  constructor() {}
 
-/**
- * TODO
- */
-export class SEPConfiguratorResource { // TODO: extends DynamoBackedCustomResource
-  // readonly SEPSpotFleet: SEPSpotFleet;
-
-  constructor() {
-    // super(); TODO
-    // this.SEPSpotFleet = new SEPSpotFleet();
+  public async saveServerData(): Promise<boolean> {
+    return true;
   }
 
-  //   /**
-  //    * @inheritdoc
-  //    */
-  //   public validateInput(data: object): boolean {
-  //     return this.implementsIVersionProviderResourceProperties(data);
-  //   }
-
-  //   /**
-  //    * @inheritdoc
-  //    */
-  //   // @ts-ignore  -- we do not use the physicalId
-  //   public async doCreate(physicalId: string, resourceProperties: IVersionProviderResourceProperties): Promise<FlatVersionedUriOutput> {
-  //     const deadlinePlatFormVersionedUris = await this.versionProvider.getVersionUris({
-  //       versionString: resourceProperties.versionString,
-  //       platform: Platform.linux,
-  //       product: Product.deadline,
-  //     });
-
-  //     const deadlineLinux = deadlinePlatFormVersionedUris.get(Platform.linux)!;
-  //     const deadlineLinuxUris = deadlineLinux.Uris;
-
-  //     const s3Bucket = this.parseS3BucketName(deadlineLinuxUris.bundle);
-  //     const linuxRepoObjectKey = this.parseS3ObjectKey(deadlineLinuxUris.repositoryInstaller!);
-
-  //     return {
-  //       S3Bucket: s3Bucket,
-  //       MajorVersion: deadlineLinux.MajorVersion,
-  //       MinorVersion: deadlineLinux.MinorVersion,
-  //       ReleaseVersion: deadlineLinux.ReleaseVersion,
-  //       LinuxPatchVersion: deadlineLinux.PatchVersion,
-  //       LinuxRepositoryInstaller: linuxRepoObjectKey,
-  //     };
-  //   }
-
-  //   /**
-  //    * @inheritdoc
-  //    */
-  //   /* istanbul ignore next */ // @ts-ignore
-  //   public async doDelete(physicalId: string, resourceProperties: IVersionProviderResourceProperties): Promise<void> {
-  //     // Nothing to do -- we don't modify anything.
-  //     return;
-  //   }
-
-  //   private implementsIVersionProviderResourceProperties(value: any): boolean {
-  //     if (!value || typeof(value) !== 'object') { return false; }
-
-  //     if (value.versionString) {
-  //       if (!Version.validateVersionString(value.versionString)) {
-  //         console.log(`Failed to validate the version string: ${value.versionString}`);
-  //         return false;
-  //       }
-  //     }
-
-  //     if (value.forceRun && typeof(value.forceRun) !== 'string') { return false; }
-
-  //     return true;
-  //   }
-
-  //   /**
-  //    * Parses the S3 bucket name from an S3 URI.
-  //    */
-  //   private parseS3BucketName(uri: string): string {
-  //     let bucketName;
-  //     try {
-  //       bucketName = this.findRegex(uri, /^s3:\/\/([A-Za-z0-9\-]+)\//)[1];
-  //     } catch (e) {
-  //       throw new Error(`Could not parse S3 bucket name from ${uri}`);
-  //     }
-  //     return bucketName;
-  //   }
-
-  //   /**
-  //    * Parses the S3 object key from an S3 URI.
-  //    */
-  //   private parseS3ObjectKey(uri: string): string {
-  //     let objectKey;
-  //     try {
-  //       objectKey = this.findRegex(uri, /^s3:\/\/[A-Za-z0-9\-]+\/([A-Za-z0-9\-\/\.]+)$/)[1];
-  //     } catch (e) {
-  //       throw new Error(`Could not parse S3 object key from ${uri}`);
-  //     }
-  //     return objectKey;
-  //   }
-
-  //   // Assumes a single capture is in the regex
-  //   private findRegex(str: string, re: RegExp): RegExpMatchArray {
-  //     const found = str.match(re);
-
-  //     if (found === null) {
-  //       throw new Error(`Couldn't find regular expression ${re} in ${str}`);
-  //     }
-
-  //     return found;
-  //   }
+  public async saveSpotFleetRequestData(): Promise<boolean> {
+    return true;
+  }
 }
 
-//   /**
-//    * The handler used to provide the installer links for the requested version
-//    */
-//   export async function handler(event: CfnRequestEvent, context: LambdaContext): Promise<string> {
-//     const versionProvider = new VersionProviderResource();
-//     return await versionProvider.handler(event, context);
-//   }
+/**
+ * The input to this Custom Resource
+ */
+export interface ISEPConfiguratorResourceProperties {
+  /**
+   * TODO: used to save spot fleet request configuration
+   */
+  readonly spotFleetRequestConfiguration: string;
+
+  /**
+   * TODO: used to save group/pools and general settings
+   */
+  readonly spotPluginConfigurations: string;
+}
+
+/**
+ * TODO: add description
+ */
+export class SEPConfiguratorResource extends SimpleCustomResource {
+  readonly eventPluginRequests = new EventPluginRequests();
+  protected readonly secretsManagerClient: SecretsManager;
+
+  constructor(secretsManagerClient: SecretsManager) {
+    super();
+    this.secretsManagerClient = secretsManagerClient;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public validateInput(data: object): boolean {
+    return this.implementsISEPConfiguratorResourceProperties(data);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  // @ts-ignore  -- we do not use the physicalId
+  public async doCreate(physicalId: string, resourceProperties: ISEPConfiguratorResourceProperties): Promise<object|undefined> { // TODO: for now this return type
+    if (resourceProperties.spotFleetRequestConfiguration) {
+      const response = await this.eventPluginRequests.saveSpotFleetRequestData();
+      // TODO: parse response or if it's done inside of eventPluginRequests class - then just check if it was successful.
+      if (!response) {
+        console.log('Failed to save spot fleet request.');
+      }
+    }
+    if (resourceProperties.spotPluginConfigurations) {
+      const response = await this.eventPluginRequests.saveServerData();
+      if (!response) {
+        // TODO: parse response or if it's done inside of eventPluginRequests class - then just check if it was successful.
+        console.log('Failed to save server data');
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  /* istanbul ignore next */ // @ts-ignore
+  public async doDelete(physicalId: string, resourceProperties: ISEPConfiguratorResourceProperties): Promise<void> {
+    // Nothing to do -- we don't modify anything.
+    return;
+  }
+
+  // TODO: add more checks
+  private implementsISEPConfiguratorResourceProperties(value: any): boolean {
+    if (!value || typeof(value) !== 'object') { return false; }
+
+    if (value.spotFleets) {
+      if (!Array.isArray(value.spotFleets) || value.spotFleets) { return false; }
+    }
+    if (value.idleShutdown && typeof(value.idleShutdown) !== 'number') { return false; }
+    return true;
+  }
+
+  /**
+   * Retrieve CA certificate data from the Secret with the given ARN.
+   * @param certificateArn
+   */
+  protected async readCertificateData(certificateArn: string): Promise<string> {
+    const data = await Secret.fromArn(certificateArn, this.secretsManagerClient).getValue();
+    if (Buffer.isBuffer(data) || !/BEGIN CERTIFICATE/.test(data as string)) {
+      throw new Error(`CA Certificate Secret (${certificateArn}) must contain a Certificate in PEM format.`);
+    }
+    return data as string;
+  }
+}
+
+/**
+ * The lambda handler that is used to log in to MongoDB and perform some configuration actions.
+ */
+/* istanbul ignore next */
+export async function configureSEP(event: CfnRequestEvent, context: LambdaContext): Promise<string> {
+  const handler = new SEPConfiguratorResource(new SecretsManager());
+  return await handler.handler(event, context);
+}
