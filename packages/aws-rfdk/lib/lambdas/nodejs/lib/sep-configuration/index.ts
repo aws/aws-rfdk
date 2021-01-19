@@ -4,4 +4,4 @@
  */
 
 // TODO: do we even need this?
-export * from '../../../../deadline/lib/sep-spotfleet';
+export * from './sep-requests';

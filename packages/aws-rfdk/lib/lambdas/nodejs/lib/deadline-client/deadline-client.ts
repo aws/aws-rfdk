@@ -4,25 +4,24 @@
  */
 
 import * as http from 'http';
-import https from 'https';
-import fs from 'fs';
+import * as https from 'https';
 
 /**
  * Properties for setting up an {@link TLSProps}.
  */
 export interface TLSProps {
   /**
-   * The path to the CA certificate
+   * The ARN of the CA certificate.
    */
-  readonly caPath?: string;
+  readonly ca?: string;
 
   /**
-   * The path to the PFX certificate
+   * The ARN of the PFX certificate.
    */
-  readonly pfxPath?: string;
+  readonly pfx?: string;
 
   /**
-   * Shared passphrase used for a single private key and/or a PFX.
+   * The ARN of the shared passphrase used for a single private key and/or a PFX.
    */
   readonly passphrase?: string;
 }
@@ -78,7 +77,7 @@ export class DeadlineClient {
 
   public constructor(props: DeadlineClientProps) {
     this.requestOptions = {
-      host: props.IP,
+      host: props.host,
       port: props.port,
     };
 
@@ -86,9 +85,9 @@ export class DeadlineClient {
       this.protocol = https;
 
       const httpsAgent = new https.Agent({
-        pfx: fs.readFileSync(props.tls.pfxPath ?? ''),
-        passphrase: props.tls.passphrase ?? '',
-        ca: fs.readFileSync(props.tls.caPath ?? ''),
+        pfx: props.tls.pfx,
+        passphrase: props.tls.passphrase,
+        ca: props.tls.ca,
       });
       this.requestOptions.httpsAgent = httpsAgent;
     }
@@ -97,21 +96,21 @@ export class DeadlineClient {
     }
   }
 
-  public GetRequest(path: string, requestOptions?: https.RequestOptions) {
+  public async GetRequest(path: string, requestOptions?: https.RequestOptions): Promise<Response> {
     let options = this.FillRequestOptions(path, requestOptions);
     options.method = 'GET';
 
     return this.performRequest(options);
   }
 
-  public PostRequest(path: string, data?: any, requestOptions?: https.RequestOptions) {
+  public async PostRequest(path: string, data?: any, requestOptions?: https.RequestOptions): Promise<Response> {
     let options = this.FillRequestOptions(path, requestOptions);
     options.method = 'POST';
 
     return this.performRequest(options, data ? JSON.stringify(data) : undefined);
   }
 
-  private FillRequestOptions(path: string, requestOptions?: https.RequestOptions) {
+  private FillRequestOptions(path: string, requestOptions?: https.RequestOptions): https.RequestOptions {
     let options: https.RequestOptions = requestOptions ?? {};
 
     options.port = this.requestOptions.port;
@@ -123,39 +122,36 @@ export class DeadlineClient {
     return options;
   }
 
-  private performRequest(options: https.RequestOptions, data?: string) {
+  private async performRequest(options: https.RequestOptions, data?: string): Promise<Response> {
     return new Promise<Response>((resolve, reject) => {
       const req = this.protocol.request(options, response => {
-
-          const { statusCode } = response;
-          if (!statusCode || statusCode >= 300) {
-            reject(
-              new Error(response.statusMessage)
-            );
-          } 
-          else {
-            const chunks: any = [];
-            response.on('data', (chunk) => {
-              chunks.push(chunk);
-            });
-
-            response.on('end', () => {
-              const data = Buffer.concat(chunks).toString();
-              const result: Response = {
-                data: JSON.parse(data),
-                fullResponse: response,
-              };
-              resolve(result);
-            });
-          }
+        const { statusCode } = response;
+        if (!statusCode || statusCode >= 300) {
+          reject(
+            new Error(response.statusMessage),
+          );
         }
-      );
+        else {
+          const chunks: any = [];
+          response.on('data', (chunk) => {
+            chunks.push(chunk);
+          });
+          response.on('end', () => {
+            const stringData = Buffer.concat(chunks).toString();
+            const result: Response = {
+              data: JSON.parse(stringData),
+              fullResponse: response,
+            };
+            resolve(result);
+          });
+        }
+      });
 
       if (data) {
         req.write(data);
       }
 
       req.end();
-    })
+    });
   }
 }

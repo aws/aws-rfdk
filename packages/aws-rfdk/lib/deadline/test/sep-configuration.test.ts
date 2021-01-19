@@ -27,12 +27,14 @@ import {
   IRenderQueue,
   RenderQueue,
   SEPConfigurationSetup,
-  SEPSpotFleet,
   Repository,
   VersionQuery,
 } from '../lib';
+import {
+  SEPSpotFleet,
+} from '../lib/sep-spotfleet';
 
-describe('MongoDbPostInstall', () => {
+describe('SEPConfigurationSetup', () => {
   let stack: Stack;
   let vpc: Vpc;
   let renderQueue: IRenderQueue;
@@ -61,27 +63,28 @@ describe('MongoDbPostInstall', () => {
 
   test('created correctly', () => {
     // GIVEN
+    const fleet = new SEPSpotFleet(stack, 'spotFleet1', {
+      vpc,
+      renderQueue: renderQueue,
+      deadlineGroups: [
+        'group_name1',
+      ],
+      instanceTypes: [
+        InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+      ],
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
+      }),
+      targetCapacity: 1,
+    });
 
     // WHEN
-    new SEPConfigurationSetup(stack, 'MongoPostInstall', {
+    new SEPConfigurationSetup(stack, 'SEPConfigurationSetup', {
       vpc,
       renderQueue: renderQueue,
       spotFleetOptions: {
         spotFleets: [
-          new SEPSpotFleet(stack, 'spotFleet1', {
-            vpc,
-            renderQueue: renderQueue,
-            deadlineGroups: [
-              'group_name1',
-            ],
-            instanceTypes: [
-              InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-            ],
-            workerMachineImage: new GenericWindowsImage({
-              'us-east-1': 'ami-any',
-            }),
-            targetCapacity: 1,
-          }),
+          fleet, // TODO: Typescript is complaining
         ],
         groupPools: {
           group_name1: ['pool1', 'pool2'],
@@ -96,31 +99,33 @@ describe('MongoDbPostInstall', () => {
 
   test('use selected subnets', () => {
     // GIVEN
+    const fleet = new SEPSpotFleet(stack, 'spotFleet1', {
+      vpc,
+      renderQueue: renderQueue,
+      deadlineGroups: [
+        'group_name1',
+      ],
+      instanceTypes: [
+        InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+      ],
+      workerMachineImage: new GenericWindowsImage({
+        'us-east-1': 'ami-any',
+      }),
+      targetCapacity: 1,
+    });
+
     // TODO: maybe create them in describe
     const groupPools: Map<string, string[]> = new Map<string, string[]>();
     groupPools.set('group_name1', ['pool1', 'pool2']);
 
     // WHEN
-    new SEPConfigurationSetup(stack, 'MongoPostInstall', {
+    new SEPConfigurationSetup(stack, 'SEPConfigurationSetup', {
       vpc,
       vpcSubnets: { subnets: [ vpc.privateSubnets[0] ] },
       renderQueue: renderQueue,
       spotFleetOptions: {
         spotFleets: [
-          new SEPSpotFleet(stack, 'spotFleet1', {
-            vpc,
-            renderQueue: renderQueue,
-            deadlineGroups: [
-              'group_name1',
-            ],
-            instanceTypes: [
-              InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-            ],
-            workerMachineImage: new GenericWindowsImage({
-              'us-east-1': 'ami-any',
-            }),
-            targetCapacity: 1,
-          }),
+          fleet,
         ],
         groupPools: groupPools,
       },

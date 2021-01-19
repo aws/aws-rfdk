@@ -29,6 +29,8 @@ import {
   IPrincipal,
   IRole,
   ManagedPolicy,
+  Policy,
+  PolicyStatement,
   Role,
   ServicePrincipal,
 } from '@aws-cdk/aws-iam';
@@ -430,6 +432,7 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
 
     this.securityGroups = props.securityGroups ?? [ new SecurityGroup(this, 'SEPConfigurationSecurityGroup', { vpc: props.vpc }) ];
     this.connections = new Connections({ securityGroups: this.securityGroups });
+    this.connections.allowToDefaultPort(props.renderQueue.endpoint); // TODO: do we need this here?
 
     this.role = props.role ?? new Role(this, 'SpotWorkerRole', {
       assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
@@ -443,10 +446,43 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
 
     this.iamFleetRole = new Role(this, 'FleetRole', {
       assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
-      managedPolicies: [
-        ManagedPolicy.fromAwsManagedPolicyName('AmazonEC2SpotFleetTaggingRole'),
-      ],
+      // managedPolicies: [
+      //   ManagedPolicy.fromAwsManagedPolicyName('AmazonEC2SpotFleetTaggingRole'),
+      // ],
       description: `Role for ${id} in region ${this.env.region}`,
+      roleName: 'aws-ec2-spot-fleet-tagging-role' + this.calculateResourceTagValue([this]),
+    });
+
+    new Policy(this, 'ASGUpdatePolicy', {
+      statements: [
+        new PolicyStatement({
+          actions: [
+            'ec2:RunInstances',
+            'ec2:CreateTags',
+            'ec2:RequestSpotFleet',
+            'ec2:ModifySpotFleetRequest',
+            'ec2:CancelSpotFleetRequests',
+            'ec2:DescribeSpotFleetRequests',
+            'ec2:DescribeSpotFleetInstances',
+            'ec2:DescribeSpotFleetRequestHistory',
+          ],
+          resources: ['*'],
+        }),
+        new PolicyStatement({
+          actions: [
+            'iam:PassRole',
+          ],
+          resources: [this.iamFleetRole.roleArn],
+        }),
+        new PolicyStatement({
+          actions: [
+            'iam:CreateServiceLinkedRole',
+            'iam:ListRoles',
+            'iam:ListInstanceProfiles',
+          ],
+          resources: ['*'],
+        }),
+      ],
     });
 
     const imageConfig = props.workerMachineImage.getImage(this);

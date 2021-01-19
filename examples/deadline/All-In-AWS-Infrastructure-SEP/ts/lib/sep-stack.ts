@@ -4,6 +4,13 @@
  */
 
 import {
+  CfnClientVpnAuthorizationRule,
+  CfnClientVpnEndpoint,
+  CfnClientVpnTargetNetworkAssociation,
+  InstanceClass,
+  InstanceSize,
+  InstanceType,
+  GenericLinuxImage,
   SecurityGroup,
   Vpc,
 } from '@aws-cdk/aws-ec2';
@@ -13,16 +20,18 @@ import {
   Stack,
   StackProps
 } from '@aws-cdk/core';
-import {
-  ManagedPolicy,
-  Role,
-  ServicePrincipal
-} from '@aws-cdk/aws-iam';
+// import {
+//   ManagedPolicy,
+//   Role,
+//   ServicePrincipal
+// } from '@aws-cdk/aws-iam';
 import {
   RenderQueue,
   Repository,
   Stage,
   ThinkboxDockerRecipes,
+  SEPConfigurationSetup,
+  SEPSpotFleet,
 } from 'aws-rfdk/deadline';
 
 /**
@@ -47,7 +56,10 @@ export class SEPStack extends Stack {
   constructor(scope: Construct, id: string, props: SEPStackProps) {
     super(scope, id, props);
     
-    const vpc = new Vpc(this, 'Vpc', { maxAzs: 2 });
+    const vpc = new Vpc(this, 'Vpc', {
+      maxAzs: 2,
+      cidr: '10.100.0.0/16',
+    });
 
     const recipes = new ThinkboxDockerRecipes(this, 'Image', {
       stage: Stage.fromDirectory(props.dockerRecipesStagePath),
@@ -84,25 +96,102 @@ export class SEPStack extends Stack {
     });
     workerSecurityGroup.connections.allowToDefaultPort(renderQueue.endpoint);
     
-    // Create the IAM Role for the Spot Event Plugins workers.
-    // Note: This Role MUST have a roleName that begins with "DeadlineSpot"
-    // Note if you already have a worker IAM role in your account you can remove this code.
-    new Role( this, 'SpotWorkerRole', {
-      assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
-      managedPolicies: [
-        ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy'),
+    // // Create the IAM Role for the Spot Event Plugins workers.
+    // // Note: This Role MUST have a roleName that begins with "DeadlineSpot"
+    // // Note if you already have a worker IAM role in your account you can remove this code.
+    // const role = new Role( this, 'SpotWorkerRole', {
+    //   assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
+    //   managedPolicies: [
+    //     ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy'),
+    //   ],
+    //   roleName: 'DeadlineSpotWorkerRole55667',
+    // });
+
+    // // Creates the Resource Tracker Access role.  This role is required to exist in your account so the resource tracker will work properly
+    // // Note: If you already have a Resource Tracker IAM role in your account you can remove this code.
+    // new Role( this, 'ResourceTrackerRole', {
+    //   assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+    //   managedPolicies: [
+    //     ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAccessPolicy'),
+    //   ],
+    //   roleName: 'DeadlineResourceTrackerAccessRole',
+    // });
+
+    const fleet = new SEPSpotFleet(this, 'TestpotFleet1', {
+      vpc,
+      renderQueue: renderQueue,
+      // role: role,
+      securityGroups: [
+        workerSecurityGroup,
       ],
-      roleName: 'DeadlineSpotWorkerRole',
+      deadlineGroups: [
+        'group_name1',
+      ],
+      instanceTypes: [
+        InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
+      ],
+      workerMachineImage: new GenericLinuxImage({
+        [this.region]: 'ami-0f5650d87270255ae',
+      }),
+      targetCapacity: 1,
     });
 
-    // Creates the Resource Tracker Access role.  This role is required to exist in your account so the resource tracker will work properly
-    // Note: If you already have a Resource Tracker IAM role in your account you can remove this code.
-    new Role( this, 'ResourceTrackerRole', {
-      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
-      managedPolicies: [
-        ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAccessPolicy'),
-      ],
-      roleName: 'DeadlineResourceTrackerAccessRole',
+    // WHEN
+    new SEPConfigurationSetup(this, 'SEPConfigurationSetup', {
+      vpc,
+      renderQueue: renderQueue,
+      spotFleetOptions: {
+        spotFleets: [
+          fleet,
+        ],
+        groupPools: {
+          group_name1: ['pool1', 'pool2'],
+        },
+        enableResourceTracker: false,
+      },
     });
+
+    // TODO: remove this. Only for testing
+    
+    const securityGroup = new SecurityGroup(this, 'SG-VPN-RFDK', {
+      vpc,
+    });
+
+    const endpoint = new CfnClientVpnEndpoint(this, 'ClientVpnEndpointRFDK', {
+      description: "VPN",
+      vpcId: vpc.vpcId,
+      securityGroupIds: [
+        securityGroup.securityGroupId,
+      ],
+      authenticationOptions: [{ 
+        type: "certificate-authentication",
+        mutualAuthentication: {
+          clientRootCertificateChainArn: "arn:aws:acm:us-east-1:693238537026:certificate/5ce1c76e-c2e1-4da1-b47a-8273af60a766",
+        },
+      }],
+      clientCidrBlock: '10.200.0.0/16',
+      connectionLogOptions: {
+        enabled: false,
+      },
+      serverCertificateArn: "arn:aws:acm:us-east-1:693238537026:certificate/acc475c0-eaf1-4d6a-9367-d294927565d6",
+    });
+
+    let i = 0;
+    vpc.privateSubnets.map(subnet => {
+      new CfnClientVpnTargetNetworkAssociation(this, `ClientVpnNetworkAssociation${i}`, {
+        clientVpnEndpointId: endpoint.ref,
+        subnetId: subnet.subnetId,
+      });
+      i++;
+    });
+
+    new CfnClientVpnAuthorizationRule(this, 'ClientVpnAuthRule', {
+      clientVpnEndpointId: endpoint.ref,
+      targetNetworkCidr: '10.100.0.0/16',
+      authorizeAllGroups: true,
+      description: "Allow access to whole VPC CIDR range"
+    });
+
+    renderQueue.connections.allowDefaultPortFrom(securityGroup);
   }
 }

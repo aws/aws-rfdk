@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/* eslint-disable no-console */
+
 import * as path from 'path';
 
 import {
@@ -42,83 +44,10 @@ import {
   SEPSpotFleet,
 } from './sep-spotfleet';
 
-// TODO: remove this, we will import it properly
-export class EventPluginRequests {
-  constructor() {}
-
-  public async saveServerData(): Promise<boolean> {
-    return true;
-  }
-
-  public async saveSpotFleetRequestData(): Promise<boolean> {
-    return true;
-  }
-}
-
-// TODO: Probably we can get all this info from the renderqueue instead of
-// readonly deadlineClient: DeadlineClientProperties;
-// /**
-//  * User added to the $external admin database.
-//  * Referencing: https://docs.mongodb.com/v3.6/core/security-x.509/#member-certificate-requirements
-//  */
-// export interface DeadlineClientProperties {
-//   /**
-//    * The IP address or DNS name of the Remote Connection Server
-//    */
-//   readonly host: string;
-
-//   /**
-//    * The port number address of the Remote Connection Server
-//    */
-//   readonly port: number;
-
-//   /**
-//    * CA certificate
-//    */
-//   readonly certificate?: ISecret;
-
-//   /**
-//    * The PFX certificate
-//    */
-//   readonly pfx?: ISecret;
-
-//   /**
-//    * Shared passphrase used for a single private key and/or a PFX.
-//    */
-//   readonly passphrase?: ISecret;
-// }
-
-// export interface IConnectionOptions {
-//   /**
-//    * FQDN of the host to connect to.
-//    */
-//   readonly hostname: string;
-
-//   /**
-//    * Port on the host that is serving MongoDB.
-//    */
-//   readonly port: string;
-
-//   /**
-//    * ARN of a Secret containing the CA. The contents must be a PEM-encoded certificate in the SecretString of the secret.
-//    */
-//   readonly caCertificate?: string;
-
-//   /**
-//    * ARN of a Secret containing the PFX. The contents must be a PEM-encoded certificate in the SecretString of the secret.
-//    */
-//   readonly pfxCertificate?: string;
-// }
-
 /**
  * The input to this Custom Resource
  */
 export interface ISEPConfigurationProperties {
-  // /**
-  //  * Connection info for logging into the server.
-  //  */
-  // readonly connection: IConnectionOptions;
-
   /**
    * TODO: add description
    */
@@ -248,15 +177,39 @@ export class SEPConfigurationSetup extends Construct {
       logRetention: RetentionDays.ONE_WEEK,
     });
 
-    // lamdbaFunc.connections.allowTo(props.mongoDb, Port.tcp(props.mongoDb.port));
+    lamdbaFunc.connections.allowToDefaultPort(props.renderQueue); // TODO: or maybe Port.tcp(props.renderQueue.endpoint.port)
     // props.renderQueue.certificateChain.grantRead(lamdbaFunc.grantPrincipal);
     // props.mongoDb.adminUser.grantRead(lamdbaFunc.grantPrincipal);
     // props.users.passwordAuthUsers?.forEach( secret => secret.grantRead(lamdbaFunc) );
     // props.users.x509AuthUsers?.forEach( user => user.certificate.grantRead(lamdbaFunc) );
 
+    const combinedSpotFleetConfigs = this.combinedSpotFleetConfigs(props.spotFleetOptions?.spotFleets);
+
     const properties: ISEPConfiguratorResourceProperties = {
-      spotFleetRequestConfiguration: 'TODO:createCOnfigFromThis',
-      spotPluginConfigurations: 'TODO:createConfigFromThis',
+      connection: {
+        hostname: props.renderQueue.endpoint.hostname,
+        port: props.renderQueue.endpoint.portNumber,
+        // caCertificate: props.renderQueue.configureClientECS,
+        // pfxCertificate: props.renderQueue.pfxCertificate,
+        // passphrase: props.renderQueue.passphrase,
+      },
+      spotFleetRequestConfigurations: combinedSpotFleetConfigs,
+      spotPluginConfigurations: {
+        AWSInstanceStatus: props.spotFleetOptions?.awsInstanceStatus,
+        DeleteInterruptedSlaves: props.spotFleetOptions?.deleteEC2SpotInterruptedWorkers,
+        DeleteTerminatedSlaves: props.spotFleetOptions?.deleteSEPTerminatedWorkers,
+        GroupPools: props.spotFleetOptions?.groupPools ? JSON.stringify(props.spotFleetOptions?.groupPools) : undefined, // TODO:
+        IdleShutdown: props.spotFleetOptions?.idleShutdown,
+        Logging: props.spotFleetOptions?.loggingLevel,
+        NamedProfile: '',
+        PreJobTaskMode: props.spotFleetOptions?.preJobTaskMode,
+        Region: props.spotFleetOptions?.region,
+        ResourceTracker: props.spotFleetOptions?.enableResourceTracker,
+        StaggerInstances: props.spotFleetOptions?.maximumInstancesStartedPerCycle,
+        State: props.spotFleetOptions?.state,
+        StrictHardCap: props.spotFleetOptions?.strictHardCap,
+        UseLocalCredentials: true,
+      },
     };
 
     const resource = new CustomResource(this, 'Default', {
@@ -275,5 +228,33 @@ export class SEPConfigurationSetup extends Construct {
     // }
 
     this.node.defaultChild = resource;
+  }
+
+  private combinedSpotFleetConfigs(spotFleets?: SEPSpotFleet[]): string | undefined {
+    // TODO: maybe also check if it's empty?
+    if (!spotFleets) {
+      return undefined;
+    }
+
+    let allGroupConfigMappings: any[] = [];
+
+    spotFleets.map(fleet => {
+      allGroupConfigMappings = allGroupConfigMappings.concat(fleet.sepSpotFleetRequestConfigurations);
+    });
+
+    let fullSpotFleetRequestConfiguration: any = {};
+    allGroupConfigMappings.map(mapping => {
+      for (const [key, value] of Object.entries(mapping)) {
+        fullSpotFleetRequestConfiguration[key] = value;
+      }
+    });
+
+    // console.log('As string CDK:');
+    // console.log(Stack.of(this).toJsonString(fullSpotFleetRequestConfiguration));
+
+    // console.log('As string JSON:');
+    // console.log(JSON.stringify(fullSpotFleetRequestConfiguration));
+
+    return Stack.of(this).toJsonString(fullSpotFleetRequestConfiguration); // TODO: should we just use JSON.Stringify here?
   }
 }

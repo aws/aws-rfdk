@@ -7,23 +7,38 @@
 
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { SecretsManager } from 'aws-sdk';
+import { SEPGeneralOptions } from '../../nodejs/lib/sep-configuration';
 import { LambdaContext } from '../lib/aws-lambda';
 import { CfnRequestEvent, SimpleCustomResource } from '../lib/custom-resource';
-import {
-  Secret,
-} from '../lib/secrets-manager';
+import { DeadlineClient } from '../lib/deadline-client';
+import { Secret } from '../lib/secrets-manager';
+import { EventPluginRequests } from '../lib/sep-configuration';
 
-// TODO: remove this, we will import it properly
-export class EventPluginRequests {
-  constructor() {}
+export interface IConnectionOptions {
+  /**
+   * FQDN of the host to connect to.
+   */
+  readonly hostname: string;
 
-  public async saveServerData(): Promise<boolean> {
-    return true;
-  }
+  /**
+   * Port on the host.
+   */
+  readonly port: number;
 
-  public async saveSpotFleetRequestData(): Promise<boolean> {
-    return true;
-  }
+  /**
+   * Content of the CA certificate
+   */
+  readonly caCertificate?: string;
+
+  /**
+   * Content of the PFX certificate.
+   */
+  readonly pfxCertificate?: string;
+
+  /**
+   * Shared passphrase used for a single private key and/or a PFX.
+   */
+  readonly passphrase?: string;
 }
 
 /**
@@ -31,21 +46,25 @@ export class EventPluginRequests {
  */
 export interface ISEPConfiguratorResourceProperties {
   /**
+   * Connection info for logging into the server.
+   */
+  readonly connection: IConnectionOptions;
+
+  /**
    * TODO: used to save spot fleet request configuration
    */
-  readonly spotFleetRequestConfiguration: string;
+  readonly spotFleetRequestConfigurations?: string;
 
   /**
    * TODO: used to save group/pools and general settings
    */
-  readonly spotPluginConfigurations: string;
+  readonly spotPluginConfigurations?: SEPGeneralOptions;
 }
 
 /**
  * TODO: add description
  */
 export class SEPConfiguratorResource extends SimpleCustomResource {
-  readonly eventPluginRequests = new EventPluginRequests();
   protected readonly secretsManagerClient: SecretsManager;
 
   constructor(secretsManagerClient: SecretsManager) {
@@ -65,17 +84,31 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
    */
   // @ts-ignore  -- we do not use the physicalId
   public async doCreate(physicalId: string, resourceProperties: ISEPConfiguratorResourceProperties): Promise<object|undefined> { // TODO: for now this return type
-    if (resourceProperties.spotFleetRequestConfiguration) {
-      const response = await this.eventPluginRequests.saveSpotFleetRequestData();
-      // TODO: parse response or if it's done inside of eventPluginRequests class - then just check if it was successful.
+    // TODO: this is ugly. Maybe also use TLSProps inside ?
+    let useTLS: boolean = false;
+    if (resourceProperties.connection.caCertificate || resourceProperties.connection.pfxCertificate || resourceProperties.connection.passphrase) {
+      useTLS = true;
+    }
+
+    const eventPluginRequests = new EventPluginRequests(new DeadlineClient({
+      host: resourceProperties.connection.hostname,
+      port: resourceProperties.connection.port,
+      tls: (useTLS ? {
+        ca: resourceProperties.connection.caCertificate,
+        pfx: resourceProperties.connection.pfxCertificate,
+        passphrase: resourceProperties.connection.passphrase,
+      } : undefined),
+    }));
+
+    if (resourceProperties.spotFleetRequestConfigurations) {
+      const response = await eventPluginRequests.saveServerData(resourceProperties.spotFleetRequestConfigurations);
       if (!response) {
         console.log('Failed to save spot fleet request.');
       }
     }
     if (resourceProperties.spotPluginConfigurations) {
-      const response = await this.eventPluginRequests.saveServerData();
+      const response = await eventPluginRequests.configureSpotEventPlugin(resourceProperties.spotPluginConfigurations);
       if (!response) {
-        // TODO: parse response or if it's done inside of eventPluginRequests class - then just check if it was successful.
         console.log('Failed to save server data');
       }
     }
