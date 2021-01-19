@@ -1,0 +1,60 @@
+name: Deadline-${version}
+schemaVersion: 1.0
+
+phases:
+  -
+    name: 'build'
+    steps:
+      -
+        name: DownloadDeadlineClient
+        action: S3Download
+        timeoutSeconds: 120
+        onFailure: Abort
+        maxAttempts: 3
+        inputs:
+          -
+            source: '${s3uri}'
+            destination: 'C:\DeadlineClient-${version}-windows-installer.exe'
+      -
+        name: InstallDeadline
+        action: ExecutePowerShell
+        timeoutSeconds: 600
+        onFailure: Abort
+        maxAttempts: 1
+        inputs:
+          commands:
+            - '$argList = "--mode unattended --licensemode UsageBased  --connectiontype Remote --noguimode true --slavestartup false --restartstalled true --launcherservice true --serviceuser `"NT AUTHORITY\NetworkService`" --autoupdateoverride false"'
+            - 'Start-Process -FilePath {{ build.DownloadDeadlineClient.inputs[0].destination }} -ArgumentList $argList -Wait'
+      -
+        name: ConfigureAdmin
+        action: ExecutePowerShell
+        timeoutSeconds: 600
+        onFailure: Abort
+        maxAttempts: 1
+        inputs:
+          commands:
+            - 'if (-not (net localgroup administrators | Select-String "^NT AUTHORITY\\NETWORK SERVICE$" -Quiet)) {
+                net localgroup administrators /add "NT AUTHORITY\NETWORK SERVICE"
+              }'
+      -
+        name: ConfigureDeadlineLaunch
+        action: ExecutePowerShell
+        timeoutSeconds: 600
+        onFailure: Abort
+        maxAttempts: 1
+        inputs:
+          commands:
+            - 'New-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control" -Name "ServicesPipeTimeout" -Value 60000 -PropertyType DWORD -Force | Out-Null'
+            - '(Get-Content C:\ProgramData\Amazon\EC2-Windows\Launch\Config\LaunchConfig.json).replace("`"setComputerName`": false", "`"setComputerName`": true") | Set-Content C:\ProgramData\Amazon\EC2-Windows\Launch\Config\LaunchConfig.json'
+            - 'C:\ProgramData\Amazon\EC2-Windows\Launch\Scripts\InitializeInstance.ps1 -Schedule'
+            - 'Start-Sleep -s 50'
+            - 'Stop-Service -Name "deadline10launcherservice"'
+      -
+        name: Delete
+        action: ExecutePowerShell
+        timeoutSeconds: 120
+        onFailure: Continue
+        maxAttempts: 3
+        inputs:
+          commands:
+            - 'Remove-Item -Path "{{ build.DownloadDeadlineClient.inputs[0].destination }}" -Force'
