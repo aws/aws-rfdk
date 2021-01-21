@@ -88,11 +88,6 @@ export interface ServiceTierProps extends cdk.StackProps {
  */
 export class ServiceTier extends cdk.Stack {
   /**
-   * The repository
-   */
-  public readonly repository: Repository;
-
-  /**
    * A bastion host to connect to the render farm with.
    */
   public readonly bastion: BastionHostLinux;
@@ -144,10 +139,10 @@ export class ServiceTier extends cdk.Stack {
     });
 
     this.version = new VersionQuery(this, 'Version', {
-      version: props.deadlineVersion
+      version: props.deadlineVersion,
     });
 
-    this.repository = new Repository(this, 'Repository', {
+    const repository = new Repository(this, 'Repository', {
       vpc: props.vpc,
       version: this.version,
       database: props.database,
@@ -171,7 +166,7 @@ export class ServiceTier extends cdk.Stack {
     this.renderQueue = new RenderQueue(this, 'RenderQueue', {
       vpc: props.vpc,
       images: images,
-      repository: this.repository,
+      repository,
       hostname: {
         hostname: 'renderqueue',
         zone: props.dnsZone,

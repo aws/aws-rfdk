@@ -14,7 +14,8 @@ import { MongoDbSsplLicenseAcceptance } from 'aws-rfdk';
  */
 class AppConfig {
   /**
-   * The version of Deadline to run on the farm (matches the example AMI for 10.1.11.5 above).
+   * The version of Deadline to use on the render farm. Some examples of pinned version values are "10", "10.1", or
+   * "10.1.12"
    * @default The latest available version of Deadline is used
    */
   public readonly deadlineVersion?: string;

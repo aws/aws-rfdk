@@ -12,6 +12,136 @@ jest.mock('fs');
 jest.mock('https');
 
 describe('ThinkboxEcrProvider', () => {
+  /**
+   * Suite of parametrized tests for testing the ECR index schema validation.
+   *
+   * The suite is an array of tests, where each test should fail validation. Each test is represented as an array of two
+   * elements: [name, indexObject]
+   *
+   * - The first element is the name describing what is contained in the value
+   * - The second element is the value that should be JSON encoded and supplied to the ThinkboxEcrProvider
+   */
+  const INDEX_SCHEMA_VALIDATION_SUITE: Array<[string, any]> = [
+    [
+      'array',
+      [],
+    ],
+    [
+      'number',
+      1,
+    ],
+    [
+      'string',
+      'abc',
+    ],
+    [
+      'object missing registry',
+      {
+        products: {
+          deadline: {
+            namespace: 'a',
+          },
+        },
+      },
+    ],
+    [
+      'object with registry with wrong type',
+      {
+        registry: 1,
+        products: {
+          deadline: {
+            namespace: 'a',
+          },
+        },
+      },
+    ],
+    [
+      'object missing products',
+      {
+        registry: {
+          uri: 'a',
+        },
+      },
+    ],
+    [
+      'object with products with wrong type',
+      {
+        registry: {
+          uri: 'a',
+        },
+        products: 1,
+      },
+    ],
+    [
+      'object with registry missing uri',
+      {
+        registry: {},
+        products: {
+          deadline: {
+            namespace: 'a',
+          },
+        },
+      },
+    ],
+    [
+      'object with registry uri with wrong type',
+      {
+        registry: {
+          uri: 1,
+        },
+        products: {
+          deadline: {
+            namespace: 'a',
+          },
+        },
+      },
+    ],
+    [
+      'object with missing products.deadline',
+      {
+        registry: {
+          uri: 1,
+        },
+        products: {},
+      },
+    ],
+    [
+      'object with products.deadline with wrong type',
+      {
+        registry: {
+          uri: 1,
+        },
+        products: {
+          deadline: 1,
+        },
+      },
+    ],
+    [
+      'object with missing products.deadline.namespace',
+      {
+        registry: {
+          uri: 1,
+        },
+        products: {
+          deadline: {},
+        },
+      },
+    ],
+    [
+      'object with products.deadline.namespace with wrong type',
+      {
+        registry: {
+          uri: 1,
+        },
+        products: {
+          deadline: {
+            namespace: 1,
+          },
+        },
+      },
+    ],
+  ];
+
   let ecrProvider: ThinkboxEcrProvider;
 
   describe('without indexPath', () => {
@@ -54,12 +184,20 @@ describe('ThinkboxEcrProvider', () => {
       ecrProvider = new ThinkboxEcrProvider();
     });
 
-    const EXPECTED_URL = 'https://downloads.thinkboxsoftware.com/deadline_ecr.json';
+    const EXPECTED_URL = 'https://downloads.thinkboxsoftware.com/thinkbox_ecr.json';
     test(`gets ${EXPECTED_URL} for global lookup`, async () => {
       // GIVEN
-      const mockBaseArn = 'baseARN';
+      const registryUri = 'registryUri';
+      const deadlineNamespace = 'namespace';
       const mockData = {
-        global: mockBaseArn,
+        registry: {
+          uri: registryUri,
+        },
+        products: {
+          deadline: {
+            namespace: deadlineNamespace,
+          },
+        },
       };
 
       // WHEN
@@ -80,10 +218,19 @@ describe('ThinkboxEcrProvider', () => {
     describe('.getGlobalEcrBaseArn()', () => {
       test('obtains global prefix from index', async () => {
         // GIVEN
-        const mockBaseArn = 'baseARN';
+        const registryUri = 'registryUri';
+        const deadlineNamespace = 'namespace';
         const mockData = {
-          global: mockBaseArn,
+          registry: {
+            uri: registryUri,
+          },
+          products: {
+            deadline: {
+              namespace: deadlineNamespace,
+            },
+          },
         };
+        const expectedBaseArn = `${registryUri}/${deadlineNamespace}`;
 
         // WHEN
         const promise = ecrProvider.getGlobalEcrBaseURI();
@@ -93,7 +240,7 @@ describe('ThinkboxEcrProvider', () => {
         // THEN
         await expect(promise)
           .resolves
-          .toEqual(mockBaseArn);
+          .toEqual(expectedBaseArn);
       });
 
       test('handles request errors', async () => {
@@ -147,13 +294,39 @@ describe('ThinkboxEcrProvider', () => {
           .rejects
           .toThrow(/^ECR index file contains invalid JSON: ".*"$/);
       });
+
+      describe('index schema validation', () => {
+        test.each(INDEX_SCHEMA_VALIDATION_SUITE)('fails when fetching %s', async (_name: string, value: any) => {
+          // WHEN
+          const promise = ecrProvider.getGlobalEcrBaseURI();
+          response.emit('data', JSON.stringify(value));
+          response.emit('end');
+
+          // THEN
+          await expect(promise)
+            .rejects
+            .toThrowError(/^expected .+ to be an? .+ but got .+$/);
+        });
+      });
     });
   });
 
   describe('with indexPath', () => {
     // GIVEN
-    const globalURIPrefix = 'globalURIPrefix';
+    const registryUri = 'registryUri';
+    const deadlineNamespace = 'deadlineNamespace';
     const indexPath = 'somefile';
+    const mockData = {
+      registry: {
+        uri: registryUri,
+      },
+      products: {
+        deadline: {
+          namespace: deadlineNamespace,
+        },
+      },
+    };
+    const globalURIPrefix = `${registryUri}/${deadlineNamespace}`;
 
     beforeEach(() => {
       // WHEN
@@ -165,9 +338,7 @@ describe('ThinkboxEcrProvider', () => {
       readFileSync.mockReset();
       // set the default mock implementations
       existsSync.mockReturnValue(true);
-      readFileSync.mockReturnValue(JSON.stringify({
-        global: globalURIPrefix,
-      }));
+      readFileSync.mockReturnValue(JSON.stringify(mockData));
 
       ecrProvider = new ThinkboxEcrProvider(indexPath);
     });
@@ -214,37 +385,20 @@ describe('ThinkboxEcrProvider', () => {
           .toThrowError(error);
       });
 
-      test('fails on missing "global" object key', async () => {
-        // GIVEN
-        jest.requireMock('fs').readFileSync.mockReturnValue(JSON.stringify({
-          noGlobalKey: true,
-        }));
-        ecrProvider = new ThinkboxEcrProvider(indexPath);
+      describe('index schema validation', () => {
+        test.each(INDEX_SCHEMA_VALIDATION_SUITE)('fails when fetching %s', async (_name: string, value: any) => {
+          // GIVEN
+          jest.requireMock('fs').readFileSync.mockReturnValue(JSON.stringify(value));
+          ecrProvider = new ThinkboxEcrProvider(indexPath);
 
-        // WHEN
-        baseURIPromise = ecrProvider.getGlobalEcrBaseURI();
+          // WHEN
+          baseURIPromise = ecrProvider.getGlobalEcrBaseURI();
 
-        // THEN
-        await expect(baseURIPromise)
-          .rejects
-          .toThrowError('No global ECR');
-      });
-
-      test('fails on "global" key not being a string', async () => {
-        // GIVEN
-        const globalValue = 1;
-        jest.requireMock('fs').readFileSync.mockReturnValue(JSON.stringify({
-          global: globalValue,
-        }));
-        ecrProvider = new ThinkboxEcrProvider(indexPath);
-
-        // WHEN
-        baseURIPromise = ecrProvider.getGlobalEcrBaseURI();
-
-        // THEN
-        await expect(baseURIPromise)
-          .rejects
-          .toThrowError(`Unexpected type for global base ECR URI: "${typeof(globalValue)}`);
+          // THEN
+          await expect(baseURIPromise)
+            .rejects
+            .toThrowError(/^expected .+ to be an? .+ but got .+$/);
+        });
       });
 
       test('fails on non-existent file', async () => {

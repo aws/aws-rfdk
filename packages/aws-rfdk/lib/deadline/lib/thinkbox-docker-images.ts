@@ -37,7 +37,7 @@ export interface ThinkboxDockerImagesProps {
    * The Deadline version to obtain images for.
    * @default latest
    */
-  readonly version?: IVersion
+  readonly version?: IVersion;
 }
 
 /**

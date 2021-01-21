@@ -1,3 +1,10 @@
 {
-  "global": "public.ecr.aws/v1q2r3m5/deadline/"
+  "registry": {
+    "uri": "public.ecr.aws/v1q2r3m5"
+  },
+  "products": {
+    "deadline": {
+      "namespace": "deadline/"
+    }
+  }
 }
