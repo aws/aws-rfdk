@@ -13,8 +13,8 @@ export const CWA_ASSET_LINUX = {
 
 // ConfigureCloudWatchAgent.ps1
 export const CWA_ASSET_WINDOWS = {
-  Bucket: 'AssetParameters05415690a7593cdde72555787eaac1d784dd3173e6083f23f83dc795bfe1741fS3Bucket0E53698F',
-  Key: 'AssetParameters05415690a7593cdde72555787eaac1d784dd3173e6083f23f83dc795bfe1741fS3VersionKeyE92C9DEB',
+  Bucket: 'AssetParameters07782992a7a530f8752341d912c95ba2fe3f0a212d413b5d097959c51ea8e2ecS3Bucket95C4512E',
+  Key: 'AssetParameters07782992a7a530f8752341d912c95ba2fe3f0a212d413b5d097959c51ea8e2ecS3VersionKey3DB883AC',
 };
 
 // mountEbsBlockVolume.sh + metadataUtilities.sh + ec2-certificates.crt
