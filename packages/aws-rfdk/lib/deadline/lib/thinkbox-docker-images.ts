@@ -8,6 +8,7 @@ import * as path from 'path';
 
 import {
   ContainerImage,
+  RepositoryImage,
 } from '@aws-cdk/aws-ecs';
 import {
   Code,
@@ -51,14 +52,19 @@ export interface ThinkboxDockerImagesProps {
  * @example Construct a RenderQueue
  *
  * import { App, Stack, Vpc } from '@aws-rfdk/core';
- * import { RenderQueue, Repository, ThinkboxDockerRecipes } from '@aws-rfdk/deadline';
+ * import { RenderQueue, Repository, ThinkboxDockerImages, VersionQuery } from '@aws-rfdk/deadline';
  * const app = new App();
  * const stack = new Stack(app, 'Stack');
- * const vpc = new Vpc(app, stack);
- * const images = new ThinkboxDockerImages(stack, 'Image');
+ * const vpc = new Vpc(stack, 'Vpc');
+ * const version = new VersionQuery(stack, 'Version', {
+ *   version: '10.1.12',
+ * });
+ * const images = new ThinkboxDockerImages(stack, 'Image', {
+ *   version,
+ * });
  * const repository = new Repository(stack, 'Repository', {
  *   vpc,
- *   version: recipes.version
+ *   version,
  * });
  *
  * const renderQueue = new RenderQueue(stack, 'RenderQueue', {
@@ -86,9 +92,14 @@ export class ThinkboxDockerImages extends Construct {
   public readonly licenseForwarder: ContainerImage;
 
   /**
-   * The version of Deadline in the stage directory.
+   * The version of Deadline installed in the container images
    */
-  public readonly version?: IVersion;
+  private readonly version?: IVersion;
+
+  /**
+   * The base URI for AWS Thinkbox published Deadline ECR images.
+   */
+  private readonly ecrBaseURI: string;
 
   constructor(scope: Construct, id: string, props?: ThinkboxDockerImagesProps) {
     super(scope, id);
@@ -110,38 +121,25 @@ export class ThinkboxDockerImages extends Construct {
     const ecrProvider = new CustomResource(this, 'ThinkboxEcrProvider', {
       serviceToken: lambdaFunc.functionArn,
       properties: {
-        // create a random string that will force the Lambda to always run on redeploys. Changes to its output will be
-        // propagated to any CloudFormation resource providers that reference the output ARN
+        // create a random string that will force the Lambda to "update" on each deployment. Changes to its output will
+        // be propagated to any CloudFormation resource providers that reference the output ARN
         ForceRun: this.forceRun(),
       },
-      resourceType: 'Custom::RFDK-EcrProvider',
+      resourceType: 'Custom::RFDK_EcrProvider',
     });
 
     this.node.defaultChild = ecrProvider;
 
-    const versionString = this.versionString(props?.version);
-    const ecrBaseURI = ecrProvider.getAtt('EcrURIPrefix').toString();
+    this.ecrBaseURI = ecrProvider.getAtt('EcrURIPrefix').toString();
 
-    this.remoteConnectionServer = this.globalImageForRecipe(
-      ecrBaseURI,
-      ThinkboxManagedDeadlineDockerRecipes.REMOTE_CONNECTION_SERVER,
-      versionString,
-    );
-    this.licenseForwarder = this.globalImageForRecipe(
-      ecrBaseURI,
-      ThinkboxManagedDeadlineDockerRecipes.LICENSE_FORWARDER,
-      versionString,
-    );
+    this.remoteConnectionServer = this.ecrImageForRecipe(ThinkboxManagedDeadlineDockerRecipes.REMOTE_CONNECTION_SERVER);
+    this.licenseForwarder = this.ecrImageForRecipe(ThinkboxManagedDeadlineDockerRecipes.LICENSE_FORWARDER);
   }
 
-  private globalImageForRecipe(
-    ecrBaseURI: string,
-    recipe: ThinkboxManagedDeadlineDockerRecipes,
-    version: string | undefined,
-  ) {
-    let registryName = `${ecrBaseURI}${recipe}`;
-    if (version) {
-      registryName += `:${version}`;
+  private ecrImageForRecipe(recipe: ThinkboxManagedDeadlineDockerRecipes): RepositoryImage {
+    let registryName = `${this.ecrBaseURI}${recipe}`;
+    if (this.versionString) {
+      registryName += `:${this.versionString}`;
     }
     return ContainerImage.fromRegistry(
       registryName,
@@ -162,15 +160,22 @@ export class ThinkboxDockerImages extends Construct {
     return this;
   }
 
-  private versionString(version?: IVersion) {
+  /**
+   * A string representation of the Deadline version to retrieve images for.
+   *
+   * This can be undefined - in which case the latest available version of Deadline is used.
+   */
+  private get versionString(): string | undefined {
     function numAsString(num: number): string {
       return Token.isUnresolved(num) ? Token.asString(num) : num.toString();
     }
 
+    const version = this.version;
     if (version) {
       const major = numAsString(version.majorVersion);
       const minor = numAsString(version.minorVersion);
       const release = numAsString(version.releaseVersion);
+
       return `${major}.${minor}.${release}`;
     }
 

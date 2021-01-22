@@ -28,10 +28,10 @@ export interface ThinkboxEcrProviderResourceProperties {
  */
 export interface ThinkboxEcrProviderResourceOutput {
   /**
-   * The ARN prefix of the ECR repository. This can be suffixed with the recipe name to get the final ECR repository
-   * ARN.
+   * The URI prefix of the ECR repositories containing Deadline container images. This can be suffixed with the recipe
+   * name to get a Deadline image's complete ECR repository URI.
    */
-  readonly EcrArnPrefix: string;
+  readonly EcrURIPrefix: string;
 }
 
 /**
@@ -63,8 +63,7 @@ export class ThinkboxEcrProviderResource extends SimpleCustomResource {
    * @inheritdoc
    */
   public async doCreate(_physicalId: string, _resourceProperties: ThinkboxEcrProviderResourceProperties): Promise<ThinkboxEcrProviderResourceOutput> {
-    let result: any;
-    result = {
+    const result = {
       EcrURIPrefix: await this.ecrProvider.getGlobalEcrBaseURI(),
     };
     console.log('result = ');

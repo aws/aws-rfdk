@@ -50,7 +50,7 @@ describe('ThinkboxDockerRecipes', () => {
 
     test('creates Custom::RFDK_ECR_PROVIDER', () => {
       // THEN
-      expectCDK(stack).to(haveResource('Custom::RFDK-EcrProvider', {
+      expectCDK(stack).to(haveResource('Custom::RFDK_EcrProvider', {
         ForceRun: stringLike('*'),
       }));
     });
