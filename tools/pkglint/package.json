@@ -18,8 +18,8 @@
   "scripts": {
     "build": "tsc -b && eslint . --ext=.ts && chmod +x bin/pkglint",
     "test": "echo success",
-    "build+test": "npm run build && npm test",
-    "build+test+package": "npm run build+test",
+    "build+test": "yarn run build && yarn test",
+    "build+test+package": "yarn run build+test",
     "watch": "tsc -b -w",
     "lint": "tsc -b && eslint . --ext=.ts"
   },
