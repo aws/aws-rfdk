@@ -43,7 +43,7 @@
   "dependencies": {
     "case": "^1.6.3",
     "colors": "^1.4.0",
-    "fs-extra": "^9.0.1",
+    "fs-extra": "^9.1.0",
     "semver": "^7.3.4",
     "yargs": "^16.2.0"
   }
