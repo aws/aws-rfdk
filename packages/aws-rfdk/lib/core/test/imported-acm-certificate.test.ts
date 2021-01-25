@@ -72,6 +72,7 @@ test('Import cert', () => {
             'dynamodb:Query',
             'dynamodb:GetItem',
             'dynamodb:Scan',
+            'dynamodb:ConditionCheckItem',
             'dynamodb:BatchWriteItem',
             'dynamodb:PutItem',
             'dynamodb:UpdateItem',
