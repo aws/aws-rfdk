@@ -5,8 +5,6 @@
 
 /* eslint-disable no-console */
 
-import * as path from 'path';
-
 import { LambdaContext } from '../lib/aws-lambda';
 import { CfnRequestEvent, SimpleCustomResource } from '../lib/custom-resource';
 import {
@@ -43,13 +41,7 @@ export class ThinkboxEcrProviderResource extends SimpleCustomResource {
 
   constructor() {
     super();
-    this.ecrProvider = new ThinkboxEcrProvider(path.join(
-      __dirname,
-      '..',
-      'lib',
-      'ecr-provider',
-      'mock-data.json',
-    ));
+    this.ecrProvider = new ThinkboxEcrProvider();
   }
 
   /**
