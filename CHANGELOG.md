@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.24.0](https://github.com/aws/aws-rfdk/compare/v0.23.0...v0.24.0) (2021-01-26)
+
+
+### Supported CDK Version
+
+* [1.86.0](https://github.com/aws/aws-cdk/releases/tag/v1.86.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.12.1](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Bug Fixes
+
+* **core:** windows cloudwatch agent install script ([#296](https://github.com/aws/aws-rfdk/issues/296)) ([478afce](https://github.com/aws/aws-rfdk/commit/478afce43c2a8460cc19f478c54d84b2691b6ebd)), closes [#295](https://github.com/aws/aws-rfdk/issues/295)
+
 ## [0.23.0](https://github.com/aws/aws-rfdk/compare/v0.22.0...v0.23.0) (2021-01-08)
 
 
