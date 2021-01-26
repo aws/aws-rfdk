@@ -116,7 +116,6 @@ export class ThinkboxEcrProvider {
     expectString('index.registry.uri', index.registry.uri);
     expectObject('index.products', index.products);
     expectObject('index.products.deadline', index.products.deadline);
-    expectObject('index.products.deadline', index.products.deadline);
     expectString('index.products.deadline.namespace', index.products.deadline.namespace);
 
     return true;
