@@ -1,6 +1,6 @@
 {
   "name": "pkglint",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "private": true,
   "description": "Validate and fix package.json files",
   "main": "lib/index.js",
@@ -18,8 +18,8 @@
   "scripts": {
     "build": "tsc -b && eslint . --ext=.ts && chmod +x bin/pkglint",
     "test": "echo success",
-    "build+test": "npm run build && npm test",
-    "build+test+package": "npm run build+test",
+    "build+test": "yarn run build && yarn test",
+    "build+test+package": "yarn run build+test",
     "watch": "tsc -b -w",
     "lint": "tsc -b && eslint . --ext=.ts"
   },
@@ -43,7 +43,7 @@
   "dependencies": {
     "case": "^1.6.3",
     "colors": "^1.4.0",
-    "fs-extra": "^9.0.1",
+    "fs-extra": "^9.1.0",
     "semver": "^7.3.4",
     "yargs": "^16.2.0"
   }
