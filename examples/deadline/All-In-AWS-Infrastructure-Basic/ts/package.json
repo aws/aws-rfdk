@@ -4,10 +4,6 @@
   "bin": {
     "app": "bin/app.js"
   },
-  "config": {
-    "deadline_ver": "10.1.12.1",
-    "stage_path": "stage"
-  },
   "scripts": {
     "build": "tsc",
     "build+test": "yarn build && yarn test",
