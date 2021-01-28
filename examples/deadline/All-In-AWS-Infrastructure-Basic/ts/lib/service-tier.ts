@@ -21,6 +21,7 @@ import {
   X509CertificatePem,
 } from 'aws-rfdk';
 import {
+  AwsThinkboxEulaAcceptance,
   DatabaseConnection,
   RenderQueue,
   Repository,
@@ -81,6 +82,11 @@ export interface ServiceTierProps extends cdk.StackProps {
    * @default The latest available release of Deadline is used
    */
   readonly deadlineVersion?: string;
+
+  /**
+   * Whether the AWS Thinkbox End-User License Agreement is accepted or not
+   */
+  readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance;
 }
 
 /**
@@ -152,6 +158,7 @@ export class ServiceTier extends cdk.Stack {
 
     const images = new ThinkboxDockerImages(this, 'Images', {
       version: this.version,
+      userAwsThinkboxEulaAcceptance: props.acceptAwsThinkboxEula,
     });
 
     const serverCert = new X509CertificatePem(this, 'RQCert', {

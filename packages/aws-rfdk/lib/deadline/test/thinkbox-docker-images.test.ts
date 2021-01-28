@@ -9,6 +9,7 @@ import {
   haveResource,
   objectLike,
   stringLike,
+  SynthUtils,
 } from '@aws-cdk/assert';
 import {
   Compatibility,
@@ -24,6 +25,7 @@ import {
 } from '@aws-cdk/core';
 
 import {
+  AwsThinkboxEulaAcceptance,
   IVersion,
   RenderQueueImages,
   ThinkboxDockerImages,
@@ -37,15 +39,52 @@ describe('ThinkboxDockerRecipes', () => {
   let depStack: Stack;
   let stack: Stack;
   let images: ThinkboxDockerImages;
+  let userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance;
 
   describe('defaults', () => {
     beforeEach(() => {
       // GIVEN
       app = new App();
       stack = new Stack(app, 'Stack');
+      userAwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA;
 
       // WHEN
-      images = new ThinkboxDockerImages(stack, 'Images', {});
+      images = new ThinkboxDockerImages(stack, 'Images', {
+        userAwsThinkboxEulaAcceptance,
+      });
+    });
+
+    test('fails validation when EULA is not accepted', () =>{
+      // GIVEN
+      const newStack = new Stack(app, 'NewStack');
+      const expectedError = `
+The ThinkboxDockerImages will install Deadline onto one or more EC2 instances.
+
+Deadline is provided by AWS Thinkbox under the AWS Thinkbox End User License
+Agreement (EULA). By installing Deadline, you are agreeing to the terms of this
+license. Follow the link below to read the terms of the AWS Thinkbox EULA.
+
+https://www.awsthinkbox.com/end-user-license-agreement
+
+By using the ThinkboxDockerImages to install Deadline you agree to the terms of
+the AWS Thinkbox EULA.
+
+Please set the userAwsThinkboxEulaAcceptance property to
+USER_ACCEPTS_AWS_THINKBOX_EULA to signify your acceptance of the terms of the
+AWS Thinkbox EULA.
+`;
+      userAwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA;
+      new ThinkboxDockerImages(newStack, 'Images', {
+        userAwsThinkboxEulaAcceptance,
+      });
+
+      // WHEN
+      function synth() {
+        SynthUtils.synthesize(newStack);
+      }
+
+      // THEN
+      expect(synth).toThrow(expectedError);
     });
 
     test('creates Custom::RFDK_ECR_PROVIDER', () => {
@@ -147,6 +186,7 @@ describe('ThinkboxDockerRecipes', () => {
       // WHEN
       images = new ThinkboxDockerImages(stack, 'Images', {
         version,
+        userAwsThinkboxEulaAcceptance,
       });
     });
 

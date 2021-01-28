@@ -105,6 +105,7 @@ const service = new ServiceTier(app, 'ServiceTier', {
   ublLicenses: config.ublLicenses,
   rootCa: security.rootCa,
   dnsZone: network.dnsZone,
+  acceptAwsThinkboxEula: config.acceptAwsThinkboxEula,
 });
 
 // -------------------- //

@@ -107,7 +107,8 @@ def main():
         ubl_licenses=config.ubl_licenses,
         root_ca=security.root_ca,
         dns_zone=network.dns_zone,
-        deadline_version=config.deadline_version
+        deadline_version=config.deadline_version,
+        accept_aws_thinkbox_eula=config.accept_aws_thinkbox_eula
     )
     service = service_tier.ServiceTier(app, 'ServiceTier', props=service_props, env=env)
 

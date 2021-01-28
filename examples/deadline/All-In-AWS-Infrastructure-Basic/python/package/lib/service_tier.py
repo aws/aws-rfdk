@@ -35,6 +35,7 @@ from aws_rfdk import (
     X509CertificatePem
 )
 from aws_rfdk.deadline import (
+    AwsThinkboxEulaAcceptance,
     DatabaseConnection,
     RenderQueue,
     RenderQueueHostNameProps,
@@ -69,6 +70,8 @@ class ServiceTierProps(StackProps):
     dns_zone: IPrivateHostedZone
     # Version of Deadline to use
     deadline_version: str
+    # Whether the AWS Thinkbox End-User License Agreement is accepted or not
+    accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance
 
 
 class ServiceTier(Stack):
@@ -132,7 +135,8 @@ class ServiceTier(Stack):
         images = ThinkboxDockerImages(
             self,
             'Images',
-            version=self.version
+            version=self.version,
+            user_aws_thinkbox_eula_acceptance=props.accept_aws_thinkbox_eula
         )
 
         server_cert = X509CertificatePem(
