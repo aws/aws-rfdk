@@ -26,8 +26,8 @@ export interface ThinkboxEcrProviderResourceProperties {
  */
 export interface ThinkboxEcrProviderResourceOutput {
   /**
-   * The URI prefix of the ECR repositories containing Deadline container images. This can be suffixed with the recipe
-   * name to get a Deadline image's complete ECR repository URI.
+   * The URI prefix of the ECR repositories containing Deadline container images published by AWS Thinkbox. This can be
+   * suffixed with the recipe name to get a Deadline image's complete ECR repository URI.
    */
   readonly EcrURIPrefix: string;
 }
