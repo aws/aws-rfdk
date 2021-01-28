@@ -42,15 +42,32 @@ export interface ThinkboxDockerImagesProps {
 }
 
 /**
- * An API for interacting with staged Deadline Docker images provided by AWS Thinkbox.
+ * An API for interacting with publicly available Deadline container images published by AWS Thinkbox.
  *
  * This provides container images as required by RFDK's Deadline constructs such as
  *
  * * {@link @aws-rfdk/deadline#RenderQueue}
  * * {@link @aws-rfdk/deadline#UsageBasedLicensing}
  *
- * @example Construct a RenderQueue
+ * Successful usage of the published Deadline container images with this class requires:
  *
+ * 1) The lambda on which the custom resource looks up the Thinkbox container images is able to make HTTPS
+ *    requests to the official AWS Thinbox download site: https://downloads.thinkboxsoftware.com
+ *
+ * Resources Deployed
+ * ------------------------
+ * - A Lambda function containing a script to look up the AWS Thinkbox container image registry
+ *
+ * Security Considerations
+ * ------------------------
+ * - CDK deploys the code for this lambda as an S3 object in the CDK bootstrap bucket. You must limit write access to
+ *   your CDK bootstrap bucket to prevent an attacker from modifying the actions performed by these scripts. We strongly
+ *   recommend that you either enable Amazon S3 server access logging on your CDK bootstrap bucket, or enable AWS
+ *   CloudTrail on your account to assist in post-incident analysis of compromised production environments.
+ *
+ * For example, to construct a RenderQueue using the images:
+ *
+ * ```ts
  * import { App, Stack, Vpc } from '@aws-rfdk/core';
  * import { RenderQueue, Repository, ThinkboxDockerImages, VersionQuery } from '@aws-rfdk/deadline';
  * const app = new App();
@@ -71,6 +88,7 @@ export interface ThinkboxDockerImagesProps {
  *   images: images.forRenderQueue(),
  *   // ...
  * });
+ * ```
  */
 export class ThinkboxDockerImages extends Construct {
   /**

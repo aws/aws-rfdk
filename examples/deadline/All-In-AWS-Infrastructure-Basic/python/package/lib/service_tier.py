@@ -116,7 +116,7 @@ class ServiceTier(Stack):
         self.version = VersionQuery(
             self,
             'Version',
-            version=props.deadline_version,
+            version=props.deadline_version
         )
 
         repository = Repository(
@@ -126,7 +126,7 @@ class ServiceTier(Stack):
             database=props.database,
             file_system=props.file_system,
             repository_installation_timeout=Duration.minutes(20),
-            version=self.version,
+            version=self.version
         )
 
         images = ThinkboxDockerImages(
