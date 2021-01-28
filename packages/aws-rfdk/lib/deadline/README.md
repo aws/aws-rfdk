@@ -52,7 +52,7 @@ const version = VersionQuery.exactString(stack, 'Version', '1.2.3.4');
 const images = new ThinkboxDockerImages(stack, 'Images', {
   version: version,
   // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
-  //of the AWS Thinkbox End User License Agreement
+  // of the AWS Thinkbox End User License Agreement
   userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
 });
 const repository = new Repository(stack, 'Repository', { /* ...*/});
@@ -241,7 +241,7 @@ To use it, simply create one:
 // This will provide Docker container images for the latest Deadline release
 const images = new ThinkboxDockerImages(scope, 'Images', {
   // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
-  //of the AWS Thinkbox End User License Agreement
+  // of the AWS Thinkbox End User License Agreement
   userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
 });
 ```
@@ -258,7 +258,7 @@ const version = new VersionQuery(scope, 'Version', {
 const images = new ThinkboxDockerImages(scope, 'Images', {
   version: version,
   // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
-  //of the AWS Thinkbox End User License Agreement
+  // of the AWS Thinkbox End User License Agreement
   userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
 });
 ```
@@ -310,7 +310,7 @@ const version = new VersionQuery(stack, 'Version', '1.2.3.4');
 const images = new ThinkboxDockerImages(stack, 'Images', {
   version: version,
   // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
-  //of the AWS Thinkbox End User License Agreement
+  // of the AWS Thinkbox End User License Agreement
   userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
 });
 

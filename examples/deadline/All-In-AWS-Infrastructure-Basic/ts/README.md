@@ -18,7 +18,7 @@ These instructions assume that your working directory is `examples/deadline/All-
     ```
     yarn install
     ```
-3.  You must read and accept the [AWS Thinkbox End-User License Agreement (EULA)](https://www.awsthinkbox.com/end-user-license-agreement) to deploy and run Deadline. To do so, change the value of the `userAwsThinkboxEulaAcceptance` in `bin/config.ts`:
+3.  You must read and accept the [AWS Thinkbox End-User License Agreement (EULA)](https://www.awsthinkbox.com/end-user-license-agreement) to deploy and run Deadline. To do so, change the value of the `acceptAwsThinkboxEula` in `bin/config.ts`:
 
     ```ts
     /**
