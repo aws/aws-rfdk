@@ -15,13 +15,13 @@ import { AwsThinkboxEulaAcceptance } from 'aws-rfdk/deadline';
  */
 class AppConfig {
   /**
-   * Change this value to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA if you wish to accept the SSPL and
-   * proceed with Deadline deployment. Users must explicitly accept the AWS Thinkbox EULA before using the AWS Thinkbox
-   * Deadline container images.
+   * Change this value to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA if you wish to accept the EULA for
+   * Deadline and proceed with Deadline deployment. Users must explicitly accept the AWS Thinkbox EULA before using the
+   * AWS Thinkbox Deadline container images.
    *
    * See https://www.awsthinkbox.com/end-user-license-agreement for the terms of the agreement.
    */
-  public readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA;
+  public readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA;
 
   /**
    * The version of Deadline to use on the render farm. Some examples of pinned version values are "10", "10.1", or

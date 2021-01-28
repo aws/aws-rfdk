@@ -35,9 +35,9 @@ These instructions assume that your working directory is `examples/deadline/All-
 4.  You must read and accept the [AWS Thinkbox End-User License Agreement (EULA)](https://www.awsthinkbox.com/end-user-license-agreement) to deploy and run Deadline. To do so, change the value of the `accept_aws_thinkbox_eula` in `package/config.py`:
 
     ```py
-    # Change this value to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA if you wish to accept the SSPL
-    # and proceed with Deadline deployment. Users must explicitly accept the AWS Thinkbox EULA before using the AWS
-    # Thinkbox Deadline container images.
+    # Change this value to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA if you wish to accept the EULA
+    # for Deadline and proceed with Deadline deployment. Users must explicitly accept the AWS Thinkbox EULA before
+    # using the AWS Thinkbox Deadline container images.
     #
     # See https://www.awsthinkbox.com/end-user-license-agreement for the terms of the agreement.
     self.accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA

@@ -21,9 +21,9 @@ class AppConfig:
     TODO: Fill these in with your own values.
     """
     def __init__(self):
-        # Change this value to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA if you wish to accept the SSPL
-        # and proceed with Deadline deployment. Users must explicitly accept the AWS Thinkbox EULA before using the AWS
-        # Thinkbox Deadline container images.
+        # Change this value to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA if you wish to accept the EULA
+        # for Deadline and proceed with Deadline deployment. Users must explicitly accept the AWS Thinkbox EULA before
+        # using the AWS Thinkbox Deadline container images.
         #
         # See https://www.awsthinkbox.com/end-user-license-agreement for the terms of the agreement.
         self.accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA

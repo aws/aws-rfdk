@@ -184,7 +184,7 @@ AWS Thinkbox EULA.
   constructor(scope: Construct, id: string, props: ThinkboxDockerImagesProps) {
     super(scope, id);
 
-    this.userAwsThinkboxEulaAcceptance  = props.userAwsThinkboxEulaAcceptance;
+    this.userAwsThinkboxEulaAcceptance = props.userAwsThinkboxEulaAcceptance;
     this.version = props?.version;
 
     const lambdaCode = Code.fromAsset(path.join(__dirname, '..', '..', 'lambdas', 'nodejs'));

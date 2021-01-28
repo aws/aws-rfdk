@@ -51,6 +51,9 @@ The following example outlines how to construct a `RenderQueue`:
 const version = VersionQuery.exactString(stack, 'Version', '1.2.3.4');
 const images = new ThinkboxDockerImages(stack, 'Images', {
   version: version,
+  // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
+  //of the AWS Thinkbox End User License Agreement
+  userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
 });
 const repository = new Repository(stack, 'Repository', { /* ...*/});
 
@@ -220,11 +223,27 @@ With this in place, staging the Deadline Docker recipes can be done simply by ru
 ## Thinkbox Docker Images
 
 Thinkbox publishes Docker images for use with RFDK to a public ECR repository. The `ThinkboxDockerImages` construct
-simplifies using these images. To use it, simply create one:
+simplifies using these images.
+
+---
+
+_**Note:** Deadline is licensed under the terms of the
+[AWS Thinkbox End User License Agreement](https://www.awsthinkbox.com/end-user-license-agreement). Users of
+`ThinkboxDockerImages` must explicitly signify their acceptance of the terms of the AWS Thinkbox EULA through
+`userAwsThinkboxEulaAcceptance` property. By default, `userAwsThinkboxEulaAcceptance` is set to rejection._
+
+---
+
+
+To use it, simply create one:
 
 ```ts
 // This will provide Docker container images for the latest Deadline release
-const images = new ThinkboxDockerImages(scope, 'Images');
+const images = new ThinkboxDockerImages(scope, 'Images', {
+  // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
+  //of the AWS Thinkbox End User License Agreement
+  userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
+});
 ```
 
 If you desire a specific version of Deadline, you can supply a version with:
@@ -238,6 +257,9 @@ const version = new VersionQuery(scope, 'Version', {
 // This will provide Docker container images for the specified version of Deadline
 const images = new ThinkboxDockerImages(scope, 'Images', {
   version: version,
+  // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
+  //of the AWS Thinkbox End User License Agreement
+  userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
 });
 ```
 
@@ -287,6 +309,9 @@ The following example outlines how to construct `UsageBasedLicensing`:
 const version = new VersionQuery(stack, 'Version', '1.2.3.4');
 const images = new ThinkboxDockerImages(stack, 'Images', {
   version: version,
+  // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
+  //of the AWS Thinkbox End User License Agreement
+  userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
 });
 
 const ubl = new UsageBasedLicensing(stack, 'UsageBasedLicensing', {
