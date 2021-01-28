@@ -7,7 +7,6 @@ import {
   expect as cdkExpect,
   haveResource,
   haveResourceLike,
-  // ResourcePart,
 } from '@aws-cdk/assert';
 import {
   GenericWindowsImage,
@@ -19,6 +18,11 @@ import {
 import {
   ContainerImage,
 } from '@aws-cdk/aws-ecs';
+import {
+  ManagedPolicy,
+  Role,
+  ServicePrincipal,
+} from '@aws-cdk/aws-iam';
 import {
   App,
   Stack,
@@ -39,6 +43,11 @@ describe('SEPConfigurationSetup', () => {
   let vpc: Vpc;
   let renderQueue: IRenderQueue;
   let app: App;
+  let fleetRole: Role;
+  let fleet: SEPSpotFleet;
+  let groupPools: {
+    [groupName: string]: string[];
+  };
 
   beforeEach(() => {
     app = new App();
@@ -59,13 +68,18 @@ describe('SEPConfigurationSetup', () => {
       }),
       version,
     });
-  });
 
-  test('created correctly', () => {
-    // GIVEN
-    const fleet = new SEPSpotFleet(stack, 'spotFleet1', {
+    fleetRole = new Role(stack, 'FleetRole', {
+      assumedBy: new ServicePrincipal('spotfleet.amazonaws.com'),
+      managedPolicies: [
+        ManagedPolicy.fromManagedPolicyArn(stack, 'AmazonEC2SpotFleetTaggingRole', 'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'),
+      ],
+    });
+
+    fleet = new SEPSpotFleet(stack, 'spotFleet1', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name1',
       ],
@@ -78,6 +92,12 @@ describe('SEPConfigurationSetup', () => {
       targetCapacity: 1,
     });
 
+    groupPools = {
+      ['group_name1']: ['pool1', 'pool2'],
+    };
+  });
+
+  test('created correctly', () => {
     // WHEN
     new SEPConfigurationSetup(stack, 'SEPConfigurationSetup', {
       vpc,
@@ -86,9 +106,7 @@ describe('SEPConfigurationSetup', () => {
         spotFleets: [
           fleet, // TODO: Typescript is complaining
         ],
-        groupPools: {
-          group_name1: ['pool1', 'pool2'],
-        },
+        groupPools,
       },
     });
 
@@ -97,27 +115,24 @@ describe('SEPConfigurationSetup', () => {
     }));
   });
 
+  test('throws with the same group name', () => {
+    // THEN
+    expect(() => {
+      new SEPConfigurationSetup(stack, 'SEPConfigurationSetup', {
+        vpc,
+        renderQueue: renderQueue,
+        spotFleetOptions: {
+          spotFleets: [
+            fleet,
+            fleet,
+          ],
+          groupPools,
+        },
+      });
+    }).toThrowError(/Bad Group Name: group_name1. Group names in Spot Fleet Request Configurations should be unique./);
+  });
+
   test('use selected subnets', () => {
-    // GIVEN
-    const fleet = new SEPSpotFleet(stack, 'spotFleet1', {
-      vpc,
-      renderQueue: renderQueue,
-      deadlineGroups: [
-        'group_name1',
-      ],
-      instanceTypes: [
-        InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-      ],
-      workerMachineImage: new GenericWindowsImage({
-        'us-east-1': 'ami-any',
-      }),
-      targetCapacity: 1,
-    });
-
-    // TODO: maybe create them in describe
-    const groupPools: Map<string, string[]> = new Map<string, string[]>();
-    groupPools.set('group_name1', ['pool1', 'pool2']);
-
     // WHEN
     new SEPConfigurationSetup(stack, 'SEPConfigurationSetup', {
       vpc,
@@ -127,7 +142,7 @@ describe('SEPConfigurationSetup', () => {
         spotFleets: [
           fleet,
         ],
-        groupPools: groupPools,
+        groupPools,
       },
     });
 
@@ -142,5 +157,22 @@ describe('SEPConfigurationSetup', () => {
         ],
       },
     }));
+  });
+
+  test('creates a custom resource', () => {
+    // WHEN
+    new SEPConfigurationSetup(stack, 'SEPConfigurationSetup', {
+      vpc,
+      renderQueue: renderQueue,
+      spotFleetOptions: {
+        spotFleets: [
+          fleet,
+        ],
+        groupPools,
+      },
+    });
+
+    // THEN
+    cdkExpect(stack).to(haveResource('Custom::RFDK_SEPConfigurationSetup'));
   });
 });

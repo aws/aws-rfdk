@@ -3,13 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable no-console */
-
 import * as path from 'path';
 
 import {
   IVpc,
-  // Port,
   SubnetSelection,
   SubnetType,
 } from '@aws-cdk/aws-ec2';
@@ -22,9 +19,9 @@ import {
 import {
   RetentionDays,
 } from '@aws-cdk/aws-logs';
-// import {
-//   ISecret,
-// } from '@aws-cdk/aws-secretsmanager';
+import {
+  ISecret,
+} from '@aws-cdk/aws-secretsmanager';
 import {
   Construct,
   CustomResource,
@@ -45,77 +42,209 @@ import {
 } from './sep-spotfleet';
 
 /**
- * The input to this Custom Resource
+ * How the event plug-in should respond to events.
+ */
+export enum SpotEventPluginState {
+  /**
+   * All jobs and Workers will trigger the events for this plugin.
+   */
+  GLOBAL_ENABLED = 'Global Enabled',
+
+  /**
+   * No events are triggered for the plugin.
+   */
+  DISABLED = 'Disabled',
+}
+
+/**
+ * Different logging levels.
+ */
+export enum SpotEventPluginLoggingLevel {
+  /**
+   * Standard logging level.
+   */
+  STANDARD = 'Standard',
+
+  /**
+   * Detailed logging about the inner workings of the Spot Event Plugin.
+   */
+  VERBOSE = 'Verbose',
+
+  /**
+   * All Verbose logs plus additional information on AWS API calls that are used.
+   */
+  DEBUG = 'Debug',
+
+  /**
+   * No logging enabled.
+   */
+  OFF = 'Off',
+}
+
+/**
+ * How the Spot Event Plugin should handle Pre Job Tasks.
+ */
+export enum SpotEventPluginPreJobTaskMode {
+  /**
+   * Only start 1 Spot instance for the pre job task and ignore any other tasks for that job until the pre job task is completed.
+   */
+  CONSERVATIVE = 'Conservative',
+
+  /**
+   * Do not take the pre job task into account when calculating target capacity.
+   */
+  IGNORE = 'Ignore',
+
+  /**
+   * Treat the pre job task like a regular job queued task.
+   */
+  NORMAL = 'Normal',
+}
+
+/**
+ * The Worker Extra Info column to be used to display AWS Instance Status
+ * if the instance has been marked to be stopped or terminated by EC2 or Spot Event Plugin.
+ * See "AWS Instance Status" option at https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html?highlight=spot%20even%20plugin#event-plugin-configuration-options
+ */
+export enum SpotEventPluginAwsInstanceStatus {
+  DISABLED = 'Disabled',
+  EXTRA_INOF_0 = 'ExtraInfo0',
+  EXTRA_INOF_1 = 'ExtraInfo0',
+  EXTRA_INOF_2 = 'ExtraInfo0',
+  EXTRA_INOF_3 = 'ExtraInfo0',
+  EXTRA_INOF_4 = 'ExtraInfo0',
+  EXTRA_INOF_5 = 'ExtraInfo0',
+  EXTRA_INOF_6 = 'ExtraInfo0',
+  EXTRA_INOF_7 = 'ExtraInfo0',
+  EXTRA_INOF_8 = 'ExtraInfo0',
+  EXTRA_INOF_9 = 'ExtraInfo0',
+}
+
+/**
+ * Spot Event Plugin configuration options
  */
 export interface ISEPConfigurationProperties {
   /**
-   * TODO: add description
+   * The array of Spot Event Plugin spot fleets used to generate the mapping between your groups and spot fleet requests.
+   *
+   * @default Spot Fleet Request Configurations will not be updated.
    */
   readonly spotFleets?: SEPSpotFleet[];
 
   /**
-   * Todo: add description.
+   * How the event plug-in should respond to events.
+   *
+   * @default SpotEventPluginState.DISABLED
+   */
+  readonly state?: SpotEventPluginState;
+
+  /**
+   * Determines whether Deadline Resource Tracker should be used.
+   * Only disable for AMIs with Deadline 10.0.26 or earlier.
+   *
+   * @default true
    */
   readonly enableResourceTracker?: boolean;
 
   /**
-   * Todo: add description and type [Global Enabled | Disabled]
+   * Spot Event Plugin logging level.
+   *
+   * @default SpotEventPluginLoggingLevel.STANDARD
    */
-  readonly state?: string;
+  readonly loggingLevel?: SpotEventPluginLoggingLevel;
 
   /**
-   * Todo: add description and type [Off | Standard | Verbose | Debug]
-   */
-  readonly loggingLevel?: string;
-
-  /**
-   * Todo: add description
+   * The AWS region in which to start the spot fleet request.
+   *
+   * @default The region of the current stack.
    */
   readonly region?: string;
 
   /**
-   * Todo: add description
+   * Number of minutes that a AWS Worker will wait in a non-rendering state before it is shutdown.
+   *
+   * @default 10
    */
   readonly idleShutdown?: number;
 
   /**
-   * Todo: add description
+   * Determines fi Deadline Spot Event Plugin terminated AWS Workers will be deleted from the Workers Panel on the next House Cleaning cycle.
+   * Warning: The terminated Worker’s reports will also be deleted for each Worker, which may be undesired for future debugging a render job issue.
+   *
+   * @default false
    */
   readonly deleteSEPTerminatedWorkers?: boolean;
 
   /**
-   * Todo: add description
+   * Determines if EC2 Spot interrupted AWS Workers will be deleted from the Workers Panel on the next House Cleaning cycle.
+   * Warning: The terminated Worker’s reports will also be deleted for each Worker, which may be undesired for future debugging a render job issue.
+   *
+   * @default false
    */
   readonly deleteEC2SpotInterruptedWorkers?: boolean;
 
   /**
-   * Todo: add description
+   * Determines if any active instances greater than the target capacity for each group will be terminated.
+   * Workers may be terminated even while rendering.
+   *
+   * @default false
    */
   readonly strictHardCap?: boolean;
 
   /**
-   * Todo: add description
+   * The Spot Plugin will request this maximum number of instances per House Cleaning cycle.
+   *
+   * @default 50
    */
   readonly maximumInstancesStartedPerCycle?: number;
 
   /**
-   * Todo: add description and type [Conservative | Ignore | Normal]
+   * Determines how the Spot Event Plugin should handle Pre Job Tasks.
+   *
+   * @default SpotEventPluginPreJobTaskMode.CONSERVATIVE
    */
-  readonly preJobTaskMode?: string;
+  readonly preJobTaskMode?: SpotEventPluginPreJobTaskMode;
 
   /**
-   * Todo: add description.
+   * Spot Fleet Request Group Pools configuration used to add Workers from the assigned groups to Deadline’s Pools.
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html?highlight=spot%20even%20plugin#spot-fleet-request-group-pools
    */
-  readonly groupPools?: any; // TODO wanted to use Map<string, string[]>
+  readonly groupPools?: {
+    [groupName: string]: string[];
+  };
 
   /**
-   * Todo: add description and type  [Disabled | ExtraInfo0 ... ExtraInfo9]
+   * The Worker Extra Info column to be used to display AWS Instance Status
+   * if the instance has been marked to be stopped or terminated by EC2 or Spot Event Plugin.
+   * All timestamps are displayed in UTC format.
+   *
+   * @default SpotEventPluginAwsInstanceStatus.DISABLED
    */
-  readonly awsInstanceStatus?: string;
+  readonly awsInstanceStatus?: SpotEventPluginAwsInstanceStatus;
 }
 
 /**
- * Input properties for MongoDbPostInstallSetup.
+ * Private interface used to ensure Spot Event Plugin options are set properly.
+ */
+interface SEPGeneralOptions {
+  readonly GroupPools?: string;
+  readonly State?: string;
+  readonly ResourceTracker?: boolean;
+  readonly UseLocalCredentials?: boolean;
+  readonly NamedProfile?: string;
+  readonly Logging?: string;
+  readonly Region?: string;
+  readonly IdleShutdown?: number;
+  readonly DeleteInterruptedSlaves?: boolean; // TODO: should we rename slaves here?
+  readonly DeleteTerminatedSlaves?: boolean; // TODO: should we rename slaves here?
+  readonly StrictHardCap?: boolean;
+  readonly StaggerInstances?: number;
+  readonly PreJobTaskMode?: string;
+  readonly AWSInstanceStatus?: string;
+};
+
+/**
+ * Input properties for SEPConfigurationSetup.
  */
 export interface SEPConfigurationSetupProps {
   /**
@@ -137,19 +266,41 @@ export interface SEPConfigurationSetupProps {
   readonly vpcSubnets?: SubnetSelection;
 
   /**
-   * TODO
+   * The certificate used to sign the the chain of trust used for render queue. Only used if render queue has TLS enabled.
    */
-  readonly spotFleetOptions?: ISEPConfigurationProperties;
+  readonly caCert?: ISecret;
+
+  /**
+   * The Spot Event Plugin settings.
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html?highlight=spot%20even%20plugin#event-plugin-configuration-options
+   */
+  readonly spotFleetOptions: ISEPConfigurationProperties;
 }
 
 /**
- * This construct performs
+ * This construct configures Spot Event Plugin by connecting to the render queue and executing requests against it.
+ * To provide this functionality, this construct will create an AWS Lambda function that is granted the ability
+ * to connect to the render queue. This lambda is run automatically when you deploy or update the stack containing this construct.
+ * Logs for all AWS Lambdas are automatically recorded in Amazon CloudWatch.
  *
  * Resources Deployed
  * ------------------------
+ * - An AWS Lambda that is used to connect to the render queue, and save Spot Event Plugin configurations.
+ * - A CloudFormation Custom Resource that triggers execution of the Lambda on stack deployment, update, and deletion.
+ * - An Amazon CloudWatch log group that records history of the AWS Lambda's execution.
  *
  * Security Considerations
  * ------------------------
+ * - The AWS Lambda that is deployed through this construct will be created from a deployment package
+ *   that is uploaded to your CDK bootstrap bucket during deployment. You must limit write access to
+ *   your CDK bootstrap bucket to prevent an attacker from modifying the actions performed by this Lambda.
+ *   We strongly recommend that you either enable Amazon S3 server access logging on your CDK bootstrap bucket,
+ *   or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - The AWS Lambda function that is created by this resource has access to both the certificates used to connect to the render queue,
+ *   and the render queue port. An attacker that can find a way to modify and execute this lambda could use it to
+ *   execute any requets against the render queue. You should not grant any additional actors/principals the ability to modify
+ *   or execute this Lambda.
  */
 export class SEPConfigurationSetup extends Construct {
   constructor(scope: Construct, id: string, props: SEPConfigurationSetupProps) {
@@ -177,39 +328,21 @@ export class SEPConfigurationSetup extends Construct {
       logRetention: RetentionDays.ONE_WEEK,
     });
 
-    lamdbaFunc.connections.allowToDefaultPort(props.renderQueue); // TODO: or maybe Port.tcp(props.renderQueue.endpoint.port)
-    // props.renderQueue.certificateChain.grantRead(lamdbaFunc.grantPrincipal);
-    // props.mongoDb.adminUser.grantRead(lamdbaFunc.grantPrincipal);
-    // props.users.passwordAuthUsers?.forEach( secret => secret.grantRead(lamdbaFunc) );
-    // props.users.x509AuthUsers?.forEach( user => user.certificate.grantRead(lamdbaFunc) );
+    lamdbaFunc.connections.allowToDefaultPort(props.renderQueue);
+    props.caCert?.grantRead(lamdbaFunc.grantPrincipal);
 
-    const combinedSpotFleetConfigs = this.combinedSpotFleetConfigs(props.spotFleetOptions?.spotFleets);
+    const combinedPluginConfigs = this.combinedSpotPluginConfigs(props.spotFleetOptions);
+    const combinedSpotFleetConfigs = this.combinedSpotFleetConfigs(props.spotFleetOptions.spotFleets);
 
     const properties: ISEPConfiguratorResourceProperties = {
       connection: {
         hostname: props.renderQueue.endpoint.hostname,
-        port: props.renderQueue.endpoint.portNumber,
-        // caCertificate: props.renderQueue.configureClientECS,
-        // pfxCertificate: props.renderQueue.pfxCertificate,
-        // passphrase: props.renderQueue.passphrase,
+        port: props.renderQueue.endpoint.portNumber.toString(),
+        protocol: props.renderQueue.endpoint.applicationProtocol.toString(),
+        caCertificate: props.caCert?.secretArn,
       },
       spotFleetRequestConfigurations: combinedSpotFleetConfigs,
-      spotPluginConfigurations: {
-        AWSInstanceStatus: props.spotFleetOptions?.awsInstanceStatus,
-        DeleteInterruptedSlaves: props.spotFleetOptions?.deleteEC2SpotInterruptedWorkers,
-        DeleteTerminatedSlaves: props.spotFleetOptions?.deleteSEPTerminatedWorkers,
-        GroupPools: props.spotFleetOptions?.groupPools ? JSON.stringify(props.spotFleetOptions?.groupPools) : undefined, // TODO:
-        IdleShutdown: props.spotFleetOptions?.idleShutdown,
-        Logging: props.spotFleetOptions?.loggingLevel,
-        NamedProfile: '',
-        PreJobTaskMode: props.spotFleetOptions?.preJobTaskMode,
-        Region: props.spotFleetOptions?.region,
-        ResourceTracker: props.spotFleetOptions?.enableResourceTracker,
-        StaggerInstances: props.spotFleetOptions?.maximumInstancesStartedPerCycle,
-        State: props.spotFleetOptions?.state,
-        StrictHardCap: props.spotFleetOptions?.strictHardCap,
-        UseLocalCredentials: true,
-      },
+      spotPluginConfigurations: combinedPluginConfigs,
     };
 
     const resource = new CustomResource(this, 'Default', {
@@ -221,40 +354,62 @@ export class SEPConfigurationSetup extends Construct {
     resource.node.addDependency(lamdbaFunc.role!);
 
     // /* istanbul ignore next */
-    // if (props.mongoDb.node.defaultChild) {
-    //   // Add a dependency on the ASG within the StaticPrivateIpServer to ensure that
-    //   // mongo is running before we try to login to it.
-    //   resource.node.addDependency(props.mongoDb.node.defaultChild!.node.defaultChild!);
-    // }
+    // Add a dependency on the render queue to ensure that
+    // it is running before we try to send requests to it.
+    resource.node.addDependency(props.renderQueue);
 
     this.node.defaultChild = resource;
   }
 
   private combinedSpotFleetConfigs(spotFleets?: SEPSpotFleet[]): string | undefined {
-    // TODO: maybe also check if it's empty?
-    if (!spotFleets) {
+    if (!spotFleets || spotFleets.length === 0) {
       return undefined;
     }
 
-    let allGroupConfigMappings: any[] = [];
+    let fullSpotFleetRequestConfiguration: any = {};
 
     spotFleets.map(fleet => {
-      allGroupConfigMappings = allGroupConfigMappings.concat(fleet.sepSpotFleetRequestConfigurations);
+      fleet.sepSpotFleetRequestConfigurations.map(configuration => {
+        for (const [key, value] of Object.entries(configuration)) {
+          if (key in fullSpotFleetRequestConfiguration) {
+            throw new Error(`Bad Group Name: ${key}. Group names in Spot Fleet Request Configurations should be unique.`);
+          }
+          fullSpotFleetRequestConfiguration[key] = value;
+        }
+      });
     });
 
-    let fullSpotFleetRequestConfiguration: any = {};
-    allGroupConfigMappings.map(mapping => {
-      for (const [key, value] of Object.entries(mapping)) {
-        fullSpotFleetRequestConfiguration[key] = value;
+    return JSON.stringify(fullSpotFleetRequestConfiguration); // TODO: Stack.of(this).toJsonString(fullSpotFleetRequestConfiguration);
+  }
+
+  private combinedSpotPluginConfigs(spotFleetOptions: ISEPConfigurationProperties) {
+    const pluginOptions: SEPGeneralOptions = {
+      AWSInstanceStatus: spotFleetOptions.awsInstanceStatus,
+      DeleteInterruptedSlaves: spotFleetOptions.deleteEC2SpotInterruptedWorkers,
+      DeleteTerminatedSlaves: spotFleetOptions.deleteSEPTerminatedWorkers,
+      GroupPools: spotFleetOptions.groupPools ? Stack.of(this).toJsonString(spotFleetOptions.groupPools) : undefined,
+      IdleShutdown: spotFleetOptions.idleShutdown,
+      Logging: spotFleetOptions.loggingLevel,
+      PreJobTaskMode: spotFleetOptions.preJobTaskMode,
+      Region: spotFleetOptions.region ?? Stack.of(this).region,
+      ResourceTracker: spotFleetOptions.enableResourceTracker,
+      StaggerInstances: spotFleetOptions.maximumInstancesStartedPerCycle,
+      State: spotFleetOptions.state,
+      StrictHardCap: spotFleetOptions.strictHardCap,
+      UseLocalCredentials: true,
+      NamedProfile: '',
+    };
+
+    let configs = [];
+
+    for (const [key, value] of Object.entries(pluginOptions)) {
+      if (value !== undefined) {
+        configs.push({
+          Key: key,
+          Value: value,
+        });
       }
-    });
-
-    // console.log('As string CDK:');
-    // console.log(Stack.of(this).toJsonString(fullSpotFleetRequestConfiguration));
-
-    // console.log('As string JSON:');
-    // console.log(JSON.stringify(fullSpotFleetRequestConfiguration));
-
-    return Stack.of(this).toJsonString(fullSpotFleetRequestConfiguration); // TODO: should we just use JSON.Stringify here?
+    }
+    return configs;
   }
 }

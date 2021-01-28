@@ -19,7 +19,7 @@ import {
   BlockDeviceVolume,
 } from '@aws-cdk/aws-autoscaling';
 import {
-  GenericWindowsImage,
+  GenericLinuxImage,
   InstanceClass,
   InstanceSize,
   InstanceType,
@@ -45,6 +45,10 @@ import {
   Stack,
 } from '@aws-cdk/core';
 import {
+  RFDK_VERSION,
+  TAG_NAME,
+} from '../../core/lib/runtime-info';
+import {
   escapeTokenRegex,
 } from '../../core/test/token-regex-helpers';
 import {
@@ -65,6 +69,7 @@ let spotFleetStack: Stack;
 let vpc: IVpc;
 let renderQueue: IRenderQueue;
 let rcsImage: AssetImage;
+let fleetRole: Role;
 
 beforeEach(() => {
   app = new App();
@@ -90,6 +95,12 @@ beforeEach(() => {
       region: 'us-east-1',
     },
   });
+  fleetRole = new Role(stack, 'FleetRole', {
+    assumedBy: new ServicePrincipal('spotfleet.amazonaws.com'),
+    managedPolicies: [
+      ManagedPolicy.fromManagedPolicyArn(stack, 'AmazonEC2SpotFleetTaggingRole', 'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'),
+    ],
+  });
 });
 
 test('default spot fleet is created correctly', () => {
@@ -97,29 +108,30 @@ test('default spot fleet is created correctly', () => {
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
     instanceTypes: [
       InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
     ],
-    workerMachineImage: new GenericWindowsImage({
+    workerMachineImage: new GenericLinuxImage({
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
   });
 
   // THEN
-  expect(fleet.userData).toBeDefined();
   expect(fleet.connections).toBeDefined();
   expect(fleet.env).toBeDefined();
   expect(fleet.grantPrincipal).toBeDefined();
+  expect(fleet.iamFleetRole).toBeDefined();
   expect(fleet.instanceTags).toBeDefined();
-  expect(fleet.spotFleetRequestTags).toBeDefined();
   expect(fleet.listeningPorts).toBeDefined();
   expect(fleet.osType).toBeDefined();
   expect(fleet.role).toBeDefined();
   expect(fleet.securityGroups).toBeDefined();
+  expect(fleet.spotFleetRequestTags).toBeDefined();
   expect(fleet.userData).toBeDefined();
 
   expect(fleet.sepSpotFleetRequestConfigurations).toBeDefined();
@@ -157,13 +169,14 @@ test('security group is not created if provided', () => {
   new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
     instanceTypes: [
       InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
     ],
-    workerMachineImage: new GenericWindowsImage({
+    workerMachineImage: new GenericLinuxImage({
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
@@ -191,13 +204,14 @@ test('setting role works correctly', () => {
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
     instanceTypes: [
       InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
     ],
-    workerMachineImage: new GenericWindowsImage({
+    workerMachineImage: new GenericLinuxImage({
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
@@ -213,13 +227,14 @@ test('deafult role is created automatically if not provided', () => {
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
     instanceTypes: [
       InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
     ],
-    workerMachineImage: new GenericWindowsImage({
+    workerMachineImage: new GenericLinuxImage({
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
@@ -263,56 +278,9 @@ test('deafult role is created automatically if not provided', () => {
   }));
 });
 
-test('fleet role is always created automatically', () => {
-  // WHEN
-  new SEPSpotFleet(spotFleetStack, 'spotFleet', {
-    vpc,
-    renderQueue: renderQueue,
-    deadlineGroups: [
-      'group_name',
-    ],
-    instanceTypes: [
-      InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-    ],
-    workerMachineImage: new GenericWindowsImage({
-      'us-east-1': 'ami-any',
-    }),
-    targetCapacity: 1,
-  });
-
-  // THEN
-  // TOOD: rewrite this unit-test
-  // expectCDK(spotFleetStack).to(haveResourceLike('AWS::IAM::Role', {
-  //   AssumeRolePolicyDocument: objectLike({
-  //     Statement: [
-  //       {
-  //         Action: 'sts:AssumeRole',
-  //         Effect: 'Allow',
-  //         Principal: {
-  //           Service: 'ec2.amazonaws.com',
-  //         },
-  //       },
-  //     ],
-  //   }),
-  //   ManagedPolicyArns: arrayWith(
-  //     objectLike({
-  //       'Fn::Join': arrayWith(
-  //         [
-  //           'arn:',
-  //           {
-  //             Ref: 'AWS::Partition',
-  //           },
-  //           ':iam::aws:policy/AmazonEC2SpotFleetTaggingRole',
-  //         ],
-  //       ),
-  //     }),
-  //   ),
-  // }));
-});
-
 test('user data is added correctly', () => {
   // GIVEN
-  const workerMachineImage = new GenericWindowsImage({
+  const workerMachineImage = new GenericLinuxImage({
     'us-east-1': 'ami-any',
   });
   const imageConfig = workerMachineImage.getImage(spotFleetStack);
@@ -323,6 +291,7 @@ test('user data is added correctly', () => {
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -356,13 +325,14 @@ test('instance tags are added correctly', () => {
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
     instanceTypes: [
       InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
     ],
-    workerMachineImage: new GenericWindowsImage({
+    workerMachineImage: new GenericLinuxImage({
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
@@ -370,8 +340,36 @@ test('instance tags are added correctly', () => {
   });
 
   // THEN
-  expect(fleet.instanceTags).toBeDefined();
-  expect(fleet.instanceTags).toContain(someTag);
+  expect(fleet.instanceTags).toContainEqual(someTag);
+});
+
+test('rfdk instance tags are added automatically', () => {
+  // WHEN
+  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+    vpc,
+    renderQueue: renderQueue,
+    fleetRole,
+    deadlineGroups: [
+      'group_name',
+    ],
+    instanceTypes: [
+      InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+    ],
+    workerMachineImage: new GenericLinuxImage({
+      'us-east-1': 'ami-any',
+    }),
+    targetCapacity: 1,
+  });
+
+  const className = fleet.constructor.name;
+  const tagValue = `${RFDK_VERSION}:${className}`;
+  const rfdkTag = {
+    key: TAG_NAME,
+    value: tagValue,
+  };
+
+  // THEN
+  expect(fleet.instanceTags).toContainEqual(rfdkTag);
 });
 
 test('spot fleet request tags are added correctly', () => {
@@ -385,13 +383,14 @@ test('spot fleet request tags are added correctly', () => {
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
     instanceTypes: [
       InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
     ],
-    workerMachineImage: new GenericWindowsImage({
+    workerMachineImage: new GenericLinuxImage({
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
@@ -399,8 +398,37 @@ test('spot fleet request tags are added correctly', () => {
   });
 
   // THEN
-  expect(fleet.spotFleetRequestTags).toBeDefined();
-  expect(fleet.spotFleetRequestTags).toContain(someTag);
+  expect(fleet.spotFleetRequestTags).toContainEqual(someTag);
+});
+
+test('rfdk spot fleet request tags are added automatically', () => {
+  // WHEN
+  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+    vpc,
+    renderQueue: renderQueue,
+    fleetRole,
+    deadlineGroups: [
+      'group_name',
+    ],
+    instanceTypes: [
+      InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+    ],
+    workerMachineImage: new GenericLinuxImage({
+      'us-east-1': 'ami-any',
+    }),
+    targetCapacity: 1,
+  });
+
+  // THEN
+  const className = fleet.constructor.name;
+  const tagValue = `${RFDK_VERSION}:${className}`;
+  const rfdkTag = {
+    key: TAG_NAME,
+    value: tagValue,
+  };
+
+  // THEN
+  expect(fleet.spotFleetRequestTags).toContainEqual(rfdkTag);
 });
 
 test('works fine if no subnets provided', () => {
@@ -414,13 +442,14 @@ test('works fine if no subnets provided', () => {
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
     instanceTypes: [
       InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
     ],
-    workerMachineImage: new GenericWindowsImage({
+    workerMachineImage: new GenericLinuxImage({
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
@@ -442,13 +471,14 @@ test('works fine if subnets provided', () => {
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
     instanceTypes: [
       InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
     ],
-    workerMachineImage: new GenericWindowsImage({
+    workerMachineImage: new GenericLinuxImage({
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
@@ -465,13 +495,14 @@ test('works fine if allocation strategy provided', () => {
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
     instanceTypes: [
       InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
     ],
-    workerMachineImage: new GenericWindowsImage({
+    workerMachineImage: new GenericLinuxImage({
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
@@ -488,13 +519,14 @@ test('works fine if deadline region provided', () => {
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
     instanceTypes: [
       InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
     ],
-    workerMachineImage: new GenericWindowsImage({
+    workerMachineImage: new GenericLinuxImage({
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
@@ -511,13 +543,14 @@ test('works fine if log group is provided', () => {
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
     instanceTypes: [
       InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
     ],
-    workerMachineImage: new GenericWindowsImage({
+    workerMachineImage: new GenericLinuxImage({
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
@@ -536,13 +569,14 @@ test('works fine if key name is provided', () => {
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
     instanceTypes: [
       InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
     ],
-    workerMachineImage: new GenericWindowsImage({
+    workerMachineImage: new GenericLinuxImage({
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
@@ -574,13 +608,14 @@ test('UserData is added', () => {
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
     instanceTypes: [
       InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
     ],
-    workerMachineImage: new GenericWindowsImage({
+    workerMachineImage: new GenericLinuxImage({
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
@@ -602,13 +637,14 @@ describe('allowing log listener port', () => {
     const fleet = new SEPSpotFleet(stack, 'spotFleet', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -636,13 +672,14 @@ describe('allowing log listener port', () => {
     const fleet = new SEPSpotFleet(stack, 'spotFleet', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -670,13 +707,14 @@ describe('allowing log listener port', () => {
     const fleet = new SEPSpotFleet(stack, 'spotFleet', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -699,13 +737,14 @@ describe('allowing log listener port', () => {
     const fleet = new SEPSpotFleet(stack, 'spotFleet', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -732,13 +771,14 @@ describe('allowing log listener port', () => {
     const fleet = new SEPSpotFleet(stack, 'spotFleet', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -765,13 +805,14 @@ describe('allowing log listener port', () => {
     const fleet = new SEPSpotFleet(stack, 'spotFleet', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -795,19 +836,20 @@ test.each([
   '',
 ])('default worker fleet is created correctly with custom LogGroup prefix %s', (testPrefix: string) => {
   // GIVEN
-  const id  = 'spotFleet';
+  const id = 'spotFleet';
 
   // WHEN
   new SEPSpotFleet(stack, id, {
     vpc,
     renderQueue: renderQueue,
+    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
     instanceTypes: [
       InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
     ],
-    workerMachineImage: new GenericWindowsImage({
+    workerMachineImage: new GenericLinuxImage({
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
@@ -828,11 +870,12 @@ test('worker fleet does validation correctly with instance types, groups, and re
     new SEPSpotFleet(stack, 'spotFleet0', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -844,10 +887,11 @@ test('worker fleet does validation correctly with instance types, groups, and re
     new SEPSpotFleet(stack, 'spotFleet1', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -860,10 +904,11 @@ test('worker fleet does validation correctly with instance types, groups, and re
     new SEPSpotFleet(stack, 'spotFleet2', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -876,10 +921,11 @@ test('worker fleet does validation correctly with instance types, groups, and re
     new SEPSpotFleet(stack, 'spotFleet3', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -892,13 +938,14 @@ test('worker fleet does validation correctly with instance types, groups, and re
     new SEPSpotFleet(stack, 'spotFleet4', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -911,13 +958,14 @@ test('worker fleet does validation correctly with instance types, groups, and re
     new SEPSpotFleet(stack, 'spotFleet5', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -930,13 +978,14 @@ test('worker fleet does validation correctly with instance types, groups, and re
     new SEPSpotFleet(stack, 'spotFleet6', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -949,13 +998,14 @@ test('worker fleet does validation correctly with instance types, groups, and re
     new SEPSpotFleet(stack, 'spotFleet7', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -968,13 +1018,14 @@ test('worker fleet does validation correctly with instance types, groups, and re
     new SEPSpotFleet(stack, 'spotFleet8', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -987,13 +1038,14 @@ test('worker fleet does validation correctly with instance types, groups, and re
     new SEPSpotFleet(stack, 'spotFleet9', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -1008,13 +1060,14 @@ describe('Block Device Tests', () => {
     const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -1030,13 +1083,14 @@ describe('Block Device Tests', () => {
     const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -1059,13 +1113,14 @@ describe('Block Device Tests', () => {
     const fleet = new SEPSpotFleet(spotFleetStack, id, {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -1089,13 +1144,14 @@ describe('Block Device Tests', () => {
     const fleet = new SEPSpotFleet(spotFleetStack, id, {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -1117,13 +1173,14 @@ describe('Block Device Tests', () => {
     const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,
@@ -1144,13 +1201,14 @@ describe('Block Device Tests', () => {
     const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
       vpc,
       renderQueue: renderQueue,
+      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
       ],
-      workerMachineImage: new GenericWindowsImage({
+      workerMachineImage: new GenericLinuxImage({
         'us-east-1': 'ami-any',
       }),
       targetCapacity: 1,

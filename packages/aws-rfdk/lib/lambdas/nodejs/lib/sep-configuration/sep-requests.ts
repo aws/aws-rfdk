@@ -3,29 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/* eslint-disable no-console */
+
 import {
   DeadlineClient,
+  Response,
 } from '../deadline-client';
-
-// TODO: extend this interface
-export interface SEPGeneralOptions {
-  readonly GroupPools?: string; // TODO: JSON
-  readonly State?: string;
-  readonly ResourceTracker?: boolean;
-  readonly UseLocalCredentials?: boolean; // TOOD: remove this and other credentials related options and set them by default
-  readonly NamedProfile?: string; // TOOD: remove this and other credentials related options and set them by default
-  readonly AccessID?: string; // TOOD: remove this and other credentials related options and set them by default
-  readonly SecretKey?: string; // TOOD: remove this and other credentials related options and set them by default
-  readonly Logging?: string;
-  readonly Region?: string;
-  readonly IdleShutdown?: number;
-  readonly DeleteInterruptedSlaves?: boolean; // TODO: should we rename slaves here?
-  readonly DeleteTerminatedSlaves?: boolean; // TODO: should we rename slaves here?
-  readonly StrictHardCap?: boolean;
-  readonly StaggerInstances?: number;
-  readonly PreJobTaskMode?: string;
-  readonly AWSInstanceStatus?: string;
-};
 
 export class EventPluginRequests {
   private readonly deadlineClient: DeadlineClient;
@@ -34,43 +17,60 @@ export class EventPluginRequests {
     this.deadlineClient = deadlineClient;
   }
 
+  public async describeServerData(): Promise<Response> {
+    console.log('Sending request to describe server data.');
+    return await this.deadlineClient.PostRequest('/rcs/v1/describeServerData', {
+      ServerDataIds: [
+        'event.plugin.spot',
+      ],
+    });
+  }
+
+  private async concurrencyToken(): Promise<string> {
+    console.log('Getting concurrency token.');
+    const response = await this.describeServerData();
+    console.log('Received concurrency token.');
+
+    const describedData: {
+      ServerData: {
+        ID: string,
+        ConcurrencyToken: string,
+      }[],
+    } = response.data;
+
+    const found = describedData.ServerData.find(element => element.ID === 'event.plugin.spot');
+    console.log('Concurrency token is:'); // TODO: remove this console
+    console.log(found?.ConcurrencyToken);
+    return found?.ConcurrencyToken ?? '';
+  }
+
   public async saveServerData(config: string): Promise<boolean> {
-    // TODO: maybe parse the result
+    console.log('Getting concurrency token to save server data.');
+    const concurrencyToken = await this.concurrencyToken();
+    console.log(`Received concurrency token: ${concurrencyToken}`); // TODO: remove this console
+
+    console.log('Sending put server data request with config:');
+    console.log(config);
     await this.deadlineClient.PostRequest('/rcs/v1/putServerData', {
       ServerData: [
         {
-          ID: 'event.plugin.Spot',
+          ID: 'event.plugin.spot',
           ServerDataDictionary: {
             Config: config,
           },
-          ConcurrencyToken: '791875d4-4fcf-4812-a498-916d641b901b',
+          ConcurrencyToken: concurrencyToken,
         },
       ],
-    },
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        'x-amz-deadline-rcs-api': 3,
-      },
     });
+    console.log('Server data was put successfully put.');
     return true;
   }
 
-  public async configureSpotEventPlugin(inputOptions: SEPGeneralOptions): Promise<boolean> {
-    let configs = [];
-
-    for (const [key, value] of Object.entries(inputOptions)) {
-      if (value !== undefined) { // TODO: think if this is corrects
-        configs.push({
-          Key: key,
-          Value: value,
-        });
-      }
-    }
-
+  public async configureSpotEventPlugin(configs: { Key: string, Value: any }[]): Promise<boolean> {
+    console.log('Sending save config request with configs:');
+    console.log(configs);
     await this.deadlineClient.PostRequest('/db/plugins/event/config/save', {
       ID: 'spot',
-      // LastWriteTime: "/Date(-62135596799000)/",
       DebugLogging: false,
       DlInit: configs,
       Icon: null,
@@ -78,12 +78,6 @@ export class EventPluginRequests {
       Meta: [],
       Name: 'Spot',
       PluginEnabled: 1,
-    },
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        'x-amz-deadline-rcs-api': 1,
-      },
     });
     return true;
   }

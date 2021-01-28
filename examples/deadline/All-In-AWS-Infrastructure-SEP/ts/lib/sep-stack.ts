@@ -20,11 +20,13 @@ import {
   Stack,
   StackProps
 } from '@aws-cdk/core';
-// import {
-//   ManagedPolicy,
-//   Role,
-//   ServicePrincipal
-// } from '@aws-cdk/aws-iam';
+import { ApplicationProtocol } from '@aws-cdk/aws-elasticloadbalancingv2';
+import {
+  ManagedPolicy,
+  Role,
+  ServicePrincipal,
+} from '@aws-cdk/aws-iam';
+import { PrivateHostedZone } from '@aws-cdk/aws-route53';
 import {
   RenderQueue,
   Repository,
@@ -32,7 +34,10 @@ import {
   ThinkboxDockerRecipes,
   SEPConfigurationSetup,
   SEPSpotFleet,
+  SEPSpotFleetAllocationStrategy,
+  SpotEventPluginState,
 } from 'aws-rfdk/deadline';
+import { X509CertificatePem } from 'aws-rfdk';
 
 /**
  * Properties for {@link SEPStack}.
@@ -57,7 +62,6 @@ export class SEPStack extends Stack {
     super(scope, id, props);
     
     const vpc = new Vpc(this, 'Vpc', {
-      maxAzs: 2,
       cidr: '10.100.0.0/16',
     });
 
@@ -71,6 +75,41 @@ export class SEPStack extends Stack {
       repositoryInstallationTimeout: Duration.minutes(20),
     });
 
+    // TODO: remove this. Testing TLS
+
+    const host = 'renderqueue';
+    const suffix = '.local';
+    // We are calculating the max length we can add to the common name to keep it under the maximum allowed 64
+    // characters and then taking a slice of the stack name so we don't get an error when creating the certificate
+    // with openssl
+    const maxLength = 64 - host.length - '.'.length - suffix.length - 1;
+    const zoneName = Stack.of(this).stackName.slice(0, maxLength) + suffix;
+
+    const cacert = new X509CertificatePem(this, 'CaCert' + '_SEP_configuration_test', {
+      subject: {
+        cn: 'ca.renderfarm' + suffix,
+      },
+    });
+
+    const trafficEncryption = {
+      externalTLS: {
+        rfdkCertificate: new X509CertificatePem(this, 'RenderQueueCertPEM' + '_SEP_configuration_test', {
+          subject: {
+            cn: host + '.' + zoneName,
+          },
+          signingCertificate: cacert,
+        }),
+        internalProtocol: ApplicationProtocol.HTTP,
+      },
+    };
+    const hostname = {
+      zone: new PrivateHostedZone(this, 'Zone', {
+        vpc,
+        zoneName: zoneName,
+      }),
+      hostname: host,
+    };
+
     const renderQueue = new RenderQueue(this, 'RenderQueue', {
       vpc,
       version: recipes.version,
@@ -80,13 +119,10 @@ export class SEPStack extends Stack {
       // cleanly remove everything when this stack is destroyed. If you would like to ensure
       // that this resource is not accidentally deleted, you should set this to true.
       deletionProtection: false,
+      // TODO: delete this. Testing TLS
+      hostname,
+      trafficEncryption,
     });
-
-    // Adds the following IAM managed Policies to the Render Queue so it has the necessary permissions
-    // to run the Spot Event Plugin and launch a Resource Tracker:
-    // * AWSThinkboxDeadlineSpotEventPluginAdminPolicy
-    // * AWSThinkboxDeadlineResourceTrackerAdminPolicy
-    renderQueue.addSEPPolicies();
 
     // Create the security group that you will assign to your workers
     const workerSecurityGroup = new SecurityGroup(this, 'SpotSecurityGroup', {
@@ -117,15 +153,35 @@ export class SEPStack extends Stack {
     //   roleName: 'DeadlineResourceTrackerAccessRole',
     // });
 
-    const fleet = new SEPSpotFleet(this, 'TestpotFleet1', {
+    // TODO: would be better to create this role inside of spotFleet, but it creates a circular dependency
+    const fleetRole = new Role(this, 'FleetRole', {
+      assumedBy: new ServicePrincipal('spotfleet.amazonaws.com'),
+      managedPolicies: [
+        ManagedPolicy.fromManagedPolicyArn(this, 'AmazonEC2SpotFleetTaggingRole', 'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'),
+      ],
+    });
+
+    // Adds the following IAM managed Policies to the Render Queue so it has the necessary permissions
+    // to run the Spot Event Plugin and launch a Resource Tracker:
+    // * AWSThinkboxDeadlineSpotEventPluginAdminPolicy
+    // * AWSThinkboxDeadlineResourceTrackerAdminPolicy
+    // and allows to pass a spot fleet role
+    renderQueue.addSEPPolicies(true, [fleetRole.roleArn]);
+
+    const fleet = new SEPSpotFleet(this, 'TestSpotFleet1', {
       vpc,
-      renderQueue: renderQueue,
-      // role: role,
+      renderQueue,
+      fleetRole,
       securityGroups: [
         workerSecurityGroup,
       ],
       deadlineGroups: [
         'group_name1',
+        'group_name2',
+      ],
+      deadlinePools: [
+        'pool1',
+        'pool2',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
@@ -134,25 +190,31 @@ export class SEPStack extends Stack {
         [this.region]: 'ami-0f5650d87270255ae',
       }),
       targetCapacity: 1,
+      allocationStrategy: SEPSpotFleetAllocationStrategy.CAPACITY_OPTIMIZED,
+      keyName: 'VPC-B-keypair',
     });
 
     // WHEN
     new SEPConfigurationSetup(this, 'SEPConfigurationSetup', {
       vpc,
       renderQueue: renderQueue,
+      caCert: cacert.cert,
       spotFleetOptions: {
         spotFleets: [
           fleet,
         ],
         groupPools: {
-          group_name1: ['pool1', 'pool2'],
+          'group_name1': ['pool1', 'pool2'],
         },
         enableResourceTracker: false,
+        deleteEC2SpotInterruptedWorkers: true,
+        deleteSEPTerminatedWorkers: true,
+        region: this.region,
+        state: SpotEventPluginState.GLOBAL_ENABLED,
       },
     });
 
     // TODO: remove this. Only for testing
-    
     const securityGroup = new SecurityGroup(this, 'SG-VPN-RFDK', {
       vpc,
     });

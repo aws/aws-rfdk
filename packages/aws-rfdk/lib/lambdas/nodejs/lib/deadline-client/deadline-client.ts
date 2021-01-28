@@ -6,6 +6,8 @@
 import * as http from 'http';
 import * as https from 'https';
 
+/* eslint-disable no-console */
+
 /**
  * Properties for setting up an {@link TLSProps}.
  */
@@ -31,17 +33,22 @@ export interface TLSProps {
  */
 export interface DeadlineClientProps {
   /**
-   * The IP address or DNS name of the Remote Connection Server
+   * The IP address or DNS name of the Remote Connection Server.
    */
   readonly host: string;
 
   /**
-   * The port number address of the Remote Connection Server
+   * The port number address of the Remote Connection Server.
    */
   readonly port: number;
 
   /**
-   * The certificate, private key, and root CA certificate if SSL/TLS is used
+   * The protocol to use when connecting to the Remote Connection Server.
+   * Supported values: HTTP, HTTPS
+   */
+  readonly protocol: string;
+  /**
+   * The certificate, private key, and root CA certificate if SSL/TLS is used.
    */
   readonly tls?: TLSProps;
 }
@@ -66,8 +73,8 @@ interface RequestOptions {
   httpsAgent?: https.Agent;
 }
 
-interface Response {
-  data: object,
+export interface Response {
+  data: any,
   fullResponse: http.IncomingMessage,
 }
 
@@ -81,13 +88,14 @@ export class DeadlineClient {
       port: props.port,
     };
 
-    if (props.tls) {
+    if (props.protocol === 'HTTPS') {
       this.protocol = https;
 
+      // TODO: maybe add here a check that at least something needs to be provided
       const httpsAgent = new https.Agent({
-        pfx: props.tls.pfx,
-        passphrase: props.tls.passphrase,
-        ca: props.tls.ca,
+        pfx: props.tls?.pfx,
+        passphrase: props.tls?.passphrase,
+        ca: props.tls?.ca,
       });
       this.requestOptions.httpsAgent = httpsAgent;
     }
