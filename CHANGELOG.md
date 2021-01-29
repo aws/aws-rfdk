@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.25.0](https://github.com/aws/aws-rfdk/compare/v0.24.0...v0.25.0) (2021-01-28)
+
+
+### Supported CDK Version
+
+* [1.86.0](https://github.com/aws/aws-cdk/releases/tag/v1.86.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.13.1](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **deadline:** add ThinkboxDockerImages construct ([#278](https://github.com/aws/aws-rfdk/issues/278)) ([9ea3bb4](https://github.com/aws/aws-rfdk/commit/9ea3bb47c97de4332edc1ce368dfbabff98be1a1))
+
 ## [0.24.0](https://github.com/aws/aws-rfdk/compare/v0.23.0...v0.24.0) (2021-01-26)
 
 

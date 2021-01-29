@@ -103,11 +103,12 @@ def main():
         database=storage.database,
         file_system=storage.file_system,
         vpc=network.vpc,
-        docker_recipes_stage_path=os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, 'stage'),
         ubl_certs_secret_arn=config.ubl_certificate_secret_arn,
         ubl_licenses=config.ubl_licenses,
         root_ca=security.root_ca,
-        dns_zone=network.dns_zone
+        dns_zone=network.dns_zone,
+        deadline_version=config.deadline_version,
+        accept_aws_thinkbox_eula=config.accept_aws_thinkbox_eula
     )
     service = service_tier.ServiceTier(app, 'ServiceTier', props=service_props, env=env)
 

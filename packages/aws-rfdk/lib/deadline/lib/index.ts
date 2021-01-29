@@ -11,6 +11,7 @@ export * from './worker-fleet';
 export * from './render-queue';
 export * from './render-queue-ref';
 export * from './stage';
+export * from './thinkbox-docker-images';
 export * from './thinkbox-docker-recipes';
 export * from './version';
 export * from './version-query';

@@ -21,13 +21,14 @@ import {
   X509CertificatePem,
 } from 'aws-rfdk';
 import {
+  AwsThinkboxEulaAcceptance,
   DatabaseConnection,
   RenderQueue,
   Repository,
-  Stage,
-  ThinkboxDockerRecipes,
+  ThinkboxDockerImages,
   UsageBasedLicense,
   UsageBasedLicensing,
+  VersionQuery,
 } from 'aws-rfdk/deadline';
 import {
   Secret,
@@ -55,11 +56,6 @@ export interface ServiceTierProps extends cdk.StackProps {
   readonly fileSystem: IMountableLinuxFilesystem;
 
   /**
-   * The path to the directory where the staged Deadline Docker recipes are.
-   */
-  readonly dockerRecipesStagePath: string;
-
-  /**
    * Our self-signed root CA certificate for the internal endpoints in the farm.
    */
   readonly rootCa: X509CertificatePem;
@@ -81,12 +77,27 @@ export interface ServiceTierProps extends cdk.StackProps {
    */
   readonly ublLicenses?: UsageBasedLicense[];
 
+  /**
+   * Version of Deadline to use.
+   * @default The latest available release of Deadline is used
+   */
+  readonly deadlineVersion?: string;
+
+  /**
+   * Whether the AWS Thinkbox End-User License Agreement is accepted or not
+   */
+  readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance;
 }
 
 /**
  * The service tier contains all "business-logic" constructs (e.g. Render Queue, UBL Licensing / License Forwarder, etc.).
  */
 export class ServiceTier extends cdk.Stack {
+  /**
+   * A bastion host to connect to the render farm with.
+   */
+  public readonly bastion: BastionHostLinux;
+
   /**
    * The render queue.
    */
@@ -98,9 +109,9 @@ export class ServiceTier extends cdk.Stack {
   public readonly ublLicensing?: UsageBasedLicensing;
 
   /**
-   * A bastion host to connect to the render farm with.
+   * The version of Deadline configured by the app.
    */
-  public readonly bastion: BastionHostLinux;
+  public readonly version: VersionQuery;
 
   /**
    * Initializes a new instance of {@link ServiceTier}.
@@ -133,16 +144,21 @@ export class ServiceTier extends cdk.Stack {
       location: '/mnt/efs',
     });
 
-    const recipes = new ThinkboxDockerRecipes(this, 'Image', {
-      stage: Stage.fromDirectory(props.dockerRecipesStagePath),
+    this.version = new VersionQuery(this, 'Version', {
+      version: props.deadlineVersion,
     });
 
     const repository = new Repository(this, 'Repository', {
       vpc: props.vpc,
-      version: recipes.version,
+      version: this.version,
       database: props.database,
       fileSystem: props.fileSystem,
       repositoryInstallationTimeout: Duration.minutes(20),
+    });
+
+    const images = new ThinkboxDockerImages(this, 'Images', {
+      version: this.version,
+      userAwsThinkboxEulaAcceptance: props.acceptAwsThinkboxEula,
     });
 
     const serverCert = new X509CertificatePem(this, 'RQCert', {
@@ -153,10 +169,11 @@ export class ServiceTier extends cdk.Stack {
       },
       signingCertificate: props.rootCa,
     });
+
     this.renderQueue = new RenderQueue(this, 'RenderQueue', {
       vpc: props.vpc,
-      images: recipes.renderQueueImages,
-      repository: repository,
+      images: images,
+      repository,
       hostname: {
         hostname: 'renderqueue',
         zone: props.dnsZone,
@@ -167,7 +184,7 @@ export class ServiceTier extends cdk.Stack {
         },
         internalProtocol: ApplicationProtocol.HTTPS,
       },
-      version: recipes.version,
+      version: this.version,
       // TODO - Evaluate deletion protection for your own needs. This is set to false to
       // cleanly remove everything when this stack is destroyed. If you would like to ensure
       // that this resource is not accidentally deleted, you should set this to true.
@@ -191,7 +208,7 @@ export class ServiceTier extends cdk.Stack {
 
       this.ublLicensing = new UsageBasedLicensing(this, 'UBLLicensing', {
         vpc: props.vpc,
-        images: recipes.ublImages,
+        images: images,
         licenses: props.ublLicenses,
         renderQueue: this.renderQueue,
         certificateSecret: ublCertSecret,

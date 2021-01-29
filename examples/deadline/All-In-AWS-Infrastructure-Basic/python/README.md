@@ -32,7 +32,22 @@ These instructions assume that your working directory is `examples/deadline/All-
     popd
     pip install ../../../../dist/python/aws-rfdk-<version>.tar.gz
     ```
-4.  Change the value in the `deadline_client_linux_ami_map` variable in `package/config.py` to include the region + AMI ID mapping of your EC2 AMI(s) with Deadline Worker. You can use the following AWS CLI query to find AMI ID's:
+4.  You must read and accept the [AWS Thinkbox End-User License Agreement (EULA)](https://www.awsthinkbox.com/end-user-license-agreement) to deploy and run Deadline. To do so, change the value of the `accept_aws_thinkbox_eula` in `package/config.py`:
+
+    ```py
+    # Change this value to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA if you wish to accept the EULA
+    # for Deadline and proceed with Deadline deployment. Users must explicitly accept the AWS Thinkbox EULA before
+    # using the AWS Thinkbox Deadline container images.
+    #
+    # See https://www.awsthinkbox.com/end-user-license-agreement for the terms of the agreement.
+    self.accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA
+    ```
+5.  Change the value of the `deadline_version` variable in `package/config.py` to specify the desired version of Deadline to be deployed to your render farm. RFDK is compatible with Deadline versions 10.1.9.x and later. To see the available versions of Deadline, consult the [Deadline release notes](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html). It is recommended to use the latest version of Deadline available when building your farm, but to pin this version when the farm is ready for production use. For example, to pin to the latest `10.1.12.x` release of Deadline, use:
+
+    ```python
+    self.deadline_version: str = '10.1.12'
+    ```
+6.  Change the value of the `deadline_client_linux_ami_map` variable in `package/config.py` to include the region + AMI ID mapping of your EC2 AMI(s) with Deadline Worker. You can use the following AWS CLI query to find AMI ID's:
     ```bash
     aws --region <region> ec2 describe-images \
     --owners 357466774442 \
@@ -48,17 +63,17 @@ These instructions assume that your working directory is `examples/deadline/All-
         'us-west-2': '<your ami id>'
     }
     ```
-5.  Create a binary secret in [SecretsManager](https://aws.amazon.com/secrets-manager/) that contains your [Usage-Based Licensing](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/aws-portal/licensing-setup.html?highlight=usage%20based%20licensing) certificates in a `.zip` file:
+7.  Create a binary secret in [SecretsManager](https://aws.amazon.com/secrets-manager/) that contains your [Usage-Based Licensing](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/aws-portal/licensing-setup.html?highlight=usage%20based%20licensing) certificates in a `.zip` file:
 
     ```bash
     aws secretsmanager create-secret --name <name> --secret-binary fileb://<path-to-zip-file>
     ```
-6.  The output from the previous step will contain the secret's ARN. Change the value of the `ubl_certificate_secret_arn` variable in `package/config.py` to the secret's ARN:
+8.  The output from the previous step will contain the secret's ARN. Change the value of the `ubl_certificate_secret_arn` variable in `package/config.py` to the secret's ARN:
 
     ```python
     self.ubl_certificate_secret_arn: str = '<your secret arn>'
     ```
-7.  Choose your UBL limits and change the value of the `ubl_licenses` variable in `package/config.py` accordingly. For example:
+9.  Choose your UBL limits and change the value of the `ubl_licenses` variable in `package/config.py` accordingly. For example:
 
     ```python
     self.ubl_licenses: List[UsageBasedLicense] = [
@@ -77,19 +92,19 @@ These instructions assume that your working directory is `examples/deadline/All-
     **Note:** The next two steps are optional. You may skip these if you do not need SSH access into your render farm.
 
     ---
-8.  Create an EC2 key pair to give you SSH access to the render farm:
+10. Create an EC2 key pair to give you SSH access to the render farm:
 
     ```bash
     aws ec2 create-key-pair --key-name <key-name>
     ```
-9.  Change the value of the `key_pair_name` variable in `package/config.py` to your value for `<key-name>` in the previous step:
+11. Change the value of the `key_pair_name` variable in `package/config.py` to your value for `<key-name>` in the previous step:
 
     **Note:** Save the value of the `"KeyMaterial"` field as a file in a secure location. This is your private key that you can use to SSH into the render farm.
 
     ```python
     self.key_pair_name: Optional[str] = '<your key pair name>'
     ```
-10. Choose the type of database you would like to deploy (AWS DocumentDB or MongoDB).
+12. Choose the type of database you would like to deploy (AWS DocumentDB or MongoDB).
     If you would like to use MongoDB, you will need to accept the Mongo SSPL (see next step).
     Once you've decided on a database type, change the value of the `deploy_mongo_db` variable in `package/config.py` accordingly:
 
@@ -97,29 +112,18 @@ These instructions assume that your working directory is `examples/deadline/All-
     # True = MongoDB, False = Amazon DocumentDB
     self.deploy_mongo_db: bool = False
     ```
-11. If you set `deploy_mongo_db` to `True`, then you must accept the [SSPL license](https://www.mongodb.com/licensing/server-side-public-license) to successfully deploy MongoDB. To do so, change the value of `accept_sspl_license` in `package/config.py`:
+13. If you set `deploy_mongo_db` to `True`, then you must accept the [SSPL license](https://www.mongodb.com/licensing/server-side-public-license) to successfully deploy MongoDB. To do so, change the value of `accept_sspl_license` in `package/config.py`:
 
     ```python
     # To accept the MongoDB SSPL, change from USER_REJECTS_SSPL to USER_ACCEPTS_SSPL
     self.accept_sspl_license: MongoDbSsplLicenseAcceptance = MongoDbSsplLicenseAcceptance.USER_REJECTS_SSPL
     ```
-12. Stage the Docker recipes for `RenderQueue` and `UBLLicensing`:
-
-    ```bash
-    # Set this value to the version of RFDK your application targets
-    RFDK_VERSION=<version_of_RFDK>
-
-    # Set this value to the version of AWS Thinkbox Deadline you'd like to deploy to your farm. Deadline 10.1.9 and up are supported.
-    RFDK_DEADLINE_VERSION=<version_of_deadline>
-
-    npx --package=aws-rfdk@${RFDK_VERSION} stage-deadline ${RFDK_DEADLINE_VERSION} --output stage
-    ```
-12. Deploy all the stacks in the sample app:
+14. Deploy all the stacks in the sample app:
 
     ```bash
     cdk deploy "*"
     ```
-13. Once you are finished with the sample app, you can tear it down by running:
+15. Once you are finished with the sample app, you can tear it down by running:
 
     ```bash
     cdk destroy "*"
