@@ -71,6 +71,42 @@ describe('ThinkboxEcrProvider', () => {
         );
     });
 
+    test('successful http get request with options', async () => {
+      // GIVEN
+      jest.requireMock('http').request.mockImplementation(httpRequestMock);
+      response = new MockResponse();
+
+      // WHEN
+      deadlineClient = new DeadlineClient({
+        host: 'hostname',
+        port: 8080,
+        protocol: 'HTTP',
+      });
+
+      const promise = deadlineClient.GetRequest('/get/version/test', {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      response.emit('data', Buffer.from(JSON.stringify(''), 'utf8'));
+      response.emit('end');
+      promise.then(resp => resp).catch(err => err);
+
+      // THEN
+      // should make an HTTP request
+      expect(jest.requireMock('http').request)
+        .toBeCalledWith(
+          {
+            agent: undefined,
+            method: 'GET',
+            port: 8080,
+            host: 'hostname',
+            path: '/get/version/test',
+          },
+          expect.any(Function),
+        );
+    });
+
     test('failed http get request', async () => {
       // GIVEN
       response = new MockResponse();

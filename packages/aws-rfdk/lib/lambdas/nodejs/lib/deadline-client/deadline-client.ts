@@ -91,7 +91,6 @@ export class DeadlineClient {
     if (props.protocol === 'HTTPS') {
       this.protocol = https;
 
-      // TODO: maybe add here a check that at least something needs to be provided
       const httpsAgent = new https.Agent({
         pfx: props.tls?.pfx,
         passphrase: props.tls?.passphrase,

@@ -34,15 +34,18 @@ import {
 } from '@aws-cdk/aws-iam';
 import {
   Annotations,
-  CfnTag,
   Construct,
   Fn,
   Expiration,
+  IResolvable,
   IResource,
-  // Lazy,
+  Lazy,
   Names,
   ResourceEnvironment,
   Stack,
+  Tags,
+  TagManager,
+  TagType,
 } from '@aws-cdk/core';
 import {
   IScriptHost,
@@ -245,20 +248,6 @@ export interface SEPSpotFleetProps {
    * You can provide a subclass of InstanceUserDataProvider with the methods overridden as desired.
    */
   readonly userDataProvider?: IInstanceUserDataProvider;
-
-  /**
-   * The tags to apply during creation of instances.
-   *
-   * @default - Only RFDK tags are applied.
-   */
-  readonly instanceTags?: CfnTag[];
-
-  /**
-   * The tags to apply during creation of Spot Fleet request.
-   *
-   * @default - Only RFDK tags are applied.
-   */
-  readonly spotFleetRequestTags?: CfnTag[];
 }
 
 /**
@@ -463,16 +452,6 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
   public readonly role: IRole;
 
   /**
-   * The tags to apply during creation of instances.
-   */
-  public readonly instanceTags: CfnTag[];
-
-  /**
-   * The tags to apply during creation of the Spot Fleet Request.
-   */
-  public readonly spotFleetRequestTags: CfnTag[];
-
-  /**
    * An IAM role that grants the Spot Fleet the permission to request, launch, terminate, and tag instances on your behalf.
    */
   public readonly iamFleetRole: IRole;
@@ -488,6 +467,10 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
    */
   protected readonly imageId: string;
 
+  /**
+   * The tags to apply during creation of instances and of the Spot Fleet Request.
+   */
+  protected readonly tags: TagManager;
 
   constructor(scope: Construct, id: string, props: SEPSpotFleetProps) {
     super(scope, id);
@@ -541,12 +524,11 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
       workerConfig.listenerPort + SEPSpotFleet.MAX_WORKERS_PER_HOST,
     );
 
-    const rfdkTag = this.rfdkTagSpecification();
-    this.instanceTags = props.instanceTags ?? [];
-    this.instanceTags.push(rfdkTag);
+    const className = this.constructor.name;
+    const rfdkTagValue = `${RFDK_VERSION}:${className}`;
 
-    this.spotFleetRequestTags = props.spotFleetRequestTags ?? [];
-    this.spotFleetRequestTags.push(rfdkTag);
+    this.tags = new TagManager(TagType.KEY_VALUE, 'RFDK::SEPConfiguration');
+    Tags.of(this).add(TAG_NAME, rfdkTagValue);
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
@@ -559,11 +541,11 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
       roles: [this.role.roleName],
     });
 
-    const securityGroups = this.securityGroups.map(sg => {
-      return { GroupId: sg.securityGroupId };
-    });
+    const securityGroupsToken = Lazy.any({ produce: () => {
+      return this.securityGroups.map(sg => { return { GroupId: sg.securityGroupId }; });
+    } });
 
-    const userData = Fn.base64(this.userData.render());
+    const userDataToken = Lazy.string({ produce: () => Fn.base64(this.userData.render()) });
 
     const blockDeviceMappings = (props.blockDevices !== undefined ?
       synthesizeBlockDeviceMappings(this, props.blockDevices) : undefined);
@@ -574,19 +556,8 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
     });
     const subnetId = subnetIds.length != 0 ? subnetIds.join(',') : undefined;
 
-    const instanceTags = this.instanceTags.map(tag => {
-      return {
-        Key: tag.key,
-        Value: tag.value,
-      };
-    });
-
-    const spotFleetRequestTags = this.spotFleetRequestTags.map(tag => {
-      return {
-        Key: tag.key,
-        Value: tag.value,
-      };
-    });
+    const instanceTagsToken = this.tagsToken(ISpotFleetResourceType.INSTANCE);
+    const spotFleetRequestTagsToken = this.tagsToken(ISpotFleetResourceType.SPOT_FLEET_REQUEST);
 
     let launchSpecifications: any[] = [];
 
@@ -598,15 +569,10 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
         },
         ImageId: this.imageId,
         KeyName: props.keyName,
-        SecurityGroups: securityGroups,
+        SecurityGroups: securityGroupsToken,
         SubnetId: subnetId,
-        TagSpecifications: [
-          {
-            ResourceType: ISpotFleetResourceType.INSTANCE,
-            Tags: instanceTags,
-          },
-        ],
-        UserData: userData,
+        TagSpecifications: instanceTagsToken,
+        UserData: userDataToken,
         InstanceType: instanceType.toString(),
       };
       launchSpecifications.push(launchSpecification);
@@ -621,12 +587,7 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
       TerminateInstancesWithExpiration: true,
       Type: 'maintain',
       ValidUntil: props.validUntil ? props.validUntil?.date.toUTCString() : undefined,
-      TagSpecifications: [
-        {
-          ResourceType: ISpotFleetResourceType.SPOT_FLEET_REQUEST,
-          Tags: spotFleetRequestTags,
-        },
-      ],
+      TagSpecifications: spotFleetRequestTagsToken,
     };
 
     const sepSpotFleetRequestConfigurations = props.deadlineGroups.map(group => {
@@ -639,13 +600,18 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
     return sepSpotFleetRequestConfigurations;
   }
 
-  private rfdkTagSpecification(): CfnTag {
-    const className = this.constructor.name;
-    const tagValue = `${RFDK_VERSION}:${className}`;
-    return {
-      key: TAG_NAME,
-      value: tagValue,
-    };
+  private tagsToken(resourceType: ISpotFleetResourceType): IResolvable {
+    return Lazy.any({
+      produce: () => {
+        if (this.tags.hasTags()) {
+          return [{
+            ResourceType: resourceType,
+            Tags: this.tags.renderTags(),
+          }];
+        }
+        return undefined;
+      },
+    });
   }
 
   private validateProps(props: SEPSpotFleetProps) {

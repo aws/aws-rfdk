@@ -18,7 +18,6 @@ export class EventPluginRequests {
   }
 
   public async describeServerData(): Promise<Response> {
-    console.log('Sending request to describe server data.');
     return await this.deadlineClient.PostRequest('/rcs/v1/describeServerData', {
       ServerDataIds: [
         'event.plugin.spot',
@@ -27,9 +26,7 @@ export class EventPluginRequests {
   }
 
   private async concurrencyToken(): Promise<string> {
-    console.log('Getting concurrency token.');
     const response = await this.describeServerData();
-    console.log('Received concurrency token.');
 
     const describedData: {
       ServerData: {
@@ -39,18 +36,14 @@ export class EventPluginRequests {
     } = response.data;
 
     const found = describedData.ServerData.find(element => element.ID === 'event.plugin.spot');
-    console.log('Concurrency token is:'); // TODO: remove this console
-    console.log(found?.ConcurrencyToken);
     return found?.ConcurrencyToken ?? '';
   }
 
   public async saveServerData(config: string): Promise<boolean> {
-    console.log('Getting concurrency token to save server data.');
-    const concurrencyToken = await this.concurrencyToken();
-    console.log(`Received concurrency token: ${concurrencyToken}`); // TODO: remove this console
-
-    console.log('Sending put server data request with config:');
+    console.log('Saving server data configuration:');
     console.log(config);
+
+    const concurrencyToken = await this.concurrencyToken();
     await this.deadlineClient.PostRequest('/rcs/v1/putServerData', {
       ServerData: [
         {
@@ -62,12 +55,12 @@ export class EventPluginRequests {
         },
       ],
     });
-    console.log('Server data was put successfully put.');
+    console.log('Server data successfully saved.');
     return true;
   }
 
   public async configureSpotEventPlugin(configs: { Key: string, Value: any }[]): Promise<boolean> {
-    console.log('Sending save config request with configs:');
+    console.log('Saving plugin configuration:');
     console.log(configs);
     await this.deadlineClient.PostRequest('/db/plugins/event/config/save', {
       ID: 'spot',
@@ -79,6 +72,7 @@ export class EventPluginRequests {
       Name: 'Spot',
       PluginEnabled: 1,
     });
+    console.log('Plugin configuration successfully saved.');
     return true;
   }
 }

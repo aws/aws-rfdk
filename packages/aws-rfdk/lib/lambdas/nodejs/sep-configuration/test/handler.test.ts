@@ -4,7 +4,6 @@
  */
 
 /* eslint-disable dot-notation */
-/* eslint-disable no-console */ // TODO: remove
 
 import * as AWS from 'aws-sdk';
 import { mock, restore, setSDKInstance } from 'aws-sdk-mock';
@@ -22,22 +21,9 @@ async function successRequestMock(request: { [key: string]: string}, returnValue
 
 describe('SEPConfiguratorResource', () => {
   // Valid configurations
-  const validSpotPluginConfig = [
-    {
-      Key: 'ResourceTracker',
-      Value: true,
-    },
-    {
-      Key: 'GroupPools',
-      Value: '{\"group_name1\":[\"pool1\",\"pool2\"]}',
-    },
-  ];
-  const validSpotPluginConfig2 = [
-    {
-      Key: 'ResourceTracker',
-      Value: '',
-    },
-  ];
+  const validSpotPluginConfig = {
+    ResourceTracker: true,
+  };
   const validConnection: IConnectionOptions = {
     hostname: 'internal-hostname.com',
     protocol: 'HTTPS',
@@ -46,7 +32,11 @@ describe('SEPConfiguratorResource', () => {
     passphrase: secretArn,
     pfxCertificate: secretArn,
   };
-  const validSpotFleetConfig = '{\"group_name1\":{\"AllocationStrategy\":\"capacityOptimized\"}}';
+  const validSpotFleetConfig = {
+    group_name1: {
+      AllocationStrategy: 'capacityOptimized',
+    },
+  };
 
   const allConfigs = {
     spotPluginConfigurations: validSpotPluginConfig,
@@ -66,12 +56,12 @@ describe('SEPConfiguratorResource', () => {
   };
 
   describe('doCreate', () => {
-    // let consoleLogMock: jest.SpyInstance<any, any>;
+    let consoleLogMock: jest.SpyInstance<any, any>;
     let mockedHandler: SEPConfiguratorResource;
     let mockEventPluginRequests: { saveServerData: jest.Mock<any, any>; configureSpotEventPlugin: jest.Mock<any, any>; };
 
     beforeEach(() => {
-      // consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
+      consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
 
       mockEventPluginRequests = {
         saveServerData: jest.fn(),
@@ -99,7 +89,6 @@ describe('SEPConfiguratorResource', () => {
         return true;
       }
       const mockSaveServerData = jest.fn( (a) => returnTrue(a) );
-      // tslint:disable-next-line: no-string-literal
       mockEventPluginRequests.saveServerData = mockSaveServerData;
 
       // WHEN
@@ -108,7 +97,7 @@ describe('SEPConfiguratorResource', () => {
       // THEN
       expect(result).toBeUndefined();
       expect(mockSaveServerData.mock.calls.length).toBe(1);
-      expect(mockSaveServerData.mock.calls[0][0]).toEqual(noPluginConfigs.spotFleetRequestConfigurations);
+      expect(mockSaveServerData.mock.calls[0][0]).toEqual(JSON.stringify(noPluginConfigs.spotFleetRequestConfigurations));
     });
 
     test('save spot event plugin configs', async () => {
@@ -116,17 +105,16 @@ describe('SEPConfiguratorResource', () => {
       async function returnTrue(_v1: any): Promise<boolean> {
         return true;
       }
-      const mockconfigureSpotEventPlugin = jest.fn( (a) => returnTrue(a) );
-      // tslint:disable-next-line: no-string-literal
-      mockEventPluginRequests.configureSpotEventPlugin = mockconfigureSpotEventPlugin;
+      const mockConfigureSpotEventPlugin = jest.fn( (a) => returnTrue(a) );
+      mockEventPluginRequests.configureSpotEventPlugin = mockConfigureSpotEventPlugin;
 
       // WHEN
       const result = await mockedHandler.doCreate('physicalId', noFleetConfigs);
 
       // THEN
       expect(result).toBeUndefined();
-      expect(mockconfigureSpotEventPlugin.mock.calls.length).toBe(1);
-      expect(mockconfigureSpotEventPlugin.mock.calls[0][0]).toEqual(noFleetConfigs.spotPluginConfigurations);
+      expect(mockConfigureSpotEventPlugin.mock.calls.length).toBe(1);
+      expect(mockConfigureSpotEventPlugin.mock.calls[0][0]).toEqual([{ Key: 'ResourceTracker', Value: true }]);
     });
 
     test('save both configs', async () => {
@@ -135,12 +123,10 @@ describe('SEPConfiguratorResource', () => {
         return true;
       }
       const mockSaveServerData = jest.fn( (a) => returnTrue(a) );
-      // tslint:disable-next-line: no-string-literal
       mockEventPluginRequests.saveServerData = mockSaveServerData;
 
-      const mockconfigureSpotEventPlugin = jest.fn( (a) => returnTrue(a) );
-      // tslint:disable-next-line: no-string-literal
-      mockEventPluginRequests.configureSpotEventPlugin = mockconfigureSpotEventPlugin;
+      const mockConfigureSpotEventPlugin = jest.fn( (a) => returnTrue(a) );
+      mockEventPluginRequests.configureSpotEventPlugin = mockConfigureSpotEventPlugin;
 
       // WHEN
       const result = await mockedHandler.doCreate('physicalId', allConfigs);
@@ -148,10 +134,42 @@ describe('SEPConfiguratorResource', () => {
       // THEN
       expect(result).toBeUndefined();
       expect(mockSaveServerData.mock.calls.length).toBe(1);
-      expect(mockSaveServerData.mock.calls[0][0]).toEqual(allConfigs.spotFleetRequestConfigurations);
+      expect(mockSaveServerData.mock.calls[0][0]).toEqual(JSON.stringify(allConfigs.spotFleetRequestConfigurations));
 
-      expect(mockconfigureSpotEventPlugin.mock.calls.length).toBe(1);
-      expect(mockconfigureSpotEventPlugin.mock.calls[0][0]).toEqual(allConfigs.spotPluginConfigurations);
+      expect(mockConfigureSpotEventPlugin.mock.calls.length).toBe(1);
+      expect(mockConfigureSpotEventPlugin.mock.calls[0][0]).toEqual([{ Key: 'ResourceTracker', Value: true }]);
+    });
+
+    test('log when cannot save spot fleet request configs', async () => {
+      // GIVEN
+      async function returnFalse(_v1: any): Promise<boolean> {
+        return false;
+      }
+      const mockSaveServerData = jest.fn( (a) => returnFalse(a) );
+      mockEventPluginRequests.saveServerData = mockSaveServerData;
+
+      // WHEN
+      await mockedHandler.doCreate('physicalId', noPluginConfigs);
+
+      // THEN
+      expect(consoleLogMock.mock.calls.length).toBe(1);
+      expect(consoleLogMock.mock.calls[0][0]).toMatch(/Failed to save spot fleet request with configuration/);
+    });
+
+    test('log when cannot save spot event plugin configs', async () => {
+      // GIVEN
+      async function returnFalse(_v1: any): Promise<boolean> {
+        return false;
+      }
+      const mockConfigureSpotEventPlugin = jest.fn( (a) => returnFalse(a) );
+      mockEventPluginRequests.configureSpotEventPlugin = mockConfigureSpotEventPlugin;
+
+      // WHEN
+      await mockedHandler.doCreate('physicalId', noFleetConfigs);
+
+      // THEN
+      expect(consoleLogMock.mock.calls.length).toBe(1);
+      expect(consoleLogMock.mock.calls[0][0]).toMatch(/Failed to save Spot Event Plugin Configurations/);
     });
   });
 
@@ -231,28 +249,7 @@ describe('SEPConfiguratorResource', () => {
     });
 
     // Invalid configurations
-    const invalidSpotPluginConfig = [
-      {
-        key: 'ResourceTracker',
-        value: true,
-      },
-    ];
-    const invalidSpotPluginConfigNoValue = [
-      {
-        Key: 'ResourceTracker',
-      },
-    ];
-    const invalidSpotPluginConfigNoKey = [
-      {
-        Value: true,
-      },
-    ];
-    const invalidSpotPluginConfigWrongKey = [
-      {
-        Key: true,
-        Value: true,
-      },
-    ];
+    const invalidSpotPluginConfig: any = [];
     const noProtocolConnection = {
       hostname: 'internal-hostname.us-east-1.elb.amazonaws.com',
       port: '4433',
@@ -321,20 +318,25 @@ describe('SEPConfiguratorResource', () => {
       port: '4433',
       pfxCertificate: 'notArn',
     };
-    const invalidSpotFleetConfig = {
-      inValid: 'invalid',
-    };
+    const invalidSpotFleetConfig = '{ inValid: 10 }';
 
     describe('should return false if', () => {
       test.each<any>([
-        invalidSpotPluginConfig,
-        invalidSpotPluginConfigNoKey,
-        invalidSpotPluginConfigNoValue,
-        invalidSpotPluginConfigWrongKey,
-      ])('given invalid spot plugin config', (invalidConfig: any) => {
+        undefined,
+        [],
+      ])('{input=%s}', (input) => {
+        // WHEN
+        const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+        const returnValue = handler.validateInput(input);
+
+        // THEN
+        expect(returnValue).toBeFalsy();
+      });
+
+      test('given invalid spot plugin config', () => {
         // GIVEN
         const input = {
-          spotPluginConfigurations: invalidConfig,
+          spotPluginConfigurations: invalidSpotPluginConfig,
           connection: validConnection,
           spotFleetRequestConfigurations: validSpotFleetConfig,
         };
@@ -453,7 +455,7 @@ describe('SEPConfiguratorResource', () => {
 
         describe('should return true if', () => {
           test.each<any>([
-            '{ "JSON": "string" }',
+            { json: 'object' },
             undefined,
           ])('{input=%s}', (input: any) => {
             // WHEN
@@ -470,12 +472,9 @@ describe('SEPConfiguratorResource', () => {
         describe('should return false if', () => {
           test.each<any>([
             10,
-            [[]],
+            [],
             'string',
             invalidSpotPluginConfig,
-            invalidSpotPluginConfigNoKey,
-            invalidSpotPluginConfigNoValue,
-            invalidSpotPluginConfigWrongKey,
           ])('{input=%s}', (input: any) => {
             // WHEN
             const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
@@ -489,8 +488,6 @@ describe('SEPConfiguratorResource', () => {
         describe('should return true if', () => {
           test.each<any>([
             validSpotPluginConfig,
-            validSpotPluginConfig2,
-            [],
             undefined,
           ])('{input=%s}', (input: any) => {
             // WHEN
@@ -530,6 +527,453 @@ describe('SEPConfiguratorResource', () => {
         const returnValue = handler['isSecretArnOrUndefined'](input);
         expect(returnValue).toBeFalsy();
       });
+    });
+  });
+
+  describe('.spotEventPluginRequests()', () => {
+    test('creates a valid object with http', async () => {
+      // GIVEN
+      const validHTTPConnection: IConnectionOptions = {
+        hostname: 'internal-hostname.com',
+        protocol: 'HTTP',
+        port: '8080',
+      };
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const result = await handler['spotEventPluginRequests'](validHTTPConnection);
+
+      expect(result).toBeDefined();
+    });
+
+    test('creates a valid object with https', async () => {
+      // GIVEN
+      const validHTTPSConnection: IConnectionOptions = {
+        hostname: 'internal-hostname.com',
+        protocol: 'HTTP',
+        port: '8080',
+        caCertificate: secretArn,
+      };
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      async function returnCerificateContent(_v1: any): Promise<any> {
+        return 'BEGIN CERTIFICATE';
+      }
+      // tslint:disable-next-line: no-string-literal
+      handler['readCertificateData'] = jest.fn( (a) => returnCerificateContent(a) );
+      const result = await handler['spotEventPluginRequests'](validHTTPSConnection);
+
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('.spotFleetPluginConfigsToArray()', () => {
+    test('converts DeleteInterruptedSlaves', () => {
+      // GIVEN
+      let pluginConfig = {
+        DeleteInterruptedSlaves: 'true',
+      };
+      const expectedResult = [{
+        Key: 'DeleteInterruptedSlaves',
+        Value: true,
+      }];
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
+
+      // THEN
+      expect(returnValue).toEqual(expectedResult);
+    });
+
+    test('converts DeleteTerminatedSlaves', () => {
+      // GIVEN
+      let pluginConfig = {
+        DeleteTerminatedSlaves: 'true',
+      };
+      const expectedResult = [{
+        Key: 'DeleteTerminatedSlaves',
+        Value: true,
+      }];
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
+
+      // THEN
+      expect(returnValue).toEqual(expectedResult);
+    });
+
+    test('converts IdleShutdown', () => {
+      // GIVEN
+      let pluginConfig = {
+        IdleShutdown: '10',
+      };
+      const expectedResult = [{
+        Key: 'IdleShutdown',
+        Value: 10,
+      }];
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
+
+      // THEN
+      expect(returnValue).toEqual(expectedResult);
+    });
+
+    test('converts ResourceTracker', () => {
+      // GIVEN
+      let pluginConfig = {
+        ResourceTracker: 'true',
+      };
+      const expectedResult = [{
+        Key: 'ResourceTracker',
+        Value: true,
+      }];
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
+
+      // THEN
+      expect(returnValue).toEqual(expectedResult);
+    });
+
+    test('converts StaggerInstances', () => {
+      // GIVEN
+      let pluginConfig = {
+        StaggerInstances: 'true',
+      };
+      const expectedResult = [{
+        Key: 'StaggerInstances',
+        Value: true,
+      }];
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
+
+      // THEN
+      expect(returnValue).toEqual(expectedResult);
+    });
+
+    test('converts StrictHardCap', () => {
+      // GIVEN
+      let pluginConfig = {
+        StrictHardCap: 'true',
+      };
+      const expectedResult = [{
+        Key: 'StrictHardCap',
+        Value: true,
+      }];
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
+
+      // THEN
+      expect(returnValue).toEqual(expectedResult);
+    });
+
+    test('converts UseLocalCredentials', () => {
+      // GIVEN
+      let pluginConfig = {
+        UseLocalCredentials: 'true',
+      };
+      const expectedResult = [{
+        Key: 'UseLocalCredentials',
+        Value: true,
+      }];
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
+
+      // THEN
+      expect(returnValue).toEqual(expectedResult);
+    });
+
+    test('skips undefined values', () => {
+      // GIVEN
+      let pluginConfig = {
+        DeleteInterruptedSlaves: undefined,
+      };
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
+
+      // THEN
+      expect(returnValue).toEqual([]);
+    });
+  });
+
+  describe('.spotFleetRequestToString()', () => {
+    test('converts TargetCapacity', () => {
+      // GIVEN
+      const sfrConfig = {
+        groupname: {
+          TargetCapacity: '1',
+        },
+      };
+      const expectedResult = {
+        groupname: {
+          TargetCapacity: 1,
+        },
+      };
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetRequestToString'](sfrConfig);
+
+      // THEN
+      expect(JSON.parse(returnValue)).toEqual(expectedResult);
+    });
+
+    test('converts ReplaceUnhealthyInstances', () => {
+      // GIVEN
+      const sfrConfig = {
+        groupname: {
+          ReplaceUnhealthyInstances: 'true',
+        },
+      };
+      const expectedResult = {
+        groupname: {
+          ReplaceUnhealthyInstances: true,
+        },
+      };
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetRequestToString'](sfrConfig);
+
+      // THEN
+      expect(JSON.parse(returnValue)).toEqual(expectedResult);
+    });
+
+    test('converts TerminateInstancesWithExpiration', () => {
+      // GIVEN
+      const sfrConfig = {
+        groupname: {
+          TerminateInstancesWithExpiration: 'true',
+        },
+      };
+      const expectedResult = {
+        groupname: {
+          TerminateInstancesWithExpiration: true,
+        },
+      };
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetRequestToString'](sfrConfig);
+
+      // THEN
+      expect(JSON.parse(returnValue)).toEqual(expectedResult);
+    });
+
+    test('converts whole BlockDeviceMappings', () => {
+      // GIVEN
+      const sfrConfig = {
+        groupname: {
+          LaunchSpecifications: [{
+            BlockDeviceMappings: [{
+              noDevice: 'true',
+              ebs: {
+                deleteOnTermination: 'true',
+                encrypted: 'true',
+                iops: '10',
+                volumeSize: '10',
+              },
+            }],
+          }],
+        },
+      };
+      const expectedResult = {
+        groupname: {
+          LaunchSpecifications: [{
+            BlockDeviceMappings: [{
+              noDevice: true,
+              ebs: {
+                deleteOnTermination: true,
+                encrypted: true,
+                iops: 10,
+                volumeSize: 10,
+              },
+            }],
+          }],
+        },
+      };
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetRequestToString'](sfrConfig);
+
+      // THEN
+      expect(JSON.parse(returnValue)).toEqual(expectedResult);
+    });
+
+    test('converts noDevice', () => {
+      // GIVEN
+      const sfrConfig = {
+        groupname: {
+          LaunchSpecifications: [{
+            BlockDeviceMappings: [{
+              noDevice: 'true',
+            }],
+          }],
+        },
+      };
+      const expectedResult = {
+        groupname: {
+          LaunchSpecifications: [{
+            BlockDeviceMappings: [{
+              noDevice: true,
+            }],
+          }],
+        },
+      };
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetRequestToString'](sfrConfig);
+
+      // THEN
+      expect(JSON.parse(returnValue)).toEqual(expectedResult);
+    });
+
+    test('converts deleteOnTermination', () => {
+      // GIVEN
+      const sfrConfig = {
+        groupname: {
+          LaunchSpecifications: [{
+            BlockDeviceMappings: [{
+              ebs: {
+                deleteOnTermination: 'true',
+              },
+            }],
+          }],
+        },
+      };
+      const expectedResult = {
+        groupname: {
+          LaunchSpecifications: [{
+            BlockDeviceMappings: [{
+              ebs: {
+                deleteOnTermination: true,
+              },
+            }],
+          }],
+        },
+      };
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetRequestToString'](sfrConfig);
+
+      // THEN
+      expect(JSON.parse(returnValue)).toEqual(expectedResult);
+    });
+
+    test('converts encrypted', () => {
+      // GIVEN
+      const sfrConfig = {
+        groupname: {
+          LaunchSpecifications: [{
+            BlockDeviceMappings: [{
+              ebs: {
+                encrypted: 'true',
+              },
+            }],
+          }],
+        },
+      };
+      const expectedResult = {
+        groupname: {
+          LaunchSpecifications: [{
+            BlockDeviceMappings: [{
+              ebs: {
+                encrypted: true,
+              },
+            }],
+          }],
+        },
+      };
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetRequestToString'](sfrConfig);
+
+      // THEN
+      expect(JSON.parse(returnValue)).toEqual(expectedResult);
+    });
+
+    test('converts volumeSize', () => {
+      // GIVEN
+      const sfrConfig = {
+        groupname: {
+          LaunchSpecifications: [{
+            BlockDeviceMappings: [{
+              ebs: {
+                volumeSize: '10',
+              },
+            }],
+          }],
+        },
+      };
+      const expectedResult = {
+        groupname: {
+          LaunchSpecifications: [{
+            BlockDeviceMappings: [{
+              ebs: {
+                volumeSize: 10,
+              },
+            }],
+          }],
+        },
+      };
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetRequestToString'](sfrConfig);
+
+      // THEN
+      expect(JSON.parse(returnValue)).toEqual(expectedResult);
+    });
+
+    test('converts iops', () => {
+      // GIVEN
+      const sfrConfig = {
+        groupname: {
+          LaunchSpecifications: [{
+            BlockDeviceMappings: [{
+              ebs: {
+                iops: '10',
+              },
+            }],
+          }],
+        },
+      };
+      const expectedResult = {
+        groupname: {
+          LaunchSpecifications: [{
+            BlockDeviceMappings: [{
+              ebs: {
+                iops: 10,
+              },
+            }],
+          }],
+        },
+      };
+
+      // WHEN
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const returnValue = handler['spotFleetRequestToString'](sfrConfig);
+
+      // THEN
+      expect(JSON.parse(returnValue)).toEqual(expectedResult);
     });
   });
 });

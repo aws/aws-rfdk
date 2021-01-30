@@ -10,11 +10,27 @@ from aws_cdk.core import (
     Environment
 )
 
+from aws_cdk.aws_ec2 import (
+    MachineImage
+)
+
 from .lib import (
     sep_stack,
 )
 
+from .config import config
+
 def main():
+    # ------------------------------
+    # Validate Config Values
+    # ------------------------------
+
+    if not config.key_pair_name:
+        print('EC2 key pair name not specified. You will not have SSH access to the render farm.')
+
+    if 'region' in config.deadline_client_linux_ami_map:
+        raise ValueError('Deadline Client Linux AMI map is required but was not specified.')
+
     # ------------------------------
     # Application
     # ------------------------------
@@ -33,6 +49,8 @@ def main():
     # ------------------------------
     sep_props = sep_stack.SEPStackProps(
         docker_recipes_stage_path=os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, 'stage'),
+        key_pair_name=config.key_pair_name,
+        worker_machine_image=MachineImage.generic_linux(config.deadline_client_linux_ami_map)
     )
     service = sep_stack.SEPStack(app, 'SEPStack', props=sep_props, env=env)
 

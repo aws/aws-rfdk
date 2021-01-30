@@ -3,5 +3,4 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// TODO: do we even need this?
 export * from './sep-requests';

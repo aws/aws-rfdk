@@ -10,7 +10,7 @@ _**Note:** This application is an illustrative example to showcase some of the c
 
 ## Architecture
 
-This sample application deploys a basic Deadline Render farm that is configured to use Deadlines [Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html). 
+This sample application deploys a basic Deadline Render farm that is configured to use Deadlines [Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html).
 
 ### Components
 
@@ -22,15 +22,15 @@ The Repository component contains the database and file system that store persis
 
 #### Render Queue
 
-The Render Queue component contains the fleet of [Deadline Remote Connection Server](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/remote-connection-server.html) instances behind an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html). This acts as the central service for Deadline applications and is the only component that interacts with the Repository.  When comparing this component to the "All in AWS Infrastructure - Basic" example it has been granted additional permissions in order to use the Spot Event Plugin.    
+The Render Queue component contains the fleet of [Deadline Remote Connection Server](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/remote-connection-server.html) instances behind an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html). This acts as the central service for Deadline applications and is the only component that interacts with the Repository. When comparing this component to the "All in AWS Infrastructure - Basic" example it has been granted additional permissions in order to use the Spot Event Plugin.
 
 #### Spot Event Plugin Configurations
 
-The Spot Event plugin requires additional Roles for both Deadline's Resource Tracker and the Spot Workers that are created and a Security Group to allow your Spot workers the ability to access the Render Queue.
+Spot Event Plugin Configuration Setup component generates and saves the [Spot Fleet Request Configurations](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#spot-fleet-request-configurations). The Spot Workers that are created will be configured to connect to the Render Queue. The Spot Event Plugin requires additional Role for Deadline's Resource Tracker.
 
 ## Prerequisites
 
-- The Spot Fleet Configuration requires an [Amazon Machine Image (AMI)](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html) with the Deadline Worker application installed. This AMI must have Deadline Installed and should be configured to connect to your repository.  For additional information on setting up your AMI please see the [Spot Event Plugin Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html).
+- The Spot Fleet Configuration requires an [Amazon Machine Image (AMI)](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html) with the Deadline Worker application installed. This AMI must have Deadline Installed and should be configured to connect to your repository. For additional information on setting up your AMI please see the [Spot Event Plugin Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html).
 - You have setup and configured the AWS CLI
 - Your AWS account already has CDK bootstrapped in the desired region by running `cdk bootstrap`
 - You must have NodeJS installed on your system

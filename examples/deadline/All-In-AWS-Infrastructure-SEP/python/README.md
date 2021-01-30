@@ -32,33 +32,58 @@ These instructions assume that your working directory is `examples/deadline/All-
     popd
     pip install ../../../../dist/python/aws-rfdk-<version>.tar.gz
     ```
-3. Stage the Docker recipes for `RenderQueue`:
+4.  Change the value in the `deadline_client_linux_ami_map` variable in `package/config.py` to include the region + AMI ID mapping of your EC2 AMI(s) with Deadline Worker. You can use the following AWS CLI query to find AMI ID's:
+    ```bash
+    aws --region <region> ec2 describe-images \
+    --owners 357466774442 \
+    --filters "Name=name,Values=*Worker*" "Name=name,Values=*<version>*" \
+    --query 'Images[*].[ImageId, Name]' \
+    --output text
+    ```
+
+    And enter it into this section of `package/config.py`:
+    ```python
+    # For example, in the us-west-2 region
+    self.deadline_client_linux_ami_map: Mapping[str, str] = {
+        'us-west-2': '<your ami id>'
+    }
+    ```
+
+    ---
+
+    **Note:** The next two steps are optional. You may skip these if you do not need SSH access into your render farm.
+
+    ---
+5.  Create an EC2 key pair to give you SSH access to the render farm:
+
+    ```bash
+    aws ec2 create-key-pair --key-name <key-name>
+    ```
+6.  Change the value of the `key_pair_name` variable in `package/config.py` to your value for `<key-name>` in the previous step:
+
+    **Note:** Save the value of the `"KeyMaterial"` field as a file in a secure location. This is your private key that you can use to SSH into the render farm.
+
+    ```python
+    self.key_pair_name: Optional[str] = '<your key pair name>'
+    ```
+7. Stage the Docker recipes for `RenderQueue`:
 
     ```bash
     # Set this value to the version of RFDK your application targets
     RFDK_VERSION=<version_of_RFDK>
 
-    # Set this value to the version of AWS Thinkbox Deadline you'd like to deploy to your farm. Deadline 10.1.9 and up are supported.
+    # Set this value to the version of AWS Thinkbox Deadline you'd like to deploy to your farm. Deadline 10.1.12 and up are supported.
     RFDK_DEADLINE_VERSION=<version_of_deadline>
 
     npx --package=aws-rfdk@${RFDK_VERSION} stage-deadline --output stage ${RFDK_DEADLINE_VERSION}
     ```
-4. Deploy all the stacks in the sample app:
+8. Deploy all the stacks in the sample app:
 
     ```bash
     cdk deploy "*"
     ```
 
-5. Connect to your Render Farm and open up the Deadline Monitor.
-
-6. Configure the Spot event plugin by following the directions in the [Spot Event Plugin documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html) with the following considerations:
-
-    Use the default security credentials by using turning "Use Local Credentials" to False and leaving both "Access Key ID" and "Secret Access Key" blank.
-    Ensure that the Region your Spot workers will be launched in is the same region as your CDK application.
-    When Creating your Spot Fleet Requests, set the IAM instance profile to "DeadlineSpotWorkerRole" and set the security group to "DeadlineSpotSecurityGroup".
-    Configure your instances to connect to the Render Queue by either creating your AMI after launching your app and preconfiguring the AMI or by setting up a userdata in the Spot Fleet Request. (see the Spot Event Plugin documentation for additional information on configuring this connection.)
-    
-7. Once you are finished with the sample app, you can tear it down by running:
+9. Once you are finished with the sample app, you can tear it down by running:
 
     ```bash
     cdk destroy "*"

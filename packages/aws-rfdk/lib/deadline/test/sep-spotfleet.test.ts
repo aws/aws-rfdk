@@ -43,11 +43,8 @@ import {
   App,
   CfnElement,
   Stack,
+  Tags,
 } from '@aws-cdk/core';
-import {
-  RFDK_VERSION,
-  TAG_NAME,
-} from '../../core/lib/runtime-info';
 import {
   escapeTokenRegex,
 } from '../../core/test/token-regex-helpers';
@@ -126,12 +123,10 @@ test('default spot fleet is created correctly', () => {
   expect(fleet.env).toBeDefined();
   expect(fleet.grantPrincipal).toBeDefined();
   expect(fleet.iamFleetRole).toBeDefined();
-  expect(fleet.instanceTags).toBeDefined();
   expect(fleet.listeningPorts).toBeDefined();
   expect(fleet.osType).toBeDefined();
   expect(fleet.role).toBeDefined();
   expect(fleet.securityGroups).toBeDefined();
-  expect(fleet.spotFleetRequestTags).toBeDefined();
   expect(fleet.userData).toBeDefined();
 
   expect(fleet.sepSpotFleetRequestConfigurations).toBeDefined();
@@ -314,36 +309,7 @@ test('user data is added correctly', () => {
   expect(userData).toMatch(new RegExp(escapeTokenRegex(newCommands)));
 });
 
-test('instance tags are added correctly', () => {
-  // GIVEN
-  const someTag = {
-    key: 'name',
-    value: 'tagValue',
-  };
-
-  // WHEN
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
-    vpc,
-    renderQueue: renderQueue,
-    fleetRole,
-    deadlineGroups: [
-      'group_name',
-    ],
-    instanceTypes: [
-      InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-    ],
-    workerMachineImage: new GenericLinuxImage({
-      'us-east-1': 'ami-any',
-    }),
-    targetCapacity: 1,
-    instanceTags: [ someTag ],
-  });
-
-  // THEN
-  expect(fleet.instanceTags).toContainEqual(someTag);
-});
-
-test('rfdk instance tags are added automatically', () => {
+test('can add tags', () => {
   // WHEN
   const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
     vpc,
@@ -361,74 +327,7 @@ test('rfdk instance tags are added automatically', () => {
     targetCapacity: 1,
   });
 
-  const className = fleet.constructor.name;
-  const tagValue = `${RFDK_VERSION}:${className}`;
-  const rfdkTag = {
-    key: TAG_NAME,
-    value: tagValue,
-  };
-
-  // THEN
-  expect(fleet.instanceTags).toContainEqual(rfdkTag);
-});
-
-test('spot fleet request tags are added correctly', () => {
-  // GIVEN
-  const someTag = {
-    key: 'name',
-    value: 'tagValue',
-  };
-
-  // WHEN
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
-    vpc,
-    renderQueue: renderQueue,
-    fleetRole,
-    deadlineGroups: [
-      'group_name',
-    ],
-    instanceTypes: [
-      InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-    ],
-    workerMachineImage: new GenericLinuxImage({
-      'us-east-1': 'ami-any',
-    }),
-    targetCapacity: 1,
-    spotFleetRequestTags: [ someTag ],
-  });
-
-  // THEN
-  expect(fleet.spotFleetRequestTags).toContainEqual(someTag);
-});
-
-test('rfdk spot fleet request tags are added automatically', () => {
-  // WHEN
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
-    vpc,
-    renderQueue: renderQueue,
-    fleetRole,
-    deadlineGroups: [
-      'group_name',
-    ],
-    instanceTypes: [
-      InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-    ],
-    workerMachineImage: new GenericLinuxImage({
-      'us-east-1': 'ami-any',
-    }),
-    targetCapacity: 1,
-  });
-
-  // THEN
-  const className = fleet.constructor.name;
-  const tagValue = `${RFDK_VERSION}:${className}`;
-  const rfdkTag = {
-    key: TAG_NAME,
-    value: tagValue,
-  };
-
-  // THEN
-  expect(fleet.spotFleetRequestTags).toContainEqual(rfdkTag);
+  Tags.of(fleet).add('name', 'tagValue');
 });
 
 test('works fine if no subnets provided', () => {

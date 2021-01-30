@@ -23,25 +23,28 @@ import {
   Role,
   ServicePrincipal,
 } from '@aws-cdk/aws-iam';
+import { Bucket } from '@aws-cdk/aws-s3';
 import {
   App,
   Stack,
 } from '@aws-cdk/core';
 import {
   IRenderQueue,
+  IVersion,
   RenderQueue,
-  SEPConfigurationSetup,
   Repository,
-  VersionQuery,
+  SEPConfigurationSetup,
 } from '../lib';
 import {
   SEPSpotFleet,
 } from '../lib/sep-spotfleet';
 
+
 describe('SEPConfigurationSetup', () => {
   let stack: Stack;
   let vpc: Vpc;
   let renderQueue: IRenderQueue;
+  let version: IVersion;
   let app: App;
   let fleetRole: Role;
   let fleet: SEPSpotFleet;
@@ -58,7 +61,20 @@ describe('SEPConfigurationSetup', () => {
     });
     vpc = new Vpc(stack, 'Vpc');
 
-    const version = new VersionQuery(stack, 'VersionQuery');
+    version = {
+      majorVersion: 10,
+      minorVersion: 1,
+      releaseVersion: 12,
+      linuxInstallers: {
+        patchVersion: 0,
+        repository: {
+          objectKey: 'testInstaller',
+          s3Bucket: new Bucket(stack, 'InstallerBucket'),
+        },
+      },
+      linuxFullVersionString: () => '10.1.12.0',
+    };
+
     renderQueue = new RenderQueue(stack, 'RQ', {
       vpc,
       images: { remoteConnectionServer: ContainerImage.fromAsset(__dirname) },
@@ -102,9 +118,10 @@ describe('SEPConfigurationSetup', () => {
     new SEPConfigurationSetup(stack, 'SEPConfigurationSetup', {
       vpc,
       renderQueue: renderQueue,
+      version,
       spotFleetOptions: {
         spotFleets: [
-          fleet, // TODO: Typescript is complaining
+          fleet,
         ],
         groupPools,
       },
@@ -121,6 +138,7 @@ describe('SEPConfigurationSetup', () => {
       new SEPConfigurationSetup(stack, 'SEPConfigurationSetup', {
         vpc,
         renderQueue: renderQueue,
+        version,
         spotFleetOptions: {
           spotFleets: [
             fleet,
@@ -138,6 +156,7 @@ describe('SEPConfigurationSetup', () => {
       vpc,
       vpcSubnets: { subnets: [ vpc.privateSubnets[0] ] },
       renderQueue: renderQueue,
+      version,
       spotFleetOptions: {
         spotFleets: [
           fleet,
@@ -164,6 +183,7 @@ describe('SEPConfigurationSetup', () => {
     new SEPConfigurationSetup(stack, 'SEPConfigurationSetup', {
       vpc,
       renderQueue: renderQueue,
+      version,
       spotFleetOptions: {
         spotFleets: [
           fleet,
@@ -174,5 +194,37 @@ describe('SEPConfigurationSetup', () => {
 
     // THEN
     cdkExpect(stack).to(haveResource('Custom::RFDK_SEPConfigurationSetup'));
+  });
+
+  test('throws with wrong deadline version', () => {
+    // GIVEN
+    const oldVersion = {
+      majorVersion: 10,
+      minorVersion: 1,
+      releaseVersion: 9,
+      linuxInstallers: {
+        patchVersion: 2,
+        repository: {
+          objectKey: 'testInstaller',
+          s3Bucket: new Bucket(stack, 'InstallerBucket2'),
+        },
+      },
+      linuxFullVersionString: () => '10.1.9.2',
+    };
+
+    // THEN
+    expect(() => {
+      new SEPConfigurationSetup(stack, 'SEPConfigurationSetup', {
+        vpc,
+        renderQueue: renderQueue,
+        version: oldVersion,
+        spotFleetOptions: {
+          spotFleets: [
+            fleet,
+          ],
+          groupPools,
+        },
+      });
+    }).toThrowError(/Minimum supported Deadline version for SEPConfigurationSetup is 10.1.12. Received: 10.1.9./);
   });
 });
