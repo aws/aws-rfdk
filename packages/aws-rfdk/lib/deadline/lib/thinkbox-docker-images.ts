@@ -20,6 +20,7 @@ import {
   Construct,
   CustomResource,
   Duration,
+  Stack,
   Token,
 } from '@aws-cdk/core';
 
@@ -28,6 +29,7 @@ import {
   RenderQueueImages,
   ThinkboxManagedDeadlineDockerRecipes,
   UsageBasedLicensingImages,
+  VersionQuery,
 } from '.';
 
 /**
@@ -225,6 +227,15 @@ AWS Thinkbox EULA.
       errors.push(ThinkboxDockerImages.AWS_THINKBOX_EULA_MESSAGE);
     }
 
+    // Using the output of VersionQuery across stacks can cause issues. CloudFormation stack outputs cannot change if
+    // a resource in another stack is referencing it.
+    if (this.version instanceof VersionQuery) {
+      const versionStack = Stack.of(this.version);
+      const thisStack = Stack.of(this);
+      if (versionStack != thisStack) {
+        errors.push('A VersionQuery can not be supplied from a different stack');
+      }
+    }
     return errors;
   }
 

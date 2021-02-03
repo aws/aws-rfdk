@@ -52,13 +52,16 @@ import {
 import {
   Construct,
   IConstruct,
+  Stack,
 } from '@aws-cdk/core';
 
 import {
   ECSConnectOptions,
   InstanceConnectOptions,
   IRepository,
+  IVersion,
   RenderQueueProps,
+  VersionQuery,
 } from '.';
 
 import {
@@ -232,6 +235,11 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    */
   private readonly taskDefinition: Ec2TaskDefinition;
 
+  /**
+   * The version of Deadline installed in the container images
+   */
+  private readonly version?: IVersion;
+
   constructor(scope: Construct, id: string, props: RenderQueueProps) {
     super(scope, id);
 
@@ -242,6 +250,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     if (props.renderQueueSize && props.renderQueueSize.desired !== undefined && props.renderQueueSize.desired > 1) {
       throw new Error(`renderQueueSize.desired cannot be greater than 1 - got ${props.renderQueueSize.desired}`);
     }
+
+    this.version = props?.version;
 
     let externalProtocol: ApplicationProtocol;
     if ( props.trafficEncryption?.externalTLS ) {
@@ -442,6 +452,22 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
+  }
+
+  protected onValidate(): string[] {
+    const validationErrors = [];
+
+    // Using the output of VersionQuery across stacks can cause issues. CloudFormation stack outputs cannot change if
+    // a resource in another stack is referencing it.
+    if (this.version instanceof VersionQuery) {
+      const versionStack = Stack.of(this.version);
+      const thisStack = Stack.of(this);
+      if (versionStack != thisStack) {
+        validationErrors.push('A VersionQuery can not be supplied from a different stack');
+      }
+    }
+
+    return validationErrors;
   }
 
   /**
