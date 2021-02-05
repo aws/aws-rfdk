@@ -143,13 +143,6 @@ export class SEPStack extends Stack {
       ],
     });
 
-    // Adds the following IAM managed Policies to the Render Queue so it has the necessary permissions
-    // to run the Spot Event Plugin and launch a Resource Tracker:
-    // * AWSThinkboxDeadlineSpotEventPluginAdminPolicy
-    // * AWSThinkboxDeadlineResourceTrackerAdminPolicy
-    // Also, adds policies that allow the Render Queue to tag spot fleet requests and to pass the spot fleet role.
-    renderQueue.addSEPPolicies(true, [fleetRole.roleArn]);
-
     const fleet = new SEPSpotFleet(this, 'SEPSpotFleet', {
       vpc,
       renderQueue,

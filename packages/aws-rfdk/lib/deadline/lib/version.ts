@@ -146,6 +146,13 @@ export class Version implements IPatchVersion {
   }
 
   /**
+   * @inheritdoc
+   */
+  public get versionString(): string {
+    return this.toString();
+  }
+
+  /**
    * This method compares 2 versions.
    *
    * @param version version to compare

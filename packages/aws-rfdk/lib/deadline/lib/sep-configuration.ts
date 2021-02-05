@@ -11,6 +11,11 @@ import {
   SubnetType,
 } from '@aws-cdk/aws-ec2';
 import {
+  Role,
+  Policy,
+  PolicyStatement,
+} from '@aws-cdk/aws-iam';
+import {
   Code,
   Function as LambdaFunction,
   LayerVersion,
@@ -26,7 +31,7 @@ import {
 } from '@aws-cdk/core';
 import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
 import { ISEPConfiguratorResourceProperties } from '../../lambdas/nodejs/sep-configuration';
-import { IRenderQueue } from './render-queue';
+import { IRenderQueue, RenderQueue } from './render-queue';
 import { SEPSpotFleet } from './sep-spotfleet';
 import { Version } from './version';
 import { IVersion } from './version-ref';
@@ -301,16 +306,6 @@ export class SEPConfigurationSetup extends Construct {
   constructor(scope: Construct, id: string, props: SEPConfigurationSetupProps) {
     super(scope, id);
 
-    // We do not check the patch version, so it's set to 0.
-    const version = new Version([props.version.majorVersion, props.version.minorVersion, props.version.releaseVersion, 0]);
-    const minimumVersion: Version = new Version([10, 1, 12, 0]);
-
-    if (version.isLessThan(minimumVersion)) {
-      throw new Error(`Minimum supported Deadline version for ${this.constructor.name} is ` +
-      `${minimumVersion.majorVersion}.${minimumVersion.minorVersion}.${minimumVersion.releaseVersion}. ` +
-      `Received: ${version.majorVersion}.${version.minorVersion}.${version.releaseVersion}.`);
-    }
-
     const region = Stack.of(this).region;
     const openSslLayerName = 'openssl-al2';
     const openSslLayerArns: any = ARNS[openSslLayerName];
@@ -332,6 +327,44 @@ export class SEPConfigurationSetup extends Construct {
       timeout: Duration.minutes(2),
       logRetention: RetentionDays.ONE_WEEK,
     });
+
+    if (props.renderQueue instanceof RenderQueue) {
+      // We do not check the patch version, so it's set to 0.
+      const minimumVersion: Version = new Version([10, 1, 12, 0]);
+
+      if (props.renderQueue.version.isLessThan(minimumVersion)) {
+        throw new Error(`Minimum supported Deadline version for ${this.constructor.name} is ` +
+        `${minimumVersion.versionString}. ` +
+        `Received: ${props.version.versionString}.`);
+      }
+
+      props.renderQueue.addSEPPolicies();
+
+      new Policy(this, 'SpotFleetPassRolePolicy', {
+        statements: [
+          new PolicyStatement({
+            actions: [
+              'iam:PassRole',
+            ],
+            resources: props.spotFleetOptions.spotFleets?.map(sf => sf.role.roleArn),
+            conditions: {
+              StringLike: {
+                'iam:PassedToService': 'ec2.amazonaws.com',
+              },
+            },
+          }),
+          new PolicyStatement({
+            actions: [
+              'ec2:CreateTags',
+            ],
+            resources: ['arn:aws:ec2:*:*:spot-fleet-request/*'],
+          }),
+        ],
+        roles: [
+          props.renderQueue.grantPrincipal as Role,
+        ],
+      });
+    }
 
     lamdbaFunc.connections.allowToDefaultPort(props.renderQueue);
     props.caCert?.grantRead(lamdbaFunc.grantPrincipal);

@@ -23,7 +23,6 @@ import {
   Role,
   ServicePrincipal,
 } from '@aws-cdk/aws-iam';
-import { Bucket } from '@aws-cdk/aws-s3';
 import {
   App,
   Stack,
@@ -34,11 +33,11 @@ import {
   RenderQueue,
   Repository,
   SEPConfigurationSetup,
+  VersionQuery,
 } from '../lib';
 import {
   SEPSpotFleet,
 } from '../lib/sep-spotfleet';
-
 
 describe('SEPConfigurationSetup', () => {
   let stack: Stack;
@@ -61,19 +60,7 @@ describe('SEPConfigurationSetup', () => {
     });
     vpc = new Vpc(stack, 'Vpc');
 
-    version = {
-      majorVersion: 10,
-      minorVersion: 1,
-      releaseVersion: 12,
-      linuxInstallers: {
-        patchVersion: 0,
-        repository: {
-          objectKey: 'testInstaller',
-          s3Bucket: new Bucket(stack, 'InstallerBucket'),
-        },
-      },
-      linuxFullVersionString: () => '10.1.12.0',
-    };
+    version = new VersionQuery(stack, 'Version');
 
     renderQueue = new RenderQueue(stack, 'RQ', {
       vpc,
@@ -196,28 +183,68 @@ describe('SEPConfigurationSetup', () => {
     cdkExpect(stack).to(haveResource('Custom::RFDK_SEPConfigurationSetup'));
   });
 
-  test('throws with wrong deadline version', () => {
+  describe('throws with wrong deadline version', () => {
+    test.each([
+      ['10.1.9'],
+      ['10.1.10'],
+    ])('%s', (versionString: string) => {
+      // GIVEN
+      const newStack = new Stack(app, 'NewStack');
+      version = new VersionQuery(newStack, 'OldVersion', {
+        version: versionString,
+      });
+
+      renderQueue = new RenderQueue(newStack, 'OldRenderQueue', {
+        vpc,
+        images: { remoteConnectionServer: ContainerImage.fromAsset(__dirname) },
+        repository: new Repository(newStack, 'Repository', {
+          vpc,
+          version,
+        }),
+        version,
+      });
+
+      // THEN
+      expect(() => {
+        new SEPConfigurationSetup(newStack, 'SEPConfigurationSetup', {
+          vpc,
+          renderQueue: renderQueue,
+          version,
+          spotFleetOptions: {
+            spotFleets: [
+              fleet,
+            ],
+            groupPools,
+          },
+        });
+      }).toThrowError(`Minimum supported Deadline version for SEPConfigurationSetup is 10.1.12.0. Received: ${versionString}.`);
+    });
+  });
+
+  test('does not throw with min deadline version', () => {
     // GIVEN
-    const oldVersion = {
-      majorVersion: 10,
-      minorVersion: 1,
-      releaseVersion: 9,
-      linuxInstallers: {
-        patchVersion: 2,
-        repository: {
-          objectKey: 'testInstaller',
-          s3Bucket: new Bucket(stack, 'InstallerBucket2'),
-        },
-      },
-      linuxFullVersionString: () => '10.1.9.2',
-    };
+    const versionString = '10.1.12';
+    const newStack = new Stack(app, 'NewStack');
+    version = new VersionQuery(newStack, 'OldVersion', {
+      version: versionString,
+    });
+
+    renderQueue = new RenderQueue(newStack, 'OldRenderQueue', {
+      vpc,
+      images: { remoteConnectionServer: ContainerImage.fromAsset(__dirname) },
+      repository: new Repository(newStack, 'Repository', {
+        vpc,
+        version,
+      }),
+      version,
+    });
 
     // THEN
     expect(() => {
-      new SEPConfigurationSetup(stack, 'SEPConfigurationSetup', {
+      new SEPConfigurationSetup(newStack, 'SEPConfigurationSetup', {
         vpc,
         renderQueue: renderQueue,
-        version: oldVersion,
+        version,
         spotFleetOptions: {
           spotFleets: [
             fleet,
@@ -225,6 +252,6 @@ describe('SEPConfigurationSetup', () => {
           groupPools,
         },
       });
-    }).toThrowError(/Minimum supported Deadline version for SEPConfigurationSetup is 10.1.12. Received: 10.1.9./);
+    }).not.toThrow();
   });
 });

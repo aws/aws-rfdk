@@ -26,7 +26,9 @@ import {
   IVersionProviderResourceProperties,
 } from '../../lambdas/nodejs/version-provider';
 
+import { Version } from './version';
 import {
+  IReleaseVersion,
   IVersion,
   PlatformInstallers,
 } from './version-ref';
@@ -70,7 +72,17 @@ abstract class VersionQueryBase extends Construct implements IVersion {
   /**
    * @inheritdoc
    */
+  readonly abstract versionString: string;
+
+  /**
+   * @inheritdoc
+   */
   abstract linuxFullVersionString(): string;
+
+  /**
+   * @inheritdoc
+   */
+  abstract isLessThan(other: Version): boolean;
 }
 
 /**
@@ -92,6 +104,16 @@ abstract class VersionQueryBase extends Construct implements IVersion {
  */
 export class VersionQuery extends VersionQueryBase {
   /**
+   * Regular expression for valid version query expressions
+   */
+  private static readonly EXPRESSION_REGEX = /^(?:(\d+)(?:\.(\d+)(?:\.(\d+)(?:\.(\d+))?)?)?)?$/;
+
+  /**
+   * The expression used as input to the `VersionQuery`
+   */
+  readonly expression?: string;
+
+  /**
    * @inheritdoc
    */
   readonly majorVersion: number;
@@ -111,8 +133,34 @@ export class VersionQuery extends VersionQueryBase {
    */
   readonly linuxInstallers: PlatformInstallers;
 
+  /**
+   * Custom resource that provides the resolved Deadline version components and installer URIs
+   */
+  private readonly deadlineResource: CustomResource;
+
+  /**
+   * The pinned numeric version components extracted from the VersionQuery expression.
+   */
+  private readonly pinnedVersionComponents: number[];
+
   constructor(scope: Construct, id: string, props?: VersionQueryProps) {
     super(scope, id);
+
+    this.expression = props?.version;
+
+    const match = (props?.version ?? '').match(VersionQuery.EXPRESSION_REGEX);
+    if (match === null) {
+      throw new Error(`Invalid version expression "${props!.version}`);
+    }
+    this.pinnedVersionComponents = (
+      match
+        // First capture group is the entire matched string, so slice it off
+        .slice(1)
+        // Capture groups that are not matched return as undefined, so we filter them out
+        .filter(component => component)
+        // Parse strings to numbers
+        .map(component => Number(component))
+    );
 
     const lambdaCode = Code.fromAsset(join(__dirname, '..', '..', 'lambdas', 'nodejs'));
 
@@ -133,23 +181,42 @@ export class VersionQuery extends VersionQueryBase {
       forceRun: this.forceRun(props?.version),
     };
 
-    const deadlineResource = new CustomResource(this, 'DeadlineResource', {
+    this.deadlineResource = new CustomResource(this, 'DeadlineResource', {
       serviceToken: lambdaFunc.functionArn,
       properties: deadlineProperties,
       resourceType: 'Custom::RFDK_DEADLINE_INSTALLERS',
     });
 
-    this.majorVersion = Token.asNumber(deadlineResource.getAtt('MajorVersion'));
-    this.minorVersion = Token.asNumber(deadlineResource.getAtt('MinorVersion'));
-    this.releaseVersion = Token.asNumber(deadlineResource.getAtt('ReleaseVersion'));
+    this.majorVersion = this.versionComponent({
+      expressionIndex: 0,
+      customResourceAttribute: 'MajorVersion',
+    });
+    this.minorVersion = this.versionComponent({
+      expressionIndex: 1,
+      customResourceAttribute: 'MinorVersion',
+    });
+    this.releaseVersion = this.versionComponent({
+      expressionIndex: 2,
+      customResourceAttribute: 'ReleaseVersion',
+    });
 
     this.linuxInstallers = {
-      patchVersion: Token.asNumber(deadlineResource.getAtt('LinuxPatchVersion')),
+      patchVersion: Token.asNumber(this.deadlineResource.getAtt('LinuxPatchVersion')),
       repository: {
-        objectKey: Token.asString(deadlineResource.getAtt('LinuxRepositoryInstaller')),
-        s3Bucket: Bucket.fromBucketName(scope, 'InstallerBucket', Token.asString(deadlineResource.getAtt('S3Bucket'))),
+        objectKey: this.deadlineResource.getAttString('LinuxRepositoryInstaller'),
+        s3Bucket: Bucket.fromBucketName(scope, 'InstallerBucket', this.deadlineResource.getAttString('S3Bucket')),
       },
     };
+  }
+
+  private versionComponent(args: {
+    expressionIndex: number,
+    customResourceAttribute: string
+  }) {
+    const { expressionIndex, customResourceAttribute } = args;
+    return this.pinnedVersionComponents.length > expressionIndex
+      ? this.pinnedVersionComponents[expressionIndex]
+      : Token.asNumber(this.deadlineResource.getAtt(customResourceAttribute));
   }
 
   public linuxFullVersionString(): string {
@@ -161,6 +228,40 @@ export class VersionQuery extends VersionQueryBase {
       : this.linuxInstallers.patchVersion.toString();
 
     return `${major}.${minor}.${release}.${patch}`;
+  }
+
+  public isLessThan(other: Version): boolean {
+    if (other.patchVersion !== 0) {
+      throw new Error('Cannot compare a VersionQuery to a fully-qualified version with a non-zero patch number');
+    }
+
+    // We compare each component from highest order to lowest
+    const componentGetters: Array<(version: IReleaseVersion) => number> = [
+      v => v.majorVersion,
+      v => v.minorVersion,
+      v => v.releaseVersion,
+    ];
+
+    for (const componentGetter of componentGetters) {
+      const thisComponent = componentGetter(this);
+      const otherComponent = componentGetter(other);
+
+      if (Token.isUnresolved(thisComponent)) {
+        // Unresolved components are unpinned. These will resolve to the latest and are not less than any provided
+        // version
+        return false;
+      } else {
+        const componentDiff = thisComponent - otherComponent;
+        if (componentDiff !== 0) {
+          // If the components are different, return whether this component is smaller than the other component
+          return componentDiff < 0;
+        }
+      }
+    }
+
+    // If we've exited the loop naturally, it means all version components are pinned and equal. This means the version
+    // is not less than the other, they are the same
+    return false;
   }
 
   /**
@@ -182,5 +283,9 @@ export class VersionQuery extends VersionQueryBase {
       return false;
     }
     return true;
+  }
+
+  public get versionString(): string {
+    return this.expression ?? '(latest)';
   }
 }
