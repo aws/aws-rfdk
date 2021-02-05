@@ -198,6 +198,7 @@ export class LoadBalancerFactory {
     const loadBalancer = new ApplicationLoadBalancer(scope, `ALB_${loadBalancerindex}`, {
       vpc: this.vpc,
       internetFacing: false,
+      vpcSubnets: healthMonitorProps.vpcSubnets,
       deletionProtection: healthMonitorProps.deletionProtection ?? true,
     });
     // Enabling dropping of invalid HTTP header fields on the load balancer to prevent http smuggling attacks.
