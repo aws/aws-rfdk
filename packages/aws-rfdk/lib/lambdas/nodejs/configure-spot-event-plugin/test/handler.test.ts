@@ -6,11 +6,12 @@
 /* eslint-disable dot-notation */
 
 import * as AWS from 'aws-sdk';
-import { mock, restore, setSDKInstance } from 'aws-sdk-mock';
 import {
-  IConnectionOptions,
+  ConnectionOptions,
   SEPConfiguratorResource,
 } from '../handler';
+
+jest.mock('../../lib/secrets-manager/read-certificate');
 
 const secretArn: string = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/Cert';
 
@@ -24,13 +25,11 @@ describe('SEPConfiguratorResource', () => {
   const validSpotPluginConfig = {
     ResourceTracker: true,
   };
-  const validConnection: IConnectionOptions = {
+  const validConnection: ConnectionOptions = {
     hostname: 'internal-hostname.com',
     protocol: 'HTTPS',
     port: '4433',
-    caCertificate: secretArn,
-    passphrase: secretArn,
-    pfxCertificate: secretArn,
+    caCertificateArn: secretArn,
   };
   const validSpotFleetConfig = {
     group_name1: {
@@ -69,8 +68,9 @@ describe('SEPConfiguratorResource', () => {
       };
 
       const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-      // tslint:disable-next-line: no-string-literal
-      handler['readCertificateData'] = jest.fn();
+
+      jest.requireMock('../../lib/secrets-manager/read-certificate').readCertificateData.mockReturnValue(Promise.resolve('BEGIN CERTIFICATE'));
+
       async function returnSpotEventPluginRequests(_v1: any): Promise<any> {
         return mockEventPluginRequests;
       }
@@ -114,7 +114,7 @@ describe('SEPConfiguratorResource', () => {
       // THEN
       expect(result).toBeUndefined();
       expect(mockConfigureSpotEventPlugin.mock.calls.length).toBe(1);
-      expect(mockConfigureSpotEventPlugin.mock.calls[0][0]).toEqual([{ Key: 'ResourceTracker', Value: true }]);
+      expect(mockConfigureSpotEventPlugin.mock.calls[0][0]).toContainEqual({ Key: 'ResourceTracker', Value: true });
     });
 
     test('save both configs', async () => {
@@ -137,7 +137,7 @@ describe('SEPConfiguratorResource', () => {
       expect(mockSaveServerData.mock.calls[0][0]).toEqual(JSON.stringify(allConfigs.spotFleetRequestConfigurations));
 
       expect(mockConfigureSpotEventPlugin.mock.calls.length).toBe(1);
-      expect(mockConfigureSpotEventPlugin.mock.calls[0][0]).toEqual([{ Key: 'ResourceTracker', Value: true }]);
+      expect(mockConfigureSpotEventPlugin.mock.calls[0][0]).toContainEqual({ Key: 'ResourceTracker', Value: true });
     });
 
     test('log when cannot save spot fleet request configs', async () => {
@@ -173,64 +173,6 @@ describe('SEPConfiguratorResource', () => {
     });
   });
 
-  describe('readCertificateData', () => {
-    beforeEach(() => {
-      setSDKInstance(AWS);
-    });
-
-    afterEach(() => {
-      restore('SecretsManager');
-    });
-
-    test('success', async () => {
-      // GIVEN
-      const certData = 'BEGIN CERTIFICATE';
-      const secretContents = {
-        SecretString: certData,
-      };
-      const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
-      mock('SecretsManager', 'getSecretValue', mockGetSecret);
-      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-
-      // WHEN
-      // tslint:disable-next-line: no-string-literal
-      const data = await handler['readCertificateData'](secretArn);
-
-      // THEN
-      expect(data).toStrictEqual(certData);
-    });
-
-    test('not a certificate', async () => {
-      // GIVEN
-      const certData = 'NOT A CERTIFICATE';
-      const secretContents = {
-        SecretString: certData,
-      };
-      const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
-      mock('SecretsManager', 'getSecretValue', mockGetSecret);
-      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-
-      // THEN
-      // tslint:disable-next-line: no-string-literal
-      await expect(handler['readCertificateData'](secretArn)).rejects.toThrowError(/must contain a Certificate in PEM format/);
-    });
-
-    test('binary data', async () => {
-      // GIVEN
-      const certData = Buffer.from('BEGIN CERTIFICATE', 'utf-8');
-      const secretContents = {
-        SecretBinary: certData,
-      };
-      const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
-      mock('SecretsManager', 'getSecretValue', mockGetSecret);
-      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-
-      // THEN
-      // tslint:disable-next-line: no-string-literal
-      await expect(handler['readCertificateData'](secretArn)).rejects.toThrowError(/must contain a Certificate in PEM format/);
-    });
-  });
-
   describe('.validateInput()', () => {
     describe('should return true if', () => {
       test.each<any>([
@@ -261,9 +203,7 @@ describe('SEPConfiguratorResource', () => {
     const noPortConnection = {
       hostname: 'internal-hostname.us-east-1.elb.amazonaws.com',
       protocol: 'HTTPS',
-      caCertificate: secretArn,
-      passphrase: secretArn,
-      pfxCertificate: secretArn,
+      caCertificateArn: secretArn,
     };
     const invalidHostnameConnection = {
       hostname: 10,
@@ -304,19 +244,7 @@ describe('SEPConfiguratorResource', () => {
       hostname: 'internal-hostname.us-east-1.elb.amazonaws.com',
       protocol: 'HTTPS',
       port: '4433',
-      caCertificate: 'notArn',
-    };
-    const invalidPassphraseConnection = {
-      hostname: 'internal-hostname.us-east-1.elb.amazonaws.com',
-      protocol: 'HTTPS',
-      port: '4433',
-      passphrase: 'notArn',
-    };
-    const invalidPfxConnection = {
-      hostname: 'internal-hostname.us-east-1.elb.amazonaws.com',
-      protocol: 'HTTPS',
-      port: '4433',
-      pfxCertificate: 'notArn',
+      caCertificateArn: 'notArn',
     };
     const invalidSpotFleetConfig = '{ inValid: 10 }';
 
@@ -370,8 +298,6 @@ describe('SEPConfiguratorResource', () => {
         noHostnameConnection,
         noPortConnection,
         invalidCaCertConnection,
-        invalidPassphraseConnection,
-        invalidPfxConnection,
         invalidHostnameConnection,
         invalidProtocolConnection,
         invalidProtocolTypeConnection,
@@ -397,15 +323,13 @@ describe('SEPConfiguratorResource', () => {
         expect(returnValue).toBeFalsy();
       });
 
-      describe('.implementsIConnectionOptions()', () => {
+      describe('.implementsConnectionOptions()', () => {
         describe('should return false if', () => {
           test.each<any>([
             noProtocolConnection,
             noHostnameConnection,
             noPortConnection,
             invalidCaCertConnection,
-            invalidPassphraseConnection,
-            invalidPfxConnection,
             invalidHostnameConnection,
             invalidProtocolConnection,
             invalidProtocolTypeConnection,
@@ -418,7 +342,7 @@ describe('SEPConfiguratorResource', () => {
           ])('invalid connection', (input: any) => {
             // WHEN
             const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-            const returnValue = handler['implementsIConnectionOptions'](input);
+            const returnValue = handler['implementsConnectionOptions'](input);
 
             // THEN
             expect(returnValue).toBeFalsy();
@@ -429,7 +353,7 @@ describe('SEPConfiguratorResource', () => {
           test('valid connection', () => {
             // WHEN
             const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-            const returnValue = handler['implementsIConnectionOptions'](validConnection);
+            const returnValue = handler['implementsConnectionOptions'](validConnection);
 
             // THEN
             expect(returnValue).toBeTruthy();
@@ -533,7 +457,7 @@ describe('SEPConfiguratorResource', () => {
   describe('.spotEventPluginRequests()', () => {
     test('creates a valid object with http', async () => {
       // GIVEN
-      const validHTTPConnection: IConnectionOptions = {
+      const validHTTPConnection: ConnectionOptions = {
         hostname: 'internal-hostname.com',
         protocol: 'HTTP',
         port: '8080',
@@ -548,20 +472,18 @@ describe('SEPConfiguratorResource', () => {
 
     test('creates a valid object with https', async () => {
       // GIVEN
-      const validHTTPSConnection: IConnectionOptions = {
+      const validHTTPSConnection: ConnectionOptions = {
         hostname: 'internal-hostname.com',
         protocol: 'HTTP',
         port: '8080',
-        caCertificate: secretArn,
+        caCertificateArn: secretArn,
       };
 
       // WHEN
       const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-      async function returnCerificateContent(_v1: any): Promise<any> {
-        return 'BEGIN CERTIFICATE';
-      }
-      // tslint:disable-next-line: no-string-literal
-      handler['readCertificateData'] = jest.fn( (a) => returnCerificateContent(a) );
+
+      jest.requireMock('../../lib/secrets-manager/read-certificate').readCertificateData.mockReturnValue(Promise.resolve('BEGIN CERTIFICATE'));
+
       const result = await handler['spotEventPluginRequests'](validHTTPSConnection);
 
       expect(result).toBeDefined();
@@ -571,134 +493,123 @@ describe('SEPConfiguratorResource', () => {
   describe('.spotFleetPluginConfigsToArray()', () => {
     test('converts DeleteInterruptedSlaves', () => {
       // GIVEN
-      let pluginConfig = {
+      const pluginConfig = {
         DeleteInterruptedSlaves: 'true',
       };
-      const expectedResult = [{
+      const expectedResult = {
         Key: 'DeleteInterruptedSlaves',
         Value: true,
-      }];
+      };
 
       // WHEN
       const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
       const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
 
       // THEN
-      expect(returnValue).toEqual(expectedResult);
+      expect(returnValue).toContainEqual(expectedResult);
     });
 
     test('converts DeleteTerminatedSlaves', () => {
       // GIVEN
-      let pluginConfig = {
+      const pluginConfig = {
         DeleteTerminatedSlaves: 'true',
       };
-      const expectedResult = [{
+      const expectedResult = {
         Key: 'DeleteTerminatedSlaves',
         Value: true,
-      }];
+      };
 
       // WHEN
       const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
       const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
 
       // THEN
-      expect(returnValue).toEqual(expectedResult);
+      expect(returnValue).toContainEqual(expectedResult);
     });
 
     test('converts IdleShutdown', () => {
       // GIVEN
-      let pluginConfig = {
+      const pluginConfig = {
         IdleShutdown: '10',
       };
-      const expectedResult = [{
+      const expectedResult = {
         Key: 'IdleShutdown',
         Value: 10,
-      }];
+      };
 
       // WHEN
       const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
       const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
 
       // THEN
-      expect(returnValue).toEqual(expectedResult);
+      expect(returnValue).toContainEqual(expectedResult);
     });
 
     test('converts ResourceTracker', () => {
       // GIVEN
-      let pluginConfig = {
+      const pluginConfig = {
         ResourceTracker: 'true',
       };
-      const expectedResult = [{
+      const expectedResult = {
         Key: 'ResourceTracker',
         Value: true,
-      }];
+      };
 
       // WHEN
       const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
       const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
 
       // THEN
-      expect(returnValue).toEqual(expectedResult);
+      expect(returnValue).toContainEqual(expectedResult);
     });
 
     test('converts StaggerInstances', () => {
       // GIVEN
-      let pluginConfig = {
+      const pluginConfig = {
         StaggerInstances: 'true',
       };
-      const expectedResult = [{
+      const expectedResult = {
         Key: 'StaggerInstances',
         Value: true,
-      }];
+      };
 
       // WHEN
       const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
       const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
 
       // THEN
-      expect(returnValue).toEqual(expectedResult);
+      expect(returnValue).toContainEqual(expectedResult);
     });
 
     test('converts StrictHardCap', () => {
       // GIVEN
-      let pluginConfig = {
+      const pluginConfig = {
         StrictHardCap: 'true',
       };
-      const expectedResult = [{
+      const expectedResult = {
         Key: 'StrictHardCap',
         Value: true,
-      }];
-
-      // WHEN
-      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-      const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
-
-      // THEN
-      expect(returnValue).toEqual(expectedResult);
-    });
-
-    test('converts UseLocalCredentials', () => {
-      // GIVEN
-      let pluginConfig = {
-        UseLocalCredentials: 'true',
       };
-      const expectedResult = [{
-        Key: 'UseLocalCredentials',
-        Value: true,
-      }];
 
       // WHEN
       const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
       const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
 
       // THEN
-      expect(returnValue).toEqual(expectedResult);
+      expect(returnValue).toContainEqual(expectedResult);
     });
 
     test('skips undefined values', () => {
       // GIVEN
-      let pluginConfig = {
+      const pluginConfig = {
         DeleteInterruptedSlaves: undefined,
+      };
+      const convertedResult1 = {
+        Key: 'DeleteInterruptedSlaves',
+        Value: undefined,
+      };
+      const convertedResult2 = {
+        Key: 'DeleteInterruptedSlaves',
       };
 
       // WHEN
@@ -706,7 +617,8 @@ describe('SEPConfiguratorResource', () => {
       const returnValue = handler['spotFleetPluginConfigsToArray'](pluginConfig);
 
       // THEN
-      expect(returnValue).toEqual([]);
+      expect(returnValue).not.toContainEqual(convertedResult1);
+      expect(returnValue).not.toContainEqual(convertedResult2);
     });
   });
 

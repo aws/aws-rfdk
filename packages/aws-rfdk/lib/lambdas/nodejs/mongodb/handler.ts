@@ -16,6 +16,7 @@ import {
   writeAsciiFile,
 } from '../lib/filesystem';
 import {
+  readCertificateData,
   Secret,
 } from '../lib/secrets-manager';
 import {
@@ -130,11 +131,7 @@ export class MongoDbConfigure extends SimpleCustomResource {
    * @param certificateArn
    */
   protected async readCertificateData(certificateArn: string): Promise<string> {
-    const data = await Secret.fromArn(certificateArn, this.secretsManagerClient).getValue();
-    if (Buffer.isBuffer(data) || !/BEGIN CERTIFICATE/.test(data as string)) {
-      throw new Error(`CA Certificate Secret (${certificateArn}) must contain a Certificate in PEM format.`);
-    }
-    return data as string;
+    return await readCertificateData(certificateArn, this.secretsManagerClient);
   }
 
   /**

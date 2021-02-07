@@ -30,9 +30,9 @@ import {
   Stack,
 } from '@aws-cdk/core';
 import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
-import { ISEPConfiguratorResourceProperties } from '../../lambdas/nodejs/sep-configuration';
+import { SEPConfiguratorResourceProperties } from '../../lambdas/nodejs/configure-spot-event-plugin';
 import { IRenderQueue, RenderQueue } from './render-queue';
-import { SEPSpotFleet } from './sep-spotfleet';
+import { SpotEventPluginFleet } from './sep-spotfleet';
 import { Version } from './version';
 import { IVersion } from './version-ref';
 
@@ -41,7 +41,7 @@ import { IVersion } from './version-ref';
  */
 export enum SpotEventPluginState {
   /**
-   * All jobs and Workers will trigger the events for this plugin.
+   * The Render Queue, all jobs and Workers will trigger the events for this plugin.
    */
   GLOBAL_ENABLED = 'Global Enabled',
 
@@ -52,7 +52,7 @@ export enum SpotEventPluginState {
 }
 
 /**
- * Different logging levels.
+ * Logging verbosity levels for the Spot Event Plugin.
  */
 export enum SpotEventPluginLoggingLevel {
   /**
@@ -78,6 +78,7 @@ export enum SpotEventPluginLoggingLevel {
 
 /**
  * How the Spot Event Plugin should handle Pre Job Tasks.
+ * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/job-scripts.html
  */
 export enum SpotEventPluginPreJobTaskMode {
   /**
@@ -99,7 +100,8 @@ export enum SpotEventPluginPreJobTaskMode {
 /**
  * The Worker Extra Info column to be used to display AWS Instance Status
  * if the instance has been marked to be stopped or terminated by EC2 or Spot Event Plugin.
- * See "AWS Instance Status" option at https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html?highlight=spot%20even%20plugin#event-plugin-configuration-options
+ * See "AWS Instance Status" option at https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
+ * and https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/worker-config.html#extra-info
  */
 export enum SpotEventPluginAwsInstanceStatus {
   DISABLED = 'Disabled',
@@ -116,15 +118,16 @@ export enum SpotEventPluginAwsInstanceStatus {
 }
 
 /**
- * Spot Event Plugin configuration options
+ * Spot Event Plugin configuration.
+ * For more details see https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
  */
-export interface SEPConfigurationProperties {
+export interface SpotEventPluginConfiguration {
   /**
-   * The array of Spot Event Plugin spot fleets used to generate the mapping between your groups and spot fleet requests.
+   * The array of Spot Event Plugin spot fleets used to generate the mapping between groups and spot fleet requests.
    *
    * @default Spot Fleet Request Configurations will not be updated.
    */
-  readonly spotFleets?: SEPSpotFleet[];
+  readonly spotFleets?: SpotEventPluginFleet[];
 
   /**
    * How the event plug-in should respond to events.
@@ -136,6 +139,7 @@ export interface SEPConfigurationProperties {
   /**
    * Determines whether Deadline Resource Tracker should be used.
    * Only disable for AMIs with Deadline 10.0.26 or earlier.
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/resource-tracker-overview.html
    *
    * @default true
    */
@@ -143,6 +147,7 @@ export interface SEPConfigurationProperties {
 
   /**
    * Spot Event Plugin logging level.
+   * Note that Spot Event Plugin adds output to the logs of the render queue and the Workers.
    *
    * @default SpotEventPluginLoggingLevel.STANDARD
    */
@@ -151,20 +156,20 @@ export interface SEPConfigurationProperties {
   /**
    * The AWS region in which to start the spot fleet request.
    *
-   * @default The region of the current stack.
+   * @default The region of the Render Queue if it is available; otherwise the region of the current stack.
    */
   readonly region?: string;
 
   /**
-   * Number of minutes that a AWS Worker will wait in a non-rendering state before it is shutdown.
+   * Number of minutes that an AWS Worker will wait in a non-rendering state before it is shutdown.
    *
    * @default 10
    */
   readonly idleShutdown?: number;
 
   /**
-   * Determines fi Deadline Spot Event Plugin terminated AWS Workers will be deleted from the Workers Panel on the next House Cleaning cycle.
-   * Warning: The terminated Worker’s reports will also be deleted for each Worker, which may be undesired for future debugging a render job issue.
+   * Determines if Deadline Spot Event Plugin terminated AWS Workers will be deleted from the Workers Panel on the next House Cleaning cycle.
+   * Warning: The terminated Worker's reports will also be deleted for each Worker, which may be undesired for future debugging of a render job issue.
    *
    * @default false
    */
@@ -172,7 +177,7 @@ export interface SEPConfigurationProperties {
 
   /**
    * Determines if EC2 Spot interrupted AWS Workers will be deleted from the Workers Panel on the next House Cleaning cycle.
-   * Warning: The terminated Worker’s reports will also be deleted for each Worker, which may be undesired for future debugging a render job issue.
+   * Warning: The terminated Worker's reports will also be deleted for each Worker, which may be undesired for future debugging of a render job issue.
    *
    * @default false
    */
@@ -195,18 +200,11 @@ export interface SEPConfigurationProperties {
 
   /**
    * Determines how the Spot Event Plugin should handle Pre Job Tasks.
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/job-scripts.html
    *
    * @default SpotEventPluginPreJobTaskMode.CONSERVATIVE
    */
   readonly preJobTaskMode?: SpotEventPluginPreJobTaskMode;
-
-  /**
-   * Spot Fleet Request Group Pools configuration used to add Workers from the assigned groups to Deadline’s Pools.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html?highlight=spot%20even%20plugin#spot-fleet-request-group-pools
-   */
-  readonly groupPools?: {
-    [groupName: string]: string[];
-  };
 
   /**
    * The Worker Extra Info column to be used to display AWS Instance Status
@@ -222,11 +220,8 @@ export interface SEPConfigurationProperties {
  * Private interface used to ensure Spot Event Plugin options are set properly.
  */
 interface SEPGeneralOptions {
-  readonly GroupPools?: string;
   readonly State?: string;
   readonly ResourceTracker?: boolean;
-  readonly UseLocalCredentials?: boolean;
-  readonly NamedProfile?: string;
   readonly Logging?: string;
   readonly Region?: string;
   readonly IdleShutdown?: number;
@@ -239,9 +234,9 @@ interface SEPGeneralOptions {
 };
 
 /**
- * Input properties for SEPConfigurationSetup.
+ * Input properties for ConfigureSpotEventPlugin.
  */
-export interface SEPConfigurationSetupProps {
+export interface ConfigureSpotEventPluginProps {
   /**
    * The VPC in which to create the network endpoint for the lambda function that is
    * created by this construct.
@@ -249,7 +244,7 @@ export interface SEPConfigurationSetupProps {
   readonly vpc: IVpc;
 
   /**
-   * Endpoint for the RenderQueue, to which the worker fleet needs to be connected.
+   * The RenderQueue that Worker fleet should connect to.
    */
   readonly renderQueue: IRenderQueue;
 
@@ -274,7 +269,7 @@ export interface SEPConfigurationSetupProps {
    * The Spot Event Plugin settings.
    * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html?highlight=spot%20even%20plugin#event-plugin-configuration-options
    */
-  readonly spotFleetOptions: SEPConfigurationProperties;
+  readonly configuration: SpotEventPluginConfiguration;
 }
 
 /**
@@ -282,6 +277,11 @@ export interface SEPConfigurationSetupProps {
  * To provide this functionality, this construct will create an AWS Lambda function that is granted the ability
  * to connect to the render queue. This lambda is run automatically when you deploy or update the stack containing this construct.
  * Logs for all AWS Lambdas are automatically recorded in Amazon CloudWatch.
+ *
+ * Note that this construct will configure the Spot Event Plugin, but the Spot Fleet Requests will not be created unless you:
+ * - Create the Deadline Group associated with the Spot Fleet Request Configuration.
+ * - Create the Deadline Pools to which the fleet Workers are added.
+ * - Submit the job with the assigned Deadline Group and Deadline Pool.
  *
  * Resources Deployed
  * ------------------------
@@ -302,31 +302,22 @@ export interface SEPConfigurationSetupProps {
  *   execute any requets against the render queue. You should not grant any additional actors/principals the ability to modify
  *   or execute this Lambda.
  */
-export class SEPConfigurationSetup extends Construct {
-  constructor(scope: Construct, id: string, props: SEPConfigurationSetupProps) {
+export class ConfigureSpotEventPlugin extends Construct {
+
+  /**
+   * Only one Spot Event Plugin Configuration is allowed per render queue / repository.
+   */
+  private static uniqueRenderQueues: Set<IRenderQueue> = new Set<IRenderQueue>();
+
+  constructor(scope: Construct, id: string, props: ConfigureSpotEventPluginProps) {
     super(scope, id);
 
-    const region = Stack.of(this).region;
-    const openSslLayerName = 'openssl-al2';
-    const openSslLayerArns: any = ARNS[openSslLayerName];
-    const openSslLayerArn = openSslLayerArns[region];
-    const openSslLayer = LayerVersion.fromLayerVersionArn(this, 'OpenSslLayer', openSslLayerArn);
-
-    const lamdbaFunc = new LambdaFunction(this, 'Lambda', {
-      vpc: props.vpc,
-      vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
-      description: `Used by a SpotFlletConfiguration ${this.node.addr} to perform configuration of Deadline Spot Event Plugin`,
-      code: Code.fromAsset(path.join(__dirname, '..', '..', 'lambdas', 'nodejs'), {
-      }),
-      environment: {
-        DEBUG: 'false',
-      },
-      runtime: Runtime.NODEJS_12_X,
-      handler: 'sep-configuration.configureSEP',
-      layers: [ openSslLayer ],
-      timeout: Duration.minutes(2),
-      logRetention: RetentionDays.ONE_WEEK,
-    });
+    if (ConfigureSpotEventPlugin.uniqueRenderQueues.has(props.renderQueue)) {
+      throw new Error('Only one ConfigureSpotEventPlugin construct is allowed per render queue.');
+    }
+    else {
+      ConfigureSpotEventPlugin.uniqueRenderQueues.add(props.renderQueue);
+    }
 
     if (props.renderQueue instanceof RenderQueue) {
       // We do not check the patch version, so it's set to 0.
@@ -346,7 +337,7 @@ export class SEPConfigurationSetup extends Construct {
             actions: [
               'iam:PassRole',
             ],
-            resources: props.spotFleetOptions.spotFleets?.map(sf => sf.role.roleArn),
+            resources: props.configuration.spotFleets?.map(sf => sf.fleetRole.roleArn),
             conditions: {
               StringLike: {
                 'iam:PassedToService': 'ec2.amazonaws.com',
@@ -366,45 +357,62 @@ export class SEPConfigurationSetup extends Construct {
       });
     }
 
-    lamdbaFunc.connections.allowToDefaultPort(props.renderQueue);
-    props.caCert?.grantRead(lamdbaFunc.grantPrincipal);
+    const region = Construct.isConstruct(props.renderQueue) ? Stack.of(props.renderQueue).region : Stack.of(this).region;
+    const openSslLayerArns: any = ARNS['openssl-al2'];
+    const openSslLayer = LayerVersion.fromLayerVersionArn(this, 'OpenSslLayer', openSslLayerArns[region]);
 
-    const combinedPluginConfigs: SEPGeneralOptions = {
-      AWSInstanceStatus: props.spotFleetOptions.awsInstanceStatus,
-      DeleteInterruptedSlaves: props.spotFleetOptions.deleteEC2SpotInterruptedWorkers,
-      DeleteTerminatedSlaves: props.spotFleetOptions.deleteSEPTerminatedWorkers,
-      GroupPools: props.spotFleetOptions.groupPools ? Stack.of(this).toJsonString(props.spotFleetOptions.groupPools) : undefined,
-      IdleShutdown: props.spotFleetOptions.idleShutdown,
-      Logging: props.spotFleetOptions.loggingLevel,
-      PreJobTaskMode: props.spotFleetOptions.preJobTaskMode,
-      Region: props.spotFleetOptions.region ?? Stack.of(this).region,
-      ResourceTracker: props.spotFleetOptions.enableResourceTracker,
-      StaggerInstances: props.spotFleetOptions.maximumInstancesStartedPerCycle,
-      State: props.spotFleetOptions.state,
-      StrictHardCap: props.spotFleetOptions.strictHardCap,
-      UseLocalCredentials: true,
-      NamedProfile: '',
+    const configurator = new LambdaFunction(this, 'Configurator', {
+      vpc: props.vpc,
+      vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
+      description: `Used by a ConfigureSpotEventPlugin ${this.node.addr} to perform configuration of Deadline Spot Event Plugin`,
+      code: Code.fromAsset(path.join(__dirname, '..', '..', 'lambdas', 'nodejs'), {
+      }),
+      environment: {
+        DEBUG: 'false',
+      },
+      runtime: Runtime.NODEJS_12_X,
+      handler: 'configure-spot-event-plugin.configureSEP',
+      layers: [ openSslLayer ],
+      timeout: Duration.minutes(2),
+      logRetention: RetentionDays.ONE_WEEK,
+    });
+
+    configurator.connections.allowToDefaultPort(props.renderQueue);
+    props.caCert?.grantRead(configurator.grantPrincipal);
+
+    const pluginConfig: SEPGeneralOptions = {
+      AWSInstanceStatus: props.configuration.awsInstanceStatus ?? SpotEventPluginAwsInstanceStatus.DISABLED,
+      DeleteInterruptedSlaves: props.configuration.deleteEC2SpotInterruptedWorkers ?? false,
+      DeleteTerminatedSlaves: props.configuration.deleteSEPTerminatedWorkers ?? false,
+      IdleShutdown: props.configuration.idleShutdown ?? 10,
+      Logging: props.configuration.loggingLevel ?? SpotEventPluginLoggingLevel.STANDARD,
+      PreJobTaskMode: props.configuration.preJobTaskMode ?? SpotEventPluginPreJobTaskMode.CONSERVATIVE,
+      Region: props.configuration.region ?? region,
+      ResourceTracker: props.configuration.enableResourceTracker ?? true,
+      StaggerInstances: props.configuration.maximumInstancesStartedPerCycle ?? 50,
+      State: props.configuration.state ?? SpotEventPluginState.DISABLED,
+      StrictHardCap: props.configuration.strictHardCap ?? false,
     };
-    const combinedSpotFleetConfigs = this.combinedSpotFleetConfigs(props.spotFleetOptions.spotFleets);
+    const combinedSpotFleetConfigs = this.combinedSpotFleetConfigs(props.configuration.spotFleets);
 
-    const properties: ISEPConfiguratorResourceProperties = {
+    const properties: SEPConfiguratorResourceProperties = {
       connection: {
         hostname: props.renderQueue.endpoint.hostname,
         port: props.renderQueue.endpoint.portNumber.toString(),
         protocol: props.renderQueue.endpoint.applicationProtocol.toString(),
-        caCertificate: props.caCert?.secretArn,
+        caCertificateArn: props.caCert?.secretArn,
       },
       spotFleetRequestConfigurations: combinedSpotFleetConfigs,
-      spotPluginConfigurations: combinedPluginConfigs,
+      spotPluginConfigurations: pluginConfig,
     };
 
     const resource = new CustomResource(this, 'Default', {
-      serviceToken: lamdbaFunc.functionArn,
-      resourceType: 'Custom::RFDK_SEPConfigurationSetup',
+      serviceToken: configurator.functionArn,
+      resourceType: 'Custom::RFDK_ConfigureSpotEventPlugin',
       properties,
     });
     // Prevents a race during a stack-update.
-    resource.node.addDependency(lamdbaFunc.role!);
+    resource.node.addDependency(configurator.role!);
 
     // /* istanbul ignore next */
     // Add a dependency on the render queue to ensure that
@@ -414,14 +422,14 @@ export class SEPConfigurationSetup extends Construct {
     this.node.defaultChild = resource;
   }
 
-  private combinedSpotFleetConfigs(spotFleets?: SEPSpotFleet[]): object | undefined {
+  private combinedSpotFleetConfigs(spotFleets?: SpotEventPluginFleet[]): object | undefined {
     if (!spotFleets || spotFleets.length === 0) {
       return undefined;
     }
 
-    let fullSpotFleetRequestConfiguration: any = {};
+    const fullSpotFleetRequestConfiguration: any = {};
     spotFleets.map(fleet => {
-      fleet.sepSpotFleetRequestConfigurations.map(configuration => {
+      fleet.spotFleetRequestConfigurations.map(configuration => {
         for (const [key, value] of Object.entries(configuration)) {
           if (key in fullSpotFleetRequestConfiguration) {
             throw new Error(`Bad Group Name: ${key}. Group names in Spot Fleet Request Configurations should be unique.`);

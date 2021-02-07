@@ -8,15 +8,15 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { SecretsManager } from 'aws-sdk';
 import { LambdaContext } from '../lib/aws-lambda';
+import { EventPluginRequests } from '../lib/configure-spot-event-plugin';
 import { CfnRequestEvent, SimpleCustomResource } from '../lib/custom-resource';
 import { DeadlineClient } from '../lib/deadline-client';
 import {
   isArn as isSecretArn,
-  Secret,
+  readCertificateData,
 } from '../lib/secrets-manager';
-import { EventPluginRequests } from '../lib/sep-configuration';
 
-export interface IConnectionOptions {
+export interface ConnectionOptions {
   /**
    * FQDN of the host to connect to.
    */
@@ -33,29 +33,19 @@ export interface IConnectionOptions {
   readonly protocol: string;
 
   /**
-   * Content of the CA certificate
+   * The ARN of the CA certificate stored in the SecretsManager.
    */
-  readonly caCertificate?: string;
-
-  /**
-   * Content of the PFX certificate.
-   */
-  readonly pfxCertificate?: string;
-
-  /**
-   * Shared passphrase used for a single private key and/or a PFX.
-   */
-  readonly passphrase?: string;
+  readonly caCertificateArn?: string;
 }
 
 /**
  * The input to this Custom Resource
  */
-export interface ISEPConfiguratorResourceProperties {
+export interface SEPConfiguratorResourceProperties {
   /**
    * Connection info for logging into the server.
    */
-  readonly connection: IConnectionOptions;
+  readonly connection: ConnectionOptions;
 
   /**
    * A JSON string containing the Spot Fleet Request Configurations.
@@ -85,14 +75,14 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
    * @inheritdoc
    */
   public validateInput(data: object): boolean {
-    return this.implementsISEPConfiguratorResourceProperties(data);
+    return this.implementsSEPConfiguratorResourceProperties(data);
   }
 
   /**
    * @inheritdoc
    */
   // @ts-ignore -- we do not use the physicalId
-  public async doCreate(physicalId: string, resourceProperties: ISEPConfiguratorResourceProperties): Promise<object|undefined> {
+  public async doCreate(physicalId: string, resourceProperties: SEPConfiguratorResourceProperties): Promise<object|undefined> {
     const eventPluginRequests = await this.spotEventPluginRequests(resourceProperties.connection);
 
     if (resourceProperties.spotFleetRequestConfigurations) {
@@ -116,20 +106,20 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
    * @inheritdoc
    */
   /* istanbul ignore next */ // @ts-ignore
-  public async doDelete(physicalId: string, resourceProperties: ISEPConfiguratorResourceProperties): Promise<void> {
+  public async doDelete(physicalId: string, resourceProperties: SEPConfiguratorResourceProperties): Promise<void> {
     // Nothing to do -- we don't modify anything.
     return;
   }
 
-  private implementsISEPConfiguratorResourceProperties(value: any): boolean {
+  private implementsSEPConfiguratorResourceProperties(value: any): value is SEPConfiguratorResourceProperties {
     if (!value || typeof(value) !== 'object') { return false; }
-    if (!this.implementsIConnectionOptions(value.connection)) { return false; }
+    if (!this.implementsConnectionOptions(value.connection)) { return false; }
     if (!this.isValidSFRConfig(value.spotFleetRequestConfigurations)) { return false; }
     if (!this.isValidSpotPluginConfig(value.spotPluginConfigurations)) { return false; }
     return true;
   }
 
-  private implementsIConnectionOptions(value: any): boolean {
+  private implementsConnectionOptions(value: any): value is ConnectionOptions {
     if (!value || typeof(value) !== 'object') { return false; }
     if (!value.hostname || typeof(value.hostname) !== 'string') { return false; }
     if (!value.port || typeof(value.port) !== 'string') { return false; }
@@ -137,9 +127,7 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
     if (Number.isNaN(portNum) || portNum < 1 || portNum > 65535) { return false; }
     if (!value.protocol || typeof(value.protocol) !== 'string') { return false; }
     if (value.protocol !== 'HTTP' && value.protocol !== 'HTTPS') { return false; }
-    if (!this.isSecretArnOrUndefined(value.caCertificate)) { return false; }
-    if (!this.isSecretArnOrUndefined(value.passphrase)) { return false; }
-    if (!this.isSecretArnOrUndefined(value.pfxCertificate)) { return false; }
+    if (!this.isSecretArnOrUndefined(value.caCertificateArn)) { return false; }
     return true;
   }
 
@@ -165,13 +153,13 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
     return true;
   }
 
-  private async spotEventPluginRequests(connection: IConnectionOptions): Promise<EventPluginRequests> {
+  private async spotEventPluginRequests(connection: ConnectionOptions): Promise<EventPluginRequests> {
     return new EventPluginRequests(new DeadlineClient({
       host: connection.hostname,
       port: Number.parseInt(connection.port, 10),
       protocol: connection.protocol,
       tls: {
-        ca: connection.caCertificate ? await this.readCertificateData(connection.caCertificate) : undefined,
+        ca: connection.caCertificateArn ? await readCertificateData(connection.caCertificateArn, this.secretsManagerClient) : undefined,
       },
     }));
   }
@@ -230,6 +218,7 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
   }
 
   private spotFleetPluginConfigsToArray(pluginOptions: any): any {
+    // TODO: ...pluginOptions didn't work
     let convertedConfigs = pluginOptions;
     if ('DeleteInterruptedSlaves' in convertedConfigs) {
       convertedConfigs.DeleteInterruptedSlaves = this.convertToBoolean(convertedConfigs.DeleteInterruptedSlaves);
@@ -249,11 +238,17 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
     if ('StrictHardCap' in convertedConfigs) {
       convertedConfigs.StrictHardCap = this.convertToBoolean(convertedConfigs.StrictHardCap);
     }
-    if ('UseLocalCredentials' in convertedConfigs) {
-      convertedConfigs.UseLocalCredentials = this.convertToBoolean(convertedConfigs.UseLocalCredentials);
-    }
 
-    let configs = [];
+    const configs: { Key: string, Value: any }[] = [
+      {
+        Key: 'UseLocalCredentials',
+        Value: true,
+      },
+      {
+        Key: 'NamedProfile',
+        Value: '',
+      },
+    ];
     for (const [key, value] of Object.entries(pluginOptions)) {
       if (value !== undefined) {
         configs.push({
@@ -263,18 +258,6 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
       }
     }
     return configs;
-  }
-
-  /**
-   * Retrieve CA certificate data from the Secret with the given ARN.
-   * @param certificateArn
-   */
-  protected async readCertificateData(certificateArn: string): Promise<string> {
-    const data = await Secret.fromArn(certificateArn, this.secretsManagerClient).getValue();
-    if (Buffer.isBuffer(data) || !/BEGIN CERTIFICATE/.test(data as string)) {
-      throw new Error(`CA Certificate Secret (${certificateArn}) must contain a Certificate in PEM format.`);
-    }
-    return data as string;
   }
 }
 

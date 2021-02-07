@@ -33,14 +33,14 @@ from aws_cdk.aws_route53 import (
     PrivateHostedZone
 )
 from aws_rfdk.deadline import (
-    SEPConfigurationProperties,
+    ConfigureSpotEventPlugin,
     RenderQueue,
     RenderQueueExternalTLSProps,
     RenderQueueHostNameProps,
     RenderQueueTrafficEncryptionProps,
     Repository,
-    SEPConfigurationSetup,
-    SEPSpotFleet,
+    SpotEventPluginConfiguration,
+    SpotEventPluginFleet,
     Stage,
     ThinkboxDockerRecipes
 )
@@ -100,7 +100,7 @@ class SEPStack(Stack):
             repository_installation_timeout=Duration.minutes(20)
         )
 
-        # The following code is used to demonstrate how to use the SEPConfigurationSetup if TLS is enabled.
+        # The following code is used to demonstrate how to use the ConfigureSpotEventPlugin if TLS is enabled.
         host = 'renderqueue'
         zone_name = 'deadline-test.internal'
 
@@ -112,7 +112,7 @@ class SEPStack(Stack):
             zone_name=zone_name
         )
 
-        # NOTE: This certificate is also used by SEPConfigurationSetup construct below.
+        # NOTE: This certificate is also used by ConfigureSpotEventPlugin construct below.
         ca_cert = X509CertificatePem(
             self,
             'RootCA',
@@ -155,25 +155,6 @@ class SEPStack(Stack):
             )
         )
 
-        # Create the IAM Role for the spot fleet.
-        # Note if you already have a worker IAM role in your account you can use it instead.
-        fleet_role = Role(
-            self,
-            'FleetRole',
-            assumed_by=ServicePrincipal('spotfleet.amazonaws.com'),
-            managed_policies=[ManagedPolicy.from_managed_policy_arn(
-                self,
-                'AmazonEC2SpotFleetTaggingRole',
-                'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'
-            )]
-        )
-        # Adds the following IAM managed Policies to the Render Queue so it has the necessary permissions
-        # to run the Spot Event Plugin and launch a Resource Tracker:
-        # * AWSThinkboxDeadlineSpotEventPluginAdminPolicy
-        # * AWSThinkboxDeadlineResourceTrackerAdminPolicy
-        # Also, adds policies that allow the Render Queue to tag spot fleet requests and to pass the spot fleet role.
-        render_queue.add_sep_policies(True, [fleet_role.role_arn])
-
         # Creates the Resource Tracker Access role.  This role is required to exist in your account so the resource tracker will work properly
         # Note: If you already have a Resource Tracker IAM role in your account you can remove this code.
         Role(
@@ -184,12 +165,11 @@ class SEPStack(Stack):
             role_name= 'DeadlineResourceTrackerAccessRole'
         )
 
-        fleet = SEPSpotFleet(
+        fleet = SpotEventPluginFleet(
             self,
-            'SEPSpotFleet',
+            'SpotEventPluginFleet',
             vpc=vpc,
             render_queue=render_queue,
-            fleet_role=fleet_role,
             deadline_groups=['group_name'],
             instance_types=[InstanceType.of(InstanceClass.BURSTABLE3, InstanceSize.LARGE)],
             worker_machine_image=props.worker_machine_image,
@@ -197,17 +177,17 @@ class SEPStack(Stack):
             key_name=props.key_pair_name
         )
 
-        # Optinal: Add additional tags to both spot fleet request and spot instances.
+        # Optional: Add additional tags to both spot fleet request and spot instances.
         Tags.of(fleet).add('name', 'SEPtest')
 
-        SEPConfigurationSetup(
+        ConfigureSpotEventPlugin(
             self,
-            'SEPConfigurationSetup',
+            'ConfigureSpotEventPlugin',
             vpc=vpc,
             render_queue=render_queue,
             version=recipes.version,
             ca_cert=ca_cert.cert,
-            spot_fleet_options=SEPConfigurationProperties(
+            configuration=SpotEventPluginConfiguration(
                 spot_fleets=[fleet],
                 enable_resource_tracker=True,
                 region=self.region

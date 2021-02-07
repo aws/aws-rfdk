@@ -43,7 +43,6 @@ import {
   Names,
   ResourceEnvironment,
   Stack,
-  Tags,
   TagManager,
   TagType,
 } from '@aws-cdk/core';
@@ -52,13 +51,19 @@ import {
   LogGroupFactoryProps,
 } from '../../core';
 import {
-  RFDK_VERSION,
   tagConstruct,
-  TAG_NAME,
 } from '../../core/lib/runtime-info';
 import {
   IRenderQueue,
 } from './render-queue';
+// import {
+//   SpotFleetAllocationStrategy,
+//   SpotFleetRequestType,
+//   SpotFleetResourceType,
+//   SpotFleetRequestLaunchSpecification,
+//   SpotFleetRequestProps,
+//   TagSpecification,
+// } from './spot-event-plugin-fleet-ref';
 import {
   IInstanceUserDataProvider,
   WorkerInstanceConfiguration,
@@ -68,8 +73,9 @@ import {
  * The allocation strategy for the Spot Instances in your Spot Fleet
  * determines how it fulfills your Spot Fleet request from the possible
  * Spot Instance pools represented by its launch specifications.
+ * See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-configuration-strategies.html#ec2-fleet-allocation-strategy
  */
-export enum SEPSpotFleetAllocationStrategy {
+export enum SpotFleetAllocationStrategy {
   /**
    * Spot Fleet launches instances from the Spot Instance pools with the lowest price.
    */
@@ -87,34 +93,84 @@ export enum SEPSpotFleetAllocationStrategy {
 /**
  * Resource types that presently support tag on create.
  */
-enum ISpotFleetResourceType {
+enum SpotFleetResourceType {
   /**
    * EC2 Instances.
    */
   INSTANCE = 'instance',
 
   /**
-   * EC2 Instances.
+   * Spot fleet requests.
    */
   SPOT_FLEET_REQUEST = 'spot-fleet-request',
 }
 
 /**
+ * The type of request. Indicates whether the Spot Fleet only requests the target capacity or also attempts to maintain it.
+ * Only 'maintain' is currently supported.
+ */
+enum SpotFleetRequestType {
+  /**
+   * The Spot Fleet maintains the target capacity.
+   * The Spot Fleet places the required requests to meet capacity and automatically replenishes any interrupted instances.
+   */
+  MAINTAIN = 'maintain',
+}
+
+interface InstanceProfile {
+  readonly Arn: string;
+}
+
+interface SecurityGroupId {
+  readonly GroupId: string;
+}
+
+interface TagSpecification {
+  readonly ResourceType: SpotFleetResourceType;
+  readonly Tags: any;
+}
+
+interface SpotFleetRequestLaunchSpecification
+{
+  readonly BlockDeviceMappings?: CfnLaunchConfiguration.BlockDeviceMappingProperty[];
+  readonly IamInstanceProfile: InstanceProfile;
+  readonly ImageId: string;
+  readonly SecurityGroups: IResolvable | SecurityGroupId[];
+  readonly SubnetId?: string;
+  readonly TagSpecifications: IResolvable | TagSpecification[];
+  readonly UserData: string;
+  readonly InstanceType: string;
+  readonly KeyName?: string;
+}
+
+interface SpotFleetRequestProps {
+  readonly AllocationStrategy: SpotFleetAllocationStrategy;
+  readonly IamFleetRole: string;
+  readonly LaunchSpecifications: SpotFleetRequestLaunchSpecification[];
+  readonly ReplaceUnhealthyInstances: boolean;
+  readonly TargetCapacity: number;
+  readonly TerminateInstancesWithExpiration: boolean;
+  readonly Type: SpotFleetRequestType;
+  readonly TagSpecifications: IResolvable | TagSpecification[];
+  readonly ValidUntil?: string;
+}
+
+/**
  * Properties for the Spot Event Plugin Worker Fleet.
  */
-export interface SEPSpotFleetProps {
+export interface SpotEventPluginFleetProps {
   /**
-   * VPC to launch the worker fleet in.
+   * VPC to launch the Worker fleet in.
    */
   readonly vpc: IVpc;
 
   /**
-   * Endpoint for the RenderQueue, to which the worker fleet needs to be connected.
+   * The RenderQueue that Worker fleet should connect to.
    */
   readonly renderQueue: IRenderQueue;
 
   /**
-   * AMI of the deadline worker to launch.
+   * AMI of the Deadline Worker to launch.
    */
   readonly workerMachineImage: IMachineImage;
 
@@ -130,16 +186,16 @@ export interface SEPSpotFleetProps {
   readonly instanceTypes: InstanceType[];
 
   /**
-   * Deadline groups these workers needs to be assigned to. The group is
-   * created if it does not already exist.
+   * Deadline groups these workers need to be assigned to.
+   * Note that the Spot Fleet configuration allows for the use of wildcards as part of the Group name.
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#wildcards
    *
    * @default - Workers are not assigned to any group
    */
   readonly deadlineGroups: string[];
 
   /**
-   * Deadline pools these workers needs to be assigned to. The pool is created
-   * if it does not already exist.
+   * Deadline pools these workers need to be assigned to.
    *
    * @default - Workers are not assigned to any pool.
    */
@@ -151,17 +207,21 @@ export interface SEPSpotFleetProps {
    * The role must be assumable by the service principal `spotfleet.amazonaws.com`
    * and have AmazonEC2SpotFleetTaggingRole policy attached
    *
-   *    const role = new iam.Role(this, 'FleetRole', {
-   *      assumedBy: new iam.ServicePrincipal('spotfleet.amazonaws.com'),
-   *      managedPolicies: [
-   *        ManagedPolicy.fromManagedPolicyArn(this, 'AmazonEC2SpotFleetTaggingRole', 'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'),
-   *      ],
-   *    });
+   * ```ts
+   * const role = new iam.Role(this, 'FleetRole', {
+   *   assumedBy: new iam.ServicePrincipal('spotfleet.amazonaws.com'),
+   *   managedPolicies: [
+   *     ManagedPolicy.fromManagedPolicyArn(this, 'AmazonEC2SpotFleetTaggingRole', 'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'),
+   *   ],
+   * });
+   * ```
    */
-  readonly fleetRole: IRole;
+  readonly fleetRole?: IRole;
 
   /**
    * Deadline region these workers needs to be assigned to.
+   * Note that this is not an AWS region but a Deadline region used for path mapping.
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/cross-platform.html#regions
    *
    * @default - Worker is not assigned to any Deadline region.
    */
@@ -174,17 +234,19 @@ export interface SEPSpotFleetProps {
    * have AWSThinkboxDeadlineSpotEventPluginWorkerPolicy policy attached and
    * the role name must begin with "DeadlineSpot":
    *
-   *    const role = new iam.Role(this, 'MyRole', {
-   *      assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
-   *      managedPolicies: [
-   *        ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy'),
-   *      ],
-   *      roleName: 'DeadlineSpot' + ...,
-   *    });
+   * ```ts
+   * const role = new iam.Role(this, 'MyRole', {
+   *   assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
+   *   managedPolicies: [
+   *     ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy'),
+   *   ],
+   *   roleName: 'DeadlineSpot' + ...,
+   * });
+   * ```
    *
    * @default - A role will automatically be created.
    */
-  readonly role?: IRole;
+  readonly fleetInstanceRole?: IRole;
 
   /**
    * Name of SSH keypair to grant access to instances.
@@ -218,9 +280,23 @@ export interface SEPSpotFleetProps {
    * Indicates how to allocate the target Spot Instance capacity
    * across the Spot Instance pools specified by the Spot Fleet request.
    *
-   * @default - SEPSpotFleetAllocationStrategy.LOWEST_PRICE.
+   * @default - SpotFleetAllocationStrategy.LOWEST_PRICE.
    */
-  readonly allocationStrategy?: SEPSpotFleetAllocationStrategy;
+  readonly allocationStrategy?: SpotFleetAllocationStrategy;
+
+  /**
+   * Indicates whether Spot Fleet should replace unhealthy instances.
+   *
+   * @default true
+   */
+  readonly replaceUnhealthyInstances?: boolean;
+
+  /**
+   * Indicates whether running Spot Instances are terminated when the Spot Fleet request expires.
+   *
+   * @default true
+   */
+  readonly terminateInstancesWithExpiration?: boolean;
 
   /**
    * Where to place the instance within the VPC.
@@ -246,123 +322,47 @@ export interface SEPSpotFleetProps {
   /**
    * An optional provider of user data commands to be injected at various points during the Worker configuration lifecycle.
    * You can provide a subclass of InstanceUserDataProvider with the methods overridden as desired.
+   *
+   * @default: Not used.
    */
   readonly userDataProvider?: IInstanceUserDataProvider;
 }
 
 /**
- * Synthesize an array of block device mappings from a list of block device
- *
- * @param construct the instance/asg construct, used to host any warning
- * @param blockDevices list of block devices
- */
-function synthesizeBlockDeviceMappings(construct: Construct, blockDevices: BlockDevice[]): CfnLaunchConfiguration.BlockDeviceMappingProperty[] {
-  return blockDevices.map<CfnLaunchConfiguration.BlockDeviceMappingProperty>(({ deviceName, volume, mappingEnabled }) => {
-    const { virtualName, ebsDevice: ebs } = volume;
-
-    if (volume === BlockDeviceVolume._NO_DEVICE || mappingEnabled === false) {
-      return {
-        deviceName,
-        noDevice: true,
-      };
-    }
-
-    if (ebs) {
-      const { iops, volumeType } = ebs;
-
-      if (!iops) {
-        if (volumeType === EbsDeviceVolumeType.IO1) {
-          throw new Error('iops property is required with volumeType: EbsDeviceVolumeType.IO1');
-        }
-      } else if (volumeType !== EbsDeviceVolumeType.IO1) {
-        Annotations.of(construct).addWarning('iops will be ignored without volumeType: EbsDeviceVolumeType.IO1');
-      }
-    }
-
-    return {
-      deviceName, ebs, virtualName,
-    };
-  });
-}
-
-/**
  * Interface for Spot Event Plugin Worker Fleet.
  */
-export interface ISEPWorkerFleet extends IResource, IConnectable, IScriptHost, IGrantable {
+export interface ISpotEventPluginFleet extends IResource, IConnectable, IScriptHost, IGrantable {
   /**
-   * Allow access to the worker's remote command listener port (configured as a part of the
+   * Allow access to the Worker's remote command listener port (configured as a part of the
    * WorkerConfiguration) for an IConnectable that is either in this stack, or in a stack that
-   * depends on this stack. If this stack depends on the other stack, use allowListenerPortTo().
+   * depends on this stack. If this stack depends on the other stack, use allowRemoteControlTo().
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/remote-control.html
    *
    * Common uses are:
    *
    *   Adding a SecurityGroup:
-   *     `workerFleet.allowListenerPortFrom(securityGroup)`
+   *     `workerFleet.allowRemoteControlFrom(securityGroup)`
    *
    *   Adding a CIDR:
-   *     `workerFleet.allowListenerPortFrom(Peer.ipv4('10.0.0.0/24').connections)`
+   *     `workerFleet.allowRemoteControlFrom(Peer.ipv4('10.0.0.0/24').connections)`
    */
-  allowListenerPortFrom(other: IConnectable): void;
+  allowRemoteControlFrom(other: IConnectable): void;
 
   /**
-   * Allow access to the worker's remote command listener port (configured as a part of the
+   * Allow access to the Worker's remote command listener port (configured as a part of the
    * WorkerConfiguration) for an IConnectable that is either in this stack, or in a stack that this
-   * stack depends on. If the other stack depends on this stack, use allowListenerPortFrom().
+   * stack depends on. If the other stack depends on this stack, use allowRemoteControlFrom().
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/remote-control.html
    *
    * Common uses are:
    *
    *   Adding a SecurityGroup:
-   *     `workerFleet.allowListenerPortTo(securityGroup)`
+   *     `workerFleet.allowRemoteControlTo(securityGroup)`
    *
    *   Adding a CIDR:
-   *     `workerFleet.allowListenerPortTo(Peer.ipv4('10.0.0.0/24').connections)`
+   *     `workerFleet.allowRemoteControlTo(Peer.ipv4('10.0.0.0/24').connections)`
    */
-  allowListenerPortTo(other: IConnectable): void;
-}
-
-/**
- * A new or Spot Event Plugin Worker Fleet.
- */
-abstract class SEPSpotFleetBase extends Construct implements ISEPWorkerFleet {
-  /**
-   * The security groups/rules used to allow network connections.
-   */
-  public abstract readonly connections: Connections;
-
-  /**
-   * The principal to grant permissions to.
-   */
-  public abstract readonly grantPrincipal: IPrincipal;
-
-  /**
-   * The stack in which this fleet is defined.
-   */
-  public abstract readonly stack: Stack;
-
-  /**
-   * The environment this resource belongs to.
-   */
-  public abstract readonly env: ResourceEnvironment;
-
-  /**
-   * The user data that instances use when starting up.
-   */
-  public abstract readonly userData: UserData;
-
-  /**
-   * The operating system of the script host.
-   */
-  public abstract readonly osType: OperatingSystemType;
-
-  /**
-   * @inheritdoc
-   */
-  public abstract allowListenerPortFrom(other: IConnectable): void;
-
-  /**
-   * @inheritdoc
-   */
-  public abstract allowListenerPortTo(other: IConnectable): void;
+  allowRemoteControlTo(other: IConnectable): void;
 }
 
 /**
@@ -393,7 +393,7 @@ abstract class SEPSpotFleetBase extends Construct implements ISEPWorkerFleet {
  *   patching strategy to keep this software current with the latest security patches. Please see
  *   https://docs.aws.amazon.com/rfdk/latest/guide/patching-software.html for more information.
  */
-export class SEPSpotFleet extends SEPSpotFleetBase {
+export class SpotEventPluginFleet extends Construct implements ISpotEventPluginFleet {
   /**
    * Default prefix for a LogGroup if one isn't provided in the props.
    */
@@ -412,7 +412,8 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
   public readonly connections: Connections;
 
   /**
-   * The principal to grant permissions to.
+   * The principal to grant permissions to. Granting permissions to this principal will grant
+   * those permissions to the spot instance role.
    */
   public readonly grantPrincipal: IPrincipal;
 
@@ -429,7 +430,7 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
   /**
    * The port workers listen on to share their logs.
    */
-  public readonly listeningPorts: Port;
+  public readonly remoteControlPorts: Port;
 
   /**
    * Security Groups assigned to this fleet.
@@ -449,21 +450,21 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
   /**
    * An IAM role associated with the instance profile assigned to its resources.
    */
-  public readonly role: IRole;
+  public readonly fleetInstanceRole: IRole;
 
   /**
    * An IAM role that grants the Spot Fleet the permission to request, launch, terminate, and tag instances on your behalf.
    */
-  public readonly iamFleetRole: IRole;
+  public readonly fleetRole: IRole;
 
   /**
    * Spot Fleet Configurations constructed from the provided input.
    * Each congiguration is a mapping between one Deadline Group and one Spot Fleet Request Configuration.
    */
-  public readonly sepSpotFleetRequestConfigurations: any[];
+  public readonly spotFleetRequestConfigurations: any[];
 
   /**
-   * An id of the worker AMI.
+   * An id of the Worker AMI.
    */
   protected readonly imageId: string;
 
@@ -472,7 +473,7 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
    */
   protected readonly tags: TagManager;
 
-  constructor(scope: Construct, id: string, props: SEPSpotFleetProps) {
+  constructor(scope: Construct, id: string, props: SpotEventPluginFleetProps) {
     super(scope, id);
 
     this.stack = Stack.of(scope);
@@ -483,11 +484,11 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
 
     this.validateProps(props);
 
-    this.securityGroups = props.securityGroups ?? [ new SecurityGroup(this, 'SEPConfigurationSecurityGroup', { vpc: props.vpc }) ];
+    this.securityGroups = props.securityGroups ?? [ new SecurityGroup(this, 'SpotFleetSecurityGroup', { vpc: props.vpc }) ];
     this.connections = new Connections({ securityGroups: this.securityGroups });
     this.connections.allowToDefaultPort(props.renderQueue.endpoint);
 
-    this.role = props.role ?? new Role(this, 'SpotWorkerRole', {
+    this.fleetInstanceRole = props.fleetInstanceRole ?? new Role(this, 'SpotFleetInstanceRole', {
       assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
       managedPolicies: [
         ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy'),
@@ -495,9 +496,14 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
       description: `Role for ${id} in region ${this.env.region}`,
       roleName: 'DeadlineSpot' + this.calculateResourceTagValue([this]),
     });
-    this.grantPrincipal = this.role;
+    this.grantPrincipal = this.fleetInstanceRole;
 
-    this.iamFleetRole = props.fleetRole;
+    this.fleetRole = props.fleetRole ?? new Role(this, 'FleetRole', {
+      assumedBy: new ServicePrincipal('spotfleet.amazonaws.com'),
+      managedPolicies: [
+        ManagedPolicy.fromManagedPolicyArn(this, 'AmazonEC2SpotFleetTaggingRole', 'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'),
+      ],
+    });
 
     const imageConfig = props.workerMachineImage.getImage(this);
     this.osType = imageConfig.osType;
@@ -507,7 +513,7 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
     const workerConfig = new WorkerInstanceConfiguration(this, id, {
       worker: this,
       cloudwatchLogSettings: {
-        logGroupPrefix: SEPSpotFleet.DEFAULT_LOG_GROUP_PREFIX,
+        logGroupPrefix: SpotEventPluginFleet.DEFAULT_LOG_GROUP_PREFIX,
         ...props.logGroupProps,
       },
       renderQueue: props.renderQueue,
@@ -519,26 +525,36 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
       userDataProvider: props.userDataProvider,
     });
 
-    this.listeningPorts = Port.tcpRange(
+    this.remoteControlPorts = Port.tcpRange(
       workerConfig.listenerPort,
-      workerConfig.listenerPort + SEPSpotFleet.MAX_WORKERS_PER_HOST,
+      workerConfig.listenerPort + SpotEventPluginFleet.MAX_WORKERS_PER_HOST,
     );
 
-    const className = this.constructor.name;
-    const rfdkTagValue = `${RFDK_VERSION}:${className}`;
-
-    this.tags = new TagManager(TagType.KEY_VALUE, 'RFDK::SEPConfiguration');
-    Tags.of(this).add(TAG_NAME, rfdkTagValue);
+    this.tags = new TagManager(TagType.KEY_VALUE, 'RFDK::SpotEventPluginFleet');
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
 
-    this.sepSpotFleetRequestConfigurations = this.generateSpotFleetRequestConfig(props);
+    this.spotFleetRequestConfigurations = this.generateSpotFleetRequestConfig(props);
   }
 
-  private generateSpotFleetRequestConfig(props: SEPSpotFleetProps) {
+  /**
+   * @inheritdoc
+   */
+  public allowRemoteControlFrom(other: IConnectable): void {
+    this.connections.allowFrom(other.connections, this.remoteControlPorts, 'Worker remote command listening port');
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public allowRemoteControlTo(other: IConnectable): void {
+    other.connections.allowTo(this.connections, this.remoteControlPorts, 'Worker remote command listening port');
+  }
+
+  private generateSpotFleetRequestConfig(props: SpotEventPluginFleetProps): any {
     const iamProfile = new CfnInstanceProfile(this, 'InstanceProfile', {
-      roles: [this.role.roleName],
+      roles: [this.fleetInstanceRole.roleName],
     });
 
     const securityGroupsToken = Lazy.any({ produce: () => {
@@ -548,7 +564,7 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
     const userDataToken = Lazy.string({ produce: () => Fn.base64(this.userData.render()) });
 
     const blockDeviceMappings = (props.blockDevices !== undefined ?
-      synthesizeBlockDeviceMappings(this, props.blockDevices) : undefined);
+      this.synthesizeBlockDeviceMappings(props.blockDevices) : undefined);
 
     const { subnets } = props.vpc.selectSubnets(props.vpcSubnets);
     const subnetIds = subnets.map(subnet => {
@@ -556,13 +572,13 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
     });
     const subnetId = subnetIds.length != 0 ? subnetIds.join(',') : undefined;
 
-    const instanceTagsToken = this.tagsToken(ISpotFleetResourceType.INSTANCE);
-    const spotFleetRequestTagsToken = this.tagsToken(ISpotFleetResourceType.SPOT_FLEET_REQUEST);
+    const instanceTagsToken = this.tagsToken(SpotFleetResourceType.INSTANCE);
+    const spotFleetRequestTagsToken = this.tagsToken(SpotFleetResourceType.SPOT_FLEET_REQUEST);
 
-    let launchSpecifications: any[] = [];
+    const launchSpecifications: SpotFleetRequestLaunchSpecification[] = [];
 
     props.instanceTypes.map(instanceType => {
-      const launchSpecification = {
+      const launchSpecification: SpotFleetRequestLaunchSpecification = {
         BlockDeviceMappings: blockDeviceMappings,
         IamInstanceProfile: {
           Arn: iamProfile.attrArn,
@@ -578,79 +594,76 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
       launchSpecifications.push(launchSpecification);
     });
 
-    const spotFleetRequestConfiguration = {
-      AllocationStrategy: props.allocationStrategy,
-      IamFleetRole: this.iamFleetRole.roleArn,
+    const spotFleetRequestProps: SpotFleetRequestProps = {
+      AllocationStrategy: props.allocationStrategy ?? SpotFleetAllocationStrategy.LOWEST_PRICE,
+      IamFleetRole: this.fleetRole.roleArn,
       LaunchSpecifications: launchSpecifications,
-      ReplaceUnhealthyInstances: true,
+      ReplaceUnhealthyInstances: props.replaceUnhealthyInstances ?? true,
       TargetCapacity: props.targetCapacity,
-      TerminateInstancesWithExpiration: true,
-      Type: 'maintain',
+      TerminateInstancesWithExpiration: props.terminateInstancesWithExpiration ?? true,
+      Type: SpotFleetRequestType.MAINTAIN,
       ValidUntil: props.validUntil ? props.validUntil?.date.toUTCString() : undefined,
       TagSpecifications: spotFleetRequestTagsToken,
     };
 
-    const sepSpotFleetRequestConfigurations = props.deadlineGroups.map(group => {
-      const sepSpotFleetRequestConfiguration = {
-        [group]: spotFleetRequestConfiguration,
+    const spotFleetRequestConfigurations = props.deadlineGroups.map(group => {
+      const spotFleetRequestConfiguration = {
+        [group]: spotFleetRequestProps,
       };
-      return sepSpotFleetRequestConfiguration;
+      return spotFleetRequestConfiguration;
     });
 
-    return sepSpotFleetRequestConfigurations;
+    return spotFleetRequestConfigurations;
   }
 
-  private tagsToken(resourceType: ISpotFleetResourceType): IResolvable {
+  private tagsToken(resourceType: SpotFleetResourceType): IResolvable {
     return Lazy.any({
       produce: () => {
         if (this.tags.hasTags()) {
-          return [{
+          const tagSpecification: TagSpecification = {
             ResourceType: resourceType,
             Tags: this.tags.renderTags(),
-          }];
+          };
+          return [tagSpecification];
         }
         return undefined;
       },
     });
   }
 
-  private validateProps(props: SEPSpotFleetProps) {
+  private validateProps(props: SpotEventPluginFleetProps): void {
     this.validateInstanceTypes(props.instanceTypes);
-    this.validateGroups(props.deadlineGroups);
-    this.validateArrayGroupsSyntax(props.deadlineGroups, /^(?!none$)[a-zA-Z0-9-_]+$/i, 'deadlineGroups');
-    this.validateRegion(props.deadlineRegion, /^(?!none$|all$|unrecognized$)[a-zA-Z0-9-_]+$/i);
+    this.validateGroups('deadlineGroups', props.deadlineGroups);
+    this.validateRegion('deadlineRegion', props.deadlineRegion);
     this.validateBlockDevices(props.blockDevices);
   }
 
-  private validateInstanceTypes(array: InstanceType[]) {
+  private validateInstanceTypes(array: InstanceType[]): void {
     if (array.length == 0) {
-      throw new Error('SEPSpotFleet: At least one Deadline Group is required for a Spot Fleet Request Configuration');
+      throw new Error('At least one instance type is required for a Spot Fleet Request Configuration');
     }
   }
 
-  private validateGroups(array: string[]) {
+  private validateGroups(property: string, array: string[]): void {
+    const regex: RegExp = /^(?!none$)[a-zA-Z0-9-_\*]+$/i;
     if (array.length == 0) {
-      throw new Error('SEPSpotFleet: At least one Deadline Group is required for a Spot Fleet Request Configuration');
+      throw new Error('At least one Deadline Group is required for a Spot Fleet Request Configuration');
     }
+    array.forEach(value => {
+      if (!regex.test(value)) {
+        throw new Error(`Invalid value: ${value} for property '${property}'. Valid characters are A-Z, a-z, 0-9, -, * and _. Also, group 'none' is reserved as the default group.`);
+      }
+    });
   }
 
-  private validateArrayGroupsSyntax(array: string[] | undefined, regex: RegExp, property: string) {
-    if (array) {
-      array.forEach(value => {
-        if (!regex.test(value)) {
-          throw new Error(`Invalid value: ${value} for property '${property}'. Valid characters are A-Z, a-z, 0-9, - and _. Also, group 'none' is reserved as the default group.`);
-        }
-      });
-    }
-  }
-
-  private validateRegion(region: string | undefined, regex: RegExp) {
+  private validateRegion(property: string, region?: string): void {
+    const regex: RegExp = /^(?!none$|all$|unrecognized$)[a-zA-Z0-9-_]+$/i;
     if (region && !regex.test(region)) {
-      throw new Error(`Invalid value: ${region} for property 'region'. Valid characters are A-Z, a-z, 0-9, - and _. ‘All’, ‘none’ and ‘unrecognized’ are reserved names that cannot be used.`);
+      throw new Error(`Invalid value: ${region} for property '${property}'. Valid characters are A-Z, a-z, 0-9, - and _. ‘All’, ‘none’ and ‘unrecognized’ are reserved names that cannot be used.`);
     }
   }
 
-  private validateBlockDevices(blockDevices: BlockDevice[] | undefined) {
+  private validateBlockDevices(blockDevices?: BlockDevice[]): void {
     if (blockDevices === undefined) {
       Annotations.of(this).addWarning(`The spot-fleet ${this.node.id} is being created without being provided any block devices so the Source AMI's devices will be used. ` +
         'Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
@@ -678,16 +691,38 @@ export class SEPSpotFleet extends SEPSpotFleetBase {
   }
 
   /**
-   * @inheritdoc
+   * Synthesize an array of block device mappings from a list of block device
+   *
+   * @param blockDevices list of block devices
    */
-  public allowListenerPortFrom(other: IConnectable): void {
-    this.connections.allowFrom(other.connections, this.listeningPorts, 'Worker remote command listening port');
-  }
+  private synthesizeBlockDeviceMappings(blockDevices: BlockDevice[]): CfnLaunchConfiguration.BlockDeviceMappingProperty[] {
+    return blockDevices.map<CfnLaunchConfiguration.BlockDeviceMappingProperty>(({ deviceName, volume, mappingEnabled }) => {
+      const { virtualName, ebsDevice: ebs } = volume;
 
-  /**
-   * @inheritdoc
-   */
-  public allowListenerPortTo(other: IConnectable): void {
-    other.connections.allowTo(this.connections, this.listeningPorts, 'Worker remote command listening port');
+      if (volume === BlockDeviceVolume._NO_DEVICE || mappingEnabled === false) {
+        return {
+          deviceName,
+          noDevice: true,
+        };
+      }
+
+      if (ebs) {
+        const { iops, volumeType } = ebs;
+
+        if (!iops) {
+          if (volumeType === EbsDeviceVolumeType.IO1) {
+            throw new Error('iops property is required with volumeType: EbsDeviceVolumeType.IO1');
+          }
+        } else if (volumeType !== EbsDeviceVolumeType.IO1) {
+          Annotations.of(this).addWarning('iops will be ignored without volumeType: EbsDeviceVolumeType.IO1');
+        }
+      }
+
+      return {
+        deviceName,
+        ebs,
+        virtualName,
+      };
+    });
   }
 }

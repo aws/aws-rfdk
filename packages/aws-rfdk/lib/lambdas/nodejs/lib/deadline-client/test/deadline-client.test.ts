@@ -11,7 +11,7 @@ import { DeadlineClient } from '../deadline-client';
 jest.mock('http');
 jest.mock('https');
 
-describe('ThinkboxEcrProvider', () => {
+describe('DeadlineClient', () => {
   let deadlineClient: DeadlineClient;
 
   describe('successful responses', () => {
@@ -19,7 +19,13 @@ describe('ThinkboxEcrProvider', () => {
       public statusCode: number = 200;
     }
 
-    let request: EventEmitter;
+    class MockRequest extends EventEmitter {
+      public end() {}
+      public write(data: string) { data; }
+    }
+
+    let consoleLogMock: jest.SpyInstance<any, any>;
+    let request: MockRequest;
     let response: MockResponse;
 
     /**
@@ -36,7 +42,10 @@ describe('ThinkboxEcrProvider', () => {
     }
 
     beforeEach(() => {
-      request = new EventEmitter();
+      consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
+      request = new MockRequest();
+      jest.requireMock('http').request.mockReset();
+      jest.requireMock('https').request.mockReset();
     });
 
     test('successful http get request', async () => {
@@ -54,7 +63,7 @@ describe('ThinkboxEcrProvider', () => {
       const promise = deadlineClient.GetRequest('/get/version/test');
       response.emit('data', Buffer.from(JSON.stringify(''), 'utf8'));
       response.emit('end');
-      promise.then(resp => resp).catch(err => err);
+      await promise;
 
       // THEN
       // should make an HTTP request
@@ -90,7 +99,7 @@ describe('ThinkboxEcrProvider', () => {
       });
       response.emit('data', Buffer.from(JSON.stringify(''), 'utf8'));
       response.emit('end');
-      promise.then(resp => resp).catch(err => err);
+      await promise;
 
       // THEN
       // should make an HTTP request
@@ -98,6 +107,9 @@ describe('ThinkboxEcrProvider', () => {
         .toBeCalledWith(
           {
             agent: undefined,
+            headers: {
+              'Content-Type': 'application/json',
+            },
             method: 'GET',
             port: 8080,
             host: 'hostname',
@@ -142,7 +154,7 @@ describe('ThinkboxEcrProvider', () => {
       const promise = deadlineClient.GetRequest('/get/version/test');
       response.emit('data', Buffer.from(JSON.stringify(''), 'utf8'));
       response.emit('end');
-      promise.then(resp => resp).catch(err => err);
+      await promise;
 
       // THEN
       // should make an HTTP request
@@ -199,7 +211,7 @@ describe('ThinkboxEcrProvider', () => {
       const promise = deadlineClient.GetRequest('/get/version/test');
       response.emit('data', Buffer.from(JSON.stringify(''), 'utf8'));
       response.emit('end');
-      promise.then(resp => resp).catch(err => err);
+      await promise;
 
       // THEN
       // should make an HTTP request
@@ -231,7 +243,7 @@ describe('ThinkboxEcrProvider', () => {
       const promise = deadlineClient.PostRequest('/save/version/test', 'anydata');
       response.emit('data', Buffer.from(JSON.stringify(''), 'utf8'));
       response.emit('end');
-      promise.then(resp => resp).catch(err => err);
+      await promise;
 
       // THEN
       // should make an HTTP request
@@ -283,7 +295,7 @@ describe('ThinkboxEcrProvider', () => {
       const promise = deadlineClient.PostRequest('/save/version/test', 'anydata');
       response.emit('data', Buffer.from(JSON.stringify(''), 'utf8'));
       response.emit('end');
-      promise.then(resp => resp).catch(err => err);
+      await promise;
 
       // THEN
       // should make an HTTP request
@@ -340,7 +352,7 @@ describe('ThinkboxEcrProvider', () => {
       const promise = deadlineClient.PostRequest('/save/version/test', 'anydata');
       response.emit('data', Buffer.from(JSON.stringify(''), 'utf8'));
       response.emit('end');
-      promise.then(resp => resp).catch(err => err);
+      await promise;
 
       // THEN
       // should make an HTTP request
@@ -355,6 +367,34 @@ describe('ThinkboxEcrProvider', () => {
           },
           expect.any(Function),
         );
+    });
+
+    test('retries get request with 503', async () => {
+      // GIVEN
+      const retries = 3;
+      response = new MockResponse();
+      response.statusCode = 503;
+      jest.requireMock('http').request.mockImplementation(httpRequestMock);
+
+      // WHEN
+      deadlineClient = new DeadlineClient({
+        host: 'hostname',
+        port: 8080,
+        protocol: 'HTTP',
+      });
+      const promise = deadlineClient.GetRequest('/get/version/test', undefined, retries, 0);
+
+      // THEN
+      await expect(promise)
+        .rejects
+        .toThrowError(expect.any(Error));
+
+      expect(jest.requireMock('http').request)
+        .toBeCalledTimes(retries + 1);
+
+      expect(consoleLogMock.mock.calls.length).toBe(retries * 2);
+      expect(consoleLogMock.mock.calls[0][0]).toMatch(/Request failed with/);
+      expect(consoleLogMock.mock.calls[1][0]).toMatch(/Retries left:/);
     });
   });
 });

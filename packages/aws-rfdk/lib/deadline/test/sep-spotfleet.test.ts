@@ -56,8 +56,8 @@ import {
   Repository,
   VersionQuery,
   WorkerInstanceConfiguration,
-  SEPSpotFleetAllocationStrategy,
-  SEPSpotFleet,
+  SpotEventPluginFleet,
+  SpotFleetAllocationStrategy,
 } from '../lib';
 
 let app: App;
@@ -66,7 +66,6 @@ let spotFleetStack: Stack;
 let vpc: IVpc;
 let renderQueue: IRenderQueue;
 let rcsImage: AssetImage;
-let fleetRole: Role;
 
 beforeEach(() => {
   app = new App();
@@ -87,25 +86,18 @@ beforeEach(() => {
     }),
     version,
   });
-  spotFleetStack = new Stack(app, 'spotFleetStack', {
+  spotFleetStack = new Stack(app, 'SpotFleetStack', {
     env: {
       region: 'us-east-1',
     },
-  });
-  fleetRole = new Role(stack, 'FleetRole', {
-    assumedBy: new ServicePrincipal('spotfleet.amazonaws.com'),
-    managedPolicies: [
-      ManagedPolicy.fromManagedPolicyArn(stack, 'AmazonEC2SpotFleetTaggingRole', 'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'),
-    ],
   });
 });
 
 test('default spot fleet is created correctly', () => {
   // WHEN
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+  const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
     vpc,
     renderQueue: renderQueue,
-    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -121,15 +113,15 @@ test('default spot fleet is created correctly', () => {
   // THEN
   expect(fleet.connections).toBeDefined();
   expect(fleet.env).toBeDefined();
+  expect(fleet.fleetRole).toBeDefined();
   expect(fleet.grantPrincipal).toBeDefined();
-  expect(fleet.iamFleetRole).toBeDefined();
-  expect(fleet.listeningPorts).toBeDefined();
+  expect(fleet.remoteControlPorts).toBeDefined();
   expect(fleet.osType).toBeDefined();
-  expect(fleet.role).toBeDefined();
   expect(fleet.securityGroups).toBeDefined();
   expect(fleet.userData).toBeDefined();
+  expect(fleet.fleetInstanceRole).toBeDefined();
 
-  expect(fleet.sepSpotFleetRequestConfigurations).toBeDefined();
+  expect(fleet.spotFleetRequestConfigurations).toBeDefined();
 
   expectCDK(spotFleetStack).to(haveResource('AWS::EC2::SecurityGroup'));
   expectCDK(spotFleetStack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
@@ -147,7 +139,7 @@ test('default spot fleet is created correctly', () => {
   }));
   expectCDK(spotFleetStack).to(haveResource('Custom::LogRetention', {
     RetentionInDays: 3,
-    LogGroupName: '/renderfarm/spotFleet',
+    LogGroupName: '/renderfarm/SpotFleet',
   }));
   expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
   expect(fleet.node.metadata[0].data).toMatch('being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
@@ -161,10 +153,9 @@ test('security group is not created if provided', () => {
   });
 
   // WHEN
-  new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+  new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
     vpc,
     renderQueue: renderQueue,
-    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -196,10 +187,9 @@ test('setting role works correctly', () => {
   });
 
   // WHEN
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+  const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
     vpc,
     renderQueue: renderQueue,
-    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -210,19 +200,18 @@ test('setting role works correctly', () => {
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
-    role: expectedRole,
+    fleetInstanceRole: expectedRole,
   });
 
   // THEN
-  expect(fleet.role).toBe(expectedRole);
+  expect(fleet.fleetInstanceRole).toBe(expectedRole);
 });
 
-test('deafult role is created automatically if not provided', () => {
+test('default role is created automatically if not provided', () => {
   // WHEN
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+  const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
     vpc,
     renderQueue: renderQueue,
-    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -236,7 +225,7 @@ test('deafult role is created automatically if not provided', () => {
   });
 
   // THEN
-  expect(fleet.role).toBeDefined();
+  expect(fleet.fleetInstanceRole).toBeDefined();
 
   expectCDK(spotFleetStack).to(haveResourceLike('AWS::IAM::Role', {
     AssumeRolePolicyDocument: objectLike({
@@ -268,8 +257,76 @@ test('deafult role is created automatically if not provided', () => {
 
   expectCDK(spotFleetStack).to(haveResourceLike('AWS::IAM::InstanceProfile', {
     Roles: arrayWith({
-      Ref: 'spotFleetSpotWorkerRoleD6ECB6B7',
+      Ref: stack.getLogicalId(fleet.fleetInstanceRole.node.defaultChild as CfnElement),
     }),
+  }));
+});
+
+test('setting fleet role works correctly', () => {
+  // GIVEN
+  const expectedFleetRole = new Role(stack, 'FleetRole', {
+    assumedBy: new ServicePrincipal('spotfleet.amazonaws.com'),
+    managedPolicies: [
+      ManagedPolicy.fromManagedPolicyArn(stack, 'AmazonEC2SpotFleetTaggingRole', 'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'),
+    ],
+  });
+
+  // WHEN
+  const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
+    vpc,
+    renderQueue: renderQueue,
+    fleetRole: expectedFleetRole,
+    deadlineGroups: [
+      'group_name',
+    ],
+    instanceTypes: [
+      InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+    ],
+    workerMachineImage: new GenericLinuxImage({
+      'us-east-1': 'ami-any',
+    }),
+    targetCapacity: 1,
+  });
+
+  // THEN
+  expect(fleet.fleetRole).toBe(expectedFleetRole);
+});
+
+test('default fleet role is created automatically if not provided', () => {
+  // WHEN
+  const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
+    vpc,
+    renderQueue: renderQueue,
+    deadlineGroups: [
+      'group_name',
+    ],
+    instanceTypes: [
+      InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+    ],
+    workerMachineImage: new GenericLinuxImage({
+      'us-east-1': 'ami-any',
+    }),
+    targetCapacity: 1,
+  });
+
+  // THEN
+  expect(fleet.fleetRole).toBeDefined();
+
+  expectCDK(spotFleetStack).to(haveResourceLike('AWS::IAM::Role', {
+    AssumeRolePolicyDocument: objectLike({
+      Statement: [
+        {
+          Action: 'sts:AssumeRole',
+          Effect: 'Allow',
+          Principal: {
+            Service: 'spotfleet.amazonaws.com',
+          },
+        },
+      ],
+    }),
+    ManagedPolicyArns: arrayWith(
+      'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole',
+    ),
   }));
 });
 
@@ -280,13 +337,13 @@ test('user data is added correctly', () => {
   });
   const imageConfig = workerMachineImage.getImage(spotFleetStack);
   let originalUserData = imageConfig.userData;
-  originalUserData.addCommands('some command');
+  const originalCommands = 'some command';
+  originalUserData.addCommands(originalCommands);
 
   // WHEN
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+  const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
     vpc,
     renderQueue: renderQueue,
-    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -302,7 +359,6 @@ test('user data is added correctly', () => {
   expect(fleet.userData).toBeDefined();
 
   const userData = fleet.userData.render();
-  const originalCommands = 'some command';
   expect(userData).toMatch(new RegExp(escapeTokenRegex(originalCommands)));
 
   const newCommands = 'mkdir';
@@ -311,10 +367,9 @@ test('user data is added correctly', () => {
 
 test('can add tags', () => {
   // WHEN
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+  const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
     vpc,
     renderQueue: renderQueue,
-    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -338,10 +393,9 @@ test('works fine if no subnets provided', () => {
   };
 
   // WHEN
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+  const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
     vpc,
     renderQueue: renderQueue,
-    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -356,8 +410,8 @@ test('works fine if no subnets provided', () => {
   });
 
   // THEN
-  expect(fleet.sepSpotFleetRequestConfigurations).toBeDefined();
-  expect(fleet.sepSpotFleetRequestConfigurations).toHaveLength(1);
+  expect(fleet.spotFleetRequestConfigurations).toBeDefined();
+  expect(fleet.spotFleetRequestConfigurations).toHaveLength(1);
 });
 
 test('works fine if subnets provided', () => {
@@ -367,10 +421,9 @@ test('works fine if subnets provided', () => {
   };
 
   // WHEN
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+  const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
     vpc,
     renderQueue: renderQueue,
-    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -385,16 +438,15 @@ test('works fine if subnets provided', () => {
   });
 
   // THEN
-  expect(fleet.sepSpotFleetRequestConfigurations).toBeDefined();
-  expect(fleet.sepSpotFleetRequestConfigurations).toHaveLength(1);
+  expect(fleet.spotFleetRequestConfigurations).toBeDefined();
+  expect(fleet.spotFleetRequestConfigurations).toHaveLength(1);
 });
 
 test('works fine if allocation strategy provided', () => {
   // WHEN
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+  const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
     vpc,
     renderQueue: renderQueue,
-    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -405,20 +457,19 @@ test('works fine if allocation strategy provided', () => {
       'us-east-1': 'ami-any',
     }),
     targetCapacity: 1,
-    allocationStrategy: SEPSpotFleetAllocationStrategy.CAPACITY_OPTIMIZED,
+    allocationStrategy: SpotFleetAllocationStrategy.CAPACITY_OPTIMIZED,
   });
 
   // THEN
-  expect(fleet.sepSpotFleetRequestConfigurations).toBeDefined();
-  expect(fleet.sepSpotFleetRequestConfigurations).toHaveLength(1);
+  expect(fleet.spotFleetRequestConfigurations).toBeDefined();
+  expect(fleet.spotFleetRequestConfigurations).toHaveLength(1);
 });
 
 test('works fine if deadline region provided', () => {
   // WHEN
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+  const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
     vpc,
     renderQueue: renderQueue,
-    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -433,16 +484,15 @@ test('works fine if deadline region provided', () => {
   });
 
   // THEN
-  expect(fleet.sepSpotFleetRequestConfigurations).toBeDefined();
-  expect(fleet.sepSpotFleetRequestConfigurations).toHaveLength(1);
+  expect(fleet.spotFleetRequestConfigurations).toBeDefined();
+  expect(fleet.spotFleetRequestConfigurations).toHaveLength(1);
 });
 
 test('works fine if log group is provided', () => {
   // WHEN
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+  const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
     vpc,
     renderQueue: renderQueue,
-    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -459,16 +509,15 @@ test('works fine if log group is provided', () => {
   });
 
   // THEN
-  expect(fleet.sepSpotFleetRequestConfigurations).toBeDefined();
-  expect(fleet.sepSpotFleetRequestConfigurations).toHaveLength(1);
+  expect(fleet.spotFleetRequestConfigurations).toBeDefined();
+  expect(fleet.spotFleetRequestConfigurations).toHaveLength(1);
 });
 
 test('works fine if key name is provided', () => {
   // WHEN
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+  const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
     vpc,
     renderQueue: renderQueue,
-    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -483,11 +532,11 @@ test('works fine if key name is provided', () => {
   });
 
   // THEN
-  expect(fleet.sepSpotFleetRequestConfigurations).toBeDefined();
-  expect(fleet.sepSpotFleetRequestConfigurations).toHaveLength(1);
+  expect(fleet.spotFleetRequestConfigurations).toBeDefined();
+  expect(fleet.spotFleetRequestConfigurations).toHaveLength(1);
 });
 
-test('UserData is added', () => {
+test('UserData is added by UserDataProvider', () => {
   // WHEN
   class UserDataProvider extends InstanceUserDataProvider {
     preCloudWatchAgent(host: IHost): void {
@@ -504,10 +553,9 @@ test('UserData is added', () => {
     }
   }
 
-  const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+  const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
     vpc,
     renderQueue: renderQueue,
-    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -530,13 +578,12 @@ test('UserData is added', () => {
   expect(userData).toContain('echo postWorkerLaunch');
 });
 
-describe('allowing log listener port', () => {
+describe('allowing remote control', () => {
   test('from CIDR', () => {
     // WHEN
-    const fleet = new SEPSpotFleet(stack, 'spotFleet', {
+    const fleet = new SpotEventPluginFleet(stack, 'SpotFleet', {
       vpc,
       renderQueue: renderQueue,
-      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
@@ -549,7 +596,7 @@ describe('allowing log listener port', () => {
       targetCapacity: 1,
     });
 
-    fleet.allowListenerPortFrom(Peer.ipv4('127.0.0.1/24').connections);
+    fleet.allowRemoteControlFrom(Peer.ipv4('127.0.0.1/24').connections);
 
     // THEN
     expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroup', {
@@ -560,7 +607,7 @@ describe('allowing log listener port', () => {
           Description: 'Worker remote command listening port',
           FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
           IpProtocol: 'tcp',
-          ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + SEPSpotFleet['MAX_WORKERS_PER_HOST'],
+          ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + SpotEventPluginFleet['MAX_WORKERS_PER_HOST'],
         },
       ],
     }));
@@ -568,10 +615,9 @@ describe('allowing log listener port', () => {
 
   test('to CIDR', () => {
     // WHEN
-    const fleet = new SEPSpotFleet(stack, 'spotFleet', {
+    const fleet = new SpotEventPluginFleet(stack, 'SpotFleet', {
       vpc,
       renderQueue: renderQueue,
-      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
@@ -584,7 +630,7 @@ describe('allowing log listener port', () => {
       targetCapacity: 1,
     });
 
-    fleet.allowListenerPortTo(Peer.ipv4('127.0.0.1/24').connections);
+    fleet.allowRemoteControlTo(Peer.ipv4('127.0.0.1/24').connections);
 
     // THEN
     expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroup', {
@@ -595,7 +641,7 @@ describe('allowing log listener port', () => {
           Description: 'Worker remote command listening port',
           FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
           IpProtocol: 'tcp',
-          ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + SEPSpotFleet['MAX_WORKERS_PER_HOST'],
+          ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + SpotEventPluginFleet['MAX_WORKERS_PER_HOST'],
         },
       ],
     }));
@@ -603,10 +649,9 @@ describe('allowing log listener port', () => {
 
   test('from SecurityGroup', () => {
     // WHEN
-    const fleet = new SEPSpotFleet(stack, 'spotFleet', {
+    const fleet = new SpotEventPluginFleet(stack, 'SpotFleet', {
       vpc,
       renderQueue: renderQueue,
-      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
@@ -620,23 +665,22 @@ describe('allowing log listener port', () => {
     });
     const securityGroup = SecurityGroup.fromSecurityGroupId(stack, 'SG', 'sg-123456789');
 
-    fleet.allowListenerPortFrom(securityGroup);
+    fleet.allowRemoteControlFrom(securityGroup);
 
     // THEN
     expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
       FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
       IpProtocol: 'tcp',
       SourceSecurityGroupId: 'sg-123456789',
-      ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + SEPSpotFleet['MAX_WORKERS_PER_HOST'],
+      ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + SpotEventPluginFleet['MAX_WORKERS_PER_HOST'],
     }));
   });
 
   test('to SecurityGroup', () => {
     // WHEN
-    const fleet = new SEPSpotFleet(stack, 'spotFleet', {
+    const fleet = new SpotEventPluginFleet(stack, 'SpotFleet', {
       vpc,
       renderQueue: renderQueue,
-      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
@@ -650,14 +694,14 @@ describe('allowing log listener port', () => {
     });
     const securityGroup = SecurityGroup.fromSecurityGroupId(stack, 'SG', 'sg-123456789');
 
-    fleet.allowListenerPortTo(securityGroup);
+    fleet.allowRemoteControlTo(securityGroup);
 
     // THEN
     expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
       FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
       IpProtocol: 'tcp',
       SourceSecurityGroupId: 'sg-123456789',
-      ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + SEPSpotFleet['MAX_WORKERS_PER_HOST'],
+      ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + SpotEventPluginFleet['MAX_WORKERS_PER_HOST'],
     }));
   });
 
@@ -667,10 +711,9 @@ describe('allowing log listener port', () => {
     });
 
     // WHEN
-    const fleet = new SEPSpotFleet(stack, 'spotFleet', {
+    const fleet = new SpotEventPluginFleet(stack, 'SpotFleet', {
       vpc,
       renderQueue: renderQueue,
-      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
@@ -684,14 +727,14 @@ describe('allowing log listener port', () => {
     });
     const securityGroup = SecurityGroup.fromSecurityGroupId(otherStack, 'SG', 'sg-123456789');
 
-    fleet.allowListenerPortFrom(securityGroup);
+    fleet.allowRemoteControlFrom(securityGroup);
 
     // THEN
     expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
       FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
       IpProtocol: 'tcp',
       SourceSecurityGroupId: 'sg-123456789',
-      ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + SEPSpotFleet['MAX_WORKERS_PER_HOST'],
+      ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + SpotEventPluginFleet['MAX_WORKERS_PER_HOST'],
     }));
   });
 
@@ -701,10 +744,9 @@ describe('allowing log listener port', () => {
     });
 
     // WHEN
-    const fleet = new SEPSpotFleet(stack, 'spotFleet', {
+    const fleet = new SpotEventPluginFleet(stack, 'SpotFleet', {
       vpc,
       renderQueue: renderQueue,
-      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
@@ -718,14 +760,14 @@ describe('allowing log listener port', () => {
     });
     const securityGroup = SecurityGroup.fromSecurityGroupId(otherStack, 'SG', 'sg-123456789');
 
-    fleet.allowListenerPortTo(securityGroup);
+    fleet.allowRemoteControlTo(securityGroup);
 
     // THEN
     expectCDK(otherStack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
       FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
       IpProtocol: 'tcp',
       SourceSecurityGroupId: 'sg-123456789',
-      ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + SEPSpotFleet['MAX_WORKERS_PER_HOST'],
+      ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + SpotEventPluginFleet['MAX_WORKERS_PER_HOST'],
     }));
   });
 });
@@ -735,13 +777,12 @@ test.each([
   '',
 ])('default worker fleet is created correctly with custom LogGroup prefix %s', (testPrefix: string) => {
   // GIVEN
-  const id = 'spotFleet';
+  const id = 'SpotFleet';
 
   // WHEN
-  new SEPSpotFleet(stack, id, {
+  new SpotEventPluginFleet(stack, id, {
     vpc,
     renderQueue: renderQueue,
-    fleetRole,
     deadlineGroups: [
       'group_name',
     ],
@@ -763,203 +804,174 @@ test.each([
   }));
 });
 
-test('worker fleet does validation correctly with instance types, groups, and region', () => {
-  // empty instance types array
-  expect(() => {
-    new SEPSpotFleet(stack, 'spotFleet0', {
-      vpc,
-      renderQueue: renderQueue,
-      fleetRole,
-      deadlineGroups: [
-        'group_name',
-      ],
-      instanceTypes: [],
-      workerMachineImage: new GenericLinuxImage({
-        'us-east-1': 'ami-any',
-      }),
-      targetCapacity: 1,
-    });
-  }).toThrowError(/SEPSpotFleet: At least one Deadline Group is required for a Spot Fleet Request Configuration/);
+describe('validation with', () => {
+  describe('instance types', () => {
+    test('throws with empty', () => {
+      // GIVEN
+      const instanceTypes: InstanceType[] = [];
 
-  // empty groups array
-  expect(() => {
-    new SEPSpotFleet(stack, 'spotFleet1', {
-      vpc,
-      renderQueue: renderQueue,
-      fleetRole,
-      instanceTypes: [
-        InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-      ],
-      workerMachineImage: new GenericLinuxImage({
-        'us-east-1': 'ami-any',
-      }),
-      targetCapacity: 1,
-      deadlineGroups: [],
+      // THEN
+      expect(() => {
+        new SpotEventPluginFleet(stack, 'SpotFleet', {
+          vpc,
+          renderQueue: renderQueue,
+          deadlineGroups: [
+            'group_name',
+          ],
+          instanceTypes,
+          workerMachineImage: new GenericLinuxImage({
+            'us-east-1': 'ami-any',
+          }),
+          targetCapacity: 1,
+        });
+      }).toThrowError(/At least one instance type is required for a Spot Fleet Request Configuration/);
     });
-  }).toThrowError(/SEPSpotFleet: At least one Deadline Group is required for a Spot Fleet Request Configuration/);
 
-  // group name as 'none'
-  expect(() => {
-    new SEPSpotFleet(stack, 'spotFleet2', {
-      vpc,
-      renderQueue: renderQueue,
-      fleetRole,
-      instanceTypes: [
-        InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-      ],
-      workerMachineImage: new GenericLinuxImage({
-        'us-east-1': 'ami-any',
-      }),
-      targetCapacity: 1,
-      deadlineGroups: ['A', 'none'],
-    });
-  }).toThrowError();
+    test('passes with at least one', () => {
+      // GIVEN
+      const instanceTypes: InstanceType[] = [ InstanceType.of(InstanceClass.T2, InstanceSize.SMALL) ];
 
-  // group name with whitespace
-  expect(() => {
-    new SEPSpotFleet(stack, 'spotFleet3', {
-      vpc,
-      renderQueue: renderQueue,
-      fleetRole,
-      instanceTypes: [
-        InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-      ],
-      workerMachineImage: new GenericLinuxImage({
-        'us-east-1': 'ami-any',
-      }),
-      targetCapacity: 1,
-      deadlineGroups: ['A', 'no ne'],
+      // THEN
+      expect(() => {
+        new SpotEventPluginFleet(stack, 'SpotFleet', {
+          vpc,
+          renderQueue: renderQueue,
+          deadlineGroups: [
+            'group_name',
+          ],
+          instanceTypes,
+          workerMachineImage: new GenericLinuxImage({
+            'us-east-1': 'ami-any',
+          }),
+          targetCapacity: 1,
+        });
+      }).not.toThrowError();
     });
-  }).toThrowError(/Invalid value: no ne for property 'deadlineGroups'/);
+  });
 
-  // region as 'none'
-  expect(() => {
-    new SEPSpotFleet(stack, 'spotFleet4', {
-      vpc,
-      renderQueue: renderQueue,
-      fleetRole,
-      deadlineGroups: [
-        'group_name',
-      ],
-      instanceTypes: [
-        InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-      ],
-      workerMachineImage: new GenericLinuxImage({
-        'us-east-1': 'ami-any',
-      }),
-      targetCapacity: 1,
-      deadlineRegion: 'none',
-    });
-  }).toThrowError(/Invalid value: none for property 'region'/);
+  describe('groups', () => {
+    test('throws with empty', () => {
+      // GIVEN
+      const deadlineGroups: string[] = [];
 
-  // region as 'all'
-  expect(() => {
-    new SEPSpotFleet(stack, 'spotFleet5', {
-      vpc,
-      renderQueue: renderQueue,
-      fleetRole,
-      deadlineGroups: [
-        'group_name',
-      ],
-      instanceTypes: [
-        InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-      ],
-      workerMachineImage: new GenericLinuxImage({
-        'us-east-1': 'ami-any',
-      }),
-      targetCapacity: 1,
-      deadlineRegion: 'all',
+      // THEN
+      expect(() => {
+        new SpotEventPluginFleet(stack, 'SpotFleet', {
+          vpc,
+          renderQueue: renderQueue,
+          instanceTypes: [
+            InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+          ],
+          workerMachineImage: new GenericLinuxImage({
+            'us-east-1': 'ami-any',
+          }),
+          targetCapacity: 1,
+          deadlineGroups,
+        });
+      }).toThrowError(/At least one Deadline Group is required for a Spot Fleet Request Configuration/);
     });
-  }).toThrowError(/Invalid value: all for property 'region'/);
 
-  // region as 'unrecognized'
-  expect(() => {
-    new SEPSpotFleet(stack, 'spotFleet6', {
-      vpc,
-      renderQueue: renderQueue,
-      fleetRole,
-      deadlineGroups: [
-        'group_name',
-      ],
-      instanceTypes: [
-        InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-      ],
-      workerMachineImage: new GenericLinuxImage({
-        'us-east-1': 'ami-any',
-      }),
-      targetCapacity: 1,
-      deadlineRegion: 'unrecognized',
+    test.each([
+      'none',
+      'with space',
+    ])('throws with %s', (groupName: string) => {
+      // THEN
+      expect(() => {
+        new SpotEventPluginFleet(stack, 'SpotFleet', {
+          vpc,
+          renderQueue: renderQueue,
+          instanceTypes: [
+            InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+          ],
+          workerMachineImage: new GenericLinuxImage({
+            'us-east-1': 'ami-any',
+          }),
+          targetCapacity: 1,
+          deadlineGroups: [groupName],
+        });
+      }).toThrowError(/Invalid value: .+ for property 'deadlineGroups'/);
     });
-  }).toThrowError(/Invalid value: unrecognized for property 'region'/);
 
-  // region with invalid characters
-  expect(() => {
-    new SEPSpotFleet(stack, 'spotFleet7', {
-      vpc,
-      renderQueue: renderQueue,
-      fleetRole,
-      deadlineGroups: [
-        'group_name',
-      ],
-      instanceTypes: [
-        InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-      ],
-      workerMachineImage: new GenericLinuxImage({
-        'us-east-1': 'ami-any',
-      }),
-      targetCapacity: 1,
-      deadlineRegion: 'none@123',
+    test.each([
+      'group_name',
+      'group_*', // with wildcard
+    ])('passes with %s', (groupName: string) => {
+      expect(() => {
+        new SpotEventPluginFleet(stack, 'SpotFleet', {
+          vpc,
+          renderQueue: renderQueue,
+          instanceTypes: [
+            InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+          ],
+          workerMachineImage: new GenericLinuxImage({
+            'us-east-1': 'ami-any',
+          }),
+          targetCapacity: 1,
+          deadlineGroups: [groupName],
+        });
+      }).not.toThrowError();
     });
-  }).toThrowError(/Invalid value: none@123 for property 'region'/);
+  });
 
-  // region with reserved name as substring
-  expect(() => {
-    new SEPSpotFleet(stack, 'spotFleet8', {
-      vpc,
-      renderQueue: renderQueue,
-      fleetRole,
-      deadlineGroups: [
-        'group_name',
-      ],
-      instanceTypes: [
-        InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-      ],
-      workerMachineImage: new GenericLinuxImage({
-        'us-east-1': 'ami-any',
-      }),
-      targetCapacity: 1,
-      deadlineRegion: 'none123',
+  describe('region', () => {
+    test.each([
+      'none', // region as 'none'
+      'all', // region as 'all'
+      'unrecognized', // region as 'unrecognized'
+      'none@123', // region with invalid characters
+      'None', // region with case-insensitive name
+    ])('throws with %s', (region: string) => {
+      // THEN
+      expect(() => {
+        new SpotEventPluginFleet(stack, 'SpotFleet', {
+          vpc,
+          renderQueue: renderQueue,
+          deadlineGroups: [
+            'group_name',
+          ],
+          instanceTypes: [
+            InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+          ],
+          workerMachineImage: new GenericLinuxImage({
+            'us-east-1': 'ami-any',
+          }),
+          targetCapacity: 1,
+          deadlineRegion: region,
+        });
+      }).toThrowError(/Invalid value: .+ for property 'deadlineRegion'/);
     });
-  }).not.toThrowError();
 
-  // region with case-insensitive name
-  expect(() => {
-    new SEPSpotFleet(stack, 'spotFleet9', {
-      vpc,
-      renderQueue: renderQueue,
-      fleetRole,
-      deadlineGroups: [
-        'group_name',
-      ],
-      instanceTypes: [
-        InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-      ],
-      workerMachineImage: new GenericLinuxImage({
-        'us-east-1': 'ami-any',
-      }),
-      targetCapacity: 1,
-      deadlineRegion: 'None',
+    test('passes with reserved name as substring', () => {
+      // GIVEN
+      const deadlineRegion = 'none123';
+
+      // THEN
+      expect(() => {
+        new SpotEventPluginFleet(stack, 'SpotFleet9', {
+          vpc,
+          renderQueue: renderQueue,
+          deadlineGroups: [
+            'group_name',
+          ],
+          instanceTypes: [
+            InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+          ],
+          workerMachineImage: new GenericLinuxImage({
+            'us-east-1': 'ami-any',
+          }),
+          targetCapacity: 1,
+          deadlineRegion,
+        });
+      }).not.toThrowError();
     });
-  }).toThrowError(/Invalid value: None for property 'region'/);
+  });
 });
 
 describe('Block Device Tests', () => {
-
   test('Warning if no BlockDevices provided', () => {
-    const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+    const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
       vpc,
       renderQueue: renderQueue,
-      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
@@ -979,10 +991,9 @@ describe('Block Device Tests', () => {
     const VOLUME_SIZE = 50;
 
     // WHEN
-    const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+    const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
       vpc,
       renderQueue: renderQueue,
-      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
@@ -1006,13 +1017,12 @@ describe('Block Device Tests', () => {
   test('Warnings if non-Encrypted BlockDevices Provided', () => {
     const VOLUME_SIZE = 50;
     const DEVICE_NAME = '/dev/xvda';
-    const id = 'spotFleet';
+    const id = 'SpotFleet';
 
     // WHEN
-    const fleet = new SEPSpotFleet(spotFleetStack, id, {
+    const fleet = new SpotEventPluginFleet(spotFleetStack, id, {
       vpc,
       renderQueue: renderQueue,
-      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
@@ -1037,13 +1047,12 @@ describe('Block Device Tests', () => {
   test('Warnings for BlockDevices without encryption specified', () => {
     const VOLUME_SIZE = 50;
     const DEVICE_NAME = '/dev/xvda';
-    const id = 'spotFleet';
+    const id = 'SpotFleet';
 
     // WHEN
-    const fleet = new SEPSpotFleet(spotFleetStack, id, {
+    const fleet = new SpotEventPluginFleet(spotFleetStack, id, {
       vpc,
       renderQueue: renderQueue,
-      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
@@ -1069,10 +1078,9 @@ describe('Block Device Tests', () => {
     const DEVICE_NAME = '/dev/xvda';
 
     // WHEN
-    const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+    const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
       vpc,
       renderQueue: renderQueue,
-      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
@@ -1097,10 +1105,9 @@ describe('Block Device Tests', () => {
     const DEVICE_NAME = '/dev/xvda';
 
     // WHEN
-    const fleet = new SEPSpotFleet(spotFleetStack, 'spotFleet', {
+    const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
       vpc,
       renderQueue: renderQueue,
-      fleetRole,
       deadlineGroups: [
         'group_name',
       ],

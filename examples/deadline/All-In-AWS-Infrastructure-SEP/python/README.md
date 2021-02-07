@@ -83,7 +83,14 @@ These instructions assume that your working directory is `examples/deadline/All-
     cdk deploy "*"
     ```
 
-9. Once you are finished with the sample app, you can tear it down by running:
+9. You can now [connect to the farm](https://docs.aws.amazon.com/rfdk/latest/guide/connecting-to-render-farm.html) and [submit rendering jobs](https://docs.aws.amazon.com/rfdk/latest/guide/first-rfdk-app.html#_optional_submit_a_job_to_the_render_farm).
+
+    **Note:** In order for the Spot Event Plugin to create a Spot Fleet Request you need to:
+    * Create the Deadline Group associated with the Spot Fleet Request Configuration
+    * Create the Deadline Pools to which the fleet Workers are added
+    * Submit the job with the assigned Deadline Group and Deadline Pool
+
+10. Once you are finished with the sample app, you can tear it down by running:
 
     ```bash
     cdk destroy "*"

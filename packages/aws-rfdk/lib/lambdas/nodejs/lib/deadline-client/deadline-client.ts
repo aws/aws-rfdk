@@ -13,17 +13,17 @@ import * as https from 'https';
  */
 export interface TLSProps {
   /**
-   * The ARN of the CA certificate.
+   * The content of the CA certificate.
    */
   readonly ca?: string;
 
   /**
-   * The ARN of the PFX certificate.
+   * The content of the PFX certificate.
    */
   readonly pfx?: string;
 
   /**
-   * The ARN of the shared passphrase used for a single private key and/or a PFX.
+   * The shared passphrase used for a single private key and/or a PFX.
    */
   readonly passphrase?: string;
 }
@@ -33,20 +33,21 @@ export interface TLSProps {
  */
 export interface DeadlineClientProps {
   /**
-   * The IP address or DNS name of the Remote Connection Server.
+   * The IP address or DNS name of the Render Queue.
    */
   readonly host: string;
 
   /**
-   * The port number address of the Remote Connection Server.
+   * The port number address of the Render Queue.
    */
   readonly port: number;
 
   /**
-   * The protocol to use when connecting to the Remote Connection Server.
+   * The protocol to use when connecting to the Render Queue.
    * Supported values: HTTP, HTTPS
    */
   readonly protocol: string;
+
   /**
    * The certificate, private key, and root CA certificate if SSL/TLS is used.
    */
@@ -58,17 +59,17 @@ export interface DeadlineClientProps {
  */
 interface RequestOptions {
   /**
-   * The IP address or DNS name of the Remote Connection Server
+   * The IP address or DNS name of the Render Queue.
    */
   readonly host: string;
 
   /**
-   * The port Remote Connection Server is listening to
+   * The port Render Queue is listening to.
    */
   readonly port: number;
 
   /**
-   * The agent used for TLS connection
+   * The agent used for TLS connection.
    */
   httpsAgent?: https.Agent;
 }
@@ -103,30 +104,43 @@ export class DeadlineClient {
     }
   }
 
-  public async GetRequest(path: string, requestOptions?: https.RequestOptions): Promise<Response> {
-    let options = this.FillRequestOptions(path, requestOptions);
-    options.method = 'GET';
-
-    return this.performRequest(options);
+  public async GetRequest(path: string, requestOptions?: https.RequestOptions, retries: number=3, retryWaitMs=60000): Promise<Response> {
+    const options = this.FillRequestOptions(path, 'GET', requestOptions);
+    return this.performRequestWithRetry(options, retries, retryWaitMs);
   }
 
-  public async PostRequest(path: string, data?: any, requestOptions?: https.RequestOptions): Promise<Response> {
-    let options = this.FillRequestOptions(path, requestOptions);
-    options.method = 'POST';
-
-    return this.performRequest(options, data ? JSON.stringify(data) : undefined);
+  public async PostRequest(path: string, data?: any, requestOptions?: https.RequestOptions, retries: number=3, retryWaitMs=60000): Promise<Response> {
+    const options = this.FillRequestOptions(path, 'POST', requestOptions);
+    return this.performRequestWithRetry(options, retries, retryWaitMs, data ? JSON.stringify(data) : undefined);
   }
 
-  private FillRequestOptions(path: string, requestOptions?: https.RequestOptions): https.RequestOptions {
-    let options: https.RequestOptions = requestOptions ?? {};
-
-    options.port = this.requestOptions.port;
-    options.host = this.requestOptions.host;
-    options.agent = this.requestOptions.httpsAgent;
-
-    options.path = path;
+  private FillRequestOptions(path: string, method: string, requestOptions?: https.RequestOptions): https.RequestOptions {
+    const options: https.RequestOptions = {
+      ...requestOptions,
+      port: this.requestOptions.port,
+      host: this.requestOptions.host,
+      agent: this.requestOptions.httpsAgent,
+      path: path,
+      method: method,
+    };
 
     return options;
+  }
+
+  private async performRequestWithRetry(options: https.RequestOptions, retriesLeft: number, retryDelayMs: number, data?: string): Promise<Response> {
+    return this.performRequest(options, data)
+      .catch(async (rejection) => {
+        if (rejection.statusCode === 503 && retriesLeft > 0) {
+          console.log(`Request failed with ${rejection.statusCode}: ${rejection.statusMessage}. Will retry after ${retryDelayMs} ms.`);
+          console.log(`Retries left: ${retriesLeft}`);
+          const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+          await delay(retryDelayMs);
+          return await this.performRequestWithRetry(options, retriesLeft - 1, retryDelayMs, data);
+        }
+        else {
+          return await Promise.reject(new Error(rejection.statusMessage));
+        }
+      });
   }
 
   private async performRequest(options: https.RequestOptions, data?: string): Promise<Response> {
@@ -134,9 +148,7 @@ export class DeadlineClient {
       const req = this.protocol.request(options, response => {
         const { statusCode } = response;
         if (!statusCode || statusCode >= 300) {
-          reject(
-            new Error(response.statusMessage),
-          );
+          reject(response);
         }
         else {
           const chunks: any = [];

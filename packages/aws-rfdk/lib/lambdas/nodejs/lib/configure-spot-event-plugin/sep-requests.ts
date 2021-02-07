@@ -22,21 +22,12 @@ export class EventPluginRequests {
       ServerDataIds: [
         'event.plugin.spot',
       ],
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
     });
-  }
-
-  private async concurrencyToken(): Promise<string> {
-    const response = await this.describeServerData();
-
-    const describedData: {
-      ServerData: {
-        ID: string,
-        ConcurrencyToken: string,
-      }[],
-    } = response.data;
-
-    const found = describedData.ServerData.find(element => element.ID === 'event.plugin.spot');
-    return found?.ConcurrencyToken ?? '';
   }
 
   public async saveServerData(config: string): Promise<boolean> {
@@ -54,6 +45,11 @@ export class EventPluginRequests {
           ConcurrencyToken: concurrencyToken,
         },
       ],
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
     });
     console.log('Server data successfully saved.');
     return true;
@@ -71,8 +67,27 @@ export class EventPluginRequests {
       Meta: [],
       Name: 'Spot',
       PluginEnabled: 1,
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+      },
     });
     console.log('Plugin configuration successfully saved.');
     return true;
+  }
+
+  private async concurrencyToken(): Promise<string> {
+    const response = await this.describeServerData();
+
+    const describedData: {
+      ServerData: {
+        ID: string,
+        ConcurrencyToken: string,
+      }[],
+    } = response.data;
+
+    const found = describedData.ServerData.find(element => element.ID === 'event.plugin.spot');
+    return found?.ConcurrencyToken ?? '';
   }
 }

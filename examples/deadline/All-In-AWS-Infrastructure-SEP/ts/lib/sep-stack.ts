@@ -134,19 +134,9 @@ export class SEPStack extends Stack {
       roleName: 'DeadlineResourceTrackerAccessRole',
     });
 
-    // Create the IAM Role for the spot fleet.
-    // Note if you already have a worker IAM role in your account you can use it instead.
-    const fleetRole = new Role(this, 'FleetRole', {
-      assumedBy: new ServicePrincipal('spotfleet.amazonaws.com'),
-      managedPolicies: [
-        ManagedPolicy.fromManagedPolicyArn(this, 'AmazonEC2SpotFleetTaggingRole', 'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'),
-      ],
-    });
-
     const fleet = new SEPSpotFleet(this, 'SEPSpotFleet', {
       vpc,
       renderQueue,
-      fleetRole,
       deadlineGroups: [
         'group_name',
       ],
