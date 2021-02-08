@@ -16,6 +16,7 @@ import {
   IConnectable,
   IVpc,
   Port,
+  SubnetSelection,
 } from '@aws-cdk/aws-ec2';
 import {
   ApplicationLoadBalancer,
@@ -202,6 +203,13 @@ export interface HealthMonitorProps {
    * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection
    */
   readonly deletionProtection?: boolean;
+
+  /**
+   * Any load balancers that get created by calls to registerFleet() will be created in these subnets.
+   *
+   * @default: The VPC default strategy
+   */
+  readonly vpcSubnets?: SubnetSelection;
 }
 
 /**

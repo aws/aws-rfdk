@@ -13,6 +13,8 @@ import {
   haveResourceLike,
   not,
   ABSENT,
+  notMatching,
+  stringLike,
 } from '@aws-cdk/assert';
 import {
   AutoScalingGroup,
@@ -30,6 +32,7 @@ import {
   InstanceSize,
   InstanceType,
   IVpc,
+  SubnetType,
   Vpc,
 } from '@aws-cdk/aws-ec2';
 import {IApplicationLoadBalancerTarget} from '@aws-cdk/aws-elasticloadbalancingv2';
@@ -529,6 +532,37 @@ describe('HealthMonitor', () => {
           Value: 'true',
         },
       ),
+    }));
+  });
+
+  test('specifying a subnet', () => {
+    // WHEN
+    healthMonitor = new HealthMonitor(hmStack, 'healthMonitor2', {
+      vpc,
+      vpcSubnets: {
+        subnetType: SubnetType.PUBLIC,
+      },
+    });
+
+    const fleet = new TestMonitorableFleet(wfStack, 'workerFleet', {
+      vpc,
+    });
+    healthMonitor.registerFleet(fleet, {});
+
+    // THEN
+    // Make sure it has the public subnets
+    expectCDK(hmStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+      Subnets: [
+        {'Fn::ImportValue': stringLike('*PublicSubnet*')},
+        {'Fn::ImportValue': stringLike('*PublicSubnet*')},
+      ],
+    }));
+    // Make sure the private subnets aren't present
+    expectCDK(hmStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+      Subnets: [
+        {'Fn::ImportValue': notMatching(stringLike('*PrivateSubnet*'))},
+        {'Fn::ImportValue': notMatching(stringLike('*PrivateSubnet*'))},
+      ],
     }));
   });
 
