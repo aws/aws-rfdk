@@ -56,104 +56,20 @@ import {
 import {
   IRenderQueue,
 } from './render-queue';
-// import {
-//   SpotFleetAllocationStrategy,
-//   SpotFleetRequestType,
-//   SpotFleetResourceType,
-//   SpotFleetRequestLaunchSpecification,
-//   SpotFleetRequestProps,
-//   TagSpecification,
-// } from './spot-event-plugin-fleet-ref';
+import {
+  SpotFleetSecurityGroupId,
+  SpotFleetAllocationStrategy,
+  SpotFleetRequestType,
+  SpotFleetResourceType,
+  SpotFleetRequestLaunchSpecification,
+  SpotFleetRequestConfiguration,
+  SpotFleetRequestProps,
+  SpotFleetTagSpecification,
+} from './spot-event-plugin-fleet-ref';
 import {
   IInstanceUserDataProvider,
   WorkerInstanceConfiguration,
 } from './worker-configuration';
-
-/**
- * The allocation strategy for the Spot Instances in your Spot Fleet
- * determines how it fulfills your Spot Fleet request from the possible
- * Spot Instance pools represented by its launch specifications.
- * See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-configuration-strategies.html#ec2-fleet-allocation-strategy
- */
-export enum SpotFleetAllocationStrategy {
-  /**
-   * Spot Fleet launches instances from the Spot Instance pools with the lowest price.
-   */
-  LOWEST_PRICE = 'lowestPrice',
-  /**
-   * Spot Fleet launches instances from all the Spot Instance pools that you specify.
-   */
-  DIVERSIFIED = 'diversified',
-  /**
-   * Spot Fleet launches instances from Spot Instance pools with optimal capacity for the number of instances that are launching.
-   */
-  CAPACITY_OPTIMIZED = 'capacityOptimized',
-}
-
-/**
- * Resource types that presently support tag on create.
- */
-enum SpotFleetResourceType {
-  /**
-   * EC2 Instances.
-   */
-  INSTANCE = 'instance',
-
-  /**
-   * Spot fleet requests.
-   */
-  SPOT_FLEET_REQUEST = 'spot-fleet-request',
-}
-
-/**
- * The type of request. Indicates whether the Spot Fleet only requests the target capacity or also attempts to maintain it.
- * Only 'maintain' is currently supported.
- */
-enum SpotFleetRequestType {
-  /**
-   * The Spot Fleet maintains the target capacity.
-   * The Spot Fleet places the required requests to meet capacity and automatically replenishes any interrupted instances.
-   */
-  MAINTAIN = 'maintain',
-}
-
-interface InstanceProfile {
-  readonly Arn: string;
-}
-
-interface SecurityGroupId {
-  readonly GroupId: string;
-}
-
-interface TagSpecification {
-  readonly ResourceType: SpotFleetResourceType;
-  readonly Tags: any;
-}
-
-interface SpotFleetRequestLaunchSpecification
-{
-  readonly BlockDeviceMappings?: CfnLaunchConfiguration.BlockDeviceMappingProperty[];
-  readonly IamInstanceProfile: InstanceProfile;
-  readonly ImageId: string;
-  readonly SecurityGroups: IResolvable | SecurityGroupId[];
-  readonly SubnetId?: string;
-  readonly TagSpecifications: IResolvable | TagSpecification[];
-  readonly UserData: string;
-  readonly InstanceType: string;
-  readonly KeyName?: string;
-}
-
-interface SpotFleetRequestProps {
-  readonly AllocationStrategy: SpotFleetAllocationStrategy;
-  readonly IamFleetRole: string;
-  readonly LaunchSpecifications: SpotFleetRequestLaunchSpecification[];
-  readonly ReplaceUnhealthyInstances: boolean;
-  readonly TargetCapacity: number;
-  readonly TerminateInstancesWithExpiration: boolean;
-  readonly Type: SpotFleetRequestType;
-  readonly TagSpecifications: IResolvable | TagSpecification[];
-  readonly ValidUntil?: string;
-}
 
 /**
  * Properties for the Spot Event Plugin Worker Fleet.
@@ -461,7 +377,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
    * Spot Fleet Configurations constructed from the provided input.
    * Each congiguration is a mapping between one Deadline Group and one Spot Fleet Request Configuration.
    */
-  public readonly spotFleetRequestConfigurations: any[];
+  public readonly spotFleetRequestConfigurations: SpotFleetRequestConfiguration[];
 
   /**
    * An id of the Worker AMI.
@@ -552,13 +468,18 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     other.connections.allowTo(this.connections, this.remoteControlPorts, 'Worker remote command listening port');
   }
 
-  private generateSpotFleetRequestConfig(props: SpotEventPluginFleetProps): any {
+  private generateSpotFleetRequestConfig(props: SpotEventPluginFleetProps): SpotFleetRequestConfiguration[] {
     const iamProfile = new CfnInstanceProfile(this, 'InstanceProfile', {
       roles: [this.fleetInstanceRole.roleName],
     });
 
     const securityGroupsToken = Lazy.any({ produce: () => {
-      return this.securityGroups.map(sg => { return { GroupId: sg.securityGroupId }; });
+      return this.securityGroups.map(sg => {
+        const securityGroupId: SpotFleetSecurityGroupId = {
+          groupId: sg.securityGroupId,
+        };
+        return securityGroupId;
+      });
     } });
 
     const userDataToken = Lazy.string({ produce: () => Fn.base64(this.userData.render()) });
@@ -579,35 +500,35 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
 
     props.instanceTypes.map(instanceType => {
       const launchSpecification: SpotFleetRequestLaunchSpecification = {
-        BlockDeviceMappings: blockDeviceMappings,
-        IamInstanceProfile: {
-          Arn: iamProfile.attrArn,
+        blockDeviceMappings: blockDeviceMappings,
+        iamInstanceProfile: {
+          arn: iamProfile.attrArn,
         },
-        ImageId: this.imageId,
-        KeyName: props.keyName,
-        SecurityGroups: securityGroupsToken,
-        SubnetId: subnetId,
-        TagSpecifications: instanceTagsToken,
-        UserData: userDataToken,
-        InstanceType: instanceType.toString(),
+        imageId: this.imageId,
+        keyName: props.keyName,
+        securityGroups: securityGroupsToken,
+        subnetId: subnetId,
+        tagSpecifications: instanceTagsToken,
+        userData: userDataToken,
+        instanceType: instanceType,
       };
       launchSpecifications.push(launchSpecification);
     });
 
     const spotFleetRequestProps: SpotFleetRequestProps = {
-      AllocationStrategy: props.allocationStrategy ?? SpotFleetAllocationStrategy.LOWEST_PRICE,
-      IamFleetRole: this.fleetRole.roleArn,
-      LaunchSpecifications: launchSpecifications,
-      ReplaceUnhealthyInstances: props.replaceUnhealthyInstances ?? true,
-      TargetCapacity: props.targetCapacity,
-      TerminateInstancesWithExpiration: props.terminateInstancesWithExpiration ?? true,
-      Type: SpotFleetRequestType.MAINTAIN,
-      ValidUntil: props.validUntil ? props.validUntil?.date.toUTCString() : undefined,
-      TagSpecifications: spotFleetRequestTagsToken,
+      allocationStrategy: props.allocationStrategy ?? SpotFleetAllocationStrategy.LOWEST_PRICE,
+      iamFleetRole: this.fleetRole.roleArn,
+      launchSpecifications: launchSpecifications,
+      replaceUnhealthyInstances: props.replaceUnhealthyInstances ?? true,
+      targetCapacity: props.targetCapacity,
+      terminateInstancesWithExpiration: props.terminateInstancesWithExpiration ?? true,
+      type: SpotFleetRequestType.MAINTAIN,
+      validUntil: props.validUntil ? props.validUntil?.date.toUTCString() : undefined,
+      tagSpecifications: spotFleetRequestTagsToken,
     };
 
     const spotFleetRequestConfigurations = props.deadlineGroups.map(group => {
-      const spotFleetRequestConfiguration = {
+      const spotFleetRequestConfiguration: SpotFleetRequestConfiguration = {
         [group]: spotFleetRequestProps,
       };
       return spotFleetRequestConfiguration;
@@ -620,9 +541,9 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     return Lazy.any({
       produce: () => {
         if (this.tags.hasTags()) {
-          const tagSpecification: TagSpecification = {
-            ResourceType: resourceType,
-            Tags: this.tags.renderTags(),
+          const tagSpecification: SpotFleetTagSpecification = {
+            resourceType: resourceType,
+            tags: this.tags.renderTags(),
           };
           return [tagSpecification];
         }

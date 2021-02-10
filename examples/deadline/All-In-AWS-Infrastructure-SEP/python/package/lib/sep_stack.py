@@ -39,8 +39,8 @@ from aws_rfdk.deadline import (
     RenderQueueHostNameProps,
     RenderQueueTrafficEncryptionProps,
     Repository,
-    SpotEventPluginConfiguration,
     SpotEventPluginFleet,
+    SpotEventPluginSettings,
     Stage,
     ThinkboxDockerRecipes
 )
@@ -187,8 +187,8 @@ class SEPStack(Stack):
             render_queue=render_queue,
             version=recipes.version,
             ca_cert=ca_cert.cert,
-            configuration=SpotEventPluginConfiguration(
-                spot_fleets=[fleet],
+            spot_fleets=[fleet],
+            configuration=SpotEventPluginSettings(
                 enable_resource_tracker=True,
                 region=self.region
             )

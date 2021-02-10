@@ -5,8 +5,19 @@
 
 /* eslint-disable no-console */
 
+import { CfnLaunchConfiguration } from '@aws-cdk/aws-autoscaling';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { SecretsManager } from 'aws-sdk';
+import {
+  SpotFleetSecurityGroupId,
+  SpotFleetRequestConfiguration,
+  SpotFleetTagSpecification,
+  SpotEventPluginSettings,
+  SpotEventPluginAwsInstanceStatus,
+  SpotEventPluginState,
+  SpotEventPluginPreJobTaskMode,
+  SpotEventPluginLoggingLevel,
+} from '../../../deadline';
 import { LambdaContext } from '../lib/aws-lambda';
 import { EventPluginRequests } from '../lib/configure-spot-event-plugin';
 import { CfnRequestEvent, SimpleCustomResource } from '../lib/custom-resource';
@@ -15,50 +26,10 @@ import {
   isArn as isSecretArn,
   readCertificateData,
 } from '../lib/secrets-manager';
-
-export interface ConnectionOptions {
-  /**
-   * FQDN of the host to connect to.
-   */
-  readonly hostname: string;
-
-  /**
-   * Port on the host.
-   */
-  readonly port: string;
-
-  /**
-   * Protocol used to connect to the host.
-   */
-  readonly protocol: string;
-
-  /**
-   * The ARN of the CA certificate stored in the SecretsManager.
-   */
-  readonly caCertificateArn?: string;
-}
-
-/**
- * The input to this Custom Resource
- */
-export interface SEPConfiguratorResourceProperties {
-  /**
-   * Connection info for logging into the server.
-   */
-  readonly connection: ConnectionOptions;
-
-  /**
-   * A JSON string containing the Spot Fleet Request Configurations.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html?highlight=spot%20even%20plugin#example-spot-fleet-request-configurations
-   */
-  readonly spotFleetRequestConfigurations?: object;
-
-  /**
-   * The Spot Event Plugin settings.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html?highlight=spot%20even%20plugin#event-plugin-configuration-options
-   */
-  readonly spotPluginConfigurations?: object;
-}
+import {
+  ConnectionOptions,
+  SEPConfiguratorResourceProps,
+} from './types';
 
 /**
  * A custom resource used to save Spot Event Plugin server data and configurations.
@@ -75,26 +46,28 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
    * @inheritdoc
    */
   public validateInput(data: object): boolean {
-    return this.implementsSEPConfiguratorResourceProperties(data);
+    return this.implementsSEPConfiguratorResourceProps(data);
   }
 
   /**
    * @inheritdoc
    */
   // @ts-ignore -- we do not use the physicalId
-  public async doCreate(physicalId: string, resourceProperties: SEPConfiguratorResourceProperties): Promise<object|undefined> {
+  public async doCreate(physicalId: string, resourceProperties: SEPConfiguratorResourceProps): Promise<object|undefined> {
     const eventPluginRequests = await this.spotEventPluginRequests(resourceProperties.connection);
 
     if (resourceProperties.spotFleetRequestConfigurations) {
-      const stringConfigs = this.spotFleetRequestToString(resourceProperties.spotFleetRequestConfigurations);
+      const convertedSpotFleetRequestConfigs = this.convertSpotFleetRequestConfiguration(resourceProperties.spotFleetRequestConfigurations);
+      const stringConfigs = JSON.stringify(convertedSpotFleetRequestConfigs);
       const response = await eventPluginRequests.saveServerData(stringConfigs);
       if (!response) {
         console.log(`Failed to save spot fleet request with configuration: ${stringConfigs}`);
       }
     }
     if (resourceProperties.spotPluginConfigurations) {
-      const spotEventFleetPluginConfigs = this.spotFleetPluginConfigsToArray(resourceProperties.spotPluginConfigurations);
-      const response = await eventPluginRequests.configureSpotEventPlugin(spotEventFleetPluginConfigs);
+      const convertedSpotPluginConfigs = this.convertSpotEventPluginSettings(resourceProperties.spotPluginConfigurations);
+      const confiArray = this.toKeyValueArray(convertedSpotPluginConfigs);
+      const response = await eventPluginRequests.configureSpotEventPlugin(confiArray);
       if (!response) {
         console.log(`Failed to save Spot Event Plugin Configurations: ${resourceProperties.spotPluginConfigurations}`);
       }
@@ -106,16 +79,14 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
    * @inheritdoc
    */
   /* istanbul ignore next */ // @ts-ignore
-  public async doDelete(physicalId: string, resourceProperties: SEPConfiguratorResourceProperties): Promise<void> {
+  public async doDelete(physicalId: string, resourceProperties: SEPConfiguratorResourceProps): Promise<void> {
     // Nothing to do -- we don't modify anything.
     return;
   }
 
-  private implementsSEPConfiguratorResourceProperties(value: any): value is SEPConfiguratorResourceProperties {
+  private implementsSEPConfiguratorResourceProps(value: any): value is SEPConfiguratorResourceProps {
     if (!value || typeof(value) !== 'object') { return false; }
     if (!this.implementsConnectionOptions(value.connection)) { return false; }
-    if (!this.isValidSFRConfig(value.spotFleetRequestConfigurations)) { return false; }
-    if (!this.isValidSpotPluginConfig(value.spotPluginConfigurations)) { return false; }
     return true;
   }
 
@@ -138,21 +109,6 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
     return true;
   }
 
-  private isValidSFRConfig(value: any): boolean {
-    if (!value) { return true; }
-    if (typeof(value) !== 'object') { return false; }
-    if (Array.isArray(value)) { return false; }
-    return true;
-  }
-
-  private isValidSpotPluginConfig(value: any): boolean {
-    if (!value) { return true; }
-    if (typeof(value) !== 'object') { return false; }
-    if (Array.isArray(value)) { return false; }
-
-    return true;
-  }
-
   private async spotEventPluginRequests(connection: ConnectionOptions): Promise<EventPluginRequests> {
     return new EventPluginRequests(new DeadlineClient({
       host: connection.hostname,
@@ -164,92 +120,113 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
     }));
   }
 
-  private convertToBoolean(input: string): boolean | undefined {
-    try {
-      return JSON.parse(input);
-    } catch(e) {
-      return undefined;
+  /**
+   * TODO: add proper description
+   */
+  private convertSpotFleetRequestConfiguration(spotFleetRequestConfigs: SpotFleetRequestConfiguration): any {
+    // TODO: all properties have to be capitalized and maybe converted
+    const convertedSpotFleetRequestConfigs: any = {};
+    for (const [group_name, sfrConfigs] of Object.entries(spotFleetRequestConfigs)) {
+      const convertedLaunchSpecifications: any = [];
+      sfrConfigs.launchSpecifications.map(launchSpecification => {
+        const convertedSecurityGroups = (launchSpecification.securityGroups as SpotFleetSecurityGroupId[]).map(securityGroup => {
+          return {
+            GroupId: securityGroup.groupId,
+          };
+        });
+
+        const convertedTagSpecifications = (launchSpecification.tagSpecifications as SpotFleetTagSpecification[]).map(tagSpecification => {
+          return {
+            ResourceType: tagSpecification.resourceType.toString(),
+            Tags: tagSpecification.tags,
+          };
+        });
+
+        let convertedBlockDeviceMappings;
+        if (launchSpecification.blockDeviceMappings) {
+          convertedBlockDeviceMappings = (launchSpecification.blockDeviceMappings as CfnLaunchConfiguration.BlockDeviceMappingProperty[])
+            .map(deviceMapping => {
+              const convertedEbs = deviceMapping.ebs ? {
+                DeleteOnTermination: (deviceMapping.ebs as CfnLaunchConfiguration.BlockDeviceProperty).deleteOnTermination,
+                Encrypted: (deviceMapping.ebs as CfnLaunchConfiguration.BlockDeviceProperty).encrypted,
+                Iops: (deviceMapping.ebs as CfnLaunchConfiguration.BlockDeviceProperty).iops,
+                SnapshotId: (deviceMapping.ebs as CfnLaunchConfiguration.BlockDeviceProperty).snapshotId,
+                VolumeSize: (deviceMapping.ebs as CfnLaunchConfiguration.BlockDeviceProperty).volumeSize,
+                VolumeType: (deviceMapping.ebs as CfnLaunchConfiguration.BlockDeviceProperty).volumeType,
+              } : undefined;
+
+              return {
+                DeviceName: deviceMapping.deviceName,
+                Ebs: convertedEbs,
+                NoDevice: deviceMapping.noDevice,
+                VirtualName: deviceMapping.virtualName,
+              };
+            });
+        }
+
+        const convertedLaunchSpecification = {
+          BlockDeviceMappings: convertedBlockDeviceMappings,
+          IamInstanceProfile: {
+            Arn: launchSpecification.iamInstanceProfile.arn,
+          },
+          ImageId: launchSpecification.imageId,
+          KeyName: launchSpecification.keyName,
+          SecurityGroups: convertedSecurityGroups,
+          SubnetId: launchSpecification.subnetId,
+          TagSpecifications: convertedTagSpecifications,
+          UserData: launchSpecification.userData,
+          InstanceType: launchSpecification.instanceType.toString(), // TODO: add ?
+        };
+        convertedLaunchSpecifications.push(convertedLaunchSpecification);
+      });
+
+      const convertedTagSpecifications = (sfrConfigs.tagSpecifications as SpotFleetTagSpecification[]).map(tagSpecification => {
+        return {
+          ResourceType: tagSpecification.resourceType.toString(),
+          Tags: tagSpecification.tags,
+        };
+      });
+
+      convertedSpotFleetRequestConfigs[group_name] = {
+        AllocationStrategy: sfrConfigs.allocationStrategy,
+        IamFleetRole: sfrConfigs.iamFleetRole,
+        LaunchSpecifications: convertedLaunchSpecifications,
+        ReplaceUnhealthyInstances: sfrConfigs.replaceUnhealthyInstances,
+        TargetCapacity: sfrConfigs.targetCapacity,
+        TerminateInstancesWithExpiration: sfrConfigs.terminateInstancesWithExpiration,
+        Type: sfrConfigs.type,
+        ValidUntil: sfrConfigs.validUntil,
+        TagSpecifications: convertedTagSpecifications,
+      };
     }
+    return convertedSpotFleetRequestConfigs;
   }
 
   /**
-   * Passing spot fleet request configs into lambda converts all numbers and booleans into strings.
-   * This functions converts these values back to their original type.
+   * TODO: add proper description
    */
-  private spotFleetRequestToString(spotFleetRequestConfigs: object): string {
-    let convertedSpotFleetRequestConfigs = spotFleetRequestConfigs;
-    for (const [_, sfrConfigs] of Object.entries(convertedSpotFleetRequestConfigs)) {
-      if ('TargetCapacity' in sfrConfigs) {
-        sfrConfigs.TargetCapacity = Number.parseInt(sfrConfigs.TargetCapacity, 10);
-      }
-      if ('ReplaceUnhealthyInstances' in sfrConfigs) {
-        sfrConfigs.ReplaceUnhealthyInstances = this.convertToBoolean(sfrConfigs.ReplaceUnhealthyInstances);
-      }
-      if ('TerminateInstancesWithExpiration' in sfrConfigs) {
-        sfrConfigs.TerminateInstancesWithExpiration = this.convertToBoolean(sfrConfigs.TerminateInstancesWithExpiration);
-      }
-      if ('LaunchSpecifications' in sfrConfigs) {
-        sfrConfigs.LaunchSpecifications.map((launchSpecification: any) => {
-          if ('BlockDeviceMappings' in launchSpecification) {
-            launchSpecification.BlockDeviceMappings.map((blockDeviceMapping: any) => {
-              if ('noDevice' in blockDeviceMapping) {
-                blockDeviceMapping.noDevice = this.convertToBoolean(blockDeviceMapping.noDevice);
-              }
-              if ('ebs' in blockDeviceMapping) {
-                if ('deleteOnTermination' in blockDeviceMapping.ebs) {
-                  blockDeviceMapping.ebs.deleteOnTermination = this.convertToBoolean(blockDeviceMapping.ebs.deleteOnTermination);
-                }
-                if ('encrypted' in blockDeviceMapping.ebs) {
-                  blockDeviceMapping.ebs.encrypted = this.convertToBoolean(blockDeviceMapping.ebs.encrypted);
-                }
-                if ('iops' in blockDeviceMapping.ebs) {
-                  blockDeviceMapping.ebs.iops = Number.parseInt(blockDeviceMapping.ebs.iops, 10);
-                }
-                if ('volumeSize' in blockDeviceMapping.ebs) {
-                  blockDeviceMapping.ebs.volumeSize = Number.parseInt(blockDeviceMapping.ebs.volumeSize, 10);
-                }
-              }
-            });
-          }
-        });
-      }
-    }
-    return JSON.stringify(convertedSpotFleetRequestConfigs);
+  private convertSpotEventPluginSettings(pluginOptions: SpotEventPluginSettings): object {
+    return {
+      AWSInstanceStatus: (pluginOptions.awsInstanceStatus ?? SpotEventPluginAwsInstanceStatus.DISABLED).toString(),
+      DeleteInterruptedSlaves: pluginOptions.deleteEC2SpotInterruptedWorkers ?? false,
+      DeleteTerminatedSlaves: pluginOptions.deleteSEPTerminatedWorkers ?? false,
+      IdleShutdown: pluginOptions.idleShutdown ?? 10,
+      Logging: (pluginOptions.loggingLevel ?? SpotEventPluginLoggingLevel.STANDARD).toString(),
+      PreJobTaskMode: (pluginOptions.preJobTaskMode ?? SpotEventPluginPreJobTaskMode.CONSERVATIVE).toString(),
+      // we always set region in ConfigureSpotEventPlugin construct, so this default shouldn't be used during deployment
+      Region: pluginOptions.region ?? 'eu-west-1',
+      ResourceTracker: pluginOptions.enableResourceTracker ?? true,
+      StaggerInstances: pluginOptions.maximumInstancesStartedPerCycle ?? 50,
+      State: (pluginOptions.state ?? SpotEventPluginState.DISABLED).toString(),
+      StrictHardCap: pluginOptions.strictHardCap ?? false,
+      UseLocalCredentials: true,
+      NamedProfile: '',
+    };
   }
 
-  private spotFleetPluginConfigsToArray(pluginOptions: any): any {
-    // TODO: ...pluginOptions didn't work
-    let convertedConfigs = pluginOptions;
-    if ('DeleteInterruptedSlaves' in convertedConfigs) {
-      convertedConfigs.DeleteInterruptedSlaves = this.convertToBoolean(convertedConfigs.DeleteInterruptedSlaves);
-    }
-    if ('DeleteTerminatedSlaves' in convertedConfigs) {
-      convertedConfigs.DeleteTerminatedSlaves = this.convertToBoolean(convertedConfigs.DeleteTerminatedSlaves);
-    }
-    if ('IdleShutdown' in convertedConfigs) {
-      convertedConfigs.IdleShutdown = Number.parseInt(convertedConfigs.IdleShutdown, 10);
-    }
-    if ('ResourceTracker' in convertedConfigs) {
-      convertedConfigs.ResourceTracker = this.convertToBoolean(convertedConfigs.ResourceTracker);
-    }
-    if ('StaggerInstances' in convertedConfigs) {
-      convertedConfigs.StaggerInstances = this.convertToBoolean(convertedConfigs.StaggerInstances);
-    }
-    if ('StrictHardCap' in convertedConfigs) {
-      convertedConfigs.StrictHardCap = this.convertToBoolean(convertedConfigs.StrictHardCap);
-    }
-
-    const configs: { Key: string, Value: any }[] = [
-      {
-        Key: 'UseLocalCredentials',
-        Value: true,
-      },
-      {
-        Key: 'NamedProfile',
-        Value: '',
-      },
-    ];
-    for (const [key, value] of Object.entries(pluginOptions)) {
+  private toKeyValueArray(input: object) {
+    const configs: { Key: string, Value: any }[] = [];
+    for (const [key, value] of Object.entries(input)) {
       if (value !== undefined) {
         configs.push({
           Key: key,

@@ -31,16 +31,16 @@ import {
   IVersion,
   RenderQueue,
   Repository,
-  SpotEventPluginConfiguration,
   SpotEventPluginAwsInstanceStatus,
   SpotEventPluginLoggingLevel,
   SpotEventPluginPreJobTaskMode,
+  SpotEventPluginSettings,
   SpotEventPluginState,
   VersionQuery,
 } from '../lib';
 import {
   SpotEventPluginFleet,
-} from '../lib/sep-spotfleet';
+} from '../lib/spot-event-plugin-fleet';
 
 describe('ConfigureSpotEventPlugin', () => {
   let stack: Stack;
@@ -76,7 +76,7 @@ describe('ConfigureSpotEventPlugin', () => {
 
     groupName = 'group_name1';
 
-    fleet = new SpotEventPluginFleet(stack, 'SpotFleet1', {
+    fleet = new SpotEventPluginFleet(stack, 'SpotFleet', {
       vpc,
       renderQueue: renderQueue,
       deadlineGroups: [
@@ -102,11 +102,9 @@ describe('ConfigureSpotEventPlugin', () => {
       vpc,
       renderQueue: renderQueue,
       version,
-      configuration: {
-        spotFleets: [
-          fleet,
-        ],
-      },
+      spotFleets: [
+        fleet,
+      ],
     });
 
     // THEN
@@ -123,26 +121,26 @@ describe('ConfigureSpotEventPlugin', () => {
       }),
       spotFleetRequestConfigurations: objectLike({
         [groupName]: objectLike({
-          IamFleetRole: {
+          iamFleetRole: {
             'Fn::GetAtt': [
               stack.getLogicalId(fleet.fleetRole.node.defaultChild as CfnElement),
               'Arn',
             ],
           },
-          LaunchSpecifications: arrayWith(
+          launchSpecifications: arrayWith(
             objectLike({
-              IamInstanceProfile: {
-                Arn: {
+              iamInstanceProfile: {
+                arn: {
                   'Fn::GetAtt': [
-                    'SpotFleet1InstanceProfile06EAADB7',
+                    'SpotFleetInstanceProfile9F9AFBE3',
                     'Arn',
                   ],
                 },
               },
-              ImageId: 'ami-any',
-              SecurityGroups: arrayWith(
+              imageId: 'ami-any',
+              securityGroups: arrayWith(
                 objectLike({
-                  GroupId: {
+                  groupId: {
                     'Fn::GetAtt': [
                       stack.getLogicalId(fleet.securityGroups[0].node.defaultChild as CfnElement),
                       'GroupId',
@@ -150,7 +148,7 @@ describe('ConfigureSpotEventPlugin', () => {
                   },
                 }),
               ),
-              SubnetId: {
+              subnetId: {
                 'Fn::Join': [
                   '',
                   [
@@ -164,28 +162,30 @@ describe('ConfigureSpotEventPlugin', () => {
                   ],
                 ],
               },
-              TagSpecifications: arrayWith(
+              tagSpecifications: arrayWith(
                 objectLike({
-                  ResourceType: 'instance',
-                  Tags: arrayWith(
+                  resourceType: 'instance',
+                  tags: arrayWith(
                     objectLike({
                       Key: 'aws-rfdk',
                     }),
                   ),
                 }),
               ),
-              UserData: objectLike({}),
-              InstanceType: 't2.small',
+              userData: objectLike({}),
+              instanceType: {
+                instanceTypeIdentifier: 't2.small',
+              },
             }),
           ),
-          ReplaceUnhealthyInstances: true,
-          TargetCapacity: 1,
-          TerminateInstancesWithExpiration: true,
-          Type: 'maintain',
-          TagSpecifications: arrayWith(
+          replaceUnhealthyInstances: true,
+          targetCapacity: 1,
+          terminateInstancesWithExpiration: true,
+          type: 'maintain',
+          tagSpecifications: arrayWith(
             objectLike({
-              ResourceType: 'spot-fleet-request',
-              Tags: arrayWith(
+              resourceType: 'spot-fleet-request',
+              tags: arrayWith(
                 objectLike({
                   Key: 'aws-rfdk',
                 }),
@@ -193,19 +193,6 @@ describe('ConfigureSpotEventPlugin', () => {
             }),
           ),
         }),
-      }),
-      spotPluginConfigurations: objectLike({
-        AWSInstanceStatus: 'Disabled',
-        DeleteInterruptedSlaves: false,
-        DeleteTerminatedSlaves: false,
-        IdleShutdown: 10,
-        Logging: 'Standard',
-        PreJobTaskMode: 'Conservative',
-        Region: `${region}`,
-        ResourceTracker: true,
-        StaggerInstances: 50,
-        State: 'Disabled',
-        StrictHardCap: false,
       }),
     })));
   });
@@ -216,11 +203,9 @@ describe('ConfigureSpotEventPlugin', () => {
       vpc,
       renderQueue: renderQueue,
       version,
-      configuration: {
-        spotFleets: [
-          fleet,
-        ],
-      },
+      spotFleets: [
+        fleet,
+      ],
     });
 
     // THEN
@@ -229,11 +214,9 @@ describe('ConfigureSpotEventPlugin', () => {
         vpc,
         renderQueue: renderQueue,
         version,
-        configuration: {
-          spotFleets: [
-            fleet,
-          ],
-        },
+        spotFleets: [
+          fleet,
+        ],
       });
     }).toThrowError(/Only one ConfigureSpotEventPlugin construct is allowed per render queue./);
   });
@@ -255,22 +238,18 @@ describe('ConfigureSpotEventPlugin', () => {
       vpc,
       renderQueue: renderQueue,
       version,
-      configuration: {
-        spotFleets: [
-          fleet,
-        ],
-      },
+      spotFleets: [
+        fleet,
+      ],
     });
 
     new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin2', {
       vpc,
       renderQueue: renderQueue2,
       version,
-      configuration: {
-        spotFleets: [
-          fleet,
-        ],
-      },
+      spotFleets: [
+        fleet,
+      ],
     });
 
     // THEN
@@ -284,14 +263,12 @@ describe('ConfigureSpotEventPlugin', () => {
         vpc,
         renderQueue: renderQueue,
         version,
-        configuration: {
-          spotFleets: [
-            fleet,
-            fleet,
-          ],
-        },
+        spotFleets: [
+          fleet,
+          fleet,
+        ],
       });
-    }).toThrowError(/Bad Group Name: group_name1. Group names in Spot Fleet Request Configurations should be unique./);
+    }).toThrowError(`Bad Group Name: ${groupName}. Group names in Spot Fleet Request Configurations should be unique.`);
   });
 
   test('uses selected subnets', () => {
@@ -301,11 +278,9 @@ describe('ConfigureSpotEventPlugin', () => {
       vpcSubnets: { subnets: [ vpc.privateSubnets[0] ] },
       renderQueue: renderQueue,
       version,
-      configuration: {
-        spotFleets: [
-          fleet,
-        ],
-      },
+      spotFleets: [
+        fleet,
+      ],
     });
 
     // THEN
@@ -348,11 +323,9 @@ describe('ConfigureSpotEventPlugin', () => {
           vpc,
           renderQueue: renderQueue,
           version,
-          configuration: {
-            spotFleets: [
-              fleet,
-            ],
-          },
+          spotFleets: [
+            fleet,
+          ],
         });
       }).toThrowError(`Minimum supported Deadline version for ConfigureSpotEventPlugin is 10.1.12.0. Received: ${versionString}.`);
     });
@@ -382,19 +355,17 @@ describe('ConfigureSpotEventPlugin', () => {
         vpc,
         renderQueue: renderQueue,
         version,
-        configuration: {
-          spotFleets: [
-            fleet,
-          ],
-        },
+        spotFleets: [
+          fleet,
+        ],
       });
     }).not.toThrow();
   });
 
   test('uses custom spot event properties', () => {
     // GIVEN
-    const configuration: SpotEventPluginConfiguration = {
-      awsInstanceStatus: SpotEventPluginAwsInstanceStatus.EXTRA_INOF_0,
+    const configuration: SpotEventPluginSettings = {
+      awsInstanceStatus: SpotEventPluginAwsInstanceStatus.EXTRA_INFO_0,
       deleteEC2SpotInterruptedWorkers: true,
       deleteSEPTerminatedWorkers: true,
       idleShutdown: 20,
@@ -405,9 +376,6 @@ describe('ConfigureSpotEventPlugin', () => {
       maximumInstancesStartedPerCycle: 10,
       state: SpotEventPluginState.GLOBAL_ENABLED,
       strictHardCap: true,
-      spotFleets: [
-        fleet,
-      ],
     };
 
     // WHEN
@@ -415,23 +383,26 @@ describe('ConfigureSpotEventPlugin', () => {
       vpc,
       renderQueue: renderQueue,
       version,
+      spotFleets: [
+        fleet,
+      ],
       configuration,
     });
 
     // THEN
     cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
       spotPluginConfigurations: objectLike({
-        AWSInstanceStatus: 'ExtraInfo0',
-        DeleteInterruptedSlaves: true,
-        DeleteTerminatedSlaves: true,
-        IdleShutdown: 20,
-        Logging: 'Verbose',
-        PreJobTaskMode: 'Normal',
-        Region: 'us-west-2',
-        ResourceTracker: false,
-        StaggerInstances: 10,
-        State: 'Global Enabled',
-        StrictHardCap: true,
+        awsInstanceStatus: 'ExtraInfo0',
+        deleteEC2SpotInterruptedWorkers: true,
+        deleteSEPTerminatedWorkers: true,
+        idleShutdown: 20,
+        loggingLevel: 'Verbose',
+        preJobTaskMode: 'Normal',
+        region: 'us-west-2',
+        enableResourceTracker: false,
+        maximumInstancesStartedPerCycle: 10,
+        state: 'Global Enabled',
+        strictHardCap: true,
       }),
     })));
   });

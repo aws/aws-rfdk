@@ -30,9 +30,12 @@ import {
   Stack,
 } from '@aws-cdk/core';
 import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
-import { SEPConfiguratorResourceProperties } from '../../lambdas/nodejs/configure-spot-event-plugin';
+import {
+  SEPConfiguratorResourceProps,
+} from '../../lambdas/nodejs/configure-spot-event-plugin';
 import { IRenderQueue, RenderQueue } from './render-queue';
-import { SpotEventPluginFleet } from './sep-spotfleet';
+import { SpotEventPluginFleet } from './spot-event-plugin-fleet';
+import { SpotFleetRequestConfiguration} from './spot-event-plugin-fleet-ref';
 import { Version } from './version';
 import { IVersion } from './version-ref';
 
@@ -105,30 +108,23 @@ export enum SpotEventPluginPreJobTaskMode {
  */
 export enum SpotEventPluginAwsInstanceStatus {
   DISABLED = 'Disabled',
-  EXTRA_INOF_0 = 'ExtraInfo0',
-  EXTRA_INOF_1 = 'ExtraInfo0',
-  EXTRA_INOF_2 = 'ExtraInfo0',
-  EXTRA_INOF_3 = 'ExtraInfo0',
-  EXTRA_INOF_4 = 'ExtraInfo0',
-  EXTRA_INOF_5 = 'ExtraInfo0',
-  EXTRA_INOF_6 = 'ExtraInfo0',
-  EXTRA_INOF_7 = 'ExtraInfo0',
-  EXTRA_INOF_8 = 'ExtraInfo0',
-  EXTRA_INOF_9 = 'ExtraInfo0',
+  EXTRA_INFO_0 = 'ExtraInfo0',
+  EXTRA_INFO_1 = 'ExtraInfo0',
+  EXTRA_INFO_2 = 'ExtraInfo0',
+  EXTRA_INFO_3 = 'ExtraInfo0',
+  EXTRA_INFO_4 = 'ExtraInfo0',
+  EXTRA_INFO_5 = 'ExtraInfo0',
+  EXTRA_INFO_6 = 'ExtraInfo0',
+  EXTRA_INFO_7 = 'ExtraInfo0',
+  EXTRA_INFO_8 = 'ExtraInfo0',
+  EXTRA_INFO_9 = 'ExtraInfo0',
 }
 
 /**
- * Spot Event Plugin configuration.
+ * The settings of the Spot Event Plugin.
  * For more details see https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
  */
-export interface SpotEventPluginConfiguration {
-  /**
-   * The array of Spot Event Plugin spot fleets used to generate the mapping between groups and spot fleet requests.
-   *
-   * @default Spot Fleet Request Configurations will not be updated.
-   */
-  readonly spotFleets?: SpotEventPluginFleet[];
-
+export interface SpotEventPluginSettings {
   /**
    * How the event plug-in should respond to events.
    *
@@ -217,23 +213,6 @@ export interface SpotEventPluginConfiguration {
 }
 
 /**
- * Private interface used to ensure Spot Event Plugin options are set properly.
- */
-interface SEPGeneralOptions {
-  readonly State?: string;
-  readonly ResourceTracker?: boolean;
-  readonly Logging?: string;
-  readonly Region?: string;
-  readonly IdleShutdown?: number;
-  readonly DeleteInterruptedSlaves?: boolean;
-  readonly DeleteTerminatedSlaves?: boolean;
-  readonly StrictHardCap?: boolean;
-  readonly StaggerInstances?: number;
-  readonly PreJobTaskMode?: string;
-  readonly AWSInstanceStatus?: string;
-};
-
-/**
  * Input properties for ConfigureSpotEventPlugin.
  */
 export interface ConfigureSpotEventPluginProps {
@@ -266,10 +245,19 @@ export interface ConfigureSpotEventPluginProps {
   readonly caCert?: ISecret;
 
   /**
+   * The array of Spot Event Plugin spot fleets used to generate the mapping between groups and spot fleet requests.
+   *
+   * @default Spot Fleet Request Configurations will not be updated.
+   */
+  readonly spotFleets?: SpotEventPluginFleet[];
+
+  /**
    * The Spot Event Plugin settings.
    * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html?highlight=spot%20even%20plugin#event-plugin-configuration-options
+   *
+   * @default Spot Event Plugin settings will not be updated.
    */
-  readonly configuration: SpotEventPluginConfiguration;
+  readonly configuration?: SpotEventPluginSettings;
 }
 
 /**
@@ -337,7 +325,7 @@ export class ConfigureSpotEventPlugin extends Construct {
             actions: [
               'iam:PassRole',
             ],
-            resources: props.configuration.spotFleets?.map(sf => sf.fleetRole.roleArn),
+            resources: props.spotFleets?.map(sf => sf.fleetRole.roleArn),
             conditions: {
               StringLike: {
                 'iam:PassedToService': 'ec2.amazonaws.com',
@@ -380,29 +368,20 @@ export class ConfigureSpotEventPlugin extends Construct {
     configurator.connections.allowToDefaultPort(props.renderQueue);
     props.caCert?.grantRead(configurator.grantPrincipal);
 
-    const pluginConfig: SEPGeneralOptions = {
-      AWSInstanceStatus: props.configuration.awsInstanceStatus ?? SpotEventPluginAwsInstanceStatus.DISABLED,
-      DeleteInterruptedSlaves: props.configuration.deleteEC2SpotInterruptedWorkers ?? false,
-      DeleteTerminatedSlaves: props.configuration.deleteSEPTerminatedWorkers ?? false,
-      IdleShutdown: props.configuration.idleShutdown ?? 10,
-      Logging: props.configuration.loggingLevel ?? SpotEventPluginLoggingLevel.STANDARD,
-      PreJobTaskMode: props.configuration.preJobTaskMode ?? SpotEventPluginPreJobTaskMode.CONSERVATIVE,
-      Region: props.configuration.region ?? region,
-      ResourceTracker: props.configuration.enableResourceTracker ?? true,
-      StaggerInstances: props.configuration.maximumInstancesStartedPerCycle ?? 50,
-      State: props.configuration.state ?? SpotEventPluginState.DISABLED,
-      StrictHardCap: props.configuration.strictHardCap ?? false,
+    const pluginConfig: SpotEventPluginSettings = {
+      ...props.configuration,
+      region: props.configuration?.region ?? region,
     };
-    const combinedSpotFleetConfigs = this.combinedSpotFleetConfigs(props.configuration.spotFleets);
+    const spotFleetRequestConfigs = this.mergeSpotFleetRequestConfigs(props.spotFleets);
 
-    const properties: SEPConfiguratorResourceProperties = {
+    const properties: SEPConfiguratorResourceProps = {
       connection: {
         hostname: props.renderQueue.endpoint.hostname,
         port: props.renderQueue.endpoint.portNumber.toString(),
         protocol: props.renderQueue.endpoint.applicationProtocol.toString(),
         caCertificateArn: props.caCert?.secretArn,
       },
-      spotFleetRequestConfigurations: combinedSpotFleetConfigs,
+      spotFleetRequestConfigurations: spotFleetRequestConfigs,
       spotPluginConfigurations: pluginConfig,
     };
 
@@ -422,12 +401,12 @@ export class ConfigureSpotEventPlugin extends Construct {
     this.node.defaultChild = resource;
   }
 
-  private combinedSpotFleetConfigs(spotFleets?: SpotEventPluginFleet[]): object | undefined {
+  private mergeSpotFleetRequestConfigs(spotFleets?: SpotEventPluginFleet[]): SpotFleetRequestConfiguration | undefined {
     if (!spotFleets || spotFleets.length === 0) {
       return undefined;
     }
 
-    const fullSpotFleetRequestConfiguration: any = {};
+    const fullSpotFleetRequestConfiguration: SpotFleetRequestConfiguration = {};
     spotFleets.map(fleet => {
       fleet.spotFleetRequestConfigurations.map(configuration => {
         for (const [key, value] of Object.entries(configuration)) {
