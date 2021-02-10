@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "commonjs",
+    "lib": [
+      "es2018"
+    ],
+    "strict": true,
+    "alwaysStrict": true,
+    "declaration": true,
+    "inlineSourceMap": true,
+    "inlineSources": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true,
+    "composite": true,
+    "incremental": true
+  },
+  "exclude": [
+    "cdk.out"
+  ],
+  "include": [
+    "**/*.ts"
+  ],
+  "files": [
+    "package.json"
+  ],
+  "references": [
+    {
+      "path": "../../../../packages/aws-rfdk"
+    }
+  ]
+}
