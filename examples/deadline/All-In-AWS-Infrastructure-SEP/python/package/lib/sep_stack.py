@@ -173,7 +173,7 @@ class SEPStack(Stack):
             deadline_groups=['group_name'],
             instance_types=[InstanceType.of(InstanceClass.BURSTABLE3, InstanceSize.LARGE)],
             worker_machine_image=props.worker_machine_image,
-            target_capacity=1,
+            max_capacity=1,
             key_name=props.key_pair_name
         )
 

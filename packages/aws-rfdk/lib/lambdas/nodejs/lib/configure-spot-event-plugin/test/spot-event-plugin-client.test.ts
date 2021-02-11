@@ -5,13 +5,11 @@
 
 import { IncomingMessage } from 'http';
 import { Socket } from 'net';
-import { DeadlineClient, Response } from '../../deadline-client';
-import { EventPluginRequests } from '../sep-requests';
+import { Response } from '../../deadline-client';
+import { SpotEventPluginClient } from '../spot-event-plugin-client';
 
-describe('EventPluginRequests', () => {
-  // let consoleLogMock: jest.SpyInstance<any, any>;
-  let mockDeadlineClient: DeadlineClient;
-  let eventPluginRequests: EventPluginRequests;
+describe('SpotEventPluginClient', () => {
+  let spotEventPluginClient: SpotEventPluginClient;
   let describeDataResponse: any;
   let successfulResponse: any;
 
@@ -36,13 +34,17 @@ describe('EventPluginRequests', () => {
       fullResponse: new IncomingMessage(new Socket()),
     };
 
-    mockDeadlineClient = new DeadlineClient({
-      host: 'test',
-      port: 100,
-      protocol: 'HTTP',
+    spotEventPluginClient = new SpotEventPluginClient({
+      deadlineClientProps: {
+        host: 'test',
+        port: 100,
+        protocol: 'HTTP',
+      },
     });
-    mockDeadlineClient.PostRequest = jest.fn();
-    mockDeadlineClient.GetRequest = jest.fn();
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].PostRequest = jest.fn();
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].GetRequest = jest.fn();
   });
 
   afterEach(() => {
@@ -55,11 +57,11 @@ describe('EventPluginRequests', () => {
       return describeDataResponse;
     }
     const mockDescribeData = jest.fn( (a) => returnDescribeDataResponse(a) );
-    mockDeadlineClient.PostRequest = mockDescribeData;
 
     // WHEN
-    eventPluginRequests = new EventPluginRequests(mockDeadlineClient);
-    const result = await eventPluginRequests.describeServerData();
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].PostRequest = mockDescribeData;
+    const result = await spotEventPluginClient.describeServerData();
 
     // THEN
     expect(result).toEqual(describeDataResponse);
@@ -67,22 +69,24 @@ describe('EventPluginRequests', () => {
 
   test('saveServerData', async () => {
     // GIVEN
-    async function returnDescribeDataResponse(_v1: any): Promise<Response> {
+    async function returnSaveServerDataResponse(_v1: any): Promise<Response> {
       return successfulResponse;
     }
-    const mockDescribeData = jest.fn( (a) => returnDescribeDataResponse(a) );
-    mockDeadlineClient.PostRequest = mockDescribeData;
+    const mockSaveServerData = jest.fn( (a) => returnSaveServerDataResponse(a) );
 
     // WHEN
-    eventPluginRequests = new EventPluginRequests(mockDeadlineClient);
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].PostRequest = mockSaveServerData;
     async function returnConcurrencyToken(): Promise<string> {
       return 'token';
     }
-    // eslint-disable-next-line dot-notation
-    eventPluginRequests['concurrencyToken'] = jest.fn( () => returnConcurrencyToken() );
 
-    const mockedEventPluginRequests = eventPluginRequests;
-    const result = await mockedEventPluginRequests.saveServerData('configuration');
+    // WHEN
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].PostRequest = mockSaveServerData;
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['concurrencyToken'] = jest.fn( () => returnConcurrencyToken() );
+    const result = await spotEventPluginClient.saveServerData('configuration');
 
     // THEN
     expect(result).toBeTruthy();
@@ -100,22 +104,15 @@ describe('EventPluginRequests', () => {
         Value: 'testValue2',
       },
     ];
-    async function returnDescribeDataResponse(_v1: any): Promise<Response> {
+    async function returnConfigurePluginResponse(_v1: any): Promise<Response> {
       return successfulResponse;
     }
-    const mockDescribeData = jest.fn( (a) => returnDescribeDataResponse(a) );
-    mockDeadlineClient.PostRequest = mockDescribeData;
+    const mockConfigureSpotEventPlugin = jest.fn( (a) => returnConfigurePluginResponse(a) );
 
     // WHEN
-    eventPluginRequests = new EventPluginRequests(mockDeadlineClient);
-    async function returnConcurrencyToken(): Promise<string> {
-      return 'token';
-    }
     // eslint-disable-next-line dot-notation
-    eventPluginRequests['concurrencyToken'] = jest.fn( () => returnConcurrencyToken() );
-
-    const mockedEventPluginRequests = eventPluginRequests;
-    const result = await mockedEventPluginRequests.configureSpotEventPlugin(configs);
+    spotEventPluginClient['deadlineClient'].PostRequest = mockConfigureSpotEventPlugin;
+    const result = await spotEventPluginClient.configureSpotEventPlugin(configs);
 
     // THEN
     expect(result).toBeTruthy();
@@ -129,12 +126,9 @@ describe('EventPluginRequests', () => {
     const mockDescribeData = jest.fn( () => returnDescribeDataResponse() );
 
     // WHEN
-    eventPluginRequests = new EventPluginRequests(mockDeadlineClient);
-    eventPluginRequests.describeServerData = mockDescribeData;
-
-    const mockedEventPluginRequests = eventPluginRequests;
+    spotEventPluginClient.describeServerData = mockDescribeData;
     // eslint-disable-next-line dot-notation
-    const result = await mockedEventPluginRequests['concurrencyToken']();
+    const result = await spotEventPluginClient['concurrencyToken']();
 
     // THEN
     expect(result).toBe('token');
@@ -157,14 +151,11 @@ describe('EventPluginRequests', () => {
     const mockDescribeData = jest.fn( () => returnDescribeDataResponse() );
 
     // WHEN
-    eventPluginRequests = new EventPluginRequests(mockDeadlineClient);
-    eventPluginRequests.describeServerData = mockDescribeData;
-
-    const mockedEventPluginRequests = eventPluginRequests;
+    spotEventPluginClient.describeServerData = mockDescribeData;
     // eslint-disable-next-line dot-notation
-    const result = await mockedEventPluginRequests['concurrencyToken']();
+    const result = await spotEventPluginClient['concurrencyToken']();
 
     // THEN
-    expect(result).not.toBe('token');
+    expect(result).toBe('');
   });
 });

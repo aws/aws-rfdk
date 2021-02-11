@@ -29,7 +29,7 @@ export interface TLSProps {
 }
 
 /**
- * Properties for setting up an {@link DeadlineClientProps}.
+ * Properties for setting up an {@link DeadlineClient}.
  */
 export interface DeadlineClientProps {
   /**
@@ -71,7 +71,7 @@ interface RequestOptions {
   /**
    * The agent used for TLS connection.
    */
-  httpsAgent?: https.Agent;
+  agent?: https.Agent;
 }
 
 export interface Response {
@@ -92,12 +92,11 @@ export class DeadlineClient {
     if (props.protocol === 'HTTPS') {
       this.protocol = https;
 
-      const httpsAgent = new https.Agent({
+      this.requestOptions.agent = new https.Agent({
         pfx: props.tls?.pfx,
         passphrase: props.tls?.passphrase,
         ca: props.tls?.ca,
       });
-      this.requestOptions.httpsAgent = httpsAgent;
     }
     else {
       this.protocol = http;
@@ -119,7 +118,7 @@ export class DeadlineClient {
       ...requestOptions,
       port: this.requestOptions.port,
       host: this.requestOptions.host,
-      agent: this.requestOptions.httpsAgent,
+      agent: this.requestOptions.agent,
       path: path,
       method: method,
     };

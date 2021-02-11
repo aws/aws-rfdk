@@ -25,12 +25,12 @@ import {
 } from '@aws-cdk/aws-iam';
 import { PrivateHostedZone } from '@aws-cdk/aws-route53';
 import {
+  ConfigureSpotEventPlugin,
   RenderQueue,
   Repository,
+  SpotEventPluginFleet,
   Stage,
   ThinkboxDockerRecipes,
-  SEPConfigurationSetup,
-  SEPSpotFleet,
 } from 'aws-rfdk/deadline';
 import { X509CertificatePem } from 'aws-rfdk';
 
@@ -78,7 +78,7 @@ export class SEPStack extends Stack {
       repositoryInstallationTimeout: Duration.minutes(20),
     });
 
-    // The following code is used to demonstrate how to use the SEPConfigurationSetup if TLS is enabled.
+    // The following code is used to demonstrate how to use the ConfigureSpotEventPlugin if TLS is enabled.
     const host = 'renderqueue';
     const zoneName = 'deadline-test.internal';
 
@@ -90,7 +90,7 @@ export class SEPStack extends Stack {
       hostname: host,
     };
 
-    // NOTE: this certificate is used by SEPConfigurationSetup construct below.
+    // NOTE: this certificate is used by ConfigureSpotEventPlugin construct below.
     const caCert = new X509CertificatePem(this, 'RootCA', {
       subject: {
         cn: 'SampleRootCA',
@@ -134,7 +134,7 @@ export class SEPStack extends Stack {
       roleName: 'DeadlineResourceTrackerAccessRole',
     });
 
-    const fleet = new SEPSpotFleet(this, 'SEPSpotFleet', {
+    const fleet = new SpotEventPluginFleet(this, 'SpotEventPluginFleet', {
       vpc,
       renderQueue,
       deadlineGroups: [
@@ -144,24 +144,23 @@ export class SEPStack extends Stack {
         InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
       ],
       workerMachineImage: props.workerMachineImage,
-      targetCapacity: 1,
+      maxCapacity: 1,
       keyName: props.keyPairName,
     });
 
-    // Optinal: Add additional tags to both spot fleet request and spot instances.
+    // Optional: Add additional tags to both spot fleet request and spot instances.
     Tags.of(fleet).add('name', 'SEPtest');
 
-    new SEPConfigurationSetup(this, 'SEPConfigurationSetup', {
+    new ConfigureSpotEventPlugin(this, 'ConfigureSpotEventPlugin', {
       vpc,
       renderQueue: renderQueue,
       version: recipes.version,
       caCert: caCert.cert,
-      spotFleetOptions: {
-        spotFleets: [
-          fleet,
-        ],
+      spotFleets: [
+        fleet,
+      ],
+      configuration: {
         enableResourceTracker: true,
-        region: this.region,
       },
     });
   }

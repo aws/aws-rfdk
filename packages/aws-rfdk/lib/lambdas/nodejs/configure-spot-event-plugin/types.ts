@@ -3,25 +3,42 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SpotEventPluginSettings } from '../../../deadline/lib/configure-spot-event-plugin';
-import { SpotFleetRequestConfiguration } from '../../../deadline/lib/spot-event-plugin-fleet-ref';
+/**
+ * Interface for communication between Lambda and ConfigureSpotEventPlugin construct.
+ * All the properties correspond to SpotEventPluginSettings from '../../../deadline/lib/configure-spot-event-plugin',
+ * but the types may differ.
+ */
+export interface InternalSpotEventPluginSettings {
+  readonly awsInstanceStatus: string;
+  readonly deleteEC2SpotInterruptedWorkers: boolean;
+  readonly deleteSEPTerminatedWorkers: boolean;
+  readonly idleShutdown: number;
+  readonly loggingLevel: string;
+  readonly preJobTaskMode: string;
+  readonly region: string;
+  readonly enableResourceTracker: boolean;
+  readonly maximumInstancesStartedPerCycle: number;
+  readonly state: string;
+  readonly strictHardCap: boolean;
+}
 
 /**
  * Values required for establishing a connection to a TLS-enabled Render Queue.
  */
 export interface ConnectionOptions {
   /**
-   * FQDN of the host to connect to.
+   * Fully qualified domain name of the Render Queue.
    */
   readonly hostname: string;
 
   /**
-   * Port on the host.
+   * Port on the Render Queue to connect to.
    */
   readonly port: string;
 
   /**
-   * Protocol used to connect to the host.
+   * Protocol used to connect to the Render Queue.
+   * Allowed values: 'HTTP' and 'HTTPS'.
    */
   readonly protocol: string;
 
@@ -36,19 +53,19 @@ export interface ConnectionOptions {
  */
 export interface SEPConfiguratorResourceProps {
   /**
-   * Connection info for logging into the server.
+   * Info for connecting to the Render Queue.
    */
   readonly connection: ConnectionOptions;
 
   /**
    * The Spot Fleet Request Configurations.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html?highlight=spot%20even%20plugin#example-spot-fleet-request-configurations
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#example-spot-fleet-request-configurations
    */
-  readonly spotFleetRequestConfigurations?: SpotFleetRequestConfiguration;
+  readonly spotFleetRequestConfigurations?: object;
 
   /**
    * The Spot Event Plugin settings.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html?highlight=spot%20even%20plugin#event-plugin-configuration-options
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
    */
-  readonly spotPluginConfigurations?: SpotEventPluginSettings;
+  readonly spotPluginConfigurations?: InternalSpotEventPluginSettings;
 }

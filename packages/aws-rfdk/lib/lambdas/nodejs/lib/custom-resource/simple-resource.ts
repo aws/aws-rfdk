@@ -97,7 +97,7 @@ export abstract class SimpleCustomResource {
         const oldResourceProperties: object = event.OldResourceProperties ?? {};
         const oldPhysicalId: string = calculateSha256Hash(oldResourceProperties);
         if (oldPhysicalId !== physicalId) {
-          console.log('Doing Create -- ResoureceProperties differ.');
+          console.log('Doing Create -- ResourceProperties differ.');
           cfnData = await this.doCreate(physicalId, resourceProperties);
           console.debug(`Update data: ${JSON.stringify(cfnData)}`);
         }

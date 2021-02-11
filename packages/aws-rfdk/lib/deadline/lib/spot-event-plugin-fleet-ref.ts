@@ -4,7 +4,6 @@
  */
 
 import { CfnLaunchConfiguration } from '@aws-cdk/aws-autoscaling';
-import { InstanceType } from '@aws-cdk/aws-ec2';
 import { IResolvable } from '@aws-cdk/core';
 
 /**
@@ -64,7 +63,7 @@ export interface SpotFleetSecurityGroupId {
 }
 
 export interface SpotFleetTagSpecification {
-  readonly resourceType: SpotFleetResourceType;
+  readonly resourceType: string;
   readonly tags: any;
 }
 
@@ -77,18 +76,18 @@ export interface SpotFleetRequestLaunchSpecification
   readonly subnetId?: string;
   readonly tagSpecifications: IResolvable | SpotFleetTagSpecification[];
   readonly userData: string;
-  readonly instanceType: InstanceType;
+  readonly instanceType: string;
   readonly keyName?: string;
 }
 
 export interface SpotFleetRequestProps {
-  readonly allocationStrategy: SpotFleetAllocationStrategy;
+  readonly allocationStrategy: string;
   readonly iamFleetRole: string;
   readonly launchSpecifications: SpotFleetRequestLaunchSpecification[];
   readonly replaceUnhealthyInstances: boolean;
   readonly targetCapacity: number;
   readonly terminateInstancesWithExpiration: boolean;
-  readonly type: SpotFleetRequestType;
+  readonly type: string;
   readonly tagSpecifications: IResolvable | SpotFleetTagSpecification[];
   readonly validUntil?: string;
 }

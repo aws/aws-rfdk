@@ -23,6 +23,7 @@ import {
 import {
   App,
   CfnElement,
+  Duration,
   Stack,
 } from '@aws-cdk/core';
 import {
@@ -92,7 +93,7 @@ describe('ConfigureSpotEventPlugin', () => {
       workerMachineImage: new GenericWindowsImage({
         'us-east-1': 'ami-any',
       }),
-      targetCapacity: 1,
+      maxCapacity: 1,
     });
   });
 
@@ -173,9 +174,7 @@ describe('ConfigureSpotEventPlugin', () => {
                 }),
               ),
               userData: objectLike({}),
-              instanceType: {
-                instanceTypeIdentifier: 't2.small',
-              },
+              instanceType: 't2.small',
             }),
           ),
           replaceUnhealthyInstances: true,
@@ -198,7 +197,7 @@ describe('ConfigureSpotEventPlugin', () => {
   });
 
   test('only one object allowed per render queue', () => {
-    // WHEN
+    // GIVEN
     new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
       vpc,
       renderQueue: renderQueue,
@@ -208,8 +207,8 @@ describe('ConfigureSpotEventPlugin', () => {
       ],
     });
 
-    // THEN
-    expect(() => {
+    // WHEN
+    function createConfigureSpotEventPlugin() {
       new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin2', {
         vpc,
         renderQueue: renderQueue,
@@ -218,7 +217,10 @@ describe('ConfigureSpotEventPlugin', () => {
           fleet,
         ],
       });
-    }).toThrowError(/Only one ConfigureSpotEventPlugin construct is allowed per render queue./);
+    }
+
+    // THEN
+    expect(createConfigureSpotEventPlugin).toThrowError(/Only one ConfigureSpotEventPlugin construct is allowed per render queue./);
   });
 
   test('can create multiple objects with different render queues', () => {
@@ -257,8 +259,8 @@ describe('ConfigureSpotEventPlugin', () => {
   });
 
   test('throws with the same group name', () => {
-    // THEN
-    expect(() => {
+    // WHEN
+    function createConfigureSpotEventPlugin() {
       new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
         vpc,
         renderQueue: renderQueue,
@@ -268,7 +270,10 @@ describe('ConfigureSpotEventPlugin', () => {
           fleet,
         ],
       });
-    }).toThrowError(`Bad Group Name: ${groupName}. Group names in Spot Fleet Request Configurations should be unique.`);
+    }
+
+    // THEN
+    expect(createConfigureSpotEventPlugin).toThrowError(`Bad Group Name: ${groupName}. Group names in Spot Fleet Request Configurations should be unique.`);
   });
 
   test('uses selected subnets', () => {
@@ -317,9 +322,9 @@ describe('ConfigureSpotEventPlugin', () => {
         version,
       });
 
-      // THEN
-      expect(() => {
-        new ConfigureSpotEventPlugin(newStack, 'ConfigureSpotEventPlugin', {
+      // WHEN
+      function createConfigureSpotEventPlugin() {
+        new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
           vpc,
           renderQueue: renderQueue,
           version,
@@ -327,7 +332,10 @@ describe('ConfigureSpotEventPlugin', () => {
             fleet,
           ],
         });
-      }).toThrowError(`Minimum supported Deadline version for ConfigureSpotEventPlugin is 10.1.12.0. Received: ${versionString}.`);
+      }
+
+      // THEN
+      expect(createConfigureSpotEventPlugin).toThrowError(`Minimum supported Deadline version for ConfigureSpotEventPlugin is 10.1.12.0. Received: ${versionString}.`);
     });
   });
 
@@ -349,8 +357,8 @@ describe('ConfigureSpotEventPlugin', () => {
       version,
     });
 
-    // THEN
-    expect(() => {
+    // WHEN
+    function createConfigureSpotEventPlugin() {
       new ConfigureSpotEventPlugin(newStack, 'ConfigureSpotEventPlugin', {
         vpc,
         renderQueue: renderQueue,
@@ -359,7 +367,10 @@ describe('ConfigureSpotEventPlugin', () => {
           fleet,
         ],
       });
-    }).not.toThrow();
+    }
+
+    // THEN
+    expect(createConfigureSpotEventPlugin).not.toThrow();
   });
 
   test('uses custom spot event properties', () => {
@@ -368,7 +379,7 @@ describe('ConfigureSpotEventPlugin', () => {
       awsInstanceStatus: SpotEventPluginAwsInstanceStatus.EXTRA_INFO_0,
       deleteEC2SpotInterruptedWorkers: true,
       deleteSEPTerminatedWorkers: true,
-      idleShutdown: 20,
+      idleShutdown: Duration.minutes(20),
       loggingLevel: SpotEventPluginLoggingLevel.VERBOSE,
       preJobTaskMode: SpotEventPluginPreJobTaskMode.NORMAL,
       region: 'us-west-2',

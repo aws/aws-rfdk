@@ -31,6 +31,7 @@ import {
 } from '@aws-cdk/core';
 import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
 import {
+  InternalSpotEventPluginSettings,
   SEPConfiguratorResourceProps,
 } from '../../lambdas/nodejs/configure-spot-event-plugin';
 import { IRenderQueue, RenderQueue } from './render-queue';
@@ -157,11 +158,12 @@ export interface SpotEventPluginSettings {
   readonly region?: string;
 
   /**
-   * Number of minutes that an AWS Worker will wait in a non-rendering state before it is shutdown.
+   * The length of time that an AWS Worker will wait in a non-rendering state before it is shutdown.
+   * Should evenly divide into minutes.
    *
-   * @default 10
+   * @default Duration.minutes(10)
    */
-  readonly idleShutdown?: number;
+  readonly idleShutdown?: Duration;
 
   /**
    * Determines if Deadline Spot Event Plugin terminated AWS Workers will be deleted from the Workers Panel on the next House Cleaning cycle.
@@ -261,7 +263,57 @@ export interface ConfigureSpotEventPluginProps {
 }
 
 /**
- * This construct configures Spot Event Plugin by connecting to the render queue and executing requests against it.
+ * This construct configures the Deadline Spot Event Plugin to deploy and auto-scale one or more spot fleets.
+ *
+ * For example, to configure the Spot Event Plugin with one spot fleet:
+ *
+ * ```ts
+ * import { App, Stack, Vpc } from '@aws-rfdk/core';
+ * import { InstanceClass, InstanceSize, InstanceType } from '@aws-cdk/aws-ec2';
+ * import { AwsThinkboxEulaAcceptance, ConfigureSpotEventPlugin, RenderQueue, Repository, SpotEventPluginFleet, ThinkboxDockerImages, VersionQuery } from '@aws-rfdk/deadline';
+ * const app = new App();
+ * const stack = new Stack(app, 'Stack');
+ * const vpc = new Vpc(stack, 'Vpc');
+ * const version = new VersionQuery(stack, 'Version', {
+ *   version: '10.1.12',
+ * });
+ * const images = new ThinkboxDockerImages(stack, 'Image', {
+ *   version,
+ *   // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
+ *   // of the AWS Thinkbox End User License Agreement
+ *   userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
+ * });
+ * const repository = new Repository(stack, 'Repository', {
+ *   vpc,
+ *   version,
+ * });
+ * const renderQueue = new RenderQueue(stack, 'RenderQueue', {
+ *   vpc,
+ *   version: recipes.version,
+ *   images: images.forRenderQueue(),
+ *   repository: repository,
+ * });
+ *
+ * const fleet = new SpotEventPluginFleet(this, 'SpotEventPluginFleet', {
+ *   vpc,
+ *   renderQueue,
+ *   deadlineGroups: ['group_name'],
+ *   instanceTypes: [InstanceType.of(InstanceClass.T3, InstanceSize.LARGE)],
+ *   workerMachineImage: new GenericLinuxImage({'us-west-2': 'ami-039f0c1faba28b015'}),
+ *   naxCapacity: 1,
+ * });
+ *
+ * const spotEventPluginConfig = new ConfigureSpotEventPlugin(this, 'ConfigureSpotEventPlugin', {
+ *   vpc,
+ *   renderQueue: renderQueue,
+ *   version: recipes.version,
+ *   spotFleets: [fleet],
+ *   configuration: {
+ *     enableResourceTracker: true,
+ *   },
+ * });
+ * ```
+ *
  * To provide this functionality, this construct will create an AWS Lambda function that is granted the ability
  * to connect to the render queue. This lambda is run automatically when you deploy or update the stack containing this construct.
  * Logs for all AWS Lambdas are automatically recorded in Amazon CloudWatch.
@@ -276,6 +328,7 @@ export interface ConfigureSpotEventPluginProps {
  * - An AWS Lambda that is used to connect to the render queue, and save Spot Event Plugin configurations.
  * - A CloudFormation Custom Resource that triggers execution of the Lambda on stack deployment, update, and deletion.
  * - An Amazon CloudWatch log group that records history of the AWS Lambda's execution.
+ * - An IAM Policy attached to Render Queue's Role.
  *
  * Security Considerations
  * ------------------------
@@ -289,6 +342,9 @@ export interface ConfigureSpotEventPluginProps {
  *   and the render queue port. An attacker that can find a way to modify and execute this lambda could use it to
  *   execute any requets against the render queue. You should not grant any additional actors/principals the ability to modify
  *   or execute this Lambda.
+ *   to run the Spot Event Plugin and launch a Resource Tracker:
+ *   - AWSThinkboxDeadlineSpotEventPluginAdminPolicy
+ *   - AWSThinkboxDeadlineResourceTrackerAdminPolicy
  */
 export class ConfigureSpotEventPlugin extends Construct {
 
@@ -319,13 +375,16 @@ export class ConfigureSpotEventPlugin extends Construct {
 
       props.renderQueue.addSEPPolicies();
 
+      const fleetRoles = props.spotFleets?.map(sf => sf.fleetRole.roleArn) || [];
+      const fleetInstanceRoles = props.spotFleets?.map(sf => sf.fleetInstanceRole.roleArn) || [];
+      const roles = [...fleetRoles, ...fleetInstanceRoles];
       new Policy(this, 'SpotFleetPassRolePolicy', {
         statements: [
           new PolicyStatement({
             actions: [
               'iam:PassRole',
             ],
-            resources: props.spotFleets?.map(sf => sf.fleetRole.roleArn),
+            resources: roles.length !== 0 ? roles : undefined,
             conditions: {
               StringLike: {
                 'iam:PassedToService': 'ec2.amazonaws.com',
@@ -368,9 +427,18 @@ export class ConfigureSpotEventPlugin extends Construct {
     configurator.connections.allowToDefaultPort(props.renderQueue);
     props.caCert?.grantRead(configurator.grantPrincipal);
 
-    const pluginConfig: SpotEventPluginSettings = {
-      ...props.configuration,
+    const pluginConfig: InternalSpotEventPluginSettings = {
+      awsInstanceStatus: props.configuration?.awsInstanceStatus ?? SpotEventPluginAwsInstanceStatus.DISABLED,
+      deleteEC2SpotInterruptedWorkers: props.configuration?.deleteEC2SpotInterruptedWorkers ?? false,
+      deleteSEPTerminatedWorkers: props.configuration?.deleteSEPTerminatedWorkers ?? false,
+      idleShutdown: props.configuration?.idleShutdown?.toMinutes({integral: true}) ?? 10,
+      loggingLevel: props.configuration?.loggingLevel ?? SpotEventPluginLoggingLevel.STANDARD,
+      preJobTaskMode: props.configuration?.preJobTaskMode ?? SpotEventPluginPreJobTaskMode.CONSERVATIVE,
       region: props.configuration?.region ?? region,
+      enableResourceTracker: props.configuration?.enableResourceTracker ?? true,
+      maximumInstancesStartedPerCycle: props.configuration?.maximumInstancesStartedPerCycle ?? 50,
+      state: props.configuration?.state ?? SpotEventPluginState.DISABLED,
+      strictHardCap: props.configuration?.strictHardCap ?? false,
     };
     const spotFleetRequestConfigs = this.mergeSpotFleetRequestConfigs(props.spotFleets);
 
@@ -378,7 +446,7 @@ export class ConfigureSpotEventPlugin extends Construct {
       connection: {
         hostname: props.renderQueue.endpoint.hostname,
         port: props.renderQueue.endpoint.portNumber.toString(),
-        protocol: props.renderQueue.endpoint.applicationProtocol.toString(),
+        protocol: props.renderQueue.endpoint.applicationProtocol,
         caCertificateArn: props.caCert?.secretArn,
       },
       spotFleetRequestConfigurations: spotFleetRequestConfigs,

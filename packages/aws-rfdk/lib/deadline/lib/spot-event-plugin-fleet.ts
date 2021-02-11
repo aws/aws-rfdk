@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as crypto from 'crypto';
 import {
   BlockDevice,
   BlockDeviceVolume,
@@ -38,10 +37,7 @@ import {
   Fn,
   Expiration,
   IResolvable,
-  IResource,
   Lazy,
-  Names,
-  ResourceEnvironment,
   Stack,
   TagManager,
   TagType,
@@ -91,10 +87,10 @@ export interface SpotEventPluginFleetProps {
   readonly workerMachineImage: IMachineImage;
 
   /**
-   * The number of units to request for the Spot Fleet.
-   *
+   * The  the maximum capacity that the Spot Fleet can grow to.
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#spot-fleet-requests
    */
-  readonly targetCapacity: number;
+  readonly maxCapacity: number;
 
   /**
    * Types of instances to launch.
@@ -118,6 +114,15 @@ export interface SpotEventPluginFleetProps {
   readonly deadlinePools?: string[];
 
   /**
+   * Deadline region these workers needs to be assigned to.
+   * Note that this is not an AWS region but a Deadline region used for path mapping.
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/cross-platform.html#regions
+   *
+   * @default - Worker is not assigned to any Deadline region.
+   */
+  readonly deadlineRegion?: string;
+
+  /**
    * An IAM role for the spot fleet.
    *
    * The role must be assumable by the service principal `spotfleet.amazonaws.com`
@@ -131,24 +136,16 @@ export interface SpotEventPluginFleetProps {
    *   ],
    * });
    * ```
+   *
+   * @default - A role will automatically be created.
    */
   readonly fleetRole?: IRole;
 
   /**
-   * Deadline region these workers needs to be assigned to.
-   * Note that this is not an AWS region but a Deadline region used for path mapping.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/cross-platform.html#regions
-   *
-   * @default - Worker is not assigned to any Deadline region.
-   */
-  readonly deadlineRegion?: string;
-
-  /**
    * An IAM role to associate with the instance profile assigned to its resources.
    *
-   * The role must be assumable by the service principal `ec2.amazonaws.com`,
-   * have AWSThinkboxDeadlineSpotEventPluginWorkerPolicy policy attached and
-   * the role name must begin with "DeadlineSpot":
+   * The role must be assumable by the service principal `ec2.amazonaws.com` and
+   * have AWSThinkboxDeadlineSpotEventPluginWorkerPolicy policy attached:
    *
    * ```ts
    * const role = new iam.Role(this, 'MyRole', {
@@ -156,7 +153,6 @@ export interface SpotEventPluginFleetProps {
    *   managedPolicies: [
    *     ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy'),
    *   ],
-   *   roleName: 'DeadlineSpot' + ...,
    * });
    * ```
    *
@@ -247,7 +243,7 @@ export interface SpotEventPluginFleetProps {
 /**
  * Interface for Spot Event Plugin Worker Fleet.
  */
-export interface ISpotEventPluginFleet extends IResource, IConnectable, IScriptHost, IGrantable {
+export interface ISpotEventPluginFleet extends IConnectable, IScriptHost, IGrantable {
   /**
    * Allow access to the Worker's remote command listener port (configured as a part of the
    * WorkerConfiguration) for an IConnectable that is either in this stack, or in a stack that
@@ -283,14 +279,16 @@ export interface ISpotEventPluginFleet extends IResource, IConnectable, IScriptH
 
 /**
  * This construct reperesents a fleet from the Spot Fleet Request created by the Spot Event Plugin.
+ * This fleet is intended to be used as input for the {@link @aws-rfdk/deadline#ConfigureSpotEventPlugin} construct.
  *
  * The construct itself doesn't create the Spot Fleet Request, but it deployes all the resources
  * required for the Spot Fleet Request and generates the Spot Fleet Configuration setting:
- * a JSON dictionary that represents a one to one mapping between a Deadline Group and Spot Fleet Request Configurations.
+ * a one to one mapping between a Deadline Group and Spot Fleet Request Configurations.
  *
  * Resources Deployed
  * ------------------------
  * - An Instance Role, corresponding IAM Policy and an Instance Profile.
+ * - A Fleet Role and corresponding IAM Policy.
  * - An Amazon CloudWatch log group that contains the Deadline Worker, Deadline Launcher, and instance-startup logs for the instances
  *   in the fleet.
  * - A security Group if security groups are not provided.
@@ -332,16 +330,6 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
    * those permissions to the spot instance role.
    */
   public readonly grantPrincipal: IPrincipal;
-
-  /**
-   * The stack in which this fleet is defined.
-   */
-  public readonly stack: Stack;
-
-  /**
-   * The environment this resource belongs to.
-   */
-  public readonly env: ResourceEnvironment;
 
   /**
    * The port workers listen on to share their logs.
@@ -392,12 +380,6 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   constructor(scope: Construct, id: string, props: SpotEventPluginFleetProps) {
     super(scope, id);
 
-    this.stack = Stack.of(scope);
-    this.env = {
-      account: this.stack.account,
-      region: this.stack.region,
-    };
-
     this.validateProps(props);
 
     this.securityGroups = props.securityGroups ?? [ new SecurityGroup(this, 'SpotFleetSecurityGroup', { vpc: props.vpc }) ];
@@ -409,8 +391,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
       managedPolicies: [
         ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy'),
       ],
-      description: `Role for ${id} in region ${this.env.region}`,
-      roleName: 'DeadlineSpot' + this.calculateResourceTagValue([this]),
+      description: `Role for ${id} in region ${Stack.of(scope).region}`,
     });
     this.grantPrincipal = this.fleetInstanceRole;
 
@@ -500,17 +481,17 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
 
     props.instanceTypes.map(instanceType => {
       const launchSpecification: SpotFleetRequestLaunchSpecification = {
-        blockDeviceMappings: blockDeviceMappings,
+        blockDeviceMappings,
         iamInstanceProfile: {
           arn: iamProfile.attrArn,
         },
         imageId: this.imageId,
         keyName: props.keyName,
         securityGroups: securityGroupsToken,
-        subnetId: subnetId,
+        subnetId,
         tagSpecifications: instanceTagsToken,
         userData: userDataToken,
-        instanceType: instanceType,
+        instanceType: instanceType.toString(),
       };
       launchSpecifications.push(launchSpecification);
     });
@@ -520,8 +501,11 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
       iamFleetRole: this.fleetRole.roleArn,
       launchSpecifications: launchSpecifications,
       replaceUnhealthyInstances: props.replaceUnhealthyInstances ?? true,
-      targetCapacity: props.targetCapacity,
+      // In order to work with Deadline, the 'Target Capacity' of the Spot fleet Request is
+      // the maximum number of Workers that Deadline will start.
+      targetCapacity: props.maxCapacity,
       terminateInstancesWithExpiration: props.terminateInstancesWithExpiration ?? true,
+      // In order to work with Deadline, Spot Fleets Requests must be set to maintain.
       type: SpotFleetRequestType.MAINTAIN,
       validUntil: props.validUntil ? props.validUntil?.date.toUTCString() : undefined,
       tagSpecifications: spotFleetRequestTagsToken,
@@ -603,12 +587,6 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
         }
       });
     }
-  }
-
-  private calculateResourceTagValue(constructs: Construct[]): string {
-    const md5 = crypto.createHash('md5');
-    constructs.forEach(construct => md5.update(Names.uniqueId(construct)));
-    return md5.digest('hex');
   }
 
   /**
