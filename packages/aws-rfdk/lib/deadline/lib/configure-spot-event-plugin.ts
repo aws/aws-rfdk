@@ -428,24 +428,24 @@ export class ConfigureSpotEventPlugin extends Construct {
     props.caCert?.grantRead(configurator.grantPrincipal);
 
     const pluginConfig: InternalSpotEventPluginSettings = {
-      awsInstanceStatus: props.configuration?.awsInstanceStatus ?? SpotEventPluginAwsInstanceStatus.DISABLED,
-      deleteEC2SpotInterruptedWorkers: props.configuration?.deleteEC2SpotInterruptedWorkers ?? false,
-      deleteSEPTerminatedWorkers: props.configuration?.deleteSEPTerminatedWorkers ?? false,
-      idleShutdown: props.configuration?.idleShutdown?.toMinutes({integral: true}) ?? 10,
-      loggingLevel: props.configuration?.loggingLevel ?? SpotEventPluginLoggingLevel.STANDARD,
-      preJobTaskMode: props.configuration?.preJobTaskMode ?? SpotEventPluginPreJobTaskMode.CONSERVATIVE,
-      region: props.configuration?.region ?? region,
-      enableResourceTracker: props.configuration?.enableResourceTracker ?? true,
-      maximumInstancesStartedPerCycle: props.configuration?.maximumInstancesStartedPerCycle ?? 50,
-      state: props.configuration?.state ?? SpotEventPluginState.DISABLED,
-      strictHardCap: props.configuration?.strictHardCap ?? false,
+      AWSInstanceStatus: props.configuration?.awsInstanceStatus ?? SpotEventPluginAwsInstanceStatus.DISABLED,
+      DeleteInterruptedSlaves: props.configuration?.deleteEC2SpotInterruptedWorkers ?? false,
+      DeleteTerminatedSlaves: props.configuration?.deleteSEPTerminatedWorkers ?? false,
+      IdleShutdown: props.configuration?.idleShutdown?.toMinutes({integral: true}) ?? 10,
+      Logging: props.configuration?.loggingLevel ?? SpotEventPluginLoggingLevel.STANDARD,
+      PreJobTaskMode: props.configuration?.preJobTaskMode ?? SpotEventPluginPreJobTaskMode.CONSERVATIVE,
+      Region: props.configuration?.region ?? region,
+      ResourceTracker: props.configuration?.enableResourceTracker ?? true,
+      StaggerInstances: props.configuration?.maximumInstancesStartedPerCycle ?? 50,
+      State: props.configuration?.state ?? SpotEventPluginState.DISABLED,
+      StrictHardCap: props.configuration?.strictHardCap ?? false,
     };
     const spotFleetRequestConfigs = this.mergeSpotFleetRequestConfigs(props.spotFleets);
 
     const properties: SEPConfiguratorResourceProps = {
       connection: {
         hostname: props.renderQueue.endpoint.hostname,
-        port: props.renderQueue.endpoint.portNumber.toString(),
+        port: props.renderQueue.endpoint.portAsString(),
         protocol: props.renderQueue.endpoint.applicationProtocol,
         caCertificateArn: props.caCert?.secretArn,
       },

@@ -403,17 +403,17 @@ describe('ConfigureSpotEventPlugin', () => {
     // THEN
     cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
       spotPluginConfigurations: objectLike({
-        awsInstanceStatus: 'ExtraInfo0',
-        deleteEC2SpotInterruptedWorkers: true,
-        deleteSEPTerminatedWorkers: true,
-        idleShutdown: 20,
-        loggingLevel: 'Verbose',
-        preJobTaskMode: 'Normal',
-        region: 'us-west-2',
-        enableResourceTracker: false,
-        maximumInstancesStartedPerCycle: 10,
-        state: 'Global Enabled',
-        strictHardCap: true,
+        AWSInstanceStatus: 'ExtraInfo0',
+        DeleteInterruptedSlaves: true,
+        DeleteTerminatedSlaves: true,
+        IdleShutdown: 20,
+        Logging: 'Verbose',
+        PreJobTaskMode: 'Normal',
+        Region: 'us-west-2',
+        ResourceTracker: false,
+        StaggerInstances: 10,
+        State: 'Global Enabled',
+        StrictHardCap: true,
       }),
     })));
   });
