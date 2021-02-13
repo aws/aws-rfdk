@@ -70,7 +70,7 @@ export interface SpotEventPluginFleetProps {
   readonly renderQueue: IRenderQueue;
 
   /**
-   * AMI of the Deadline Worker to launch.
+   * The AMI of the Deadline Worker to launch.
    */
   readonly workerMachineImage: IMachineImage;
 
@@ -230,7 +230,7 @@ export interface ISpotEventPluginFleet extends IConnectable, IScriptHost, IGrant
    *     `workerFleet.allowRemoteControlFrom(securityGroup)`
    *
    *   Adding a CIDR:
-   *     `workerFleet.allowRemoteControlFrom(Peer.ipv4('10.0.0.0/24').connections)`
+   *     `workerFleet.allowRemoteControlFrom(Peer.ipv4('10.0.0.0/24'))`
    */
   allowRemoteControlFrom(other: IConnectable): void;
 
@@ -246,7 +246,7 @@ export interface ISpotEventPluginFleet extends IConnectable, IScriptHost, IGrant
    *     `workerFleet.allowRemoteControlTo(securityGroup)`
    *
    *   Adding a CIDR:
-   *     `workerFleet.allowRemoteControlTo(Peer.ipv4('10.0.0.0/24').connections)`
+   *     `workerFleet.allowRemoteControlTo(Peer.ipv4('10.0.0.0/24'))`
    */
   allowRemoteControlTo(other: IConnectable): void;
 }
@@ -361,13 +361,6 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   public readonly instanceTypes: InstanceType[];
 
   /**
-   * Name of SSH keypair to grant access to instances.
-   *
-   * @default - No SSH access will be possible.
-   */
-  public readonly keyName?: string;
-
-  /**
    * Indicates how to allocate the target Spot Instance capacity
    * across the Spot Instance pools specified by the Spot Fleet request.
    */
@@ -385,6 +378,13 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
    * @default - Workers are not assigned to any group
    */
   readonly deadlineGroups: string[];
+
+  /**
+   * Name of SSH keypair to grant access to instances.
+   *
+   * @default - No SSH access will be possible.
+   */
+  public readonly keyName?: string;
 
   /**
    * The end date and time of the request.
@@ -415,7 +415,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
       managedPolicies: [
         ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy'),
       ],
-      description: `Role for ${id} in region ${Stack.of(scope).region}`,
+      description: `Spot Fleet instance role for ${id} in region ${Stack.of(scope).region}`,
     });
 
     this.instanceProfile = new CfnInstanceProfile(this, 'InstanceProfile', {
@@ -424,11 +424,12 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
 
     this.grantPrincipal = this.fleetInstanceRole;
 
-    this.fleetRole = props.fleetRole ?? new Role(this, 'FleetRole', {
+    this.fleetRole = props.fleetRole ?? new Role(this, 'SpotFleetRole', {
       assumedBy: new ServicePrincipal('spotfleet.amazonaws.com'),
       managedPolicies: [
         ManagedPolicy.fromManagedPolicyArn(this, 'AmazonEC2SpotFleetTaggingRole', 'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'),
       ],
+      description: `Spot Fleet role for ${id} in region ${Stack.of(scope).region}`,
     });
 
     this.blockDevices = props.blockDevices;
@@ -437,7 +438,12 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     this.allocationStrategy = props.allocationStrategy ?? SpotFleetAllocationStrategy.LOWEST_PRICE;
     this.maxCapacity = props.maxCapacity;
     this.validUntil = props.validUntil;
+    this.keyName = props.keyName;
     this.deadlineGroups = props.deadlineGroups;
+
+    const workerGroups = this.deadlineGroups.filter(deadlineGroup => {
+      return !deadlineGroup.includes('*');
+    });
 
     const imageConfig = props.workerMachineImage.getImage(this);
     this.osType = imageConfig.osType;
@@ -452,7 +458,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
       },
       renderQueue: props.renderQueue,
       workerSettings: {
-        groups: props.deadlineGroups,
+        groups: workerGroups,
         pools: props.deadlinePools,
         region: props.deadlineRegion,
       },
@@ -486,20 +492,28 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
 
   private validateProps(props: SpotEventPluginFleetProps): void {
     this.validateInstanceTypes(props.instanceTypes);
+    this.validateSubnets(props.vpc, props.vpcSubnets);
     this.validateGroups('deadlineGroups', props.deadlineGroups);
     this.validateRegion('deadlineRegion', props.deadlineRegion);
     this.validateBlockDevices(props.blockDevices);
   }
 
   private validateInstanceTypes(array: InstanceType[]): void {
-    if (array.length == 0) {
+    if (array.length === 0) {
       throw new Error('At least one instance type is required for a Spot Fleet Request Configuration');
+    }
+  }
+
+  private validateSubnets(vpc: IVpc, vpcSubnets?: SubnetSelection) {
+    const { subnets } = vpc.selectSubnets(vpcSubnets);
+    if (subnets.length === 0) {
+      Annotations.of(this).addError(`Did not find any subnets matching '${JSON.stringify(vpcSubnets)}', please use a different selection.`);
     }
   }
 
   private validateGroups(property: string, array: string[]): void {
     const regex: RegExp = /^(?!none$)[a-zA-Z0-9-_\*]+$/i;
-    if (array.length == 0) {
+    if (array.length === 0) {
       throw new Error('At least one Deadline Group is required for a Spot Fleet Request Configuration');
     }
     array.forEach(value => {

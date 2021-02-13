@@ -32,7 +32,7 @@ import {
   IVersion,
   RenderQueue,
   Repository,
-  SpotEventPluginAwsInstanceStatus,
+  SpotEventPluginDisplayInstanceStatus,
   SpotEventPluginLoggingLevel,
   SpotEventPluginPreJobTaskMode,
   SpotEventPluginSettings,
@@ -376,7 +376,7 @@ describe('ConfigureSpotEventPlugin', () => {
   test('uses custom spot event properties', () => {
     // GIVEN
     const configuration: SpotEventPluginSettings = {
-      awsInstanceStatus: SpotEventPluginAwsInstanceStatus.EXTRA_INFO_0,
+      awsInstanceStatus: SpotEventPluginDisplayInstanceStatus.EXTRA_INFO_0,
       deleteEC2SpotInterruptedWorkers: true,
       deleteSEPTerminatedWorkers: true,
       idleShutdown: Duration.minutes(20),

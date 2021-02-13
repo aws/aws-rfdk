@@ -10,7 +10,7 @@ _**Note:** This application is an illustrative example to showcase some of the c
 
 ## Architecture
 
-This sample application deploys a basic Deadline Render farm that is configured to use Deadlines [Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html).
+This sample application deploys a basic Deadline Render farm that is configured to use Deadline's [Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html).
 
 ### Components
 
@@ -22,7 +22,7 @@ The Repository component contains the database and file system that store persis
 
 #### Render Queue
 
-The Render Queue component contains the fleet of [Deadline Remote Connection Server](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/remote-connection-server.html) instances behind an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html). This acts as the central service for Deadline applications and is the only component that interacts with the Repository. When comparing this component to the "All in AWS Infrastructure - Basic" example it has been granted additional permissions in order to use the Spot Event Plugin.
+The Render Queue component contains the fleet of [Deadline Remote Connection Server](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/remote-connection-server.html) instances behind an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html). This acts as the central service for Deadline applications and is the only component that interacts with the Repository. When comparing this component to the "All in AWS Infrastructure - Basic" example, it has been granted additional permissions in order to use the Spot Event Plugin.
 
 #### Spot Event Plugin Configurations
 

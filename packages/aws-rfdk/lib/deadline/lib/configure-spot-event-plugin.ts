@@ -126,7 +126,7 @@ export enum SpotEventPluginPreJobTaskMode {
  * See "AWS Instance Status" option at https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
  * and https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/worker-config.html#extra-info
  */
-export enum SpotEventPluginAwsInstanceStatus {
+export enum SpotEventPluginDisplayInstanceStatus {
   DISABLED = 'Disabled',
   EXTRA_INFO_0 = 'ExtraInfo0',
   EXTRA_INFO_1 = 'ExtraInfo0',
@@ -153,8 +153,7 @@ export interface SpotEventPluginSettings {
   readonly state?: SpotEventPluginState;
 
   /**
-   * Determines whether Deadline Resource Tracker should be used.
-   * Only disable for AMIs with Deadline 10.0.26 or earlier.
+   * Determines whether the Deadline Resource Tracker should be used.
    * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/resource-tracker-overview.html
    *
    * @default true
@@ -186,7 +185,6 @@ export interface SpotEventPluginSettings {
 
   /**
    * Determines if Deadline Spot Event Plugin terminated AWS Workers will be deleted from the Workers Panel on the next House Cleaning cycle.
-   * Warning: The terminated Worker's reports will also be deleted for each Worker, which may be undesired for future debugging of a render job issue.
    *
    * @default false
    */
@@ -194,7 +192,6 @@ export interface SpotEventPluginSettings {
 
   /**
    * Determines if EC2 Spot interrupted AWS Workers will be deleted from the Workers Panel on the next House Cleaning cycle.
-   * Warning: The terminated Worker's reports will also be deleted for each Worker, which may be undesired for future debugging of a render job issue.
    *
    * @default false
    */
@@ -209,7 +206,7 @@ export interface SpotEventPluginSettings {
   readonly strictHardCap?: boolean;
 
   /**
-   * The Spot Plugin will request this maximum number of instances per House Cleaning cycle.
+   * The Spot Event Plugin will request this maximum number of instances per House Cleaning cycle.
    *
    * @default 50
    */
@@ -228,9 +225,9 @@ export interface SpotEventPluginSettings {
    * if the instance has been marked to be stopped or terminated by EC2 or Spot Event Plugin.
    * All timestamps are displayed in UTC format.
    *
-   * @default SpotEventPluginAwsInstanceStatus.DISABLED
+   * @default SpotEventPluginDisplayInstanceStatus.DISABLED
    */
-  readonly awsInstanceStatus?: SpotEventPluginAwsInstanceStatus;
+  readonly awsInstanceStatus?: SpotEventPluginDisplayInstanceStatus;
 }
 
 /**
@@ -447,7 +444,7 @@ export class ConfigureSpotEventPlugin extends Construct {
     props.caCert?.grantRead(configurator.grantPrincipal);
 
     const pluginConfig: PluginSettings = {
-      AWSInstanceStatus: props.configuration?.awsInstanceStatus ?? SpotEventPluginAwsInstanceStatus.DISABLED,
+      AWSInstanceStatus: props.configuration?.awsInstanceStatus ?? SpotEventPluginDisplayInstanceStatus.DISABLED,
       DeleteInterruptedSlaves: props.configuration?.deleteEC2SpotInterruptedWorkers ?? false,
       DeleteTerminatedSlaves: props.configuration?.deleteSEPTerminatedWorkers ?? false,
       IdleShutdown: props.configuration?.idleShutdown?.toMinutes({integral: true}) ?? 10,
@@ -522,10 +519,7 @@ export class ConfigureSpotEventPlugin extends Construct {
     const blockDeviceMappings = (fleet.blockDevices !== undefined ?
       this.synthesizeBlockDeviceMappings(fleet.blockDevices) : undefined);
 
-    const { subnets } = fleet.subnets;
-    const subnetIds = subnets.map(subnet => {
-      return subnet.subnetId;
-    });
+    const { subnetIds } = fleet.subnets;
     const subnetId = subnetIds.length != 0 ? subnetIds.join(',') : undefined;
 
     const instanceTagsToken = this.tagsSpecifications(fleet, SpotFleetResourceType.INSTANCE);

@@ -13,7 +13,7 @@ import {
 import { Expiration } from '@aws-cdk/core';
 import * as AWS from 'aws-sdk';
 import {
-  SpotEventPluginAwsInstanceStatus,
+  SpotEventPluginDisplayInstanceStatus,
   SpotEventPluginLoggingLevel,
   SpotEventPluginPreJobTaskMode,
   SpotEventPluginState,
@@ -169,7 +169,7 @@ describe('SEPConfiguratorResource', () => {
   };
 
   const validSpotEventPluginConfig: PluginSettings = {
-    AWSInstanceStatus: SpotEventPluginAwsInstanceStatus.DISABLED,
+    AWSInstanceStatus: SpotEventPluginDisplayInstanceStatus.DISABLED,
     DeleteInterruptedSlaves: true,
     DeleteTerminatedSlaves: true,
     IdleShutdown: 20,

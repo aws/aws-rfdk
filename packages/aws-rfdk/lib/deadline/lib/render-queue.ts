@@ -209,7 +209,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   /**
    * Whether SEP policies have been added
    */
-  private addedSEPPolicies: boolean = false;
+  private haveAddedSEPPolicies: boolean = false;
 
   /**
    * The log group where the RCS container will log to
@@ -498,14 +498,14 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   }
 
   /**
-   * Adds AWS Managed Policies to the Render Queue so it is able to control Deadlines Spot Event Plugin.
+   * Adds AWS Managed Policies to the Render Queue so it is able to control Deadline's Spot Event Plugin.
    *
    * See: https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html for additonal information.
    *
    * @param includeResourceTracker Whether or not the Resource tracker admin policy should also be added (Default: True)
    */
   public addSEPPolicies(includeResourceTracker: boolean = true): void {
-    if (!this.addedSEPPolicies) {
+    if (!this.haveAddedSEPPolicies) {
       const sepPolicy = ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginAdminPolicy');
       this.taskDefinition.taskRole.addManagedPolicy(sepPolicy);
 
@@ -514,7 +514,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
         this.taskDefinition.taskRole.addManagedPolicy(rtPolicy);
       }
 
-      this.addedSEPPolicies = true;
+      this.haveAddedSEPPolicies = true;
     }
   }
 

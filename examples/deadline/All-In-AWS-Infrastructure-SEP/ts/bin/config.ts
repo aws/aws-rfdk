@@ -15,12 +15,12 @@ class AppConfig {
    * A map of regions to Deadline Client Linux AMIs. As an example, the Linux Deadline 10.1.12.1 AMI ID from us-west-2
    * is filled in. It can be used as-is, added to, or replaced.
    */
-  public readonly deadlineClientLinuxAmiMap: Record<string, string> = {['us-west-2']: 'ami-039f0c1faba28b015'};
+  public readonly deadlineClientLinuxAmiMap: Record<string, string> = {['us-east-1']: 'ami-040a210921e15c0ce'};
 
   /**
    * (Optional) The name of the EC2 keypair to associate with instances.
    */
-  public readonly keyPairName?: string;
+  public readonly keyPairName?: string= 'VPC-B-keypair';
 }
 
 export const config = new AppConfig();
