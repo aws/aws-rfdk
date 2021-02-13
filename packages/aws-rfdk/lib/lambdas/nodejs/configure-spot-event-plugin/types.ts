@@ -4,25 +4,6 @@
  */
 
 /**
- * Interface for communication between Lambda and ConfigureSpotEventPlugin construct.
- * All the properties correspond to SpotEventPluginSettings from '../../../deadline/lib/configure-spot-event-plugin',
- * but the types and name may differ.
- */
-export interface InternalSpotEventPluginSettings {
-  readonly AWSInstanceStatus: string;
-  readonly DeleteInterruptedSlaves: boolean;
-  readonly DeleteTerminatedSlaves: boolean;
-  readonly IdleShutdown: number;
-  readonly Logging: string;
-  readonly PreJobTaskMode: string;
-  readonly Region: string;
-  readonly ResourceTracker: boolean;
-  readonly StaggerInstances: number;
-  readonly State: string;
-  readonly StrictHardCap: boolean;
-}
-
-/**
  * Values required for establishing a connection to a TLS-enabled Render Queue.
  */
 export interface ConnectionOptions {
@@ -49,7 +30,26 @@ export interface ConnectionOptions {
 }
 
 /**
- * The input to this Custom Resource
+ * Interface for communication between Lambda and ConfigureSpotEventPlugin construct.
+ * All the properties correspond to SpotEventPluginSettings from '../../../deadline/lib/configure-spot-event-plugin',
+ * but the types and name may differ.
+ */
+export interface PluginSettings {
+  readonly AWSInstanceStatus: string;
+  readonly DeleteInterruptedSlaves: boolean;
+  readonly DeleteTerminatedSlaves: boolean;
+  readonly IdleShutdown: number;
+  readonly Logging: string;
+  readonly PreJobTaskMode: string;
+  readonly Region: string;
+  readonly ResourceTracker: boolean;
+  readonly StaggerInstances: number;
+  readonly State: string;
+  readonly StrictHardCap: boolean;
+}
+
+/**
+ * The input to the SEPConfiguratorResource
  */
 export interface SEPConfiguratorResourceProps {
   /**
@@ -61,19 +61,19 @@ export interface SEPConfiguratorResourceProps {
    * The Spot Fleet Request Configurations.
    * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#example-spot-fleet-request-configurations
    */
-  readonly spotFleetRequestConfigurations?: object;
+  readonly spotFleetRequestConfigurations?: SpotFleetRequestConfiguration;
 
   /**
    * The Spot Event Plugin settings.
    * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
    */
-  readonly spotPluginConfigurations?: InternalSpotEventPluginSettings;
+  readonly spotPluginConfigurations?: PluginSettings;
 }
 
 /**
- * The following interface represents a simplified CfnLaunchConfiguration.BlockDeviceProperty
+ * The following interface represents a CfnLaunchConfiguration.BlockDeviceProperty intreface
 */
-export interface InternalBlockDeviceProperty {
+export interface BlockDeviceProperty {
   readonly DeleteOnTermination?: boolean;
   readonly Encrypted?: boolean;
   readonly Iops?: number;
@@ -83,58 +83,64 @@ export interface InternalBlockDeviceProperty {
 }
 
 /**
- * The following interface represents a simplified CfnLaunchConfiguration.BlockDeviceMappingProperty
+ * The following interface represents a CfnLaunchConfiguration.BlockDeviceMappingProperty interface
 */
-export interface InternalBlockDeviceMappingProperty {
+export interface BlockDeviceMappingProperty {
   readonly DeviceName: string;
-  readonly Ebs?: InternalBlockDeviceProperty;
+  readonly Ebs?: BlockDeviceProperty;
   readonly NoDevice?: boolean;
   readonly VirtualName?: string;
 }
 
-export interface InternalSpotFleetInstanceProfile {
+export interface SpotFleetInstanceProfile {
   readonly Arn: string;
 }
 
-export interface InternalSpotFleetSecurityGroupId {
+export interface SpotFleetSecurityGroupId {
   readonly GroupId: string;
 }
 
-export interface InternalTag {
+export interface SpotFleetTag {
   Key: string;
   Value: any;
 }
 
-export interface InternalSpotFleetTagSpecification {
+export interface SpotFleetTagSpecification {
   readonly ResourceType: string;
-  readonly Tags: InternalTag[];
+  readonly Tags: SpotFleetTag[];
 }
 
-export interface InternalSpotFleetRequestLaunchSpecification
+export interface LaunchSpecification
 {
-  readonly BlockDeviceMappings?: InternalBlockDeviceMappingProperty[];
-  readonly IamInstanceProfile: InternalSpotFleetInstanceProfile;
+  readonly BlockDeviceMappings?: BlockDeviceMappingProperty[];
+  readonly IamInstanceProfile: SpotFleetInstanceProfile;
   readonly ImageId: string;
-  readonly SecurityGroups: InternalSpotFleetSecurityGroupId[];
+  readonly SecurityGroups: SpotFleetSecurityGroupId[];
   readonly SubnetId?: string;
-  readonly TagSpecifications: InternalSpotFleetTagSpecification[];
+  readonly TagSpecifications: SpotFleetTagSpecification[];
   readonly UserData: string;
   readonly InstanceType: string;
   readonly KeyName?: string;
 }
 
-export interface InternalSpotFleetRequestProps {
+export interface SpotFleetRequestProps {
   readonly AllocationStrategy: string;
   readonly IamFleetRole: string;
-  readonly LaunchSpecifications: InternalSpotFleetRequestLaunchSpecification[];
+  readonly LaunchSpecifications: LaunchSpecification[];
   readonly ReplaceUnhealthyInstances: boolean;
   readonly TargetCapacity: number;
   readonly TerminateInstancesWithExpiration: boolean;
   readonly Type: string;
-  readonly TagSpecifications: InternalSpotFleetTagSpecification[];
+  readonly TagSpecifications: SpotFleetTagSpecification[];
+  /**
+   * The end date and time of the request, in UTC format (YYYY -MM -DD T*HH* :MM :SS Z).
+   * After the end date and time, no new Spot Instance requests are placed or able to fulfill the request.
+   *
+   * @default - the Spot Fleet request remains until you cancel it.
+   */
   readonly ValidUntil?: string;
 }
 
-export interface InternalSpotFleetRequestConfiguration {
-  [groupName: string]: InternalSpotFleetRequestProps;
+export interface SpotFleetRequestConfiguration {
+  [groupName: string]: SpotFleetRequestProps;
 }

@@ -122,26 +122,26 @@ describe('ConfigureSpotEventPlugin', () => {
       }),
       spotFleetRequestConfigurations: objectLike({
         [groupName]: objectLike({
-          iamFleetRole: {
+          IamFleetRole: {
             'Fn::GetAtt': [
               stack.getLogicalId(fleet.fleetRole.node.defaultChild as CfnElement),
               'Arn',
             ],
           },
-          launchSpecifications: arrayWith(
+          LaunchSpecifications: arrayWith(
             objectLike({
-              iamInstanceProfile: {
-                arn: {
+              IamInstanceProfile: {
+                Arn: {
                   'Fn::GetAtt': [
                     'SpotFleetInstanceProfile9F9AFBE3',
                     'Arn',
                   ],
                 },
               },
-              imageId: 'ami-any',
-              securityGroups: arrayWith(
+              ImageId: 'ami-any',
+              SecurityGroups: arrayWith(
                 objectLike({
-                  groupId: {
+                  GroupId: {
                     'Fn::GetAtt': [
                       stack.getLogicalId(fleet.securityGroups[0].node.defaultChild as CfnElement),
                       'GroupId',
@@ -149,7 +149,7 @@ describe('ConfigureSpotEventPlugin', () => {
                   },
                 }),
               ),
-              subnetId: {
+              SubnetId: {
                 'Fn::Join': [
                   '',
                   [
@@ -163,28 +163,28 @@ describe('ConfigureSpotEventPlugin', () => {
                   ],
                 ],
               },
-              tagSpecifications: arrayWith(
+              TagSpecifications: arrayWith(
                 objectLike({
-                  resourceType: 'instance',
-                  tags: arrayWith(
+                  ResourceType: 'instance',
+                  Tags: arrayWith(
                     objectLike({
                       Key: 'aws-rfdk',
                     }),
                   ),
                 }),
               ),
-              userData: objectLike({}),
-              instanceType: 't2.small',
+              UserData: objectLike({}),
+              InstanceType: 't2.small',
             }),
           ),
-          replaceUnhealthyInstances: true,
-          targetCapacity: 1,
-          terminateInstancesWithExpiration: true,
-          type: 'maintain',
-          tagSpecifications: arrayWith(
+          ReplaceUnhealthyInstances: true,
+          TargetCapacity: 1,
+          TerminateInstancesWithExpiration: true,
+          Type: 'maintain',
+          TagSpecifications: arrayWith(
             objectLike({
-              resourceType: 'spot-fleet-request',
-              tags: arrayWith(
+              ResourceType: 'spot-fleet-request',
+              Tags: arrayWith(
                 objectLike({
                   Key: 'aws-rfdk',
                 }),

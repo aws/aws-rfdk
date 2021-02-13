@@ -14,15 +14,15 @@ import {
 } from '../lib/secrets-manager';
 import {
   ConnectionOptions,
-  InternalBlockDeviceMappingProperty,
-  InternalBlockDeviceProperty,
-  InternalSpotEventPluginSettings,
-  InternalSpotFleetInstanceProfile,
-  InternalSpotFleetRequestConfiguration,
-  InternalSpotFleetRequestLaunchSpecification,
-  InternalSpotFleetRequestProps,
-  InternalSpotFleetSecurityGroupId,
-  InternalSpotFleetTagSpecification,
+  BlockDeviceMappingProperty,
+  BlockDeviceProperty,
+  PluginSettings,
+  SpotFleetInstanceProfile,
+  SpotFleetRequestConfiguration,
+  LaunchSpecification,
+  SpotFleetRequestProps,
+  SpotFleetSecurityGroupId,
+  SpotFleetTagSpecification,
   SEPConfiguratorResourceProps,
 } from './types';
 
@@ -127,20 +127,20 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
    * boolean and number properties get converted into strings when passed to this custom resource,
    * so we need to restore the original types.
    */
-  private convertSpotFleetRequestConfiguration(spotFleetRequestConfigs: object): InternalSpotFleetRequestConfiguration {
-    const convertedSpotFleetRequestConfigs: InternalSpotFleetRequestConfiguration = {};
+  private convertSpotFleetRequestConfiguration(spotFleetRequestConfigs: SpotFleetRequestConfiguration): SpotFleetRequestConfiguration {
+    const convertedSpotFleetRequestConfigs: SpotFleetRequestConfiguration = {};
 
     for (const [group_name, sfrConfigs] of Object.entries(spotFleetRequestConfigs)) {
-      const convertedSpotFleetRequestProps: InternalSpotFleetRequestProps = {
-        AllocationStrategy: this.convertToString(sfrConfigs.allocationStrategy, `${group_name}.allocationStrategy`),
-        IamFleetRole: this.convertToString(sfrConfigs.iamFleetRole, `${group_name}.iamFleetRole`),
-        LaunchSpecifications: this.convertLaunchSpecifications(sfrConfigs.launchSpecifications, `${group_name}.launchSpecifications`),
-        ReplaceUnhealthyInstances: this.convertToBoolean(sfrConfigs.replaceUnhealthyInstances, `${group_name}.replaceUnhealthyInstances`),
-        TargetCapacity: this.convertToInt(sfrConfigs.targetCapacity, `${group_name}.targetCapacity`),
-        TerminateInstancesWithExpiration: this.convertToBoolean(sfrConfigs.terminateInstancesWithExpiration, `${group_name}.terminateInstancesWithExpiration`),
-        Type: this.convertToString(sfrConfigs.type, `${group_name}.type`),
-        ValidUntil: this.convertToStringOptional(sfrConfigs.validUntil, `${group_name}.validUntil`),
-        TagSpecifications: this.convertTagSpecifications(sfrConfigs.tagSpecifications, `${group_name}.tagSpecifications`),
+      const convertedSpotFleetRequestProps: SpotFleetRequestProps = {
+        AllocationStrategy: this.convertToString(sfrConfigs.AllocationStrategy, `${group_name}.AllocationStrategy`),
+        IamFleetRole: this.convertToString(sfrConfigs.IamFleetRole, `${group_name}.IamFleetRole`),
+        LaunchSpecifications: this.convertLaunchSpecifications(sfrConfigs.LaunchSpecifications, `${group_name}.LaunchSpecifications`),
+        ReplaceUnhealthyInstances: this.convertToBoolean(sfrConfigs.ReplaceUnhealthyInstances, `${group_name}.ReplaceUnhealthyInstances`),
+        TargetCapacity: this.convertToInt(sfrConfigs.TargetCapacity, `${group_name}.TargetCapacity`),
+        TerminateInstancesWithExpiration: this.convertToBoolean(sfrConfigs.TerminateInstancesWithExpiration, `${group_name}.TerminateInstancesWithExpiration`),
+        Type: this.convertToString(sfrConfigs.Type, `${group_name}.Type`),
+        ValidUntil: this.convertToStringOptional(sfrConfigs.ValidUntil, `${group_name}.ValidUntil`),
+        TagSpecifications: this.convertTagSpecifications(sfrConfigs.TagSpecifications, `${group_name}.TagSpecifications`),
       };
       convertedSpotFleetRequestConfigs[group_name] = convertedSpotFleetRequestProps;
     }
@@ -153,26 +153,26 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
     }
   }
 
-  private isValidSecurityGroup(securityGroup: any): boolean {
+  private isValidSecurityGroup(securityGroup: SpotFleetSecurityGroupId): boolean {
     if (!securityGroup || typeof(securityGroup) !== 'object') { return false; }
     // We also verify groupId with convertToString later
-    if (!securityGroup.groupId || typeof(securityGroup.groupId) !== 'string') { return false; }
+    if (!securityGroup.GroupId || typeof(securityGroup.GroupId) !== 'string') { return false; }
     return true;
   }
 
-  private validateSecurityGroup(securityGroup: any, property: string): void {
+  private validateSecurityGroup(securityGroup: SpotFleetSecurityGroupId, property: string): void {
     if (!this.isValidSecurityGroup(securityGroup)) {
       throw new Error(`${property} type is not valid.`);
     }
   }
 
-  private convertSecurityGroups(securityGroups: any, property: string): InternalSpotFleetSecurityGroupId[] {
+  private convertSecurityGroups(securityGroups: SpotFleetSecurityGroupId[], property: string): SpotFleetSecurityGroupId[] {
     this.validateArray(securityGroups, property);
 
-    const convertedSecurityGroups: InternalSpotFleetSecurityGroupId[] = securityGroups.map((securityGroup: any) => {
+    const convertedSecurityGroups: SpotFleetSecurityGroupId[] = securityGroups.map(securityGroup => {
       this.validateSecurityGroup(securityGroup, property);
-      const convertedSecurityGroup: InternalSpotFleetSecurityGroupId = {
-        GroupId: this.convertToString(securityGroup.groupId, `${property}.groupId`),
+      const convertedSecurityGroup: SpotFleetSecurityGroupId = {
+        GroupId: this.convertToString(securityGroup.GroupId, `${property}.GroupId`),
       };
       return convertedSecurityGroup;
     });
@@ -180,31 +180,31 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
     return convertedSecurityGroups;
   }
 
-  private isValidTagSpecification(tagSpecification: any): boolean {
+  private isValidTagSpecification(tagSpecification: SpotFleetTagSpecification): boolean {
     if (!tagSpecification || typeof(tagSpecification) !== 'object') { return false; }
     // We also verify resourceType with convertToString later
-    if (!tagSpecification.resourceType || typeof(tagSpecification.resourceType) !== 'string') { return false; }
-    if (!tagSpecification.tags || !Array.isArray(tagSpecification.tags)) { return false; }
-    for (let element of tagSpecification.tags) {
+    if (!tagSpecification.ResourceType || typeof(tagSpecification.ResourceType) !== 'string') { return false; }
+    if (!tagSpecification.Tags || !Array.isArray(tagSpecification.Tags)) { return false; }
+    for (let element of tagSpecification.Tags) {
       if (!element || typeof(element) !== 'object') { return false; };
       if (!element.Key || typeof(element.Key) !== 'string' || !element.Value) { return false; }
     }
     return true;
   }
 
-  private validateTagSpecification(tagSpecification: any, property: string): void {
+  private validateTagSpecification(tagSpecification: SpotFleetTagSpecification, property: string): void {
     if (!this.isValidTagSpecification(tagSpecification)) {
       throw new Error(`${property} type is not valid.`);
     }
   }
 
-  private convertTagSpecifications(tagSpecifications: any, property: string): InternalSpotFleetTagSpecification[] {
+  private convertTagSpecifications(tagSpecifications: SpotFleetTagSpecification[], property: string): SpotFleetTagSpecification[] {
     this.validateArray(tagSpecifications, property);
-    const convertedTagSpecifications: InternalSpotFleetTagSpecification[] = tagSpecifications.map((tagSpecification: any) => {
+    const convertedTagSpecifications: SpotFleetTagSpecification[] = tagSpecifications.map(tagSpecification => {
       this.validateTagSpecification(tagSpecification, property);
-      const convertedTagSpecification: InternalSpotFleetTagSpecification = {
-        ResourceType: this.convertToString(tagSpecification.resourceType, `${property}.resourceType`),
-        Tags: tagSpecification.tags,
+      const convertedTagSpecification: SpotFleetTagSpecification = {
+        ResourceType: this.convertToString(tagSpecification.ResourceType, `${property}.ResourceType`),
+        Tags: tagSpecification.Tags,
       };
       return convertedTagSpecification;
     });
@@ -212,95 +212,91 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
     return convertedTagSpecifications;
   }
 
-  private validateDeviceMapping(deviceMapping: any, property: string): void {
+  private validateDeviceMapping(deviceMapping: BlockDeviceMappingProperty, property: string): void {
     if (!this.isValidDeviceMapping(deviceMapping)) {
       throw new Error(`${property} type is not valid.`);
     }
   }
 
-  private isValidDeviceMapping(deviceMapping: any): boolean {
+  private isValidDeviceMapping(deviceMapping: BlockDeviceMappingProperty): boolean {
     if (!deviceMapping || typeof(deviceMapping) !== 'object') { return false; }
     // We validate the rest properties when convert them.
     // TODO: maybe add for full validation
     return true;
   }
 
-  private convertEbs(ebs: any, property: string): InternalBlockDeviceProperty | undefined {
-    if (!ebs) {
-      return undefined;
-    }
-
-    const convertedEbs: InternalBlockDeviceProperty = {
-      DeleteOnTermination: this.convertToBooleanOptional(ebs.deleteOnTermination, `${property}.deleteOnTermination`),
-      Encrypted: this.convertToBooleanOptional(ebs.encrypted, `${property}.encrypted`),
-      Iops: this.convertToIntOptional(ebs.iops, `${property}.iops`),
-      SnapshotId: this.convertToStringOptional(ebs.snapshotId, `${property}.snapshotId`),
-      VolumeSize: this.convertToIntOptional(ebs.volumeSize, `${property}.volumeSize`),
-      VolumeType: this.convertToStringOptional(ebs.volumeType, `${property}.volumeType`),
+  private convertEbs(ebs: BlockDeviceProperty, property: string): BlockDeviceProperty {
+    const convertedEbs: BlockDeviceProperty = {
+      DeleteOnTermination: this.convertToBooleanOptional(ebs.DeleteOnTermination, `${property}.DeleteOnTermination`),
+      Encrypted: this.convertToBooleanOptional(ebs.Encrypted, `${property}.Encrypted`),
+      Iops: this.convertToIntOptional(ebs.Iops, `${property}.Iops`),
+      SnapshotId: this.convertToStringOptional(ebs.SnapshotId, `${property}.SnapshotId`),
+      VolumeSize: this.convertToIntOptional(ebs.VolumeSize, `${property}.VolumeSize`),
+      VolumeType: this.convertToStringOptional(ebs.VolumeType, `${property}.VolumeType`),
     };
     return convertedEbs;
   }
 
-  private convertBlockDeviceMapping(blockDeviceMappings: any, property: string): InternalBlockDeviceMappingProperty[] | undefined {
+  private convertBlockDeviceMapping(blockDeviceMappings: BlockDeviceMappingProperty[], property: string): BlockDeviceMappingProperty[] | undefined {
     if (!blockDeviceMappings) {
       return undefined;
     }
 
     this.validateArray(blockDeviceMappings, property);
-    const convertedBlockDeviceMappings: InternalBlockDeviceMappingProperty[] = blockDeviceMappings.map((deviceMapping: any) => {
+    const convertedBlockDeviceMappings: BlockDeviceMappingProperty[] = blockDeviceMappings.map(deviceMapping => {
       this.validateDeviceMapping(deviceMapping, property);
 
-      const convertedDeviceMapping: InternalBlockDeviceMappingProperty = {
-        DeviceName: this.convertToString(deviceMapping.deviceName, `${property}.deviceName`),
-        Ebs: this.convertEbs(deviceMapping.ebs, `${property}.ebs`),
-        NoDevice: this.convertToBooleanOptional(deviceMapping.noDevice, `${property}.noDevice`),
-        VirtualName: this.convertToStringOptional(deviceMapping.virtualName, `${property}.virtualName`),
+      const convertedDeviceMapping: BlockDeviceMappingProperty = {
+        DeviceName: this.convertToString(deviceMapping.DeviceName, `${property}.DeviceName`),
+        Ebs: deviceMapping.Ebs ? this.convertEbs(deviceMapping.Ebs, `${property}.Ebs`) : undefined,
+        NoDevice: this.convertToBooleanOptional(deviceMapping.NoDevice, `${property}.NoDevice`),
+        VirtualName: this.convertToStringOptional(deviceMapping.VirtualName, `${property}.VirtualName`),
       };
       return convertedDeviceMapping;
     });
     return convertedBlockDeviceMappings;
   }
 
-  private isValidInstanceProfile(instanceProfile: any): boolean {
+  private isValidInstanceProfile(instanceProfile: SpotFleetInstanceProfile): boolean {
     if (!instanceProfile || typeof(instanceProfile) !== 'object') { return false; }
     // We also verify arn with convertToString later
-    if (!instanceProfile.arn || typeof(instanceProfile.arn) !== 'string') { return false; }
+    if (!instanceProfile.Arn || typeof(instanceProfile.Arn) !== 'string') { return false; }
     return true;
   }
 
-  private validadeInstanceProfile(instanceProfile: any, property: string): void {
+  private validadeInstanceProfile(instanceProfile: SpotFleetInstanceProfile, property: string): void {
     if (!this.isValidInstanceProfile(instanceProfile)) {
       throw new Error(`${property} type is not valid.`);
     }
   }
 
-  private convertInstanceProfile(instanceProfile: any, property: string): InternalSpotFleetInstanceProfile {
+  private convertInstanceProfile(instanceProfile: SpotFleetInstanceProfile, property: string): SpotFleetInstanceProfile {
     this.validadeInstanceProfile(instanceProfile, property);
-    const convertedInstanceProfile: InternalSpotFleetInstanceProfile = {
-      Arn: this.convertToString(instanceProfile.arn, `${property}.arn`),
+    const convertedInstanceProfile: SpotFleetInstanceProfile = {
+      Arn: this.convertToString(instanceProfile.Arn, `${property}.Arn`),
     };
     return convertedInstanceProfile;
   }
 
-  private convertLaunchSpecifications(launchSpecifications: any, property: string): InternalSpotFleetRequestLaunchSpecification[] {
+  private convertLaunchSpecifications(launchSpecifications: LaunchSpecification[], property: string): LaunchSpecification[] {
     this.validateArray(launchSpecifications, property);
 
-    const convertedLaunchSpecifications: InternalSpotFleetRequestLaunchSpecification[] = [];
-    launchSpecifications.map((launchSpecification: any) => {
-      const SecurityGroups = this.convertSecurityGroups(launchSpecification.securityGroups, `${property}.securityGroups`);
-      const TagSpecifications = this.convertTagSpecifications(launchSpecification.tagSpecifications, `${property}.tagSpecifications`);
-      const BlockDeviceMappings = this.convertBlockDeviceMapping(launchSpecification.blockDeviceMappings, `${property}.blockDeviceMappings`);
+    const convertedLaunchSpecifications: LaunchSpecification[] = [];
+    launchSpecifications.map(launchSpecification => {
+      const SecurityGroups = this.convertSecurityGroups(launchSpecification.SecurityGroups, `${property}.SecurityGroups`);
+      const TagSpecifications = this.convertTagSpecifications(launchSpecification.TagSpecifications, `${property}.TagSpecifications`);
+      const BlockDeviceMappings = launchSpecification.BlockDeviceMappings ? this.convertBlockDeviceMapping(launchSpecification.BlockDeviceMappings, `${property}.BlockDeviceMappings`) : undefined;
 
-      const convertedLaunchSpecification: InternalSpotFleetRequestLaunchSpecification = {
+      const convertedLaunchSpecification: LaunchSpecification = {
         BlockDeviceMappings,
-        IamInstanceProfile: this.convertInstanceProfile(launchSpecification.iamInstanceProfile, `${property}.iamInstanceProfile`),
-        ImageId: this.convertToString(launchSpecification.imageId, `${property}.imageId`),
-        KeyName: this.convertToStringOptional(launchSpecification.keyName, `${property}.keyName`),
+        IamInstanceProfile: this.convertInstanceProfile(launchSpecification.IamInstanceProfile, `${property}.IamInstanceProfile`),
+        ImageId: this.convertToString(launchSpecification.ImageId, `${property}.ImageId`),
+        KeyName: this.convertToStringOptional(launchSpecification.KeyName, `${property}.KeyName`),
         SecurityGroups,
-        SubnetId: this.convertToStringOptional(launchSpecification.subnetId, `${property}.subnetId`),
+        SubnetId: this.convertToStringOptional(launchSpecification.SubnetId, `${property}.SubnetId`),
         TagSpecifications,
-        UserData: this.convertToString(launchSpecification.userData, `${property}.userData`),
-        InstanceType: this.convertToString(launchSpecification.instanceType, `${property}.instanceType`),
+        UserData: this.convertToString(launchSpecification.UserData, `${property}.UserData`),
+        InstanceType: this.convertToString(launchSpecification.InstanceType, `${property}.InstanceType`),
       };
       convertedLaunchSpecifications.push(convertedLaunchSpecification);
     });
@@ -372,7 +368,7 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
    * boolean and number properties get converted into strings when passed to this custom resource,
    * so we need to restore the original types.
    */
-  private convertSpotEventPluginSettings(pluginOptions: InternalSpotEventPluginSettings): InternalSpotEventPluginSettings {
+  private convertSpotEventPluginSettings(pluginOptions: PluginSettings): PluginSettings {
     return {
       AWSInstanceStatus: this.convertToString(pluginOptions.AWSInstanceStatus, 'AWSInstanceStatus'),
       DeleteInterruptedSlaves: this.convertToBoolean(pluginOptions.DeleteInterruptedSlaves, 'DeleteInterruptedSlaves'),
@@ -388,7 +384,7 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
     };
   }
 
-  private toPluginPropertyArray(input: InternalSpotEventPluginSettings): PluginProperty[] {
+  private toPluginPropertyArray(input: PluginSettings): PluginProperty[] {
     const configs: PluginProperty[] = [];
     for (const [key, value] of Object.entries(input)) {
       if (value === undefined) {

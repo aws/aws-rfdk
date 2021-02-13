@@ -103,12 +103,12 @@ export class DeadlineClient {
     }
   }
 
-  public async GetRequest(path: string, requestOptions?: https.RequestOptions, retries: number=3, retryWaitMs=60000): Promise<Response> {
+  public async GetRequest(path: string, requestOptions?: https.RequestOptions, retries: number=3, retryWaitMs=0): Promise<Response> {
     const options = this.FillRequestOptions(path, 'GET', requestOptions);
     return this.performRequestWithRetry(options, retries, retryWaitMs);
   }
 
-  public async PostRequest(path: string, data?: any, requestOptions?: https.RequestOptions, retries: number=3, retryWaitMs=60000): Promise<Response> {
+  public async PostRequest(path: string, data?: any, requestOptions?: https.RequestOptions, retries: number=3, retryWaitMs=0): Promise<Response> {
     const options = this.FillRequestOptions(path, 'POST', requestOptions);
     return this.performRequestWithRetry(options, retries, retryWaitMs, data ? JSON.stringify(data) : undefined);
   }

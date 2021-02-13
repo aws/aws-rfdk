@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CfnLaunchConfiguration } from '@aws-cdk/aws-autoscaling';
-import { IResolvable } from '@aws-cdk/core';
-
 /**
  * The allocation strategy for the Spot Instances in your Spot Fleet
  * determines how it fulfills your Spot Fleet request from the possible
@@ -52,46 +49,4 @@ export enum SpotFleetRequestType {
    * The Spot Fleet places the required requests to meet capacity and automatically replenishes any interrupted instances.
    */
   MAINTAIN = 'maintain',
-}
-
-export interface SpotFleetInstanceProfile {
-  readonly arn: string;
-}
-
-export interface SpotFleetSecurityGroupId {
-  readonly groupId: string;
-}
-
-export interface SpotFleetTagSpecification {
-  readonly resourceType: string;
-  readonly tags: any;
-}
-
-export interface SpotFleetRequestLaunchSpecification
-{
-  readonly blockDeviceMappings?: CfnLaunchConfiguration.BlockDeviceMappingProperty[];
-  readonly iamInstanceProfile: SpotFleetInstanceProfile;
-  readonly imageId: string;
-  readonly securityGroups: IResolvable | SpotFleetSecurityGroupId[];
-  readonly subnetId?: string;
-  readonly tagSpecifications: IResolvable | SpotFleetTagSpecification[];
-  readonly userData: string;
-  readonly instanceType: string;
-  readonly keyName?: string;
-}
-
-export interface SpotFleetRequestProps {
-  readonly allocationStrategy: string;
-  readonly iamFleetRole: string;
-  readonly launchSpecifications: SpotFleetRequestLaunchSpecification[];
-  readonly replaceUnhealthyInstances: boolean;
-  readonly targetCapacity: number;
-  readonly terminateInstancesWithExpiration: boolean;
-  readonly type: string;
-  readonly tagSpecifications: IResolvable | SpotFleetTagSpecification[];
-  readonly validUntil?: string;
-}
-
-export interface SpotFleetRequestConfiguration {
-  [groupName: string]: SpotFleetRequestProps;
 }

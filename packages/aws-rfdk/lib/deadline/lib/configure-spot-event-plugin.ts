@@ -6,6 +6,11 @@
 import * as path from 'path';
 
 import {
+  BlockDevice,
+  BlockDeviceVolume,
+  EbsDeviceVolumeType,
+} from '@aws-cdk/aws-autoscaling';
+import {
   IVpc,
   SubnetSelection,
   SubnetType,
@@ -24,19 +29,33 @@ import {
 import { RetentionDays } from '@aws-cdk/aws-logs';
 import { ISecret } from '@aws-cdk/aws-secretsmanager';
 import {
+  Annotations,
   Construct,
   CustomResource,
   Duration,
+  Fn,
+  IResolvable,
+  Lazy,
   Stack,
 } from '@aws-cdk/core';
 import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
 import {
-  InternalSpotEventPluginSettings,
+  PluginSettings,
   SEPConfiguratorResourceProps,
+  LaunchSpecification,
+  SpotFleetRequestConfiguration,
+  SpotFleetRequestProps,
+  SpotFleetSecurityGroupId,
+  SpotFleetTagSpecification,
+  BlockDeviceMappingProperty,
+  BlockDeviceProperty,
 } from '../../lambdas/nodejs/configure-spot-event-plugin';
 import { IRenderQueue, RenderQueue } from './render-queue';
 import { SpotEventPluginFleet } from './spot-event-plugin-fleet';
-import { SpotFleetRequestConfiguration} from './spot-event-plugin-fleet-ref';
+import {
+  SpotFleetRequestType,
+  SpotFleetResourceType,
+} from './spot-event-plugin-fleet-ref';
 import { Version } from './version';
 import { IVersion } from './version-ref';
 
@@ -427,7 +446,7 @@ export class ConfigureSpotEventPlugin extends Construct {
     configurator.connections.allowToDefaultPort(props.renderQueue);
     props.caCert?.grantRead(configurator.grantPrincipal);
 
-    const pluginConfig: InternalSpotEventPluginSettings = {
+    const pluginConfig: PluginSettings = {
       AWSInstanceStatus: props.configuration?.awsInstanceStatus ?? SpotEventPluginAwsInstanceStatus.DISABLED,
       DeleteInterruptedSlaves: props.configuration?.deleteEC2SpotInterruptedWorkers ?? false,
       DeleteTerminatedSlaves: props.configuration?.deleteSEPTerminatedWorkers ?? false,
@@ -469,6 +488,145 @@ export class ConfigureSpotEventPlugin extends Construct {
     this.node.defaultChild = resource;
   }
 
+  private tagsSpecifications(fleet: SpotEventPluginFleet, resourceType: SpotFleetResourceType): IResolvable {
+    return Lazy.any({
+      produce: () => {
+        if (fleet.tags.hasTags()) {
+          const tagSpecification: SpotFleetTagSpecification = {
+            ResourceType: resourceType,
+            Tags: fleet.tags.renderTags(),
+          };
+          return [tagSpecification];
+        }
+        return undefined;
+      },
+    });
+  }
+
+  /**
+   * Construct Spot Fleet Configurations constructed from the provided fleet.
+   * Each congiguration is a mapping between one Deadline Group and one Spot Fleet Request Configuration.
+   */
+  private generateSpotFleetRequestConfig(fleet: SpotEventPluginFleet): SpotFleetRequestConfiguration[] {
+    const securityGroupsToken = Lazy.any({ produce: () => {
+      return fleet.securityGroups.map(sg => {
+        const securityGroupId: SpotFleetSecurityGroupId = {
+          GroupId: sg.securityGroupId,
+        };
+        return securityGroupId;
+      });
+    } });
+
+    const userDataToken = Lazy.string({ produce: () => Fn.base64(fleet.userData.render()) });
+
+    const blockDeviceMappings = (fleet.blockDevices !== undefined ?
+      this.synthesizeBlockDeviceMappings(fleet.blockDevices) : undefined);
+
+    const { subnets } = fleet.subnets;
+    const subnetIds = subnets.map(subnet => {
+      return subnet.subnetId;
+    });
+    const subnetId = subnetIds.length != 0 ? subnetIds.join(',') : undefined;
+
+    const instanceTagsToken = this.tagsSpecifications(fleet, SpotFleetResourceType.INSTANCE);
+    const spotFleetRequestTagsToken = this.tagsSpecifications(fleet, SpotFleetResourceType.SPOT_FLEET_REQUEST);
+
+    const launchSpecifications: LaunchSpecification[] = [];
+
+    fleet.instanceTypes.map(instanceType => {
+      const launchSpecification: LaunchSpecification = {
+        BlockDeviceMappings: blockDeviceMappings,
+        IamInstanceProfile: {
+          Arn: fleet.instanceProfile.attrArn,
+        },
+        ImageId: fleet.imageId,
+        KeyName: fleet.keyName,
+        // Need to convert from IResolvable to bypass TypeScript
+        SecurityGroups: (securityGroupsToken  as unknown) as SpotFleetSecurityGroupId[],
+        SubnetId: subnetId,
+        // Need to convert from IResolvable to bypass TypeScript
+        TagSpecifications: (instanceTagsToken as unknown) as SpotFleetTagSpecification[],
+        UserData: userDataToken,
+        InstanceType: instanceType.toString(),
+      };
+      launchSpecifications.push(launchSpecification);
+    });
+
+    const spotFleetRequestProps: SpotFleetRequestProps = {
+      AllocationStrategy: fleet.allocationStrategy,
+      IamFleetRole: fleet.fleetRole.roleArn,
+      LaunchSpecifications: launchSpecifications,
+      ReplaceUnhealthyInstances: true,
+      // In order to work with Deadline, the 'Target Capacity' of the Spot fleet Request is
+      // the maximum number of Workers that Deadline will start.
+      TargetCapacity: fleet.maxCapacity,
+      TerminateInstancesWithExpiration: true,
+      // In order to work with Deadline, Spot Fleets Requests must be set to maintain.
+      Type: SpotFleetRequestType.MAINTAIN,
+      ValidUntil: fleet.validUntil ? fleet.validUntil?.date.toUTCString() : undefined,
+      // Need to convert from IResolvable to bypass TypeScript
+      TagSpecifications: (spotFleetRequestTagsToken as unknown) as SpotFleetTagSpecification[],
+    };
+
+    const spotFleetRequestConfigurations = fleet.deadlineGroups.map(group => {
+      const spotFleetRequestConfiguration: SpotFleetRequestConfiguration = {
+        [group]: spotFleetRequestProps,
+      };
+      return spotFleetRequestConfiguration;
+    });
+
+    return spotFleetRequestConfigurations;
+  }
+
+  /**
+   * Synthesize an array of block device mappings from a list of block device
+   *
+   * @param blockDevices list of block devices
+   */
+  private synthesizeBlockDeviceMappings(blockDevices: BlockDevice[]): BlockDeviceMappingProperty[] {
+    return blockDevices.map(({ deviceName, volume, mappingEnabled }) => {
+      const { virtualName, ebsDevice: ebs } = volume;
+
+      if (volume === BlockDeviceVolume._NO_DEVICE || mappingEnabled === false) {
+        return {
+          DeviceName: deviceName,
+          NoDevice: true,
+        };
+      }
+
+      let Ebs: BlockDeviceProperty | undefined;
+
+      if (ebs) {
+        const { iops, volumeType, volumeSize, snapshotId } = ebs;
+
+        if (!iops) {
+          if (volumeType === EbsDeviceVolumeType.IO1) {
+            throw new Error('iops property is required with volumeType: EbsDeviceVolumeType.IO1');
+          }
+        } else if (volumeType !== EbsDeviceVolumeType.IO1) {
+          Annotations.of(this).addWarning('iops will be ignored without volumeType: EbsDeviceVolumeType.IO1');
+        }
+
+        Ebs = {
+          DeleteOnTermination: ebs?.deleteOnTermination,
+          Iops: iops,
+          SnapshotId: snapshotId,
+          VolumeSize: volumeSize,
+          VolumeType: volumeType,
+          // encrypted is not exposed as part of ebsDeviceProps so we need to access it via [].
+          // eslint-disable-next-line dot-notation
+          Encrypted: 'encrypted' in ebs ? ebs['encrypted'] : undefined,
+        };
+      }
+
+      return {
+        DeviceName: deviceName,
+        Ebs,
+        VirtualName: virtualName,
+      };
+    });
+  }
+
   private mergeSpotFleetRequestConfigs(spotFleets?: SpotEventPluginFleet[]): SpotFleetRequestConfiguration | undefined {
     if (!spotFleets || spotFleets.length === 0) {
       return undefined;
@@ -476,7 +634,8 @@ export class ConfigureSpotEventPlugin extends Construct {
 
     const fullSpotFleetRequestConfiguration: SpotFleetRequestConfiguration = {};
     spotFleets.map(fleet => {
-      fleet.spotFleetRequestConfigurations.map(configuration => {
+      const spotFleetRequestConfigurations = this.generateSpotFleetRequestConfig(fleet);
+      spotFleetRequestConfigurations.map(configuration => {
         for (const [key, value] of Object.entries(configuration)) {
           if (key in fullSpotFleetRequestConfiguration) {
             throw new Error(`Bad Group Name: ${key}. Group names in Spot Fleet Request Configurations should be unique.`);

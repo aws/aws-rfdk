@@ -5,9 +5,6 @@
 
 import {
   BlockDevice,
-  BlockDeviceVolume,
-  CfnLaunchConfiguration,
-  EbsDeviceVolumeType,
 } from '@aws-cdk/aws-autoscaling';
 import {
   Connections,
@@ -19,6 +16,7 @@ import {
   OperatingSystemType,
   Port,
   SecurityGroup,
+  SelectedSubnets,
   SubnetSelection,
   UserData,
 } from '@aws-cdk/aws-ec2';
@@ -34,10 +32,7 @@ import {
 import {
   Annotations,
   Construct,
-  Fn,
   Expiration,
-  IResolvable,
-  Lazy,
   Stack,
   TagManager,
   TagType,
@@ -53,14 +48,7 @@ import {
   IRenderQueue,
 } from './render-queue';
 import {
-  SpotFleetSecurityGroupId,
   SpotFleetAllocationStrategy,
-  SpotFleetRequestType,
-  SpotFleetResourceType,
-  SpotFleetRequestLaunchSpecification,
-  SpotFleetRequestConfiguration,
-  SpotFleetRequestProps,
-  SpotFleetTagSpecification,
 } from './spot-event-plugin-fleet-ref';
 import {
   IInstanceUserDataProvider,
@@ -197,20 +185,6 @@ export interface SpotEventPluginFleetProps {
   readonly allocationStrategy?: SpotFleetAllocationStrategy;
 
   /**
-   * Indicates whether Spot Fleet should replace unhealthy instances.
-   *
-   * @default true
-   */
-  readonly replaceUnhealthyInstances?: boolean;
-
-  /**
-   * Indicates whether running Spot Instances are terminated when the Spot Fleet request expires.
-   *
-   * @default true
-   */
-  readonly terminateInstancesWithExpiration?: boolean;
-
-  /**
    * Where to place the instance within the VPC.
    *
    * @default - Private subnets.
@@ -218,7 +192,7 @@ export interface SpotEventPluginFleetProps {
   readonly vpcSubnets?: SubnetSelection;
 
   /**
-   * The end date and time of the request, in UTC format (YYYY -MM -DD T*HH* :MM :SS Z).
+   * The end date and time of the request.
    * After the end date and time, no new Spot Instance requests are placed or able to fulfill the request.
    *
    * @default - the Spot Fleet request remains until you cancel it.
@@ -357,25 +331,75 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   public readonly fleetInstanceRole: IRole;
 
   /**
+   * The IAM instance profile that fleet instance role is associated to.
+   */
+  public readonly instanceProfile: CfnInstanceProfile;
+
+  /**
    * An IAM role that grants the Spot Fleet the permission to request, launch, terminate, and tag instances on your behalf.
    */
   public readonly fleetRole: IRole;
 
   /**
-   * Spot Fleet Configurations constructed from the provided input.
-   * Each congiguration is a mapping between one Deadline Group and one Spot Fleet Request Configuration.
-   */
-  public readonly spotFleetRequestConfigurations: SpotFleetRequestConfiguration[];
-
-  /**
    * An id of the Worker AMI.
    */
-  protected readonly imageId: string;
+  public readonly imageId: string;
 
   /**
    * The tags to apply during creation of instances and of the Spot Fleet Request.
    */
-  protected readonly tags: TagManager;
+  public readonly tags: TagManager;
+
+  /**
+   * Subnets where the instance will be placed within the VPC.
+   */
+  public readonly subnets: SelectedSubnets;
+
+  /**
+   * Types of instances to launch.
+   */
+  public readonly instanceTypes: InstanceType[];
+
+  /**
+   * Name of SSH keypair to grant access to instances.
+   *
+   * @default - No SSH access will be possible.
+   */
+  public readonly keyName?: string;
+
+  /**
+   * Indicates how to allocate the target Spot Instance capacity
+   * across the Spot Instance pools specified by the Spot Fleet request.
+   */
+  public readonly allocationStrategy: SpotFleetAllocationStrategy;
+
+  /**
+   * The  the maximum capacity that the Spot Fleet can grow to.
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#spot-fleet-requests
+   */
+  public readonly maxCapacity: number;
+
+  /**
+   * Deadline groups the workers need to be assigned to.
+   *
+   * @default - Workers are not assigned to any group
+   */
+  readonly deadlineGroups: string[];
+
+  /**
+   * The end date and time of the request.
+   * After the end date and time, no new Spot Instance requests are placed or able to fulfill the request.
+   *
+   * @default - the Spot Fleet request remains until you cancel it.
+   */
+  readonly validUntil?: Expiration;
+
+  /**
+   * The Block devices that will be attached to your workers.
+   *
+   * @default - The default devices of the provided ami will be used.
+   */
+  public readonly blockDevices?: BlockDevice[];
 
   constructor(scope: Construct, id: string, props: SpotEventPluginFleetProps) {
     super(scope, id);
@@ -393,6 +417,11 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
       ],
       description: `Role for ${id} in region ${Stack.of(scope).region}`,
     });
+
+    this.instanceProfile = new CfnInstanceProfile(this, 'InstanceProfile', {
+      roles: [this.fleetInstanceRole.roleName],
+    });
+
     this.grantPrincipal = this.fleetInstanceRole;
 
     this.fleetRole = props.fleetRole ?? new Role(this, 'FleetRole', {
@@ -401,6 +430,14 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
         ManagedPolicy.fromManagedPolicyArn(this, 'AmazonEC2SpotFleetTaggingRole', 'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'),
       ],
     });
+
+    this.blockDevices = props.blockDevices;
+    this.subnets = props.vpc.selectSubnets(props.vpcSubnets);
+    this.instanceTypes = props.instanceTypes;
+    this.allocationStrategy = props.allocationStrategy ?? SpotFleetAllocationStrategy.LOWEST_PRICE;
+    this.maxCapacity = props.maxCapacity;
+    this.validUntil = props.validUntil;
+    this.deadlineGroups = props.deadlineGroups;
 
     const imageConfig = props.workerMachineImage.getImage(this);
     this.osType = imageConfig.osType;
@@ -431,8 +468,6 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
-
-    this.spotFleetRequestConfigurations = this.generateSpotFleetRequestConfig(props);
   }
 
   /**
@@ -447,93 +482,6 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
    */
   public allowRemoteControlTo(other: IConnectable): void {
     other.connections.allowTo(this.connections, this.remoteControlPorts, 'Worker remote command listening port');
-  }
-
-  private generateSpotFleetRequestConfig(props: SpotEventPluginFleetProps): SpotFleetRequestConfiguration[] {
-    const iamProfile = new CfnInstanceProfile(this, 'InstanceProfile', {
-      roles: [this.fleetInstanceRole.roleName],
-    });
-
-    const securityGroupsToken = Lazy.any({ produce: () => {
-      return this.securityGroups.map(sg => {
-        const securityGroupId: SpotFleetSecurityGroupId = {
-          groupId: sg.securityGroupId,
-        };
-        return securityGroupId;
-      });
-    } });
-
-    const userDataToken = Lazy.string({ produce: () => Fn.base64(this.userData.render()) });
-
-    const blockDeviceMappings = (props.blockDevices !== undefined ?
-      this.synthesizeBlockDeviceMappings(props.blockDevices) : undefined);
-
-    const { subnets } = props.vpc.selectSubnets(props.vpcSubnets);
-    const subnetIds = subnets.map(subnet => {
-      return subnet.subnetId;
-    });
-    const subnetId = subnetIds.length != 0 ? subnetIds.join(',') : undefined;
-
-    const instanceTagsToken = this.tagsToken(SpotFleetResourceType.INSTANCE);
-    const spotFleetRequestTagsToken = this.tagsToken(SpotFleetResourceType.SPOT_FLEET_REQUEST);
-
-    const launchSpecifications: SpotFleetRequestLaunchSpecification[] = [];
-
-    props.instanceTypes.map(instanceType => {
-      const launchSpecification: SpotFleetRequestLaunchSpecification = {
-        blockDeviceMappings,
-        iamInstanceProfile: {
-          arn: iamProfile.attrArn,
-        },
-        imageId: this.imageId,
-        keyName: props.keyName,
-        securityGroups: securityGroupsToken,
-        subnetId,
-        tagSpecifications: instanceTagsToken,
-        userData: userDataToken,
-        instanceType: instanceType.toString(),
-      };
-      launchSpecifications.push(launchSpecification);
-    });
-
-    const spotFleetRequestProps: SpotFleetRequestProps = {
-      allocationStrategy: props.allocationStrategy ?? SpotFleetAllocationStrategy.LOWEST_PRICE,
-      iamFleetRole: this.fleetRole.roleArn,
-      launchSpecifications: launchSpecifications,
-      replaceUnhealthyInstances: props.replaceUnhealthyInstances ?? true,
-      // In order to work with Deadline, the 'Target Capacity' of the Spot fleet Request is
-      // the maximum number of Workers that Deadline will start.
-      targetCapacity: props.maxCapacity,
-      terminateInstancesWithExpiration: props.terminateInstancesWithExpiration ?? true,
-      // In order to work with Deadline, Spot Fleets Requests must be set to maintain.
-      type: SpotFleetRequestType.MAINTAIN,
-      validUntil: props.validUntil ? props.validUntil?.date.toUTCString() : undefined,
-      tagSpecifications: spotFleetRequestTagsToken,
-    };
-
-    const spotFleetRequestConfigurations = props.deadlineGroups.map(group => {
-      const spotFleetRequestConfiguration: SpotFleetRequestConfiguration = {
-        [group]: spotFleetRequestProps,
-      };
-      return spotFleetRequestConfiguration;
-    });
-
-    return spotFleetRequestConfigurations;
-  }
-
-  private tagsToken(resourceType: SpotFleetResourceType): IResolvable {
-    return Lazy.any({
-      produce: () => {
-        if (this.tags.hasTags()) {
-          const tagSpecification: SpotFleetTagSpecification = {
-            resourceType: resourceType,
-            tags: this.tags.renderTags(),
-          };
-          return [tagSpecification];
-        }
-        return undefined;
-      },
-    });
   }
 
   private validateProps(props: SpotEventPluginFleetProps): void {
@@ -587,41 +535,5 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
         }
       });
     }
-  }
-
-  /**
-   * Synthesize an array of block device mappings from a list of block device
-   *
-   * @param blockDevices list of block devices
-   */
-  private synthesizeBlockDeviceMappings(blockDevices: BlockDevice[]): CfnLaunchConfiguration.BlockDeviceMappingProperty[] {
-    return blockDevices.map<CfnLaunchConfiguration.BlockDeviceMappingProperty>(({ deviceName, volume, mappingEnabled }) => {
-      const { virtualName, ebsDevice: ebs } = volume;
-
-      if (volume === BlockDeviceVolume._NO_DEVICE || mappingEnabled === false) {
-        return {
-          deviceName,
-          noDevice: true,
-        };
-      }
-
-      if (ebs) {
-        const { iops, volumeType } = ebs;
-
-        if (!iops) {
-          if (volumeType === EbsDeviceVolumeType.IO1) {
-            throw new Error('iops property is required with volumeType: EbsDeviceVolumeType.IO1');
-          }
-        } else if (volumeType !== EbsDeviceVolumeType.IO1) {
-          Annotations.of(this).addWarning('iops will be ignored without volumeType: EbsDeviceVolumeType.IO1');
-        }
-      }
-
-      return {
-        deviceName,
-        ebs,
-        virtualName,
-      };
-    });
   }
 }

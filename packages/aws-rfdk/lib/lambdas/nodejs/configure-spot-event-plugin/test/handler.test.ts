@@ -18,17 +18,17 @@ import {
   SpotEventPluginPreJobTaskMode,
   SpotEventPluginState,
   SpotFleetAllocationStrategy,
-  SpotFleetRequestConfiguration,
-  SpotFleetRequestLaunchSpecification,
-  SpotFleetRequestProps,
   SpotFleetRequestType,
   SpotFleetResourceType,
 } from '../../../../deadline';
 import { SEPConfiguratorResource } from '../handler';
 import {
   ConnectionOptions,
-  InternalSpotEventPluginSettings,
   SEPConfiguratorResourceProps,
+  PluginSettings,
+  SpotFleetRequestConfiguration,
+  LaunchSpecification,
+  SpotFleetRequestProps,
 } from '../types';
 
 jest.mock('../../lib/secrets-manager/read-certificate');
@@ -48,60 +48,60 @@ describe('SEPConfiguratorResource', () => {
     caCertificateArn: secretArn,
   };
 
-  const validLaunchSpecification: SpotFleetRequestLaunchSpecification = {
-    iamInstanceProfile: {
-      arn: 'iamInstanceProfileArn',
+  const validLaunchSpecification: LaunchSpecification = {
+    IamInstanceProfile: {
+      Arn: 'iamInstanceProfileArn',
     },
-    imageId: 'any-ami',
-    instanceType: InstanceType.of(InstanceClass.T2, InstanceSize.SMALL).toString(),
-    securityGroups: [{
-      groupId: 'sg-id',
+    ImageId: 'any-ami',
+    InstanceType: InstanceType.of(InstanceClass.T2, InstanceSize.SMALL).toString(),
+    SecurityGroups: [{
+      GroupId: 'sg-id',
     }],
-    tagSpecifications: [{
-      resourceType: SpotFleetResourceType.INSTANCE,
-      tags: [
+    TagSpecifications: [{
+      ResourceType: SpotFleetResourceType.INSTANCE,
+      Tags: [
         {
           Key: 'name',
           Value: 'test',
         },
       ],
     }],
-    userData: 'userdata',
-    keyName: 'keyname',
-    subnetId: 'subnet-id',
-    blockDeviceMappings: [{
-      deviceName: 'device',
-      noDevice: true,
-      virtualName: 'virtualname',
-      ebs: {
-        deleteOnTermination: true,
-        encrypted: true,
-        iops: 10,
-        snapshotId: 'snapshot-id',
-        volumeSize: 10,
-        volumeType: 'volume-type',
+    UserData: 'userdata',
+    KeyName: 'keyname',
+    SubnetId: 'subnet-id',
+    BlockDeviceMappings: [{
+      DeviceName: 'device',
+      NoDevice: true,
+      VirtualName: 'virtualname',
+      Ebs: {
+        DeleteOnTermination: true,
+        Encrypted: true,
+        Iops: 10,
+        SnapshotId: 'snapshot-id',
+        VolumeSize: 10,
+        VolumeType: 'volume-type',
       },
     }],
   };
 
   const validSpotFleetRequestProps: SpotFleetRequestProps = {
-    allocationStrategy: SpotFleetAllocationStrategy.CAPACITY_OPTIMIZED,
-    iamFleetRole: 'roleArn',
-    launchSpecifications: [validLaunchSpecification],
-    replaceUnhealthyInstances: true,
-    targetCapacity: 1,
-    terminateInstancesWithExpiration: true,
-    type: SpotFleetRequestType.MAINTAIN,
-    tagSpecifications: [{
-      resourceType: SpotFleetResourceType.SPOT_FLEET_REQUEST,
-      tags: [
+    AllocationStrategy: SpotFleetAllocationStrategy.CAPACITY_OPTIMIZED,
+    IamFleetRole: 'roleArn',
+    LaunchSpecifications: [validLaunchSpecification],
+    ReplaceUnhealthyInstances: true,
+    TargetCapacity: 1,
+    TerminateInstancesWithExpiration: true,
+    Type: SpotFleetRequestType.MAINTAIN,
+    TagSpecifications: [{
+      ResourceType: SpotFleetResourceType.SPOT_FLEET_REQUEST,
+      Tags: [
         {
           Key: 'name',
           Value: 'test',
         },
       ],
     }],
-    validUntil: Expiration.atDate(new Date(2022, 11, 17)).date.toUTCString(),
+    ValidUntil: Expiration.atDate(new Date(2022, 11, 17)).date.toUTCString(),
   };
 
   const validConvertedLaunchSpecifications = {
@@ -168,7 +168,7 @@ describe('SEPConfiguratorResource', () => {
     group_name1: validConvertedSpotFleetRequestProps,
   };
 
-  const validSpotEventPluginConfig: InternalSpotEventPluginSettings = {
+  const validSpotEventPluginConfig: PluginSettings = {
     AWSInstanceStatus: SpotEventPluginAwsInstanceStatus.DISABLED,
     DeleteInterruptedSlaves: true,
     DeleteTerminatedSlaves: true,
@@ -646,7 +646,7 @@ describe('SEPConfiguratorResource', () => {
       // WHEN
       const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
       // Need this trick so TS allows to pass config with string properties.
-      const config = (defaultPluginConfig as unknown) as InternalSpotEventPluginSettings;
+      const config = (defaultPluginConfig as unknown) as PluginSettings;
       const returnValue = handler['convertSpotEventPluginSettings'](config);
 
       // THEN
@@ -659,7 +659,7 @@ describe('SEPConfiguratorResource', () => {
       // GIVEN
       const propsWithLaunchSpecification: SpotFleetRequestProps = {
         ...validSpotFleetRequestProps,
-        launchSpecifications: [
+        LaunchSpecifications: [
           validLaunchSpecification,
         ],
       };
