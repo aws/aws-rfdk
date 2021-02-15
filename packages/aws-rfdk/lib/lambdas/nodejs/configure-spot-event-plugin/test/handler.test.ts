@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable dot-notation */
-
 import {
   InstanceClass,
   InstanceSize,
@@ -71,7 +69,7 @@ describe('SEPConfiguratorResource', () => {
     SubnetId: 'subnet-id',
     BlockDeviceMappings: [{
       DeviceName: 'device',
-      NoDevice: true,
+      NoDevice: '',
       VirtualName: 'virtualname',
       Ebs: {
         DeleteOnTermination: true,
@@ -115,7 +113,7 @@ describe('SEPConfiguratorResource', () => {
         VolumeSize: 10,
         VolumeType: 'volume-type',
       },
-      NoDevice: true,
+      NoDevice: '',
       VirtualName: 'virtualname',
     }],
     IamInstanceProfile: {
@@ -218,7 +216,7 @@ describe('SEPConfiguratorResource', () => {
   };
 
   describe('doCreate', () => {
-    let mockedHandler: SEPConfiguratorResource;
+    let handler: SEPConfiguratorResource;
     let mockSpotEventPluginClient: { saveServerData: jest.Mock<any, any>; configureSpotEventPlugin: jest.Mock<any, any>; };
 
     beforeEach(() => {
@@ -227,16 +225,15 @@ describe('SEPConfiguratorResource', () => {
         configureSpotEventPlugin: jest.fn(),
       };
 
-      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      handler = new SEPConfiguratorResource(new AWS.SecretsManager());
 
       jest.requireMock('../../lib/secrets-manager/read-certificate').readCertificateData.mockReturnValue(Promise.resolve('BEGIN CERTIFICATE'));
 
       async function returnSpotEventPluginClient(_v1: any): Promise<any> {
         return mockSpotEventPluginClient;
       }
-      // tslint:disable-next-line: no-string-literal
+      // eslint-disable-next-line dot-notation
       handler['spotEventPluginClient'] = jest.fn( (a) => returnSpotEventPluginClient(a) );
-      mockedHandler = handler;
     });
 
     afterEach(() => {
@@ -254,7 +251,7 @@ describe('SEPConfiguratorResource', () => {
       mockSpotEventPluginClient.configureSpotEventPlugin = mockConfigureSpotEventPlugin;
 
       // WHEN
-      const result = await mockedHandler.doCreate('physicalId', noConfigs);
+      const result = await handler.doCreate('physicalId', noConfigs);
 
       // THEN
       expect(result).toBeUndefined();
@@ -271,7 +268,7 @@ describe('SEPConfiguratorResource', () => {
       mockSpotEventPluginClient.saveServerData = mockSaveServerData;
 
       // WHEN
-      const result = await mockedHandler.doCreate('physicalId', noPluginConfigs);
+      const result = await handler.doCreate('physicalId', noPluginConfigs);
 
       // THEN
       expect(result).toBeUndefined();
@@ -280,6 +277,100 @@ describe('SEPConfiguratorResource', () => {
       const calledWithObject = JSON.parse(calledWithString);
 
       expect(calledWithObject).toEqual(validConvertedSpotFleetRequestConfig);
+    });
+
+    test('save spot fleet request configs without BlockDeviceMappings', async () => {
+      // GIVEN
+      async function returnTrue(_v1: any): Promise<boolean> {
+        return true;
+      }
+      const mockSaveServerData = jest.fn( (a) => returnTrue(a) );
+      mockSpotEventPluginClient.saveServerData = mockSaveServerData;
+
+      const noEbs = {
+        ...noPluginConfigs,
+        spotFleetRequestConfigurations: {
+          ...validSpotFleetRequestConfig,
+          group_name1: {
+            ...validSpotFleetRequestProps,
+            LaunchSpecifications: [
+              {
+                ...validLaunchSpecification,
+                BlockDeviceMappings: undefined,
+              },
+            ],
+          },
+        },
+      };
+      const convertedNoEbs = {
+        ...validConvertedSpotFleetRequestConfig,
+        group_name1: {
+          ...validConvertedSpotFleetRequestProps,
+          LaunchSpecifications: [
+            {
+              ...validConvertedLaunchSpecifications,
+              BlockDeviceMappings: undefined,
+            },
+          ],
+        },
+      };
+
+      // WHEN
+      await handler.doCreate('physicalId', noEbs);
+      const calledWithString = mockSaveServerData.mock.calls[0][0];
+      const calledWithObject = JSON.parse(calledWithString);
+
+      // THEN
+      expect(calledWithObject).toEqual(convertedNoEbs);
+    });
+
+    test('save spot fleet request configs without Ebs', async () => {
+      // GIVEN
+      async function returnTrue(_v1: any): Promise<boolean> {
+        return true;
+      }
+      const mockSaveServerData = jest.fn( (a) => returnTrue(a) );
+      mockSpotEventPluginClient.saveServerData = mockSaveServerData;
+
+      const blockDevicesNoEbs = [{
+        DeviceName: 'device',
+      }];
+
+      const noEbs = {
+        ...noPluginConfigs,
+        spotFleetRequestConfigurations: {
+          ...validSpotFleetRequestConfig,
+          group_name1: {
+            ...validSpotFleetRequestProps,
+            LaunchSpecifications: [
+              {
+                ...validLaunchSpecification,
+                BlockDeviceMappings: blockDevicesNoEbs,
+              },
+            ],
+          },
+        },
+      };
+      const convertedNoEbs = {
+        ...validConvertedSpotFleetRequestConfig,
+        group_name1: {
+          ...validConvertedSpotFleetRequestProps,
+          LaunchSpecifications: [
+            {
+              ...validConvertedLaunchSpecifications,
+              BlockDeviceMappings: blockDevicesNoEbs,
+            },
+          ],
+        },
+      };
+
+      // WHEN
+      await handler.doCreate('physicalId', noEbs);
+      const calledWithString = mockSaveServerData.mock.calls[0][0];
+      const calledWithObject = JSON.parse(calledWithString);
+
+      // THEN
+      expect(calledWithObject).toEqual(convertedNoEbs);
     });
 
     test('save spot event plugin configs', async () => {
@@ -308,7 +399,7 @@ describe('SEPConfiguratorResource', () => {
       }];
 
       // WHEN
-      const result = await mockedHandler.doCreate('physicalId', noFleetRequestConfigs);
+      const result = await handler.doCreate('physicalId', noFleetRequestConfigs);
 
       // THEN
       expect(result).toBeUndefined();
@@ -345,7 +436,7 @@ describe('SEPConfiguratorResource', () => {
       }];
 
       // WHEN
-      const result = await mockedHandler.doCreate('physicalId', allConfigs);
+      const result = await handler.doCreate('physicalId', allConfigs);
 
       // THEN
       expect(result).toBeUndefined();
@@ -365,7 +456,7 @@ describe('SEPConfiguratorResource', () => {
       mockSpotEventPluginClient.saveServerData = mockSaveServerData;
 
       // WHEN
-      const promise = mockedHandler.doCreate('physicalId', noPluginConfigs);
+      const promise = handler.doCreate('physicalId', noPluginConfigs);
 
       // THEN
       await expect(promise)
@@ -382,13 +473,24 @@ describe('SEPConfiguratorResource', () => {
       mockSpotEventPluginClient.configureSpotEventPlugin = mockConfigureSpotEventPlugin;
 
       // WHEN
-      const promise = mockedHandler.doCreate('physicalId', noFleetRequestConfigs);
+      const promise = handler.doCreate('physicalId', noFleetRequestConfigs);
 
       // THEN
       await expect(promise)
         .rejects
         .toThrowError(/Failed to save Spot Event Plugin Configurations/);
     });
+  });
+
+  test('doDelete does not do anything', async () => {
+    // GIVEN
+    const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+
+    // WHEN
+    const promise = await handler.doDelete('physicalId', noConfigs);
+
+    // THEN
+    await expect(promise).toBeUndefined();
   });
 
   describe('.validateInput()', () => {
@@ -498,6 +600,7 @@ describe('SEPConfiguratorResource', () => {
       test.each<any>([
         undefined,
         [],
+        '',
       ])('{input=%s}', (input) => {
         // WHEN
         const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
@@ -518,6 +621,7 @@ describe('SEPConfiguratorResource', () => {
         // WHEN
         const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
 
+        // eslint-disable-next-line dot-notation
         const returnValue = handler['isSecretArnOrUndefined'](input);
         expect(returnValue).toBeTruthy();
       });
@@ -532,6 +636,7 @@ describe('SEPConfiguratorResource', () => {
         // WHEN
         const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
 
+        // eslint-disable-next-line dot-notation
         const returnValue = handler['isSecretArnOrUndefined'](input);
         expect(returnValue).toBeFalsy();
       });
@@ -549,6 +654,7 @@ describe('SEPConfiguratorResource', () => {
 
       // WHEN
       const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      // eslint-disable-next-line dot-notation
       const result = await handler['spotEventPluginClient'](validHTTPConnection);
 
       expect(result).toBeDefined();
@@ -568,264 +674,48 @@ describe('SEPConfiguratorResource', () => {
 
       jest.requireMock('../../lib/secrets-manager/read-certificate').readCertificateData.mockReturnValue(Promise.resolve('BEGIN CERTIFICATE'));
 
+      // eslint-disable-next-line dot-notation
       const result = await handler['spotEventPluginClient'](validHTTPSConnection);
 
       expect(result).toBeDefined();
     });
   });
 
-  describe('.convertSpotEventPluginSettings()', () => {
-    test('does not convert properties with correct types', () => {
-      // GIVEN
-      const defaultPluginConfig = {
-        AWSInstanceStatus: 'Disabled',
-        DeleteInterruptedSlaves: false,
-        DeleteTerminatedSlaves: false,
-        IdleShutdown: 10,
-        Logging: 'Standard',
-        PreJobTaskMode: 'Conservative',
-        Region: 'eu-west-1',
-        ResourceTracker: true,
-        StaggerInstances: 50,
-        State: 'Disabled',
-        StrictHardCap: false,
-      };
-
-      const defaultConvertedPluginConfig = {
-        AWSInstanceStatus: 'Disabled',
-        DeleteInterruptedSlaves: false,
-        DeleteTerminatedSlaves: false,
-        IdleShutdown: 10,
-        Logging: 'Standard',
-        PreJobTaskMode: 'Conservative',
-        Region: 'eu-west-1',
-        ResourceTracker: true,
-        StaggerInstances: 50,
-        State: 'Disabled',
-        StrictHardCap: false,
-      };
-
-      // WHEN
-      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-      const returnValue = handler['convertSpotEventPluginSettings'](defaultPluginConfig);
-
-      // THEN
-      expect(returnValue).toEqual(defaultConvertedPluginConfig);
-    });
-
-    test('converts properties of type string', () => {
-      // GIVEN
-      const defaultPluginConfig = {
-        AWSInstanceStatus: 'Disabled',
-        DeleteInterruptedSlaves: 'false',
-        DeleteTerminatedSlaves: 'false',
-        IdleShutdown: '10',
-        Logging: 'Standard',
-        PreJobTaskMode: 'Conservative',
-        Region: 'eu-west-1',
-        ResourceTracker: 'true',
-        StaggerInstances: '50',
-        State: 'Disabled',
-        StrictHardCap: 'false',
-      };
-
-      const defaultConvertedPluginConfig = {
-        AWSInstanceStatus: 'Disabled',
-        DeleteInterruptedSlaves: false,
-        DeleteTerminatedSlaves: false,
-        IdleShutdown: 10,
-        Logging: 'Standard',
-        PreJobTaskMode: 'Conservative',
-        Region: 'eu-west-1',
-        ResourceTracker: true,
-        StaggerInstances: 50,
-        State: 'Disabled',
-        StrictHardCap: false,
-      };
-
-      // WHEN
-      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-      // Need this trick so TS allows to pass config with string properties.
-      const config = (defaultPluginConfig as unknown) as PluginSettings;
-      const returnValue = handler['convertSpotEventPluginSettings'](config);
-
-      // THEN
-      expect(returnValue).toEqual(defaultConvertedPluginConfig);
-    });
-  });
-
-  describe('.convertSpotFleetRequestConfiguration()', () => {
-    test('converts whole configuration with launch specification', () => {
-      // GIVEN
-      const propsWithLaunchSpecification: SpotFleetRequestProps = {
-        ...validSpotFleetRequestProps,
-        LaunchSpecifications: [
-          validLaunchSpecification,
-        ],
-      };
-
-      const requestConfigWithLaunchSpecification: SpotFleetRequestConfiguration = {
-        group_name1: propsWithLaunchSpecification,
-      };
-
-      const convertedPropsWithLaunchSpecification = {
-        ...validConvertedSpotFleetRequestProps,
-        LaunchSpecifications: [{
-          IamInstanceProfile: {
-            Arn: 'iamInstanceProfileArn',
-          },
-          ImageId: 'any-ami',
-          InstanceType: 't2.small',
-          SecurityGroups: [{
-            GroupId: 'sg-id',
-          }],
-          TagSpecifications: [{
-            ResourceType: 'instance',
-            Tags: [
-              {
-                Key: 'name',
-                Value: 'test',
-              },
-            ],
-          }],
-          UserData: 'userdata',
-          KeyName: 'keyname',
-          SubnetId: 'subnet-id',
-          BlockDeviceMappings: [{
-            DeviceName: 'device',
-            NoDevice: true,
-            VirtualName: 'virtualname',
-            Ebs: {
-              DeleteOnTermination: true,
-              Encrypted: true,
-              Iops: 10,
-              SnapshotId: 'snapshot-id',
-              VolumeSize: 10,
-              VolumeType: 'volume-type',
-            },
-          }],
-        }],
-      };
-
-      const convertedRequestConfigWithLaunchSpecification = {
-        group_name1: convertedPropsWithLaunchSpecification,
-      };
-
-      // WHEN
-      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-      const returnValue = handler['convertSpotFleetRequestConfiguration'](requestConfigWithLaunchSpecification);
-
-      // THEN
-      expect(returnValue).toEqual(convertedRequestConfigWithLaunchSpecification);
-    });
-  });
-
   describe('.toPluginPropertyArray()', () => {
     test('converts to array of key value pairs', () => {
-      // // GIVEN
-      // const pluginConfig = {
-      //   AWSInstanceStatus: 'Disabled',
-      // };
-      // const expectedResult = {
-      //   Key: 'AWSInstanceStatus',
-      //   Value: 'Disabled',
-      // };
+      // GIVEN
+      const pluginConfig = {
+        AWSInstanceStatus: 'Disabled',
+      } as unknown;
+      const expectedResult = {
+        Key: 'AWSInstanceStatus',
+        Value: 'Disabled',
+      };
 
-      // // WHEN
-      // const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-      // const returnValue = handler['toPluginPropertyArray'](pluginConfig);
-
-      // // THEN
-      // expect(returnValue).toContainEqual(expectedResult);
-    });
-
-    test('skips undefined values', () => {
-      // TODO
-      // // GIVEN
-      // const pluginConfig = {
-      //   AWSInstanceStatus: undefined,
-      // };
-      // const convertedResult1 = {
-      //   Key: 'DeleteInterruptedSlaves',
-      //   Value: undefined,
-      // };
-      // const convertedResult2 = {
-      //   Key: 'DeleteInterruptedSlaves',
-      // };
-
-      // // WHEN
-      // const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-      // const returnValue = handler['toPluginPropertyArray'](pluginConfig);
-
-      // // THEN
-      // expect(returnValue).not.toContainEqual(convertedResult1);
-      // expect(returnValue).not.toContainEqual(convertedResult2);
-    });
-  });
-
-  describe('.convertToInt()', () => {
-    test.each<[any, number]>([
-      ['10', 10],
-      [10, 10],
-    ])('correctly converts %p to %p', (input: any, expected: number | undefined) => {
       // WHEN
       const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-      const returnValue = handler['convertToInt'](input, 'propertyName');
+      // eslint-disable-next-line dot-notation
+      const returnValue = handler['toPluginPropertyArray'](pluginConfig as PluginSettings);
 
       // THEN
-      expect(returnValue).toBe(expected);
+      expect(returnValue).toContainEqual(expectedResult);
     });
 
-    test.each([
-      10.6,
-      [],
-      {},
-      'string',
-      undefined,
-    ])('throws an error with %p', input => {
+    test('throws with undefined values', () => {
+      // GIVEN
+      const pluginConfig = {
+        AWSInstanceStatus: undefined,
+      } as unknown;
+
       // WHEN
-      const propertyName = 'propertyName';
-      function convertToInt() {
-        const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-        handler['convertToInt'](input, propertyName);
+      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      function toPluginPropertyArray() {
+        // eslint-disable-next-line dot-notation
+        handler['toPluginPropertyArray'](pluginConfig as PluginSettings);
       }
 
       // THEN
-      expect(convertToInt).toThrowError(`The value of ${propertyName} should be an integer. Received: ${input}`);
-    });
-  });
-
-  describe('.convertToBoolean()', () => {
-    test.each<[any, boolean]>([
-      [true, true],
-      ['true', true],
-      [false, false],
-      ['false', false],
-    ])('correctly converts %p to %p', (input: any, expected: boolean | undefined) => {
-      // WHEN
-      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-      const returnValue = handler['convertToBoolean'](input, 'property');
-
-      // THEN
-      expect(returnValue).toBe(expected);
-    });
-
-    test.each([
-      10.6,
-      [],
-      {},
-      'string',
-      undefined,
-    ])('throws an error with %p', input => {
-      // WHEN
-      const propertyName = 'propertyName';
-      function convertToBoolean() {
-        const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-        handler['convertToBoolean'](input, propertyName);
-      }
-
-      // THEN
-      expect(convertToBoolean).toThrowError(`The value of ${propertyName} should be a boolean. Received: ${input}`);
+      expect(toPluginPropertyArray).toThrowError();
     });
   });
 });

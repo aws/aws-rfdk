@@ -254,28 +254,6 @@ describe('SpotEventPluginFleet', () => {
       expect(renderedUserData).toMatch(groupName);
     });
 
-    test('does not add group names with wildcards to user data', () => {
-      // GIVEN
-      const wildcardGroupName = 'group_name*';
-
-      // WHEN
-      const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
-        vpc,
-        renderQueue,
-        instanceTypes,
-        workerMachineImage,
-        maxCapacity,
-        deadlineGroups: [
-          wildcardGroupName,
-        ],
-      });
-      const renderedUserData = fleet.userData.render();
-
-      // THEN
-      expect(fleet.userData).toBeDefined();
-      expect(renderedUserData).not.toMatch(wildcardGroupName);
-    });
-
     test('adds RFDK tags', () => {
       // WHEN
       const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
@@ -287,8 +265,6 @@ describe('SpotEventPluginFleet', () => {
         maxCapacity,
       });
       const rfdkTag = tagFields(fleet);
-      // TODO:
-      // const resolvedTags = spotFleetStack.resolve(fleet.tags.renderTags());
 
       // THEN
       expect(fleet.tags).toBeDefined();
@@ -300,12 +276,6 @@ describe('SpotEventPluginFleet', () => {
           }),
         ),
       }));
-
-      // TODO: returns empty array
-      // expect(resolvedTags).toContainEqual({
-      //   Key: rfdkTag.name,
-      //   Value: rfdkTag.value,
-      // });
     });
 
     test('uses default LogGroup prefix %s', () => {
@@ -500,7 +470,7 @@ describe('SpotEventPluginFleet', () => {
       });
 
       // WHEN
-      // TODO: Using spotFleetStack creates a circular dependency
+      // Using spotFleetStack creates a circular dependency
       const fleet = new SpotEventPluginFleet(stack, 'SpotFleet', {
         vpc,
         renderQueue,
@@ -570,8 +540,6 @@ describe('SpotEventPluginFleet', () => {
 
       // WHEN
       Tags.of(fleet).add(tagName, tagValue);
-      // TODO:
-      // const resolvedTags = spotFleetStack.resolve(fleet.tags.renderTags());
 
       // THEN
       expectCDK(spotFleetStack).to(haveResourceLike('AWS::EC2::SecurityGroup', {
@@ -582,12 +550,6 @@ describe('SpotEventPluginFleet', () => {
           }),
         ),
       }));
-
-      // TODO: returns empty array
-      // expect(resolvedTags).toContainEqual({
-      //   Key: tagName,
-      //   Value: tagValue,
-      // });
     });
 
     test('uses provided subnets', () => {
@@ -737,6 +699,9 @@ describe('SpotEventPluginFleet', () => {
     ])('uses custom LogGroup prefix %s', (testPrefix: string) => {
       // GIVEN
       const id = 'SpotFleet';
+      const logGroupProps = {
+        logGroupPrefix: testPrefix,
+      };
 
       // WHEN
       new SpotEventPluginFleet(stack, id, {
@@ -746,11 +711,10 @@ describe('SpotEventPluginFleet', () => {
         instanceTypes,
         workerMachineImage,
         maxCapacity,
-        logGroupProps: {
-          logGroupPrefix: testPrefix,
-        },
+        logGroupProps: logGroupProps,
       });
 
+      // THEN
       expectCDK(stack).to(haveResource('Custom::LogRetention', {
         RetentionInDays: 3,
         LogGroupName: testPrefix + id,
@@ -1030,6 +994,7 @@ describe('SpotEventPluginFleet', () => {
       test.each([
         'none',
         'with space',
+        'group_*', // with wildcard
       ])('throws with %s', (invalidGroupName: string) => {
         // WHEN
         function createSpotEventPluginFleet() {
@@ -1047,10 +1012,7 @@ describe('SpotEventPluginFleet', () => {
         expect(createSpotEventPluginFleet).toThrowError(/Invalid value: .+ for property 'deadlineGroups'/);
       });
 
-      test.each([
-        groupName,
-        'group_*', // with wildcard
-      ])('passes with %s', (validGroupName: string) => {
+      test('passes with valid group name', () => {
         // WHEN
         function createSpotEventPluginFleet() {
           new SpotEventPluginFleet(stack, 'SpotFleet', {
@@ -1059,7 +1021,7 @@ describe('SpotEventPluginFleet', () => {
             instanceTypes,
             workerMachineImage,
             maxCapacity,
-            deadlineGroups: [validGroupName],
+            deadlineGroups: [groupName],
           });
         }
 
@@ -1117,6 +1079,7 @@ describe('SpotEventPluginFleet', () => {
 
     describe('Block Device Tests', () => {
       test('Warning if no BlockDevices provided', () => {
+        // WHEN
         const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
           vpc,
           renderQueue,
@@ -1125,6 +1088,8 @@ describe('SpotEventPluginFleet', () => {
           workerMachineImage,
           maxCapacity,
         });
+
+        // THEN
         expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
         expect(fleet.node.metadata[0].data).toMatch('being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
       });

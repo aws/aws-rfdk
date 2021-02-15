@@ -57,7 +57,6 @@ import {
   SpotFleetResourceType,
 } from './spot-event-plugin-fleet-ref';
 import { Version } from './version';
-import { IVersion } from './version-ref';
 
 /**
  * How the event plug-in should respond to events.
@@ -148,7 +147,7 @@ export interface SpotEventPluginSettings {
   /**
    * How the event plug-in should respond to events.
    *
-   * @default SpotEventPluginState.DISABLED
+   * @default SpotEventPluginState.GLOBAL_ENABLED
    */
   readonly state?: SpotEventPluginState;
 
@@ -231,6 +230,16 @@ export interface SpotEventPluginSettings {
 }
 
 /**
+ *  Connection options used if render queue has TLS enabled.
+ */
+export interface ConfigureSpotEventPluginTrafficEncryptionProps {
+  /**
+   * The certificate used to sign the the chain of trust used for render queue.
+   */
+  readonly caCert: ISecret;
+}
+
+/**
  * Input properties for ConfigureSpotEventPlugin.
  */
 export interface ConfigureSpotEventPluginProps {
@@ -246,11 +255,6 @@ export interface ConfigureSpotEventPluginProps {
   readonly renderQueue: IRenderQueue;
 
   /**
-   * The Deadline Client version that will be running within the Render Queue.
-   */
-  readonly version: IVersion;
-
-  /**
    * Where within the VPC to place the lambda function's endpoint.
    *
    * @default The instance is placed within a Private subnet.
@@ -258,9 +262,9 @@ export interface ConfigureSpotEventPluginProps {
   readonly vpcSubnets?: SubnetSelection;
 
   /**
-   * The certificate used to sign the the chain of trust used for render queue. Only used if render queue has TLS enabled.
+   * Connection options if the network traffic to the RenderQueue should is encrypted.
    */
-  readonly caCert?: ISecret;
+  readonly trafficEncryption?: ConfigureSpotEventPluginTrafficEncryptionProps;
 
   /**
    * The array of Spot Event Plugin spot fleets used to generate the mapping between groups and spot fleet requests.
@@ -273,7 +277,7 @@ export interface ConfigureSpotEventPluginProps {
    * The Spot Event Plugin settings.
    * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html?highlight=spot%20even%20plugin#event-plugin-configuration-options
    *
-   * @default Spot Event Plugin settings will not be updated.
+   * @default Default values of SpotEventPluginSettings will be set.
    */
   readonly configuration?: SpotEventPluginSettings;
 }
@@ -305,7 +309,6 @@ export interface ConfigureSpotEventPluginProps {
  * });
  * const renderQueue = new RenderQueue(stack, 'RenderQueue', {
  *   vpc,
- *   version: recipes.version,
  *   images: images.forRenderQueue(),
  *   repository: repository,
  * });
@@ -322,7 +325,6 @@ export interface ConfigureSpotEventPluginProps {
  * const spotEventPluginConfig = new ConfigureSpotEventPlugin(this, 'ConfigureSpotEventPlugin', {
  *   vpc,
  *   renderQueue: renderQueue,
- *   version: recipes.version,
  *   spotFleets: [fleet],
  *   configuration: {
  *     enableResourceTracker: true,
@@ -334,10 +336,17 @@ export interface ConfigureSpotEventPluginProps {
  * to connect to the render queue. This lambda is run automatically when you deploy or update the stack containing this construct.
  * Logs for all AWS Lambdas are automatically recorded in Amazon CloudWatch.
  *
- * Note that this construct will configure the Spot Event Plugin, but the Spot Fleet Requests will not be created unless you:
+ * This construct will configure the Spot Event Plugin, but the Spot Fleet Requests will not be created unless you:
  * - Create the Deadline Group associated with the Spot Fleet Request Configuration.
  * - Create the Deadline Pools to which the fleet Workers are added.
  * - Submit the job with the assigned Deadline Group and Deadline Pool.
+ *
+ *  Note that this construct adds additional policies to the Render Queue's role
+ *  required to run the Spot Event Plugin and launch a Resource Tracker:
+ *   - AWSThinkboxDeadlineSpotEventPluginAdminPolicy
+ *   - AWSThinkboxDeadlineResourceTrackerAdminPolicy
+ *   - A policy to pass a fleet and instance role
+ *   - A policy to create tags for spot fleet requests
  *
  * Resources Deployed
  * ------------------------
@@ -358,9 +367,6 @@ export interface ConfigureSpotEventPluginProps {
  *   and the render queue port. An attacker that can find a way to modify and execute this lambda could use it to
  *   execute any requets against the render queue. You should not grant any additional actors/principals the ability to modify
  *   or execute this Lambda.
- *   to run the Spot Event Plugin and launch a Resource Tracker:
- *   - AWSThinkboxDeadlineSpotEventPluginAdminPolicy
- *   - AWSThinkboxDeadlineResourceTrackerAdminPolicy
  */
 export class ConfigureSpotEventPlugin extends Construct {
 
@@ -386,38 +392,42 @@ export class ConfigureSpotEventPlugin extends Construct {
       if (props.renderQueue.version.isLessThan(minimumVersion)) {
         throw new Error(`Minimum supported Deadline version for ${this.constructor.name} is ` +
         `${minimumVersion.versionString}. ` +
-        `Received: ${props.version.versionString}.`);
+        `Received: ${props.renderQueue.version.versionString}.`);
       }
 
-      props.renderQueue.addSEPPolicies();
+      if (props.spotFleets && props.spotFleets.length !== 0) {
+        props.renderQueue.addSEPPolicies(props.configuration?.enableResourceTracker ?? true);
 
-      const fleetRoles = props.spotFleets?.map(sf => sf.fleetRole.roleArn) || [];
-      const fleetInstanceRoles = props.spotFleets?.map(sf => sf.fleetInstanceRole.roleArn) || [];
-      const roles = [...fleetRoles, ...fleetInstanceRoles];
-      new Policy(this, 'SpotFleetPassRolePolicy', {
-        statements: [
-          new PolicyStatement({
-            actions: [
-              'iam:PassRole',
-            ],
-            resources: roles.length !== 0 ? roles : undefined,
-            conditions: {
-              StringLike: {
-                'iam:PassedToService': 'ec2.amazonaws.com',
+        const fleetRoles = props.spotFleets.map(sf => sf.fleetRole.roleArn);
+        const fleetInstanceRoles = props.spotFleets.map(sf => sf.fleetInstanceRole.roleArn);
+        new Policy(this, 'SpotEventPluginPolicy', {
+          statements: [
+            new PolicyStatement({
+              actions: [
+                'iam:PassRole',
+              ],
+              resources: [...fleetRoles, ...fleetInstanceRoles],
+              conditions: {
+                StringLike: {
+                  'iam:PassedToService': 'ec2.amazonaws.com',
+                },
               },
-            },
-          }),
-          new PolicyStatement({
-            actions: [
-              'ec2:CreateTags',
-            ],
-            resources: ['arn:aws:ec2:*:*:spot-fleet-request/*'],
-          }),
-        ],
-        roles: [
-          props.renderQueue.grantPrincipal as Role,
-        ],
-      });
+            }),
+            new PolicyStatement({
+              actions: [
+                'ec2:CreateTags',
+              ],
+              resources: ['arn:aws:ec2:*:*:spot-fleet-request/*'],
+            }),
+          ],
+          roles: [
+            props.renderQueue.grantPrincipal as Role,
+          ],
+        });
+      }
+    }
+    else {
+      throw new Error('The provided render queue is not an instance of RenderQueue class. Some functionality is not supported.');
     }
 
     const region = Construct.isConstruct(props.renderQueue) ? Stack.of(props.renderQueue).region : Stack.of(this).region;
@@ -441,7 +451,7 @@ export class ConfigureSpotEventPlugin extends Construct {
     });
 
     configurator.connections.allowToDefaultPort(props.renderQueue);
-    props.caCert?.grantRead(configurator.grantPrincipal);
+    props.trafficEncryption?.caCert.grantRead(configurator.grantPrincipal);
 
     const pluginConfig: PluginSettings = {
       AWSInstanceStatus: props.configuration?.awsInstanceStatus ?? SpotEventPluginDisplayInstanceStatus.DISABLED,
@@ -453,7 +463,7 @@ export class ConfigureSpotEventPlugin extends Construct {
       Region: props.configuration?.region ?? region,
       ResourceTracker: props.configuration?.enableResourceTracker ?? true,
       StaggerInstances: props.configuration?.maximumInstancesStartedPerCycle ?? 50,
-      State: props.configuration?.state ?? SpotEventPluginState.DISABLED,
+      State: props.configuration?.state ?? SpotEventPluginState.GLOBAL_ENABLED,
       StrictHardCap: props.configuration?.strictHardCap ?? false,
     };
     const spotFleetRequestConfigs = this.mergeSpotFleetRequestConfigs(props.spotFleets);
@@ -463,7 +473,7 @@ export class ConfigureSpotEventPlugin extends Construct {
         hostname: props.renderQueue.endpoint.hostname,
         port: props.renderQueue.endpoint.portAsString(),
         protocol: props.renderQueue.endpoint.applicationProtocol,
-        caCertificateArn: props.caCert?.secretArn,
+        caCertificateArn: props.trafficEncryption?.caCert?.secretArn,
       },
       spotFleetRequestConfigurations: spotFleetRequestConfigs,
       spotPluginConfigurations: pluginConfig,
@@ -501,7 +511,7 @@ export class ConfigureSpotEventPlugin extends Construct {
   }
 
   /**
-   * Construct Spot Fleet Configurations constructed from the provided fleet.
+   * Construct Spot Fleet Configurations from the provided fleet.
    * Each congiguration is a mapping between one Deadline Group and one Spot Fleet Request Configuration.
    */
   private generateSpotFleetRequestConfig(fleet: SpotEventPluginFleet): SpotFleetRequestConfiguration[] {
@@ -512,7 +522,7 @@ export class ConfigureSpotEventPlugin extends Construct {
         };
         return securityGroupId;
       });
-    } });
+    }});
 
     const userDataToken = Lazy.string({ produce: () => Fn.base64(fleet.userData.render()) });
 
@@ -573,7 +583,7 @@ export class ConfigureSpotEventPlugin extends Construct {
   }
 
   /**
-   * Synthesize an array of block device mappings from a list of block device
+   * Synthesize an array of block device mappings from a list of block devices
    *
    * @param blockDevices list of block devices
    */
@@ -584,14 +594,16 @@ export class ConfigureSpotEventPlugin extends Construct {
       if (volume === BlockDeviceVolume._NO_DEVICE || mappingEnabled === false) {
         return {
           DeviceName: deviceName,
-          NoDevice: true,
+          // To omit the device from the block device mapping, specify an empty string.
+          // See https://docs.aws.amazon.com/cli/latest/reference/ec2/request-spot-fleet.html
+          NoDevice: '',
         };
       }
 
       let Ebs: BlockDeviceProperty | undefined;
 
       if (ebs) {
-        const { iops, volumeType, volumeSize, snapshotId } = ebs;
+        const { iops, volumeType, volumeSize, snapshotId, deleteOnTermination } = ebs;
 
         if (!iops) {
           if (volumeType === EbsDeviceVolumeType.IO1) {
@@ -602,7 +614,7 @@ export class ConfigureSpotEventPlugin extends Construct {
         }
 
         Ebs = {
-          DeleteOnTermination: ebs?.deleteOnTermination,
+          DeleteOnTermination: deleteOnTermination,
           Iops: iops,
           SnapshotId: snapshotId,
           VolumeSize: volumeSize,

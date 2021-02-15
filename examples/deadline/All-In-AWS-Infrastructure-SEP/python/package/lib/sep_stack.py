@@ -34,11 +34,13 @@ from aws_cdk.aws_route53 import (
 )
 from aws_rfdk.deadline import (
     ConfigureSpotEventPlugin,
+    ConfigureSpotEventPluginTrafficEncryptionProps,
     RenderQueue,
     RenderQueueExternalTLSProps,
     RenderQueueHostNameProps,
     RenderQueueTrafficEncryptionProps,
     Repository,
+    RepositoryRemovalPolicies,
     SpotEventPluginFleet,
     SpotEventPluginSettings,
     Stage,
@@ -53,7 +55,7 @@ from aws_rfdk import (
 @dataclass
 class SEPStackProps(StackProps):
     """
-    Properties for ServiceTier
+    Properties for SEPStack
     """
     # The path to the directory where the staged Deadline Docker recipes are.
     docker_recipes_stage_path: str
@@ -65,13 +67,12 @@ class SEPStackProps(StackProps):
 
 class SEPStack(Stack):
     """
-    The service tier contains all "business-logic" constructs
-    (e.g. Render Queue, UBL Licensing/License Forwarder, etc.).
+    This stack contains all the constructs required to set the Spot Event Plugin Configuration.
     """
 
     def __init__(self, scope: Construct, stack_id: str, *, props: SEPStackProps, **kwargs):
         """
-        Initialize a new instance of ServiceTier
+        Initialize a new instance of SEPStack
         :param scope: The scope of this construct.
         :param stack_id: The ID of this construct.
         :param props: The properties for this construct.
@@ -97,7 +98,15 @@ class SEPStack(Stack):
             'Repository',
             vpc=vpc,
             version=recipes.version,
-            repository_installation_timeout=Duration.minutes(20)
+            repository_installation_timeout=Duration.minutes(20),
+            # TODO - Evaluate deletion protection for your own needs. These properties are set to RemovalPolicy.DESTROY
+            # to cleanly remove everything when this stack is destroyed. If you would like to ensure
+            # that these resources are not accidentally deleted, you should set these properties to RemovalPolicy.RETAIN
+            # or just remove the removal_policy parameter.
+            removal_policy=RepositoryRemovalPolicies(
+                database=RemovalPolicy.DESTROY,
+                filesystem=RemovalPolicy.DESTROY
+            )
         )
 
         # The following code is used to demonstrate how to use the ConfigureSpotEventPlugin if TLS is enabled.
@@ -185,12 +194,12 @@ class SEPStack(Stack):
             'ConfigureSpotEventPlugin',
             vpc=vpc,
             render_queue=render_queue,
-            version=recipes.version,
-            ca_cert=ca_cert.cert,
+            traffic_encryption=ConfigureSpotEventPluginTrafficEncryptionProps(
+                ca_cert=ca_cert.cert,
+            ),
             spot_fleets=[fleet],
             configuration=SpotEventPluginSettings(
-                enable_resource_tracker=True,
-                region=self.region
+                enable_resource_tracker=True
             )
         )
 

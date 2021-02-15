@@ -87,8 +87,8 @@ export interface SpotEventPluginFleetProps {
 
   /**
    * Deadline groups these workers need to be assigned to.
-   * Note that the Spot Fleet configuration allows for the use of wildcards as part of the Group name.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#wildcards
+   * Note that the Spot Fleet configuration does not allow using wildcards as part of the Group name
+   * as described here https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#wildcards
    *
    * @default - Workers are not assigned to any group
    */
@@ -441,10 +441,6 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     this.keyName = props.keyName;
     this.deadlineGroups = props.deadlineGroups;
 
-    const workerGroups = this.deadlineGroups.filter(deadlineGroup => {
-      return !deadlineGroup.includes('*');
-    });
-
     const imageConfig = props.workerMachineImage.getImage(this);
     this.osType = imageConfig.osType;
     this.userData = props.userData ?? imageConfig.userData;
@@ -458,7 +454,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
       },
       renderQueue: props.renderQueue,
       workerSettings: {
-        groups: workerGroups,
+        groups: props.deadlineGroups,
         pools: props.deadlinePools,
         region: props.deadlineRegion,
       },
@@ -512,13 +508,13 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   }
 
   private validateGroups(property: string, array: string[]): void {
-    const regex: RegExp = /^(?!none$)[a-zA-Z0-9-_\*]+$/i;
+    const regex: RegExp = /^(?!none$)[a-zA-Z0-9-_]+$/i;
     if (array.length === 0) {
       throw new Error('At least one Deadline Group is required for a Spot Fleet Request Configuration');
     }
     array.forEach(value => {
       if (!regex.test(value)) {
-        throw new Error(`Invalid value: ${value} for property '${property}'. Valid characters are A-Z, a-z, 0-9, -, * and _. Also, group 'none' is reserved as the default group.`);
+        throw new Error(`Invalid value: ${value} for property '${property}'. Valid characters are A-Z, a-z, 0-9, - and _. Also, group 'none' is reserved as the default group.`);
       }
     });
   }

@@ -21,6 +21,24 @@ export interface SpotEventPluginClientProps {
   readonly deadlineClientProps: DeadlineClientProps;
 }
 
+/**
+ * A single entry of the server data received from describeServerData request.
+ */
+interface DescribedServerData {
+  readonly ID: string,
+  readonly ConcurrencyToken: string,
+}
+
+/**
+ * A response from describeServerData request.
+ */
+interface DescribeServerDataResponse {
+  readonly ServerData: DescribedServerData[];
+}
+
+/**
+ * Provides a simple interface to send requests to the Render Queue API related to the Deadline Spot Event Plugin.
+ */
 export class SpotEventPluginClient {
   private static readonly EVENT_PLUGIN_ID: string = 'event.plugin.spot';
 
@@ -30,7 +48,64 @@ export class SpotEventPluginClient {
     this.deadlineClient = new DeadlineClient(props.deadlineClientProps);
   }
 
-  public async describeServerData(): Promise<Response> {
+  public async saveServerData(config: string): Promise<boolean> {
+    console.log('Saving server data configuration:');
+    console.log(config);
+
+    try {
+      // Get the concurrency token required to save server data
+      const concurrencyToken = await this.concurrencyToken();
+      await this.deadlineClient.PostRequest('/rcs/v1/putServerData', {
+        ServerData: [
+          {
+            ID: SpotEventPluginClient.EVENT_PLUGIN_ID,
+            ServerDataDictionary: {
+              Config: config,
+            },
+            ConcurrencyToken: concurrencyToken,
+          },
+        ],
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+      });
+      return true;
+    } catch(e) {
+      console.error(`Failed to save server data. Reason: ${e}`);
+      return false;
+    }
+  }
+
+  public async configureSpotEventPlugin(configs: { Key: string, Value: any }[]): Promise<boolean> {
+    console.log('Saving plugin configuration:');
+    console.log(configs);
+
+    try {
+      await this.deadlineClient.PostRequest('/db/plugins/event/config/save', {
+        ID: 'spot',
+        DebugLogging: false,
+        DlInit: configs,
+        Icon: null,
+        Limits: [],
+        Meta: [],
+        Name: 'Spot',
+        PluginEnabled: 1,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+      });
+      return true;
+    } catch(e) {
+      console.error(`Failed to save plugin configuration. Reason: ${e}`);
+      return false;
+    }
+  }
+
+  private async describeServerData(): Promise<Response> {
     return await this.deadlineClient.PostRequest('/rcs/v1/describeServerData', {
       ServerDataIds: [
         SpotEventPluginClient.EVENT_PLUGIN_ID,
@@ -41,54 +116,6 @@ export class SpotEventPluginClient {
         'Content-Type': 'application/json; charset=utf-8',
       },
     });
-  }
-
-  public async saveServerData(config: string): Promise<boolean> {
-    console.log('Saving server data configuration:');
-    console.log(config);
-
-    // Get the concurrency token required to save server data
-    const concurrencyToken = await this.concurrencyToken();
-    await this.deadlineClient.PostRequest('/rcs/v1/putServerData', {
-      ServerData: [
-        {
-          ID: SpotEventPluginClient.EVENT_PLUGIN_ID,
-          ServerDataDictionary: {
-            Config: config,
-          },
-          ConcurrencyToken: concurrencyToken,
-        },
-      ],
-    },
-    {
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-      },
-    });
-    console.log('Server data successfully saved.');
-    return true;
-  }
-
-  public async configureSpotEventPlugin(configs: { Key: string, Value: any }[]): Promise<boolean> {
-    console.log('Saving plugin configuration:');
-    console.log(configs);
-    await this.deadlineClient.PostRequest('/db/plugins/event/config/save', {
-      ID: 'spot',
-      DebugLogging: false,
-      DlInit: configs,
-      Icon: null,
-      Limits: [],
-      Meta: [],
-      Name: 'Spot',
-      PluginEnabled: 1,
-    },
-    {
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-      },
-    });
-    console.log('Plugin configuration successfully saved.');
-    return true;
   }
 
   /**
@@ -104,14 +131,14 @@ export class SpotEventPluginClient {
   private async concurrencyToken(): Promise<string> {
     const response = await this.describeServerData();
 
-    const describedData: {
-      ServerData: {
-        ID: string,
-        ConcurrencyToken: string,
-      }[],
-    } = response.data;
+    const describedData: DescribeServerDataResponse = response.data;
+
+    if (!describedData.ServerData || !Array.isArray(describedData.ServerData)) {
+      throw new Error(`Failed to receive a ConcurrencyToken. Invalid response: ${describedData}.`);
+    }
 
     const found = describedData.ServerData.find(element => element.ID === SpotEventPluginClient.EVENT_PLUGIN_ID);
     return found?.ConcurrencyToken ?? '';
   }
+
 }

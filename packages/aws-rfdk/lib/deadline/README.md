@@ -8,10 +8,13 @@ import * as deadline from 'aws-rfdk/deadline';
 
 ---
 
-_**Note:** RFDK constructs currently support Deadline 10.1.9 and later._
+_**Note:** RFDK constructs currently support Deadline 10.1.9 and later, unless otherwise stated._
 
 ---
-
+- [Configure Spot Event Plugin](#configure-spot-event-plugin) (supports Deadline 10.1.12 and later)
+  - [Saving Spot Event Plugin Options](#saving-spot-event-plugin-options)
+  - [Saving Spot Fleet Request Configurations](#saving-spot-fleet-request-configurations)
+  - [Using Traffic Encryption](#using-traffic-ncryption)
 - [Render Queue](#render-queue)
   - [Docker Container Images](#render-queue-docker-container-images)
   - [Encryption](#render-queue-encryption)
@@ -19,6 +22,8 @@ _**Note:** RFDK constructs currently support Deadline 10.1.9 and later._
   - [Deletion Protection](#render-queue-deletion-protection)
 - [Repository](#repository)
   - [Configuring Deadline Client Connections](#configuring-deadline-client-connections)
+- [Spot Event Plugin Fleet](#spot-event-plugin-fleet) (supports Deadline 10.1.12 and later)
+  - [Changing Default Options](#changing-default-options)
 - [Stage](#stage)
   - [Staging Docker Recipes](#staging-docker-recipes)
 - [ThinkboxDockerImages](#thinkbox-docker-images)
@@ -29,6 +34,82 @@ _**Note:** RFDK constructs currently support Deadline 10.1.9 and later._
 - [Worker Fleet](#worker-fleet)
   - [Health Monitoring](#worker-fleet-health-monitoring)
   - [Custom Worker Instance Startup](#custom-worker-instance-startup)
+
+## Configure Spot Event Plugin
+
+The [Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html) can scale cloud-based EC2 Spot instances dynamically based on the queued Jobs and Tasks in the Deadline Database. It associates a Spot Fleet Request with named Deadline Worker Groups, allowing multiple Spot Fleets with different hardware and software specifications to be launched for different types of Jobs based on their Group assignment.
+
+The `ConfigureSpotEventPlugin` construct has two main responsibilities:
+- Construct a [Spot Fleet Request](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-fleet-requests.html) configuration from the list of [Spot Event Plugin Fleets](#spot-event-plugin-fleet).
+- Modify and save the options of the Spot Event Plugin itself (see [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options)).
+
+**Note:** This construct will configure the Spot Event Plugin, but the Spot Fleet Requests will not be created unless you:
+- Create the Deadline Groups associated with the Spot Fleet Request Configurations.
+- Create the Deadline Pools to which the fleet Workers are added.
+- Submit the job with the assigned Deadline Group and Deadline Pool.
+
+### Saving Spot Event Plugin Options
+
+To set the Spot Event Plugin options use `configuration` property of the `ConfigureSpotEventPlugin` construct:
+
+```ts
+const vpc = new Vpc(/* ... */);
+const renderQueue = new RenderQueue(stack, 'RenderQueue', /* ... */);
+
+const spotEventPluginConfig = new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
+  vpc,
+  renderQueue: renderQueue,
+  configuration: {
+    enableResourceTracker: true,
+  },
+});
+```
+
+This property is optional, so if you don't provide it, the default Spot Event Plugin Options will be used.
+
+### Saving Spot Fleet Request Configurations
+
+Use the `spotFleets` property to construct the Spot Fleet Request Configurations from a given [Spot Event Plugin Fleet](#spot-event-plugin-fleet):
+
+```ts
+const fleet = new SpotEventPluginFleet(stack, 'SpotEventPluginFleet', /* ... */);
+
+const spotEventPluginConfig = new ConfigureSpotEventPlugin(this, 'ConfigureSpotEventPlugin', {
+  vpc,
+  renderQueue: renderQueue,
+  spotFleets: [
+    fleet,
+  ],
+});
+```
+
+### Using Traffic Encryption
+
+If the [Render Queue](#render-queue) has traffic encryption enabled, then you need to provide a CA certificate used with the Render Queue.
+Set this certificate using `trafficEncryption` property of the `ConfigureSpotEventPlugin` construct:
+
+```ts
+const caCert = new X509CertificatePem(this, 'RootCA', /* ... */);
+const renderQueue = new RenderQueue(this, 'RenderQueue', {
+  trafficEncryption: {
+    externalTLS: {
+      rfdkCertificate: new X509CertificatePem(this, 'RQCert', {
+        signingCertificate: caCert,
+        /* ... */,
+      }),
+    },
+  },
+  /* ... */,
+});
+
+const spotEventPluginConfig = new ConfigureSpotEventPlugin(this, 'ConfigureSpotEventPlugin', {
+  vpc,
+  renderQueue: renderQueue,
+  trafficEncryption: {
+    caCert: caCert.cert,
+  },
+});
+```
 
 ## Render Queue
 
@@ -155,6 +236,91 @@ const instance = new Instance(stack, 'Instance', {
 repository.configureClientInstance({
   host: instance,
   mountPoint: '/mnt/repository'
+});
+```
+
+## Spot Event Plugin Fleet
+
+This construct represents a Spot Fleet launched by the [Deadline's Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html) from the [Spot Fleet Request Configuration](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#spot-fleet-request-configurations). The construct itself doesn't create a Spot Fleet Request, but creates all the required resources to be used in the Spot Fleet Request Configuration.
+
+This construct is expected to be used as an input to the [ConfigureSpotEventPlugin](#configure-spot-event-plugin) construct. `ConfigureSpotEventPlugin` construct will generate a Spot Fleet Request Configuration from each provided `SpotEventPluginFleet` and will set these configurations to the Spot Event Plugin.
+
+```ts
+const vpc = new Vpc(/* ... */);
+const renderQueue = new RenderQueue(stack, 'RenderQueue', /* ... */);
+
+const fleet = new SpotEventPluginFleet(this, 'SpotEventPluginFleet', {
+  vpc,
+  renderQueue,
+  deadlineGroups: [
+    'group_name1',
+    'group_name2',
+  ],
+  instanceTypes: [InstanceType.of(InstanceClass.T3, InstanceSize.LARGE)],
+  workerMachineImage: new GenericLinuxImage(/* ... */),
+  maxCapacity: 1,
+});
+```
+
+### Changing Default Options
+
+Here are a few examples of how you set some additional properties of the `SpotEventPluginFleet`:
+
+#### Setting Allocation Strategy
+
+Use `allocationStrategy` property to change the default allocation strategy of the Spot Fleet Request:
+
+```ts
+const fleet = new SpotEventPluginFleet(this, 'SpotEventPluginFleet', {
+  vpc,
+  renderQueue,
+  deadlineGroups: [
+    'group_name',
+  ],
+  instanceTypes: [InstanceType.of(InstanceClass.T3, InstanceSize.LARGE)],
+  workerMachineImage: new GenericLinuxImage(/* ... */),
+  maxCapacity: 1,
+  allocationStrategy: SpotFleetAllocationStrategy.CAPACITY_OPTIMIZED,
+});
+```
+
+#### Adding Deadline Pools
+
+You can add the Workers to Deadline's Pools providing a list of pools as following:
+
+```ts
+const fleet = new SpotEventPluginFleet(this, 'SpotEventPluginFleet', {
+  vpc,
+  renderQueue,
+  deadlineGroups: [
+    'group_name',
+  ],
+  instanceTypes: [InstanceType.of(InstanceClass.T3, InstanceSize.LARGE)],
+  workerMachineImage: new GenericLinuxImage(/* ... */),
+  maxCapacity: 1,
+  deadlinePools: [
+    'pool1',
+    'pool2',
+  ],
+});
+```
+
+#### Setting the End Date And Time
+
+By default, the Spot Fleet Request will be valid until you cancel it.
+You can set the end date and time until the Spot Fleet request is valid using `validUntil` property:
+
+```ts
+const fleet = new SpotEventPluginFleet(this, 'SpotEventPluginFleet', {
+  vpc,
+  renderQueue,
+  deadlineGroups: [
+    'group_name',
+  ],
+  instanceTypes: [InstanceType.of(InstanceClass.T3, InstanceSize.LARGE)],
+  workerMachineImage: new GenericLinuxImage(/* ... */),
+  maxCapacity: 1,
+  validUntil: Expiration.atDate(new Date(2022, 11, 17)),
 });
 ```
 

@@ -4,10 +4,6 @@
  */
 
 import {
-  CfnClientVpnAuthorizationRule,
-  CfnClientVpnEndpoint,
-  CfnClientVpnTargetNetworkAssociation,
-  SecurityGroup,
   IMachineImage,
   InstanceClass,
   InstanceSize,
@@ -17,29 +13,23 @@ import {
 import {
   Construct,
   Duration,
-  Expiration,
   RemovalPolicy,
   Stack,
   StackProps,
   Tags,
 } from '@aws-cdk/core';
 import { ApplicationProtocol } from '@aws-cdk/aws-elasticloadbalancingv2';
-// import {
-//   ManagedPolicy,
-//   Role,
-//   ServicePrincipal,
-// } from '@aws-cdk/aws-iam';
+import {
+  ManagedPolicy,
+  Role,
+  ServicePrincipal,
+} from '@aws-cdk/aws-iam';
 import { PrivateHostedZone } from '@aws-cdk/aws-route53';
 import {
   ConfigureSpotEventPlugin,
   RenderQueue,
   Repository,
-  SpotEventPluginDisplayInstanceStatus,
   SpotEventPluginFleet,
-  SpotEventPluginLoggingLevel,
-  SpotEventPluginPreJobTaskMode,
-  SpotEventPluginState,
-  SpotFleetAllocationStrategy,
   Stage,
   ThinkboxDockerRecipes,
 } from 'aws-rfdk/deadline';
@@ -69,7 +59,7 @@ export interface SEPStackProps extends StackProps {
 export class SEPStack extends Stack {
 
   /**
-   * Initializes a new instance of {@link NetworkTier}.
+   * Initializes a new instance of SEPStack.
    * @param scope The scope of this construct.
    * @param id The ID of this construct.
    * @param props The stack properties.
@@ -87,10 +77,11 @@ export class SEPStack extends Stack {
       vpc,
       version: recipes.version,
       repositoryInstallationTimeout: Duration.minutes(20),
+      // TODO - Evaluate deletion protection for your own needs. These properties are set to RemovalPolicy.DESTROY
+      // to cleanly remove everything when this stack is destroyed. If you would like to ensure
+      // that these resources are not accidentally deleted, you should set these properties to RemovalPolicy.RETAIN
+      // or just remove the removalPolicy parameter.
       removalPolicy: {
-        // TODO - Evaluate deletion protection for your own needs. This is set to false to
-        // cleanly remove everything when this stack is destroyed. If you would like to ensure
-        // that these resource are not accidentally deleted, you should set these properties to RemovalPolicy.RETAIN
         database: RemovalPolicy.DESTROY,
         filesystem: RemovalPolicy.DESTROY,
       },
@@ -142,39 +133,27 @@ export class SEPStack extends Stack {
       trafficEncryption,
     });
 
-    // // Creates the Resource Tracker Access role.  This role is required to exist in your account so the resource tracker will work properly
-    // // Note: If you already have a Resource Tracker IAM role in your account you can remove this code.
-    // new Role(this, 'ResourceTrackerRole', {
-    //   assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
-    //   managedPolicies: [
-    //     ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAccessPolicy'),
-    //   ],
-    //   roleName: 'DeadlineResourceTrackerAccessRole',
-    // });
+    // Creates the Resource Tracker Access role.  This role is required to exist in your account so the resource tracker will work properly
+    // Note: If you already have a Resource Tracker IAM role in your account you can remove this code.
+    new Role(this, 'ResourceTrackerRole', {
+      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAccessPolicy'),
+      ],
+      roleName: 'DeadlineResourceTrackerAccessRole',
+    });
 
     const fleet = new SpotEventPluginFleet(this, 'SpotEventPluginFleet', {
       vpc,
       renderQueue,
       deadlineGroups: [
         'group_name',
-        'group_bro*',
       ],
       instanceTypes: [
         InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
       ],
       workerMachineImage: props.workerMachineImage,
       maxCapacity: 1,
-      keyName: props.keyPairName,
-      deadlinePools: [
-        'pool1',
-        'pool2',
-      ],
-      allocationStrategy: SpotFleetAllocationStrategy.CAPACITY_OPTIMIZED,
-      validUntil: Expiration.atDate(new Date(2022, 11, 17)),
-      deadlineRegion: 'some',
-      logGroupProps: {
-        logGroupPrefix: '/renderfarm/',
-      },
     });
 
     // Optional: Add additional tags to both spot fleet request and spot instances.
@@ -183,66 +162,15 @@ export class SEPStack extends Stack {
     new ConfigureSpotEventPlugin(this, 'ConfigureSpotEventPlugin', {
       vpc,
       renderQueue: renderQueue,
-      version: recipes.version,
-      caCert: caCert.cert,
+      trafficEncryption: {
+        caCert: caCert.cert,
+      },
       spotFleets: [
         fleet,
       ],
       configuration: {
-        enableResourceTracker: false,
-        deleteEC2SpotInterruptedWorkers: true,
-        deleteSEPTerminatedWorkers: true,
-        region: this.region,
-        state: SpotEventPluginState.GLOBAL_ENABLED,
-        loggingLevel: SpotEventPluginLoggingLevel.VERBOSE,
-        preJobTaskMode: SpotEventPluginPreJobTaskMode.CONSERVATIVE,
-        idleShutdown: Duration.minutes(10),
-        strictHardCap: false,
-        maximumInstancesStartedPerCycle: 50,
-        awsInstanceStatus: SpotEventPluginDisplayInstanceStatus.DISABLED,
+        enableResourceTracker: true,
       },
     });
-
-    // TODO: remove this. Only for testing
-    const securityGroup = new SecurityGroup(this, 'SG-VPN-RFDK', {
-      vpc,
-    });
-
-    const endpoint = new CfnClientVpnEndpoint(this, 'ClientVpnEndpointRFDK', {
-      description: "VPN",
-      vpcId: vpc.vpcId,
-      securityGroupIds: [
-        securityGroup.securityGroupId,
-      ],
-      authenticationOptions: [{ 
-        type: "certificate-authentication",
-        mutualAuthentication: {
-          clientRootCertificateChainArn: "arn:aws:acm:us-east-1:693238537026:certificate/5ce1c76e-c2e1-4da1-b47a-8273af60a766",
-        },
-      }],
-      clientCidrBlock: '10.200.0.0/16',
-      connectionLogOptions: {
-        enabled: false,
-      },
-      serverCertificateArn: "arn:aws:acm:us-east-1:693238537026:certificate/acc475c0-eaf1-4d6a-9367-d294927565d6",
-    });
-
-    let i = 0;
-    vpc.privateSubnets.map(subnet => {
-      new CfnClientVpnTargetNetworkAssociation(this, `ClientVpnNetworkAssociation${i}`, {
-        clientVpnEndpointId: endpoint.ref,
-        subnetId: subnet.subnetId,
-      });
-      i++;
-    });
-
-    new CfnClientVpnAuthorizationRule(this, 'ClientVpnAuthRule', {
-      clientVpnEndpointId: endpoint.ref,
-      targetNetworkCidr: '10.0.0.0/16',
-      authorizeAllGroups: true,
-      description: "Allow access to whole VPC CIDR range"
-    });
-
-    renderQueue.connections.allowDefaultPortFrom(securityGroup);
   }
 }

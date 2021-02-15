@@ -50,8 +50,11 @@ describe('readCertificateData', () => {
     mock('SecretsManager', 'getSecretValue', mockGetSecret);
     const client = new AWS.SecretsManager();
 
+    // WHEN
+    const promise = readCertificateData(secretArn, client);
+
     // THEN
-    await expect(readCertificateData(secretArn, client)).rejects.toThrowError(/must contain a Certificate in PEM format/);
+    await expect(promise).rejects.toThrowError(/must contain a Certificate in PEM format/);
   });
 
   test('binary data', async () => {
@@ -64,8 +67,10 @@ describe('readCertificateData', () => {
     mock('SecretsManager', 'getSecretValue', mockGetSecret);
     const client = new AWS.SecretsManager();
 
+    // WHEN
+    const promise = readCertificateData(secretArn, client);
+
     // THEN
-    // tslint:disable-next-line: no-string-literal
-    await expect(readCertificateData(secretArn, client)).rejects.toThrowError(/must contain a Certificate in PEM format/);
+    await expect(promise).rejects.toThrowError(/must contain a Certificate in PEM format/);
   });
 });
