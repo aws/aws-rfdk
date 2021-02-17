@@ -38,21 +38,9 @@ const env = {
 
 const app = new cdk.App();
 
-// -------------------- //
-// --- Network Tier --- //
-// -------------------- //
-
 const network = new NetworkTier(app, 'NetworkTier', { env });
 
-// --------------------- //
-// --- Security Tier --- //
-// --------------------- //
-
 const security = new SecurityTier(app, 'SecurityTier', { env });
-
-// -------------------- //
-// --- Service Tier --- //
-// -------------------- //
 
 const service = new ServiceTier(app, 'ServiceTier', {
   env,
@@ -63,10 +51,6 @@ const service = new ServiceTier(app, 'ServiceTier', {
   dnsZone: network.dnsZone,
   acceptAwsThinkboxEula: config.acceptAwsThinkboxEula,
 });
-
-// -------------------- //
-// --- Compute Tier --- //
-// -------------------- //
 
 new ComputeTier(app, 'ComputeTier', {
   env,

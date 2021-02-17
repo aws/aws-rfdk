@@ -1,24 +1,25 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-from aws_cdk.core import (
-    Stack,
-    Construct
-)
+import builtins
+import typing
 
 from aws_cdk.aws_ec2 import (
     GatewayVpcEndpointAwsService,
     InterfaceVpcEndpointAwsService,
     SubnetConfiguration,
-    SubnetFilter,
     SubnetSelection,
     SubnetType,
     Vpc
 )
-
 from aws_cdk.aws_route53 import (
     PrivateHostedZone
 )
+from aws_cdk.core import (
+    Construct,
+    Stack
+)
+import jsii
 
 from .config import config
 
@@ -47,6 +48,15 @@ class NetworkTier(Stack):
     networking between the various components of the Deadline render farm.
     """
 
+    @builtins.property # type: ignore
+    @jsii.member(jsii_name="availabilityZones")
+    def availability_zones(self) -> typing.List[builtins.str]:
+        """
+        This overrides the availability zones the Stack will use. The zones that we set here are what
+        our VPC will use, so adding local zones to this return value will enable us to then deploy
+        infrastructure to them.
+        """
+        return config.availability_zones_standard + config.availability_zones_local
 
     def __init__(self, scope: Construct, stack_id: str, **kwargs) -> None:
         """

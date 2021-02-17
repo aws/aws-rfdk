@@ -24,7 +24,7 @@ class AppConfig:
         # using the AWS Thinkbox Deadline container images.
         #
         # See https://www.awsthinkbox.com/end-user-license-agreement for the terms of the agreement.
-        self.accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA
+        self.accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA
 
         # The standard availability zones that the render farm will deploy into. It is recommended to use at least
         # two and they must be from the same region. The default values being provided are two of the four standard
@@ -39,9 +39,9 @@ class AppConfig:
         # to pin to. Some examples of pinned version values are "10", "10.1", or "10.1.13"
         self.deadline_version: Optional[str] = '10.1.13.1'
 
-        # A map of regions to Deadline Client Linux AMIs.As an example, the Linux Deadline 10.1.13.1 AMI ID
+        # A map of regions to Deadline Client Linux AMIs. As an example, the Linux Deadline 10.1.13.1 AMI ID
         # from us-west-2 is filled in. It can be used as-is, added to, or replaced. Ideally the version here
-        #  should match the one used for staging the render queue and usage based licensing recipes.
+        # should match the one used for staging the render queue and usage based licensing recipes.
         self.deadline_client_linux_ami_map: Mapping[str, str] = {'us-west-2': 'ami-003a9094e6741450f'}
 
         # (Optional) The name of the EC2 keypair to associate with the instances.

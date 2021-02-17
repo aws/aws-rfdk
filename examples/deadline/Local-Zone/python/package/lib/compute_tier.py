@@ -13,7 +13,6 @@ from aws_cdk.core import (
     StackProps
 )
 from aws_cdk.aws_ec2 import (
-    BastionHostLinux,
     IMachineImage,
     InstanceClass,
     InstanceSize,
@@ -24,7 +23,8 @@ from aws_cdk.aws_ec2 import (
 )
 
 from aws_rfdk import (
-    HealthMonitor
+    HealthMonitor,
+    SessionManagerHelper
 )
 from aws_rfdk.deadline import (
     IRenderQueue,
@@ -49,8 +49,6 @@ class ComputeTierProps(StackProps):
     worker_machine_image: IMachineImage
     # The name of the EC2 keypair to associate with Worker nodes.
     key_pair_name: Optional[str]
-    # The bastion host to  allow connection to Worker nodes.
-    bastion: Optional[BastionHostLinux] = None
 
 
 class ComputeTier(Stack):
@@ -98,3 +96,4 @@ class ComputeTier(Stack):
             health_monitor=self.health_monitor,
             key_name=props.key_pair_name
         )
+        SessionManagerHelper.grant_permissions_to(self.worker_fleet)

@@ -1,13 +1,10 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import List
 from dataclasses import dataclass
+from typing import List
 
 from aws_cdk.aws_ec2 import (
-    BastionHostLinux,
-    BlockDevice,
-    BlockDeviceVolume,
     IVpc,
     SubnetSelection,
     SubnetType
@@ -27,6 +24,7 @@ from aws_cdk.core import (
 
 from aws_rfdk import (
     DistinguishedName,
+    SessionManagerHelper,
     X509CertificatePem
 )
 from aws_rfdk.deadline import (
@@ -37,7 +35,7 @@ from aws_rfdk.deadline import (
     RenderQueueExternalTLSProps,
     Repository,
     ThinkboxDockerImages,
-    VersionQuery,
+    VersionQuery
 )
 
 
@@ -77,26 +75,6 @@ class ServiceTier(Stack):
         :param kwargs: Any kwargs that need to be passed on to the parent class.
         """
         super().__init__(scope, stack_id, **kwargs)
-
-        # Bastion instance for convenience (e.g. SSH into RenderQueue and WorkerFleet instances).
-        # It is being deployed into the standard availability zones, but has access to the worker
-        # instances that get deployed into a local zone. Not a critical component of the farm, so
-        # this can be safely removed.
-        self.bastion = BastionHostLinux(
-            self,
-            'Bastion',
-            vpc=props.vpc,
-            subnet_selection=SubnetSelection(
-                availability_zones=props.availability_zones,
-                subnet_type=SubnetType.PUBLIC
-            ),
-            block_devices=[
-                BlockDevice(
-                    device_name='/dev/xvda',
-                    volume=BlockDeviceVolume.ebs(50, encrypted=True)
-                )
-            ]
-        )
 
         self.version = VersionQuery(
             self,
@@ -170,4 +148,4 @@ class ServiceTier(Stack):
             vpc_subnets_alb=render_queue_alb_subnets,
             deletion_protection=False
         )
-        self.render_queue.connections.allow_default_port_from(self.bastion)
+        SessionManagerHelper.grant_permissions_to(self.render_queue.asg)

@@ -47,25 +47,13 @@ These instructions assume that your working directory is `examples/deadline/Loca
 
 7. Also in `package/lib/config.py`, you can set the `availability_zones_standard` and `availability_zones_local` values to the availability zones you want to use. These values must all be from the same region. It's recommended you use at least two standard zones, but you can use more if you'd like. For the local zones you can use as many as you'd like.
 
-8. Due to limitations of the Python implementation of CDK, you'll need to manually modify the availability zones in the CDK context file so your VPC deploys where you want it. In the TypeScript version we accomplish this by overriding `availabilityZones()` on the network tier stack, but this doesn't work in Python. Instead, either create or modify `cdk.context.json` to have an entry like the following, note you need to replace `<account #>` with your AWS account number. The example uses us-west-2, so the key includes this, but if you were to use a different region you'd also have to modify it in the key.
-
-```json
-{
-  "availability-zones:account=121858446379:region=us-west-2": [
-    "us-west-2a",
-    "us-west-2b",
-    "us-west-2-lax-1a"
-  ]
-}
-```
-
-9. Deploy all the stacks in the sample app:
+8. Deploy all the stacks in the sample app:
 
     ```bash
     cdk deploy "*"
     ```
 
-10. Once you are finished with the sample app, you can tear it down by running:
+9. Once you are finished with the sample app, you can tear it down by running:
 
     ```bash
     cdk destroy "*"

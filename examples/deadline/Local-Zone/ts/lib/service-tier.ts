@@ -4,8 +4,6 @@
  */
 
 import {
-  BastionHostLinux,
-  BlockDeviceVolume,
   IVpc,
   SubnetSelection,
   SubnetType,
@@ -24,6 +22,7 @@ import {
   StackProps,
 } from '@aws-cdk/core';
 import {
+  SessionManagerHelper,
   X509CertificatePem,
 } from 'aws-rfdk';
 import {
@@ -77,11 +76,6 @@ export interface ServiceTierProps extends StackProps {
  */
 export class ServiceTier extends Stack {
   /**
-   * A bastion host to connect to the render farm with.
-   */
-  public readonly bastion: BastionHostLinux;
-
-  /**
    * The render queue.
    */
   public readonly renderQueue: RenderQueue;
@@ -96,24 +90,6 @@ export class ServiceTier extends Stack {
    */
   constructor(scope: Construct, id: string, props: ServiceTierProps) {
     super(scope, id, props);
-
-    // Bastion instance for convenience (e.g. SSH into RenderQueue and WorkerFleet instances).
-    // It is being deployed into the standard availability zones, but has access to the worker
-    // instances that get deployed into a local zone. Not a critical component of the farm, so
-    // this can be safely removed.
-    this.bastion = new BastionHostLinux(this, 'Bastion', {
-      vpc: props.vpc,
-      subnetSelection: {
-        availabilityZones: props.availabilityZones,
-        subnetType: SubnetType.PUBLIC,
-      },
-      blockDevices: [{
-        deviceName: '/dev/xvda',
-        volume: BlockDeviceVolume.ebs(50, {
-          encrypted: true,
-        })},
-      ]
-    });
 
     this.version = new VersionQuery(this, 'Version', {
       version: props.deadlineVersion,
@@ -181,6 +157,6 @@ export class ServiceTier extends Stack {
       vpcSubnetsAlb: renderQueueAlbSubnets,
       deletionProtection: false,
     });
-    this.renderQueue.connections.allowDefaultPortFrom(this.bastion);
+    SessionManagerHelper.grantPermissionsTo(this.renderQueue.asg);
   }
 }

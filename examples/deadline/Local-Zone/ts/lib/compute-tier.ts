@@ -10,20 +10,20 @@ import {
   InstanceSize,
   InstanceType,
   IVpc,
-  Port,
   SubnetSelection,
   SubnetType,
 } from '@aws-cdk/aws-ec2';
 import * as cdk from '@aws-cdk/core';
 import {
+  HealthMonitor,
+  IHealthMonitor,
+  SessionManagerHelper,
+} from 'aws-rfdk';
+import {
   IRenderQueue,
   IWorkerFleet,
   WorkerInstanceFleet,
 } from 'aws-rfdk/deadline';
-import {
-  HealthMonitor,
-  IHealthMonitor,
-} from 'aws-rfdk';
 
 /**
  * Properties for {@link ComputeTier}.
@@ -108,10 +108,7 @@ export class ComputeTier extends cdk.Stack {
       instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
       vpcSubnets: subnets,
     });
-
-    if (props.bastion) {
-      this.workerFleet.connections.allowFrom(props.bastion, Port.tcp(22));
-    }
+    SessionManagerHelper.grantPermissionsTo(this.workerFleet);
   }
 }
 

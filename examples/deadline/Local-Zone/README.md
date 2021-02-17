@@ -1,6 +1,6 @@
 # RFDK Sample Application - Local Zones
 
-If you have large asset files that your worker instances need to process, any bit of latency can have a big impact on the time your renders take. This example will walk you through setting up your workers in a local zone while leaving the rest of the render farm in standard availability zones. Currently Amazon has launched a local zone in Los Angeles that is a part of the us-west-2 region, but they have more on the way. For more information on where local zones are avialable, how to get access, and what services they provide, refer to the [AWS Local Zones about page](https://aws.amazon.com/about-aws/global-infrastructure/localzones/).
+If you have large asset files that your worker instances need to process, any bit of latency can have a big impact on the time your renders take. This example will walk you through setting up your workers in a local zone while leaving the rest of the render farm in standard availability zones. Currently Amazon has launched a local zone in Los Angeles that is a part of the us-west-2 region, but they have more on the way. For more information on where local zones are available, how to get access, and what services they provide, refer to the [AWS Local Zones about page](https://aws.amazon.com/about-aws/global-infrastructure/localzones/).
 
 ---
 
@@ -16,7 +16,7 @@ This example app assumes you're familiar with the general architecture of an RFD
 
 #### Network Tier
 
-The network tier sets up a [VPC](https://aws.amazon.com/vpc/), which is within a [Private Hosted Zone](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/hosted-zones-private.html). These both span across all of the standard availability zones and local zones that are used, but the NAT Gateway for the VPC is only added to the stardard zones, as it is not avaiable in any local zones at this time.
+The network tier sets up a [VPC](https://aws.amazon.com/vpc/) that spans across all of the standard availability zones and local zones that are used, but the NAT Gateway for the VPC is only added to the standard zones, as it is not available in any local zones at this time. In this tier we override the Stack's `availabilityZones()` method, which returns the list of availability zones the Stack can use. It's by this mechanism that we control which zones the VPC will be deployed to.
 
 #### Security Tier
 
@@ -24,9 +24,7 @@ This holds the root CA certificate used for signing any certificates required by
 
 #### Service Tier
 
-The service tier includes a bastion instance, positioned in a public subnet in one of the standard availability zones. It can be used to connect to instances in the worker fleet by first connecting to it through the AWS console using the session manager. Note that you'd have to provide your worker fleet with an ssh key and then copy it over onto the bastion host for this to work. For more information visit the [Bastion Hosts CDK documentation](https://docs.aws.amazon.com/cdk/api/latest/docs/aws-ec2-readme.html#bastion-hosts).
-
-Also on the service tier are the repository and render queue, both of which are provided the selection of standard availability zone subnets to be deployed into.
+The service tier contains the repository and render queue, both of which are provided the selection of standard availability zone subnets to be deployed into. The DocumentDB and EFS filesystem are not available in the local zones at this time, so the repository cannot be moved there. Since the repository needs to be in a standard availability zone, there isn't any benefit to moving the render queue to a local zone.
 
 #### Compute Tier
 
