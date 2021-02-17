@@ -532,6 +532,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     // ex: cycles that involve the security group of the RenderQueue & child.
     child.node.addDependency(this.listener);
     child.node.addDependency(this.taskDefinition);
+    child.node.addDependency(this.pattern.service);
   }
 
   /**

@@ -56,7 +56,7 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
       const stringConfigs = JSON.stringify(convertedSpotFleetRequestConfigs);
       const response = await spotEventPluginClient.saveServerData(stringConfigs);
       if (!response) {
-        throw new Error(`Failed to save spot fleet request with configuration: ${stringConfigs}`);
+        throw new Error('Failed to save spot fleet request with configuration');
       }
     }
     if (resourceProperties.spotPluginConfigurations) {
@@ -65,7 +65,7 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
       const securitySettings = this.securitySettings();
       const response = await spotEventPluginClient.configureSpotEventPlugin([...pluginSettings, ...securitySettings]);
       if (!response) {
-        throw new Error(`Failed to save Spot Event Plugin Configurations: ${resourceProperties.spotPluginConfigurations}`);
+        throw new Error('Failed to save Spot Event Plugin Configurations');
       }
     }
     return undefined;

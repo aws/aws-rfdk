@@ -23,7 +23,6 @@ import {
 import {
   Code,
   Function as LambdaFunction,
-  LayerVersion,
   Runtime,
 } from '@aws-cdk/aws-lambda';
 import { RetentionDays } from '@aws-cdk/aws-logs';
@@ -38,7 +37,6 @@ import {
   Lazy,
   Stack,
 } from '@aws-cdk/core';
-import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
 import {
   PluginSettings,
   SEPConfiguratorResourceProps,
@@ -431,8 +429,6 @@ export class ConfigureSpotEventPlugin extends Construct {
     }
 
     const region = Construct.isConstruct(props.renderQueue) ? Stack.of(props.renderQueue).region : Stack.of(this).region;
-    const openSslLayerArns: any = ARNS['openssl-al2'];
-    const openSslLayer = LayerVersion.fromLayerVersionArn(this, 'OpenSslLayer', openSslLayerArns[region]);
 
     const configurator = new LambdaFunction(this, 'Configurator', {
       vpc: props.vpc,
@@ -445,7 +441,6 @@ export class ConfigureSpotEventPlugin extends Construct {
       },
       runtime: Runtime.NODEJS_12_X,
       handler: 'configure-spot-event-plugin.configureSEP',
-      layers: [ openSslLayer ],
       timeout: Duration.minutes(2),
       logRetention: RetentionDays.ONE_WEEK,
     });
@@ -484,13 +479,25 @@ export class ConfigureSpotEventPlugin extends Construct {
       resourceType: 'Custom::RFDK_ConfigureSpotEventPlugin',
       properties,
     });
+
     // Prevents a race during a stack-update.
     resource.node.addDependency(configurator.role!);
+
+    // We need to add this dependency to avoid failures while deleting a Custom Resource:
+    // 'Custom Resource failed to stabilize in expected time. If you are using the Python cfn-response module,
+    // you may need to update your Lambda function code so that CloudFormation can attach the updated version.'.
+    // This happens, because Route Table Associations are deleted before the Custom Resource and we
+    // don't get a response from 'doDelete()'.
+    // Ideally, we would only want to add dependency on 'internetConnectivityEstablished' as shown below,
+    // but it seems that CDK misses dependencies on Route Table Associations in that case:
+    // const { internetConnectivityEstablished } = props.vpc.selectSubnets(props.vpcSubnets);
+    // resource.node.addDependency(internetConnectivityEstablished);
+    resource.node.addDependency(props.vpc);
 
     // /* istanbul ignore next */
     // Add a dependency on the render queue to ensure that
     // it is running before we try to send requests to it.
-    resource.node.addDependency(props.renderQueue);
+    props.renderQueue.addChildDependency(resource);
 
     this.node.defaultChild = resource;
   }
