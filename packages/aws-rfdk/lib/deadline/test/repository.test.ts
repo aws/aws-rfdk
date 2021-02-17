@@ -11,6 +11,7 @@ import {
   haveResourceLike,
   ResourcePart,
   stringLike,
+  SynthUtils,
 } from '@aws-cdk/assert';
 import {AutoScalingGroup} from '@aws-cdk/aws-autoscaling';
 import {DatabaseCluster} from '@aws-cdk/aws-docdb';
@@ -49,6 +50,7 @@ import {
   DatabaseConnection,
   IVersion,
   Repository,
+  VersionQuery,
 } from '../lib';
 import {
   REPO_DC_ASSET,
@@ -78,7 +80,7 @@ beforeEach(() => {
       patchVersion: 2,
       repository: {
         objectKey: 'testInstaller',
-        s3Bucket: new Bucket(stack, 'InstallerBucket'),
+        s3Bucket: new Bucket(stack, 'LinuxInstallerBucket'),
       },
     },
     linuxFullVersionString: () => '10.1.9.2',
@@ -1057,4 +1059,22 @@ describe('tagging', () => {
       'AWS::SSM::Parameter': 1,
     },
   });
+});
+
+test('validates VersionQuery is not in a different stack', () => {
+  // GIVEN
+  const newStack = new Stack(app, 'NewStack');
+  version = new VersionQuery(stack, 'Version');
+  new Repository(newStack, 'Repository', {
+    vpc,
+    version,
+  });
+
+  // WHEN
+  function synth() {
+    SynthUtils.synthesize(newStack);
+  }
+
+  // THEN
+  expect(synth).toThrow('A VersionQuery can not be supplied from a different stack');
 });

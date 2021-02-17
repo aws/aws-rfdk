@@ -14,6 +14,7 @@ import {
   not,
   objectLike,
   ResourcePart,
+  SynthUtils,
 } from '@aws-cdk/assert';
 import {
   Certificate,
@@ -81,6 +82,7 @@ describe('RenderQueue', () => {
 
   let repository: Repository;
   let version: IVersion;
+  let renderQueueVersion: IVersion;
 
   let renderQueueCommon: RenderQueue;
 
@@ -99,10 +101,11 @@ describe('RenderQueue', () => {
     images = {
       remoteConnectionServer: rcsImage,
     };
+    renderQueueVersion = new VersionQuery(stack, 'Version');
     renderQueueCommon = new RenderQueue(stack, 'RenderQueueCommon', {
       images,
       repository,
-      version,
+      version: renderQueueVersion,
       vpc,
     });
   });
@@ -223,7 +226,7 @@ describe('RenderQueue', () => {
         new RenderQueue(isolatedStack, 'RenderQueue', {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           renderQueueSize: {},
         });
@@ -243,7 +246,7 @@ describe('RenderQueue', () => {
       const props: RenderQueueProps = {
         images,
         repository,
-        version,
+        version: renderQueueVersion,
         vpc,
         renderQueueSize: {
           min,
@@ -262,16 +265,16 @@ describe('RenderQueue', () => {
     test('configures minimum number of ASG instances', () => {
       // GIVEN
       const min = 1;
+      const isolatedStack = new Stack(app, 'IsolatedStack');
       const props: RenderQueueProps = {
         images,
         repository,
-        version,
+        version: new VersionQuery(isolatedStack, 'Version'),
         vpc,
         renderQueueSize: {
           min,
         },
       };
-      const isolatedStack = new Stack(app, 'IsolatedStack');
 
       // WHEN
       new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -297,7 +300,7 @@ describe('RenderQueue', () => {
       const props: RenderQueueProps = {
         images,
         repository,
-        version,
+        version: renderQueueVersion,
         vpc,
         renderQueueSize: {
           desired: 2,
@@ -318,16 +321,16 @@ describe('RenderQueue', () => {
 
       beforeEach(() => {
         // GIVEN
+        isolatedStack = new Stack(app, 'IsolatedStack');
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           renderQueueSize: {
             desired,
           },
         };
-        isolatedStack = new Stack(app, 'IsolatedStack');
 
         // WHEN
         new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -354,14 +357,14 @@ describe('RenderQueue', () => {
 
       beforeEach(() => {
         // GIVEN
+        isolatedStack = new Stack(app, 'IsolatedStack');
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           trafficEncryption: {},
         };
-        isolatedStack = new Stack(app, 'IsolatedStack');
 
         // WHEN
         new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -392,16 +395,16 @@ describe('RenderQueue', () => {
 
       beforeEach(() => {
         // GIVEN
+        isolatedStack = new Stack(app, 'IsolatedStack');
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           trafficEncryption: {
             internalProtocol: ApplicationProtocol.HTTPS,
           },
         };
-        isolatedStack = new Stack(app, 'IsolatedStack');
 
         // WHEN
         renderQueue = new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -519,16 +522,16 @@ describe('RenderQueue', () => {
 
       beforeEach(() => {
         // GIVEN
+        isolatedStack = new Stack(app, 'IsolatedStack');
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           trafficEncryption: {
             internalProtocol: ApplicationProtocol.HTTP,
           },
         };
-        isolatedStack = new Stack(app, 'IsolatedStack');
 
         // WHEN
         new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -563,7 +566,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           trafficEncryption: {
             externalTLS: {
@@ -608,7 +611,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: renderQueueVersion,
           vpc,
           trafficEncryption: {
             externalTLS: {
@@ -655,7 +658,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           trafficEncryption: {
             externalTLS: {
@@ -743,7 +746,7 @@ describe('RenderQueue', () => {
       const props: RenderQueueProps = {
         images,
         repository,
-        version,
+        version: new VersionQuery(isolatedStack, 'Version'),
         vpc,
         trafficEncryption: {
           externalTLS: {
@@ -778,7 +781,7 @@ describe('RenderQueue', () => {
       const props: RenderQueueProps = {
         images,
         repository,
-        version,
+        version: new VersionQuery(isolatedStack, 'Version'),
         vpc,
         trafficEncryption: {
           externalTLS: {
@@ -811,7 +814,7 @@ describe('RenderQueue', () => {
       const props: RenderQueueProps = {
         images,
         repository,
-        version,
+        version: new VersionQuery(isolatedStack, 'Version'),
         vpc,
         trafficEncryption: {
           externalTLS: {
@@ -849,7 +852,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           hostname: {
             zone,
@@ -1278,7 +1281,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           hostname: {
             zone,
@@ -1688,10 +1691,11 @@ describe('RenderQueue', () => {
         availabilityZone: 'us-west-2b',
       }),
     ];
+    const isolatedStack = new Stack(app, 'IsolatedStack');
     const props: RenderQueueProps = {
       images,
       repository,
-      version,
+      version: new VersionQuery(isolatedStack, 'Version'),
       vpc,
       vpcSubnets: {
         subnets,
@@ -1700,7 +1704,6 @@ describe('RenderQueue', () => {
         subnets,
       },
     };
-    const isolatedStack = new Stack(app, 'IsolatedStack');
 
     // WHEN
     new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -1721,14 +1724,14 @@ describe('RenderQueue', () => {
 
   test('can specify instance type', () => {
     // GIVEN
+    const isolatedStack = new Stack(app, 'IsolatedStack');
     const props: RenderQueueProps = {
       images,
       instanceType: InstanceType.of(InstanceClass.C5, InstanceSize.LARGE),
       repository,
-      version,
+      version: new VersionQuery(isolatedStack, 'Version'),
       vpc,
     };
-    const isolatedStack = new Stack(app, 'IsolatedStack');
 
     // WHEN
     new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -1741,14 +1744,14 @@ describe('RenderQueue', () => {
 
   test('no deletion protection', () => {
     // GIVEN
+    const isolatedStack = new Stack(app, 'IsolatedStack');
     const props: RenderQueueProps = {
       images,
       repository,
-      version,
+      version: new VersionQuery(isolatedStack, 'Version'),
       vpc,
       deletionProtection: false,
     };
-    const isolatedStack = new Stack(app, 'IsolatedStack');
 
     // WHEN
     new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -1768,13 +1771,13 @@ describe('RenderQueue', () => {
 
   test('drop invalid http header fields enabled', () => {
     // GIVEN
+    const isolatedStack = new Stack(app, 'IsolatedStack');
     const props: RenderQueueProps = {
       images,
       repository,
-      version,
+      version: new VersionQuery(isolatedStack, 'Version'),
       vpc,
     };
-    const isolatedStack = new Stack(app, 'IsolatedStack');
 
     // WHEN
     new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -1803,7 +1806,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
         };
 
@@ -1832,7 +1835,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           hostname: {
             zone,
@@ -2267,5 +2270,24 @@ describe('RenderQueue', () => {
       }));
     });
 
+  });
+  test('validates VersionQuery is not in a different stack', () => {
+    // GIVEN
+    const newStack = new Stack(app, 'NewStack');
+    // WHEN
+    new RenderQueue(newStack, 'RenderQueueNew', {
+      images,
+      repository,
+      version,
+      vpc,
+    });
+
+    // WHEN
+    function synth() {
+      SynthUtils.synthesize(newStack);
+    }
+
+    // THEN
+    expect(synth).toThrow('A VersionQuery can not be supplied from a different stack');
   });
 });

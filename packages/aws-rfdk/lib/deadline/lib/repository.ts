@@ -64,6 +64,7 @@ import {
 
 import { DatabaseConnection } from './database-connection';
 import { IHost } from './host-ref';
+import { VersionQuery } from './version-query';
 import { IVersion } from './version-ref';
 
 /**
@@ -583,6 +584,22 @@ export class Repository extends Construct implements IRepository {
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
+  }
+
+  protected onValidate(): string[] {
+    const validationErrors = [];
+
+    // Using the output of VersionQuery across stacks can cause issues. CloudFormation stack outputs cannot change if
+    // a resource in another stack is referencing it.
+    if (this.version instanceof VersionQuery) {
+      const versionStack = Stack.of(this.version);
+      const thisStack = Stack.of(this);
+      if (versionStack != thisStack) {
+        validationErrors.push('A VersionQuery can not be supplied from a different stack');
+      }
+    }
+
+    return validationErrors;
   }
 
   /**
