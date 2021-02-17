@@ -3,24 +3,26 @@
 
 from dataclasses import dataclass
 
-from aws_cdk.core import (
-    Construct,
-    Stack,
-    StackProps,
-)
 from aws_cdk.aws_ec2 import (
     MachineImage,
     Vpc,
+    WindowsVersion
+)
+from aws_cdk.core import (
+    Construct,
+    Stack,
+    StackProps
 )
 from aws_rfdk.deadline import (
     RenderQueue,
-    WorkerInstanceFleet,
+    VersionQuery,
+    WorkerInstanceFleet
 )
 
-from .deadline_image import (
-    DeadlineImage,
+from .deadline_machine_image import (
+    DeadlineMachineImage,
     ImageBuilderProps,
-    OSType,
+    OSType
 )
 
 @dataclass
@@ -30,12 +32,6 @@ class ComputeStackProps(StackProps):
 
     # The version of the image recipe used to create the AMI's for the workers
     image_recipe_version: str
-
-    # The AMI ID of the AMI that we'll use as the parent to install Deadline onto
-    parent_ami_id_linux: str
-
-    # The AMI ID of the AMI that we'll use as the parent to install Deadline onto
-    parent_ami_id_windows: str
 
     # The render farm's RenderQueue costruct
     render_queue: RenderQueue
@@ -55,16 +51,22 @@ class ComputeStack(Stack):
 
         region = Stack.of(self).region
 
+        version = VersionQuery(
+            self,
+            'Version',
+            version=props.deadline_version
+        )
+
         # Take a Linux image and install Deadline on it to create a new image
-        linux_image = DeadlineImage(
+        linux_image = DeadlineMachineImage(
             self,
             "LinuxImage",
             props=ImageBuilderProps(
-                deadline_version=props.deadline_version,
+                deadline_version=version.linux_full_version_string(),
                 os_type=OSType.LINUX,
-                parent_ami=props.parent_ami_id_linux,
-                image_version=props.image_recipe_version,
-            ),
+                parent_ami=MachineImage.latest_amazon_linux(),
+                image_version=props.image_recipe_version
+            )
         )
         # Set up a worker fleet that uses the image we just created
         worker_fleet_linux = WorkerInstanceFleet(
@@ -72,19 +74,19 @@ class ComputeStack(Stack):
             "WorkerFleetLinux",
             vpc=props.vpc,
             render_queue=props.render_queue,
-            worker_machine_image=MachineImage.generic_linux({ region: linux_image.ami_id }),
+            worker_machine_image=MachineImage.generic_linux({ region: linux_image.ami_id })
         )
         worker_fleet_linux.fleet.node.default_child.node.add_dependency(linux_image.node.default_child)
 
         # Take a Windows image and install Deadline on it to create a new image
-        windows_image = DeadlineImage(
+        windows_image = DeadlineMachineImage(
             self,
             "WindowsImage",
             props=ImageBuilderProps(
-                deadline_version=props.deadline_version,
+                deadline_version=version.linux_full_version_string(),
                 os_type=OSType.WINDOWS,
-                parent_ami=props.parent_ami_id_windows,
-                image_version=props.image_recipe_version,
+                parent_ami=MachineImage.latest_windows(WindowsVersion.WINDOWS_SERVER_2019_ENGLISH_CORE_BASE),
+                image_version=props.image_recipe_version
             )
         )
         # Set up a worker fleet that uses the image we just created
@@ -93,6 +95,6 @@ class ComputeStack(Stack):
             "WorkerFleetWindows",
             vpc=props.vpc,
             render_queue=props.render_queue,
-            worker_machine_image=MachineImage.generic_windows({ region: windows_image.ami_id }),
+            worker_machine_image=MachineImage.generic_windows({ region: windows_image.ami_id })
         )
         worker_fleet_windows.fleet.node.default_child.node.add_dependency(windows_image.node.default_child)

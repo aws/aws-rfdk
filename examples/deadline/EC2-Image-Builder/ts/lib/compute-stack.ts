@@ -6,6 +6,7 @@
 import {
   MachineImage,
   Vpc,
+  WindowsVersion,
 } from '@aws-cdk/aws-ec2';
 import {
   CfnResource,
@@ -15,25 +16,16 @@ import {
 } from '@aws-cdk/core';
 import {
   RenderQueue,
+  VersionQuery,
   WorkerInstanceFleet,
 } from 'aws-rfdk/deadline';
 
 import {
-  DeadlineImage,
+  DeadlineMachineImage,
   OSType,
-} from './deadline-image';
+} from './deadline-machine-image';
 
 export interface ComputeStackProps extends StackProps {
-  /**
-   * The AMI ID that Image Builder will use as the parent to create the new Linux AMI from
-   */
-  readonly deadlineLinuxParentAmiId: string;
-
-  /**
-   * The AMI ID that Image Builder will use as the parent to create the new Windows AMI from
-   */
-  readonly deadlineWindowsParentAmiId: string;
-
   /**
    * Version of Deadline to use.
    */
@@ -65,11 +57,15 @@ export class ComputeStack extends Stack {
 
     const region = Stack.of(this).region;
 
+    const version = new VersionQuery(this, 'Version', {
+      version: props.deadlineVersion,
+    });
+
     // Take a Linux image and install Deadline on it to create a new image
-    const linuxImage = new DeadlineImage(this, 'LinuxImage', {
-      deadlineVersion: props.deadlineVersion,
+    const linuxImage = new DeadlineMachineImage(this, 'LinuxImage', {
+      deadlineVersion: version.linuxFullVersionString(),
       osType: OSType.LINUX,
-      parentAmi: props.deadlineLinuxParentAmiId,
+      parentAmi: MachineImage.latestAmazonLinux(),
       imageVersion: props.imageRecipeVersion,
     });
     // Set up a worker fleet that uses the image we just created
@@ -81,10 +77,10 @@ export class ComputeStack extends Stack {
     workerFleetLinux.fleet.node.defaultChild?.node.addDependency(linuxImage.node.defaultChild as CfnResource);
 
     // Take a Windows image and install Deadline on it to create a new image
-    const windowsImage = new DeadlineImage(this, 'WindowsImage', {
-      deadlineVersion: props.deadlineVersion,
+    const windowsImage = new DeadlineMachineImage(this, 'WindowsImage', {
+      deadlineVersion: version.linuxFullVersionString(),
       osType: OSType.WINDOWS,
-      parentAmi: props.deadlineWindowsParentAmiId,
+      parentAmi: MachineImage.latestWindows(WindowsVersion.WINDOWS_SERVER_2019_ENGLISH_CORE_BASE),
       imageVersion: props.imageRecipeVersion,
     });
     // Set up a worker fleet that uses the image we just created

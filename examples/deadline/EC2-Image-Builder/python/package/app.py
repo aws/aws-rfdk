@@ -7,13 +7,13 @@ import os
 
 from aws_cdk.core import (
     App,
-    Environment,
+    Environment
 )
 
 from .config import config
 from .lib import (
     base_farm_stack,
-    compute_stack,
+    compute_stack
 )
 
 def main():
@@ -30,17 +30,15 @@ def main():
 
     farm_props = base_farm_stack.BaseFarmStackProps(
         deadline_version=config.deadline_version,
-        accept_aws_thinkbox_eula=config.accept_aws_thinkbox_eula,
+        accept_aws_thinkbox_eula=config.accept_aws_thinkbox_eula
     )
     farm_stack = base_farm_stack.BaseFarmStack(app, 'BaseFarmStack', props=farm_props, env=env)
 
     compute_stack_props = compute_stack.ComputeStackProps(
         deadline_version=config.deadline_version,
         image_recipe_version=config.image_recipe_version,
-        parent_ami_id_linux=config.deadline_parent_ami_id_linux,
-        parent_ami_id_windows=config.deadline_parent_ami_id_windows,
         render_queue=farm_stack.render_queue,
-        vpc=farm_stack.vpc,
+        vpc=farm_stack.vpc
     )
     compute_stack.ComputeStack(app, 'ComputeStack', props=compute_stack_props, env=env)
 

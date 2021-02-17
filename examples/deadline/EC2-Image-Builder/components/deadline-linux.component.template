@@ -8,7 +8,7 @@ phases:
       -
         name: DownloadDeadlineClient
         action: S3Download
-        timeoutSeconds: 60
+        timeoutSeconds: 120
         onFailure: Abort
         maxAttempts: 3
         inputs:

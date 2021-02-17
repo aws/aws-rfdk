@@ -21,7 +21,7 @@ These instructions assume that your working directory is `examples/deadline/EC2-
 
 3.  Change the value of the `deadlineVersion` variable in `bin/config.ts` to specify the desired version of Deadline to be deployed to your render farm. RFDK is compatible with Deadline versions 10.1.9.x and later. To see the available versions of Deadline, consult the [Deadline release notes](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html). It is recommended to use the latest version of Deadline available when building your farm, but to pin this version when the farm is ready for production use. For example, to pin to the latest `10.1.13` release of Deadline, use `10.1.13.1`.
 
-4. Set the values of `deadlineLinuxParentAmiId` and `deadlineWindowsParentAmiId` in `bin/config.ts` to the AMI ID's that you'd like to use as the parents EC2 Image Builder wil use to install Deadline onto. There is a field for Linux and another for Windows because the `ComputeStack` creates an image and a worker fleet for both OSes.
+4. Set the values of `deadlineLinuxParentAmiId` and `deadlineWindowsParentAmiId` in `bin/config.ts` to the AMI ID's that you'd like to use as the parents EC2 Image Builder will use to install Deadline onto. There is a field for Linux and another for Windows because the `ComputeStack` creates an image and a worker fleet for both OSes.
 
 5. Also in `bin/config.ts`, you can set the version of your image recipe that you'll create by changing the value of `imageRecipeVersion`. The default value here should be fine to start. The image recipe version would only need to be changed if you're changing any inputs for the image creation that will cause a new image to be made.
 

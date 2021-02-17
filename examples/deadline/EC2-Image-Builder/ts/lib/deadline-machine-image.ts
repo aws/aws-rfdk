@@ -5,8 +5,10 @@
 
 import * as path from 'path';
 
+import { IMachineImage } from '@aws-cdk/aws-ec2';
 import {
   CfnInstanceProfile,
+  ManagedPolicy,
   PolicyStatement,
   Role,
   ServicePrincipal,
@@ -18,7 +20,6 @@ import {
   CfnImageRecipe,
   CfnInfrastructureConfiguration,
 } from '@aws-cdk/aws-imagebuilder';
-import { Asset } from '@aws-cdk/aws-s3-assets';
 import {
   CfnResource,
   Construct,
@@ -35,7 +36,7 @@ export enum OSType {
   LINUX = 'Linux',
 }
 
-export interface DeadlineImageProps {
+export interface DeadlineMachineImageProps {
   /**
    * The version of Deadline to install on the image
    */
@@ -47,12 +48,10 @@ export interface DeadlineImageProps {
   readonly osType: OSType,
 
   /**
-   * The parent image of the image recipe.
-   * The string must be either an Image ARN (SemVers is ok) or an AMI ID.
-   * For example, to get the latest vesion of your image, use "x.x.x" like:
-   * arn:aws:imagebuilder:us-west-2:123456789123:image/my-image/x.x.x
+   * The parent image of the image recipe. Can use static methods on MachineImage to find your AMI. See
+   * https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-ec2.MachineImage.html for more details.
    */
-  readonly parentAmi: string,
+  readonly parentAmi: IMachineImage,
 
   /**
    * The image version must be bumped any time the image or any components are modified, otherwise
@@ -88,27 +87,25 @@ export interface DeadlineImageProps {
 /**
  * Construct to setup all the required Image Builder constructs to create an AMI with Deadline installed.
  */
-export class DeadlineImage extends Construct {
+export class DeadlineMachineImage extends Construct {
   public readonly amiId: string;
 
-  constructor(scope: Construct, id: string, props: DeadlineImageProps) {
+  constructor(scope: Construct, id: string, props: DeadlineMachineImageProps) {
     super(scope, id);
 
-    const infrastructureConfiguration = props.infrastructureConfiguration ?? this.createDefaultInfrastructureConfig(scope, id);
+    const infrastructureConfiguration = props.infrastructureConfiguration ?? this.createDefaultInfrastructureConfig(id);
 
     // Create the Deadline component that will install Deadline onto any base image
-    const deadlineComponentDoc = this.getDeadlineComponentDoc(
+    const deadlineComponentData = this.getDeadlineComponent(
       props.deadlineVersion,
-      id,
       props.osType,
-      scope,
     );
 
     const deadlineComponent = new CfnComponent(scope, `DeadlineComponent${id}`, {
       platform: props.osType,
       version: props.imageVersion,
-      uri: deadlineComponentDoc.s3ObjectUrl,
-      description: 'Installs Deadline',
+      data: deadlineComponentData,
+      description: 'Installs Deadline client',
       name: `Deadline${id}`,
     });
 
@@ -122,7 +119,7 @@ export class DeadlineImage extends Construct {
     const imageRecipe = new CfnImageRecipe(scope, `DeadlineRecipe${id}`, {
       components: componentArnList,
       name: `DeadlineInstallationRecipe${id}`,
-      parentImage: props.parentAmi,
+      parentImage: props.parentAmi.getImage(this).imageId,
       version: props.imageVersion,
     });
     imageRecipe.addDependsOn(deadlineComponent);
@@ -131,102 +128,55 @@ export class DeadlineImage extends Construct {
     })
 
     // Create an AMI using the recipe
-    const deadlineImage = new CfnImage(scope, `DeadlineImage${id}`, {
+    const deadlineMachineImage = new CfnImage(scope, `DeadlineMachineImage${id}`, {
       imageRecipeArn: imageRecipe.attrArn,
       infrastructureConfigurationArn: infrastructureConfiguration.attrArn,
     });
 
-    this.node.defaultChild = deadlineImage;
-    this.amiId = Token.asString(deadlineImage.getAtt('ImageId'));
+    this.node.defaultChild = deadlineMachineImage;
+    this.amiId = Token.asString(deadlineMachineImage.getAtt('ImageId'));
   }
 
-  /**
-   * Create the YAML document that has the instructions to install Deadline.
-   */
-  private getDeadlineComponentDoc(
+  private getDeadlineComponent(
     deadlineVersion: string,
-    id: string,
     osType: OSType,
-    scope: Construct,
-  ): Asset {
+  ): string {
     const s3Uri = osType == OSType.LINUX
       ? `s3://thinkbox-installers/Deadline/${deadlineVersion}/Linux/DeadlineClient-${deadlineVersion}-linux-x64-installer.run`
       : `s3://thinkbox-installers/Deadline/${deadlineVersion}/Windows/DeadlineClient-${deadlineVersion}-windows-installer.exe`;
 
-    return new Asset(scope, `DeadlineComponentDoc${id}`, {
-      path: templateComponent({
-        templatePath: path.join(__dirname, '..', '..', 'components', `deadline-${osType.toLowerCase()}.component.template`),
-        tokens: {
-          s3uri: s3Uri,
-          version: deadlineVersion,
-        },
-      }),
+    return templateComponent({
+      templatePath: path.join(__dirname, '..', '..', 'components', `deadline-${osType.toLowerCase()}.component.template`),
+      tokens: {
+        s3uri: s3Uri,
+        version: deadlineVersion,
+      },
     });
   }
 
   /**
    * Create the default infrastructure config, which defines the permissions needed by Image Builder during image creation.
    */
-  private createDefaultInfrastructureConfig(scope: Construct, id: string): CfnInfrastructureConfiguration {
-    const imageBuilderRoleName = `DeadlineImageBuilderRole${id}`;
+  private createDefaultInfrastructureConfig(id: string): CfnInfrastructureConfiguration {
+    const imageBuilderRoleName = `DeadlineMachineImageBuilderRole${id}`;
 
-    const imageBuilderRole = new Role(scope, `DeadlineImageBuilderRole${id}`, {
+    const imageBuilderRole = new Role(this, imageBuilderRoleName, {
       assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
       roleName: imageBuilderRoleName,
     });
+    imageBuilderRole.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName('EC2InstanceProfileForImageBuilder'));
+    imageBuilderRole.addManagedPolicy(ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore'));
+
     imageBuilderRole.addToPolicy(new PolicyStatement({
       actions: [
-        'ec2messages:AcknowledgeMessage',
-        'ec2messages:DeleteMessage',
-        'ec2messages:FailMessage',
-        'ec2messages:GetEndpoint',
-        'ec2messages:GetMessages',
-        'ec2messages:SendReply',
-        'imagebuilder:GetComponent',
         's3:Get*',
         's3:List*',
-        'ssm:DescribeAssociation',
-        'ssm:GetDeployablePatchSnapshotForInstance',
-        'ssm:GetDocument',
-        'ssm:DescribeDocument',
-        'ssm:GetManifest',
-        'ssm:GetParameter',
-        'ssm:GetParameters',
-        'ssm:ListAssociations',
-        'ssm:ListInstanceAssociations',
-        'ssm:PutInventory',
-        'ssm:PutComplianceItems',
-        'ssm:PutConfigurePackageResult',
-        'ssm:UpdateAssociationStatus',
-        'ssm:UpdateInstanceAssociationStatus',
-        'ssm:UpdateInstanceInformation',
-        'ssmmessages:CreateControlChannel',
-        'ssmmessages:CreateDataChannel',
-        'ssmmessages:OpenControlChannel',
-        'ssmmessages:OpenDataChannel',
       ],
-      resources: ['*'],
-    }));
-    imageBuilderRole.addToPolicy(new PolicyStatement({
-      actions: ['logs:*'],
-      resources: ['arn:aws:logs:*:*:log-group:/aws/imagebuilder/*'],
+      resources: ['arn:aws:s3:::thinkbox-installers/*'],
     }));
 
-    const tagCondition: { [key: string]: any } = {};
-    tagCondition['kms:EncryptionContextKeys'] = 'aws:imagebuilder:arn';
-    tagCondition['aws:CalledVia'] = 'imagebuilder.amazonaws.com';
-    imageBuilderRole.addToPolicy(new PolicyStatement({
-      actions: [
-        'kms:Decrypt',
-      ],
-      resources: ['*'],
-      conditions: {
-        StringEquals: tagCondition,
-      },
-    }));
-
-    const imageBuilderProfileName = `DeadlineImageBuilderPolicy${id}`;
-    const imageBuilderProfile = new CfnInstanceProfile(scope, `DeadlineImageBuilderPolicy${id}`, {
+    const imageBuilderProfileName = `DeadlineMachineImageBuilderPolicy${id}`;
+    const imageBuilderProfile = new CfnInstanceProfile(this, imageBuilderProfileName, {
       instanceProfileName: imageBuilderProfileName,
       roles: [ imageBuilderRoleName ],
     });
@@ -234,7 +184,7 @@ export class DeadlineImage extends Construct {
     imageBuilderProfile.addDependsOn(imageBuilderRole.node.defaultChild as CfnResource);
 
     const infrastructureConfiguration = new CfnInfrastructureConfiguration(
-        scope,
+        this,
         `InfrastructureConfig${id}`,
         {
           name: `DeadlineInfrastructureConfig${id}`,

@@ -27,8 +27,6 @@ const baseFarm = new BaseFarmStack(app, 'BaseFarmStack', {
 
 new ComputeStack(app, 'ComputeStack', {
   deadlineVersion: config.deadlineVersion,
-  deadlineLinuxParentAmiId: config.deadlineLinuxParentAmiId,
-  deadlineWindowsParentAmiId: config.deadlineWindowsParentAmiId,
   imageRecipeVersion: config.imageRecipeVersion,
   env,
   renderQueue: baseFarm.renderQueue,
