@@ -94,7 +94,7 @@ for COMPONENT in **/cdk.json; do
         # Excecute the e2e test in the component's scripts directory
         cd "$INTEG_ROOT/$COMPONENT_ROOT"
         if [ "${RUN_TESTS_IN_PARALLEL}" = true ]; then
-            ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" || ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" --destroy-only &
+            (../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" || ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" --destroy-only) &
             export ${COMPONENT_NAME}_PID=$!
             COMPONENTS+=(${COMPONENT_NAME})
         else
@@ -118,6 +118,9 @@ if [ "${RUN_TESTS_IN_PARALLEL}" = true ]; then
               fi
               if [ -f "$INTEG_TEMP_DIR/${COMPONENT_NAME}.txt" ]; then
                 cat "$INTEG_TEMP_DIR/${COMPONENT_NAME}.txt"
+              fi
+              if [ -f "$INTEG_TEMP_DIR/${COMPONENT_NAME}_destroy.txt" ]; then
+                cat "$INTEG_TEMP_DIR/${COMPONENT_NAME}_destroy.txt"
               fi
             fi
             export ${COMPONENT_NAME}_FINISH_TIME=$SECONDS
