@@ -232,7 +232,18 @@ describe('SpotEventPluginFleet', () => {
           })],
         }),
         ManagedPolicyArns: arrayWith(
-          'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole',
+          {
+            'Fn::Join': [
+              '',
+              [
+                'arn:',
+                {
+                  Ref: 'AWS::Partition',
+                },
+                ':iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole',
+              ],
+            ],
+          },
         ),
       }));
     });
@@ -492,7 +503,7 @@ describe('SpotEventPluginFleet', () => {
       const fleetRole = new Role(stack, 'FleetRole', {
         assumedBy: new ServicePrincipal('spotfleet.amazonaws.com'),
         managedPolicies: [
-          ManagedPolicy.fromManagedPolicyArn(stack, 'AmazonEC2SpotFleetTaggingRole', 'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'),
+          ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonEC2SpotFleetTaggingRole'),
         ],
       });
 
@@ -520,7 +531,18 @@ describe('SpotEventPluginFleet', () => {
           })],
         }),
         ManagedPolicyArns: arrayWith(
-          'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole',
+          {
+            'Fn::Join': [
+              '',
+              [
+                'arn:',
+                {
+                  Ref: 'AWS::Partition',
+                },
+                ':iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole',
+              ],
+            ],
+          },
         ),
       }));
     });

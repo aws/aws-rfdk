@@ -92,6 +92,8 @@ These instructions assume that your working directory is `examples/deadline/All-
 
 10. Once you are finished with the sample app, you can tear it down by running:
 
+    **Note:** Any resources created by the Spot Event Plugin will not be deleted with 'cdk destroy'. Make sure that all such resources (e.g. Spot Fleet Request or Fleet Instances) are cleaned up, before destroying the stacks.
+
     ```bash
     cdk destroy "*"
     ```

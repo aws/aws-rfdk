@@ -75,10 +75,10 @@ import {
 import {
   tagConstruct,
 } from '../../core/lib/runtime-info';
-
 import {
   RenderQueueConnection,
 } from './rq-connection';
+import { WaitForStableService } from './wait-for-stable-service';
 
 /**
  * Interface for Deadline Render Queue.
@@ -245,6 +245,11 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    * The ECS task for the RCS.
    */
   private readonly taskDefinition: Ec2TaskDefinition;
+
+  /**
+   * Depend on this to ensure that ECS Service is stable.
+   */
+  private ecsServiceStabilized: WaitForStableService;
 
   constructor(scope: Construct, id: string, props: RenderQueueProps) {
     super(scope, id);
@@ -459,6 +464,10 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       });
     }
 
+    this.ecsServiceStabilized = new WaitForStableService(this, 'WaitForStableService', {
+      service: this.pattern.service,
+    });
+
     this.node.defaultChild = taskDefinition;
 
     // Tag deployed resources with RFDK meta-data
@@ -533,6 +542,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     child.node.addDependency(this.listener);
     child.node.addDependency(this.taskDefinition);
     child.node.addDependency(this.pattern.service);
+    child.node.addDependency(this.ecsServiceStabilized);
   }
 
   /**

@@ -121,10 +121,10 @@ export class DeadlineClient {
    *
    * @param path The resource to request for.
    * @param requestOptions Other request options, including headers, timeout, etc.
-   * @param retries The number of retries if received status code 503 Service Temporarily unavailable.
-   * @param retryWaitMs The amount of time in milliseconds to wait between the retries.
+   * @param retries The number of retries if received status code 503 Service Temporarily unavailable. Default: 3
+   * @param retryWaitMs The amount of time in milliseconds to wait between the retries. Default: 1 min
    */
-  public async GetRequest(path: string, requestOptions?: https.RequestOptions, retries: number=3, retryWaitMs=0): Promise<Response> {
+  public async GetRequest(path: string, requestOptions?: https.RequestOptions, retries: number=3, retryWaitMs=60000): Promise<Response> {
     const options = this.FillRequestOptions(path, 'GET', requestOptions);
     return this.performRequestWithRetry(options, retries, retryWaitMs);
   }
@@ -135,10 +135,10 @@ export class DeadlineClient {
    * @param path The resource to request for.
    * @param data The data (body) of the request that contains the information to be sent.
    * @param requestOptions Other request options, including headers, timeout, etc.
-   * @param retries The number of retries if received status code 503 Service Temporarily unavailable.
-   * @param retryWaitMs The amount of time in milliseconds to wait between the retries.
+   * @param retries The number of retries if received status code 503 Service Temporarily unavailable. Default: 3
+   * @param retryWaitMs The amount of time in milliseconds to wait between the retries. Default: 1 min
    */
-  public async PostRequest(path: string, data?: any, requestOptions?: https.RequestOptions, retries: number=3, retryWaitMs=0): Promise<Response> {
+  public async PostRequest(path: string, data?: any, requestOptions?: https.RequestOptions, retries: number=3, retryWaitMs=60000): Promise<Response> {
     const options = this.FillRequestOptions(path, 'POST', requestOptions);
     return this.performRequestWithRetry(options, retries, retryWaitMs, data ? JSON.stringify(data) : undefined);
   }

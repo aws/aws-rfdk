@@ -48,6 +48,8 @@ The `ConfigureSpotEventPlugin` construct has two main responsibilities:
 - Create the Deadline Pools to which the fleet Workers are added.
 - Submit the job with the assigned Deadline Group and Deadline Pool.
 
+**Note:** Any resources created by the Spot Event Plugin will not be deleted with 'cdk destroy'. Make sure that all such resources (e.g. Spot Fleet Request or Fleet Instances) are cleaned up, before destroying the stacks.
+
 ### Saving Spot Event Plugin Options
 
 To set the Spot Event Plugin options use `configuration` property of the `ConfigureSpotEventPlugin` construct:

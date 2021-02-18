@@ -120,7 +120,7 @@ export interface SpotEventPluginFleetProps {
    * const role = new iam.Role(this, 'FleetRole', {
    *   assumedBy: new iam.ServicePrincipal('spotfleet.amazonaws.com'),
    *   managedPolicies: [
-   *     ManagedPolicy.fromManagedPolicyArn(this, 'AmazonEC2SpotFleetTaggingRole', 'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'),
+   *     ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonEC2SpotFleetTaggingRole'),
    *   ],
    * });
    * ```
@@ -427,7 +427,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     this.fleetRole = props.fleetRole ?? new Role(this, 'SpotFleetRole', {
       assumedBy: new ServicePrincipal('spotfleet.amazonaws.com'),
       managedPolicies: [
-        ManagedPolicy.fromManagedPolicyArn(this, 'AmazonEC2SpotFleetTaggingRole', 'arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole'),
+        ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonEC2SpotFleetTaggingRole'),
       ],
       description: `Spot Fleet role for ${id} in region ${Stack.of(scope).region}`,
     });
