@@ -1056,9 +1056,6 @@ describe('ConfigureSpotEventPlugin', () => {
         spotFleets: [
           fleet,
         ],
-        trafficEncryption: {
-          caCert: caCert.cert,
-        },
       });
 
       // THEN
@@ -1071,12 +1068,7 @@ describe('ConfigureSpotEventPlugin', () => {
                 'secretsmanager:DescribeSecret',
               ],
               Effect: 'Allow',
-              Resource: {
-                'Fn::GetAtt': [
-                  stack.getLogicalId(caCert.node.defaultChild as CfnElement),
-                  'Cert',
-                ],
-              },
+              Resource: stack.resolve((renderQueueWithTls as RenderQueue).certChain!.secretArn),
             },
           ],
         },
@@ -1093,9 +1085,6 @@ describe('ConfigureSpotEventPlugin', () => {
       new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
         vpc,
         renderQueue: renderQueueWithTls,
-        trafficEncryption: {
-          caCert: caCert.cert,
-        },
         spotFleets: [
           fleet,
         ],
@@ -1107,12 +1096,7 @@ describe('ConfigureSpotEventPlugin', () => {
           hostname: stack.resolve(renderQueueWithTls.endpoint.hostname),
           port: '4433',
           protocol: 'HTTPS',
-          caCertificateArn: {
-            'Fn::GetAtt': [
-              stack.getLogicalId(caCert.node.defaultChild as CfnElement),
-              'Cert',
-            ],
-          },
+          caCertificateArn: stack.resolve((renderQueueWithTls as RenderQueue).certChain!.secretArn),
         }),
       })));
     });

@@ -207,6 +207,11 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   public readonly version: IVersion;
 
   /**
+   * The secret containing the cert chain for external connections.
+   */
+  public readonly certChain?: ISecret;
+
+  /**
    * Whether SEP policies have been added
    */
   private haveAddedSEPPolicies: boolean = false;
@@ -230,11 +235,6 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    * The connection object that contains the logic for how clients can connect to the Render Queue.
    */
   private readonly rqConnection: RenderQueueConnection;
-
-  /**
-   * The secret containing the cert chain for external connections.
-   */
-  private readonly certChain?: ISecret;
 
   /**
    * The listener on the ALB that is redirecting traffic to the RCS.

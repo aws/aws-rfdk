@@ -99,7 +99,6 @@ export class SEPStack extends Stack {
       hostname: host,
     };
 
-    // NOTE: this certificate is used by ConfigureSpotEventPlugin construct below.
     const caCert = new X509CertificatePem(this, 'RootCA', {
       subject: {
         cn: 'SampleRootCA',
@@ -133,7 +132,7 @@ export class SEPStack extends Stack {
       trafficEncryption,
     });
 
-    // Creates the Resource Tracker Access role.  This role is required to exist in your account so the resource tracker will work properly
+    // Creates the Resource Tracker Access role. This role is required to exist in your account so the resource tracker will work properly
     // Note: If you already have a Resource Tracker IAM role in your account you can remove this code.
     new Role(this, 'ResourceTrackerRole', {
       assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
@@ -162,9 +161,6 @@ export class SEPStack extends Stack {
     new ConfigureSpotEventPlugin(this, 'ConfigureSpotEventPlugin', {
       vpc,
       renderQueue: renderQueue,
-      trafficEncryption: {
-        caCert: caCert.cert,
-      },
       spotFleets: [
         fleet,
       ],

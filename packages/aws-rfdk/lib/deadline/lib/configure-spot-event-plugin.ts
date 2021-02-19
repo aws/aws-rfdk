@@ -26,7 +26,6 @@ import {
   Runtime,
 } from '@aws-cdk/aws-lambda';
 import { RetentionDays } from '@aws-cdk/aws-logs';
-import { ISecret } from '@aws-cdk/aws-secretsmanager';
 import {
   Annotations,
   Construct,
@@ -228,16 +227,6 @@ export interface SpotEventPluginSettings {
 }
 
 /**
- *  Connection options used if render queue has TLS enabled.
- */
-export interface ConfigureSpotEventPluginTrafficEncryptionProps {
-  /**
-   * The certificate used to sign the the chain of trust used for render queue.
-   */
-  readonly caCert: ISecret;
-}
-
-/**
  * Input properties for ConfigureSpotEventPlugin.
  */
 export interface ConfigureSpotEventPluginProps {
@@ -258,11 +247,6 @@ export interface ConfigureSpotEventPluginProps {
    * @default The instance is placed within a Private subnet.
    */
   readonly vpcSubnets?: SubnetSelection;
-
-  /**
-   * Connection options if the network traffic to the RenderQueue should is encrypted.
-   */
-  readonly trafficEncryption?: ConfigureSpotEventPluginTrafficEncryptionProps;
 
   /**
    * The array of Spot Event Plugin spot fleets used to generate the mapping between groups and spot fleet requests.
@@ -449,7 +433,7 @@ export class ConfigureSpotEventPlugin extends Construct {
     });
 
     configurator.connections.allowToDefaultPort(props.renderQueue);
-    props.trafficEncryption?.caCert.grantRead(configurator.grantPrincipal);
+    props.renderQueue.certChain?.grantRead(configurator.grantPrincipal);
 
     const pluginConfig: PluginSettings = {
       AWSInstanceStatus: props.configuration?.awsInstanceStatus ?? SpotEventPluginDisplayInstanceStatus.DISABLED,
@@ -471,7 +455,7 @@ export class ConfigureSpotEventPlugin extends Construct {
         hostname: props.renderQueue.endpoint.hostname,
         port: props.renderQueue.endpoint.portAsString(),
         protocol: props.renderQueue.endpoint.applicationProtocol,
-        caCertificateArn: props.trafficEncryption?.caCert?.secretArn,
+        caCertificateArn: props.renderQueue.certChain?.secretArn,
       },
       spotFleetRequestConfigurations: spotFleetRequestConfigs,
       spotPluginConfigurations: pluginConfig,

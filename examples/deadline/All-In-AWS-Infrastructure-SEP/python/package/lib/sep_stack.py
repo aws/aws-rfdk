@@ -34,7 +34,6 @@ from aws_cdk.aws_route53 import (
 )
 from aws_rfdk.deadline import (
     ConfigureSpotEventPlugin,
-    ConfigureSpotEventPluginTrafficEncryptionProps,
     RenderQueue,
     RenderQueueExternalTLSProps,
     RenderQueueHostNameProps,
@@ -109,7 +108,6 @@ class SEPStack(Stack):
             )
         )
 
-        # The following code is used to demonstrate how to use the ConfigureSpotEventPlugin if TLS is enabled.
         host = 'renderqueue'
         zone_name = 'deadline-test.internal'
 
@@ -121,7 +119,6 @@ class SEPStack(Stack):
             zone_name=zone_name
         )
 
-        # NOTE: This certificate is also used by ConfigureSpotEventPlugin construct below.
         ca_cert = X509CertificatePem(
             self,
             'RootCA',
@@ -164,7 +161,7 @@ class SEPStack(Stack):
             )
         )
 
-        # Creates the Resource Tracker Access role.  This role is required to exist in your account so the resource tracker will work properly
+        # Creates the Resource Tracker Access role. This role is required to exist in your account so the resource tracker will work properly
         # Note: If you already have a Resource Tracker IAM role in your account you can remove this code.
         Role(
             self,
@@ -194,9 +191,6 @@ class SEPStack(Stack):
             'ConfigureSpotEventPlugin',
             vpc=vpc,
             render_queue=render_queue,
-            traffic_encryption=ConfigureSpotEventPluginTrafficEncryptionProps(
-                ca_cert=ca_cert.cert,
-            ),
             spot_fleets=[fleet],
             configuration=SpotEventPluginSettings(
                 enable_resource_tracker=True

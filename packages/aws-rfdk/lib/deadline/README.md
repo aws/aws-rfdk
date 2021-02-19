@@ -85,34 +85,6 @@ const spotEventPluginConfig = new ConfigureSpotEventPlugin(this, 'ConfigureSpotE
 });
 ```
 
-### Using Traffic Encryption
-
-If the [Render Queue](#render-queue) has traffic encryption enabled, then you need to provide a CA certificate used with the Render Queue.
-Set this certificate using `trafficEncryption` property of the `ConfigureSpotEventPlugin` construct:
-
-```ts
-const caCert = new X509CertificatePem(this, 'RootCA', /* ... */);
-const renderQueue = new RenderQueue(this, 'RenderQueue', {
-  trafficEncryption: {
-    externalTLS: {
-      rfdkCertificate: new X509CertificatePem(this, 'RQCert', {
-        signingCertificate: caCert,
-        /* ... */,
-      }),
-    },
-  },
-  /* ... */,
-});
-
-const spotEventPluginConfig = new ConfigureSpotEventPlugin(this, 'ConfigureSpotEventPlugin', {
-  vpc,
-  renderQueue: renderQueue,
-  trafficEncryption: {
-    caCert: caCert.cert,
-  },
-});
-```
-
 ## Render Queue
 
 The `RenderQueue` is the central service of a Deadline render farm. It consists of the following components:
