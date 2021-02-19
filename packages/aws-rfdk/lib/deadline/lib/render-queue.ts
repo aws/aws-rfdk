@@ -15,6 +15,7 @@ import {
   Connections,
   IConnectable,
   InstanceType,
+  ISecurityGroup,
   Port,
   SubnetType,
 } from '@aws-cdk/aws-ec2';
@@ -304,6 +305,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
         volume: BlockDeviceVolume.ebs(30, { encrypted: true }),
       }],
       updateType: UpdateType.ROLLING_UPDATE,
+      // @ts-ignore
+      securityGroup: props.securityGroupsOptions?.backend,
     });
 
     /**
@@ -347,6 +350,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       vpcSubnets: props.vpcSubnetsAlb ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
       internetFacing: false,
       deletionProtection: props.deletionProtection ?? true,
+      securityGroup: props.securityGroupsOptions?.frontend,
     });
 
     this.pattern = new ApplicationLoadBalancedEc2Service(this, 'AlbEc2ServicePattern', {
@@ -517,6 +521,22 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     // ex: cycles that involve the security group of the RenderQueue & child.
     child.node.addDependency(this.listener);
     child.node.addDependency(this.taskDefinition);
+  }
+
+  /**
+   * Adds security groups to the frontend of the Render Queue, which is its load balancer.
+   * @param securityGroups The security groups to add.
+   */
+  public addFrontendSecurityGroups(...securityGroups: ISecurityGroup[]): void {
+    securityGroups.forEach(securityGroup => this.loadBalancer.addSecurityGroup(securityGroup));
+  }
+
+  /**
+   * Adds security groups to the backend components of the Render Queue, which consists of the AutoScalingGroup for the Deadline RCS.
+   * @param securityGroups The security groups to add.
+   */
+  public addBackendSecurityGroups(...securityGroups: ISecurityGroup[]): void {
+    securityGroups.forEach(securityGroup => this.asg.addSecurityGroup(securityGroup));
   }
 
   private createTaskDefinition(props: {

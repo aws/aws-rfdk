@@ -286,6 +286,12 @@ export interface IMongoDb extends IConnectable, IConstruct {
    * The version of MongoDB that is running on this instance.
    */
   readonly version: MongoDbVersion;
+
+  /**
+   * Adds security groups to the database.
+   * @param securityGroups The security groups to add.
+   */
+  addSecurityGroup(...securityGroups: ISecurityGroup[]): void;
 }
 
 /**
@@ -485,6 +491,13 @@ export class MongoDbInstance extends Construct implements IMongoDb, IGrantable {
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public addSecurityGroup(...securityGroups: ISecurityGroup[]): void {
+    securityGroups?.forEach(securityGroup => this.server.autoscalingGroup.addSecurityGroup(securityGroup));
   }
 
   /**

@@ -21,8 +21,10 @@ import {
   InstanceClass,
   InstanceSize,
   InstanceType,
+  ISecurityGroup,
   IVpc,
   MachineImage,
+  SecurityGroup,
   Subnet,
   SubnetType,
   Vpc,
@@ -1058,6 +1060,74 @@ describe('tagging', () => {
       'AWS::AutoScaling::AutoScalingGroup': 1,
       'AWS::SSM::Parameter': 1,
     },
+  });
+});
+
+describe('Security Groups', () => {
+  let repositorySecurityGroup: ISecurityGroup;
+
+  beforeEach(() => {
+    repositorySecurityGroup = new SecurityGroup(stack, 'AdditionalSecurityGroup', { vpc });
+  });
+
+  describe('DocDB', () => {
+
+    test('adds security groups on construction', () => {
+      // WHEN
+      new Repository(stack, 'Repository', {
+        version,
+        vpc,
+        securityGroupsOptions: {
+          database: repositorySecurityGroup,
+        },
+      });
+
+      // THEN
+      expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBCluster', {
+        VpcSecurityGroupIds: arrayWith(stack.resolve(repositorySecurityGroup.securityGroupId)),
+      }));
+    });
+  });
+
+  describe('EFS', () => {
+
+    test('adds security groups on construction', () => {
+      // WHEN
+      new Repository(stack, 'Repository', {
+        version,
+        vpc,
+        securityGroupsOptions: {
+          fileSystem: repositorySecurityGroup,
+        },
+      });
+
+      // THEN
+      // The EFS construct adds the security group to each mount target, and one mount target is generated per subnet.
+      const numMountTargets = vpc.selectSubnets().subnets.length;
+      expectCDK(stack).to(countResourcesLike('AWS::EFS::MountTarget', numMountTargets, {
+        SecurityGroups: arrayWith(stack.resolve(repositorySecurityGroup.securityGroupId)),
+      }));
+    });
+  });
+
+  describe('Installer', () => {
+
+    test('adds security groups on construction', () => {
+      // WHEN
+      new Repository(stack, 'Repository', {
+        version,
+        vpc,
+        securityGroupsOptions: {
+          installer: repositorySecurityGroup,
+        },
+      });
+
+      // THEN
+      expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+        SecurityGroups: arrayWith(stack.resolve(repositorySecurityGroup.securityGroupId)),
+      }));
+    });
+
   });
 });
 

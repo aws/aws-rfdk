@@ -8,6 +8,7 @@ import {
 } from '@aws-cdk/aws-certificatemanager';
 import {
   InstanceType,
+  ISecurityGroup,
   IVpc,
   SubnetSelection,
 } from '@aws-cdk/aws-ec2';
@@ -212,6 +213,20 @@ export interface RenderQueueAccessLogProps {
 }
 
 /**
+ * Options for security groups of the Render Queue.
+ */
+export interface RenderQueueSecurityGroupsOptions {
+  /**
+   * The security group for the backend components of the Render Queue, which consists of the AutoScalingGroup for the Deadline RCS.
+   */
+  readonly backend?: ISecurityGroup;
+  /**
+   * The security group for the frontend of the Render Queue, which is its load balancer.
+   */
+  readonly frontend?: ISecurityGroup;
+}
+
+/**
  * Properties for the Render Queue
  */
 export interface RenderQueueProps {
@@ -312,6 +327,11 @@ export interface RenderQueueProps {
    * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection
    */
   readonly deletionProtection?: boolean;
+
+  /**
+   * Options to add additional security groups to the Render Queue.
+   */
+  readonly securityGroupsOptions?: RenderQueueSecurityGroupsOptions;
 }
 
 /**

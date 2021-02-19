@@ -26,6 +26,8 @@ import {
   InstanceSize,
   InstanceType,
   MachineImage,
+  Port,
+  SecurityGroup,
   Subnet,
   Vpc,
   WindowsVersion,
@@ -65,6 +67,7 @@ import {
   RenderQueue,
   RenderQueueImages,
   RenderQueueProps,
+  RenderQueueSecurityGroupsOptions,
   Repository,
   VersionQuery,
 } from '../lib';
@@ -2271,6 +2274,120 @@ describe('RenderQueue', () => {
     });
 
   });
+
+  describe('Security Groups', () => {
+    let backendSecurityGroup: SecurityGroup;
+    let frontendSecurityGroup: SecurityGroup;
+
+    beforeEach(() => {
+      backendSecurityGroup = new SecurityGroup(stack, 'ASGSecurityGroup', { vpc });
+      frontendSecurityGroup = new SecurityGroup(stack, 'LBSecurityGroup', { vpc });
+    });
+
+    test('adds security groups on construction', () => {
+      // GIVEN
+      const securityGroupsOptions: RenderQueueSecurityGroupsOptions = {
+        backend: backendSecurityGroup,
+        frontend: frontendSecurityGroup,
+      };
+
+      // WHEN
+      new RenderQueue(stack, 'RenderQueue', {
+        images,
+        repository,
+        version: renderQueueVersion,
+        vpc,
+        securityGroupsOptions,
+      });
+
+      // THEN
+      assertSecurityGroupsWereAdded(securityGroupsOptions);
+    });
+
+    test('adds backend security groups post-construction', () => {
+      // GIVEN
+      const renderQueue = new RenderQueue(stack, 'RenderQueue', {
+        images,
+        repository,
+        version: renderQueueVersion,
+        vpc,
+      });
+
+      // WHEN
+      renderQueue.addBackendSecurityGroups(backendSecurityGroup);
+
+      // THEN
+      assertSecurityGroupsWereAdded({
+        backend: backendSecurityGroup,
+      });
+    });
+
+    test('adds frontend security groups post-construction', () => {
+      // GIVEN
+      const renderQueue = new RenderQueue(stack, 'RenderQueue', {
+        images,
+        repository,
+        version: renderQueueVersion,
+        vpc,
+      });
+
+      // WHEN
+      renderQueue.addFrontendSecurityGroups(frontendSecurityGroup);
+
+      // THEN
+      assertSecurityGroupsWereAdded({
+        frontend: frontendSecurityGroup,
+      });
+    });
+
+    test('security groups added post-construction are not attached to Connections object', () => {
+      // GIVEN
+      const renderQueue = new RenderQueue(stack, 'RenderQueue', {
+        images,
+        repository,
+        version: renderQueueVersion,
+        vpc,
+      });
+      renderQueue.addBackendSecurityGroups(backendSecurityGroup);
+      renderQueue.addFrontendSecurityGroups(frontendSecurityGroup);
+      const peerSecurityGroup = new SecurityGroup(stack, 'PeerSecurityGroup', { vpc });
+
+      // WHEN
+      renderQueue.connections.allowFrom(peerSecurityGroup, Port.tcp(22));
+
+      // THEN
+      // Existing LoadBalancer security groups shouldn't have the ingress rule added
+      expectCDK(stack).notTo(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+        IpProtocol: 'tcp',
+        FromPort: 22,
+        ToPort: 22,
+        GroupId: stack.resolve(frontendSecurityGroup.securityGroupId),
+        SourceSecurityGroupId: stack.resolve(peerSecurityGroup.securityGroupId),
+      }));
+      // Existing AutoScalingGroup security groups shouldn't have the ingress rule added
+      expectCDK(stack).notTo(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+        IpProtocol: 'tcp',
+        FromPort: 22,
+        ToPort: 22,
+        GroupId: stack.resolve(backendSecurityGroup.securityGroupId),
+        SourceSecurityGroupId: stack.resolve(peerSecurityGroup.securityGroupId),
+      }));
+    });
+
+    function assertSecurityGroupsWereAdded(securityGroups: RenderQueueSecurityGroupsOptions) {
+      if (securityGroups.backend !== undefined) {
+        expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+          SecurityGroups: arrayWith(stack.resolve(securityGroups.backend.securityGroupId)),
+        }));
+      }
+      if (securityGroups.frontend !== undefined) {
+        expectCDK(stack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+          SecurityGroups: arrayWith(stack.resolve(securityGroups.frontend.securityGroupId)),
+        }));
+      }
+    }
+  });
+
   test('validates VersionQuery is not in a different stack', () => {
     // GIVEN
     const newStack = new Stack(app, 'NewStack');

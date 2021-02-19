@@ -7,10 +7,12 @@ import * as path from 'path';
 import {
   CfnDBCluster,
   CfnDBInstance,
+  DatabaseCluster,
   IDatabaseCluster,
 } from '@aws-cdk/aws-docdb';
 import {
   IConnectable,
+  ISecurityGroup,
   OperatingSystemType,
   Port,
 } from '@aws-cdk/aws-ec2';
@@ -155,6 +157,13 @@ export abstract class DatabaseConnection {
    * @param child The child to make dependent upon this database.
    */
   public abstract addChildDependency(child: IConstruct): void;
+
+  /**
+   * Adds a security group to the database.
+   *
+   * @param securityGroups The security group to add.
+   */
+  public abstract addSecurityGroup(...securityGroups: ISecurityGroup[]): void;
 }
 
 /**
@@ -268,6 +277,42 @@ class DocDBDatabaseConnection extends DatabaseConnection {
   }
 
   /**
+   * @inheritdoc
+   */
+  public addSecurityGroup(...securityGroups: ISecurityGroup[]): void {
+    let added = false;
+    const errorReasons: string[] = [];
+    if (this.props.database instanceof DatabaseCluster) {
+      const resource = (this.props.database as DatabaseCluster).node.tryFindChild('Resource');
+
+      // TODO: Replace this code with the addSecurityGroup method of DatabaseCluster once this PR is merged:
+      // https://github.com/aws/aws-cdk/pull/13290
+      if (resource instanceof CfnDBCluster) {
+        const cfnCluster = resource as CfnDBCluster;
+        const securityGroupIds = securityGroups.map(sg => sg.securityGroupId);
+
+        if (cfnCluster.vpcSecurityGroupIds === undefined) {
+          cfnCluster.vpcSecurityGroupIds = securityGroupIds;
+        } else {
+          cfnCluster.vpcSecurityGroupIds.push(...securityGroupIds);
+        }
+        added = true;
+      } else {
+        errorReasons.push('The internal implementation of AWS CDK\'s DocumentDB cluster construct has changed.');
+      }
+    } else {
+      errorReasons.push('The "database" property passed to this class is not an instance of AWS CDK\'s DocumentDB cluster construct.');
+    }
+
+    if (!added) {
+      Annotations.of(this.props.database).addWarning(
+        `Failed to add the following security groups to ${this.props.database.node.id}: ${securityGroups.map(sg => sg.node.id).join(', ')}. ` +
+        errorReasons.join(' '),
+      );
+    }
+  }
+
+  /**
    * Deadline is only compatible with MongoDB 3.6. This function attempts to determine whether
    * the given DocDB version is compatible.
    */
@@ -373,6 +418,13 @@ class MongoDbInstanceDatabaseConnection extends DatabaseConnection {
       const db = this.props.database as MongoDbInstance;
       child.node.addDependency(db.server.autoscalingGroup.node.defaultChild!);
     }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public addSecurityGroup(...securityGroups: ISecurityGroup[]): void {
+    this.props.database.addSecurityGroup(...securityGroups);
   }
 
   /**
