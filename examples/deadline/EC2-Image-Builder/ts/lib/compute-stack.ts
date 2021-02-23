@@ -22,7 +22,6 @@ import {
 
 import {
   DeadlineMachineImage,
-  OSType,
 } from './deadline-machine-image';
 
 export interface ComputeStackProps extends StackProps {
@@ -64,7 +63,6 @@ export class ComputeStack extends Stack {
     // Take a Linux image and install Deadline on it to create a new image
     const linuxImage = new DeadlineMachineImage(this, 'LinuxImage', {
       deadlineVersion: version.linuxFullVersionString(),
-      osType: OSType.LINUX,
       parentAmi: MachineImage.latestAmazonLinux(),
       imageVersion: props.imageRecipeVersion,
     });
@@ -79,7 +77,6 @@ export class ComputeStack extends Stack {
     // Take a Windows image and install Deadline on it to create a new image
     const windowsImage = new DeadlineMachineImage(this, 'WindowsImage', {
       deadlineVersion: version.linuxFullVersionString(),
-      osType: OSType.WINDOWS,
       parentAmi: MachineImage.latestWindows(WindowsVersion.WINDOWS_SERVER_2019_ENGLISH_CORE_BASE),
       imageVersion: props.imageRecipeVersion,
     });

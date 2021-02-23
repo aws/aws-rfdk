@@ -66,7 +66,7 @@ export class BaseFarmStack extends Stack {
       vpc: this.vpc,
       version,
       images,
-      repository: repository,
+      repository,
       deletionProtection: false,
     });
   }

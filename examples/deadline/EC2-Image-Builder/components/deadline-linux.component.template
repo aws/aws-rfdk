@@ -27,6 +27,7 @@ phases:
             - "{{ build.DownloadDeadlineClient.inputs[0].destination }} --mode unattended \
                   --connectiontype Remote \
                   --noguimode true \
+                  --slavestartup false \
                   --launcherdaemon true \
                   --restartstalled true \
                   --autoupdateoverride false"
@@ -39,3 +40,6 @@ phases:
         inputs:
           commands:
             - "rm {{ build.DownloadDeadlineClient.inputs[0].destination }}"
+            - "rm /var/log/Thinkbox/Deadline10/deadlineslave*.log"
+            - "rm /var/log/Thinkbox/Deadline10/deadlinelauncher*.log"
+            - "rm /var/log/cloud-init-output.log"

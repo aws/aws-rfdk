@@ -1,6 +1,6 @@
 # RFDK Sample Application - EC2 Image Builder
 
-Keeping software updated on custom AMIs can be a pain if you're creating them manually. The EC2 Image Builder service an option for automating the process. The CDK constructs for Image Builder can be worked into an RFDK app to build the required AMIs for the worker fleet on the fly.
+Keeping software updated on custom AMIs can be a pain if you're creating them manually. The EC2 Image Builder service is an option for automating this process. The CDK constructs for Image Builder can be worked into an RFDK app to build the required AMIs for the worker fleet on the fly.
 
 This is a sample RFDK application that utilizes [EC2 Image Builder](https://docs.aws.amazon.com/imagebuilder/latest/userguide/what-is-image-builder.html) to install and configure the Deadline client onto an AMI that can then be used as the image for a worker fleet. The process of creating an AMI can be lengthy, sometimes extending the deployment of a render farm by 30 minutes, but if you have multiple custom AMI's that you maintain, you may find it easier to let your RFDK application install new versions of the Deadline client onto them, rather than having to do it manually.
 

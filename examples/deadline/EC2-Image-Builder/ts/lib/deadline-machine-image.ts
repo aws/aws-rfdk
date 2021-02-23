@@ -5,7 +5,10 @@
 
 import * as path from 'path';
 
-import { IMachineImage } from '@aws-cdk/aws-ec2';
+import {
+  IMachineImage,
+  OperatingSystemType,
+} from '@aws-cdk/aws-ec2';
 import {
   CfnInstanceProfile,
   ManagedPolicy,
@@ -28,24 +31,11 @@ import {
 
 import { templateComponent } from './template';
 
-export enum OSType {
-  // The Windows operating system
-  WINDOWS = 'Windows',
-
-  // The Linux operating system
-  LINUX = 'Linux',
-}
-
 export interface DeadlineMachineImageProps {
   /**
    * The version of Deadline to install on the image
    */
   readonly deadlineVersion: string,
-
-  /**
-   * The operating system of the image.
-   */
-  readonly osType: OSType,
 
   /**
    * The parent image of the image recipe. Can use static methods on MachineImage to find your AMI. See
@@ -94,15 +84,16 @@ export class DeadlineMachineImage extends Construct {
     super(scope, id);
 
     const infrastructureConfiguration = props.infrastructureConfiguration ?? this.createDefaultInfrastructureConfig(id);
+    const parentAmi = props.parentAmi.getImage(this);
 
     // Create the Deadline component that will install Deadline onto any base image
     const deadlineComponentData = this.getDeadlineComponent(
       props.deadlineVersion,
-      props.osType,
+      parentAmi.osType,
     );
 
     const deadlineComponent = new CfnComponent(scope, `DeadlineComponent${id}`, {
-      platform: props.osType,
+      platform: this.getOsTypeString(parentAmi.osType),
       version: props.imageVersion,
       data: deadlineComponentData,
       description: 'Installs Deadline client',
@@ -119,7 +110,7 @@ export class DeadlineMachineImage extends Construct {
     const imageRecipe = new CfnImageRecipe(scope, `DeadlineRecipe${id}`, {
       components: componentArnList,
       name: `DeadlineInstallationRecipe${id}`,
-      parentImage: props.parentAmi.getImage(this).imageId,
+      parentImage: parentAmi.imageId,
       version: props.imageVersion,
     });
     imageRecipe.addDependsOn(deadlineComponent);
@@ -135,23 +126,6 @@ export class DeadlineMachineImage extends Construct {
 
     this.node.defaultChild = deadlineMachineImage;
     this.amiId = Token.asString(deadlineMachineImage.getAtt('ImageId'));
-  }
-
-  private getDeadlineComponent(
-    deadlineVersion: string,
-    osType: OSType,
-  ): string {
-    const s3Uri = osType == OSType.LINUX
-      ? `s3://thinkbox-installers/Deadline/${deadlineVersion}/Linux/DeadlineClient-${deadlineVersion}-linux-x64-installer.run`
-      : `s3://thinkbox-installers/Deadline/${deadlineVersion}/Windows/DeadlineClient-${deadlineVersion}-windows-installer.exe`;
-
-    return templateComponent({
-      templatePath: path.join(__dirname, '..', '..', 'components', `deadline-${osType.toLowerCase()}.component.template`),
-      tokens: {
-        s3uri: s3Uri,
-        version: deadlineVersion,
-      },
-    });
   }
 
   /**
@@ -194,5 +168,38 @@ export class DeadlineMachineImage extends Construct {
     infrastructureConfiguration.addDependsOn(imageBuilderProfile);
 
     return infrastructureConfiguration;
+  }
+
+  /**
+   * Get the EC2 Image Builder Component for installing Deadline
+   */
+  private getDeadlineComponent(
+    deadlineVersion: string,
+    osType: OperatingSystemType,
+  ): string {
+    const s3Uri = osType == OperatingSystemType.LINUX
+      ? `s3://thinkbox-installers/Deadline/${deadlineVersion}/Linux/DeadlineClient-${deadlineVersion}-linux-x64-installer.run`
+      : `s3://thinkbox-installers/Deadline/${deadlineVersion}/Windows/DeadlineClient-${deadlineVersion}-windows-installer.exe`;
+
+    return templateComponent({
+      templatePath: path.join(__dirname, '..', '..', 'components', `deadline-${this.getOsTypeString(osType).toLowerCase()}.component.template`),
+      tokens: {
+        s3uri: s3Uri,
+        version: deadlineVersion,
+      },
+    });
+  }
+
+  /**
+   * Translate the OperatingSystemType enum into a string.
+   */
+  private getOsTypeString(osType: OperatingSystemType): string {
+    if (osType === OperatingSystemType.LINUX) {
+      return 'Linux';
+    }
+    else if (osType === OperatingSystemType.WINDOWS) {
+      return 'Windows';
+    }
+    return 'Unknown';
   }
 }

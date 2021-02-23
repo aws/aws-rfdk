@@ -6,7 +6,10 @@ from enum import Enum
 import os
 from typing import List
 
-from aws_cdk.aws_ec2 import IMachineImage
+from aws_cdk.aws_ec2 import (
+    IMachineImage,
+    OperatingSystemType
+)
 from aws_cdk.aws_iam import (
     CfnInstanceProfile,
     ManagedPolicy,
@@ -28,19 +31,10 @@ from aws_cdk.core import (
 
 from . import template
 
-class OSType(Enum):
-    # The Windows operating system
-    WINDOWS = 'Windows'
-    # The Linux operating system
-    LINUX = 'Linux'
-
 @dataclass
 class ImageBuilderProps():
     # The version of Deadline to install
     deadline_version: str
-
-    # The operating system of the image
-    os_type: OSType
 
     # The parent image of the image recipe. Can use static methods on MachineImage to find your AMI. See
     # https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-ec2.MachineImage.html for more details.
@@ -75,15 +69,17 @@ class DeadlineMachineImage(Construct):
     ):
         super().__init__(scope, construct_id)
 
+        parent_ami = props.parent_ami.get_image(self)
+
         # Create the Deadline component that defines how to install Deadline onto an image
         deadline_component_data = self.get_deadline_component(
             props.deadline_version,
-            props.os_type
+            parent_ami.os_type
         )
         deadline_component = CfnComponent(
             self,
             f"DeadlineComponent{construct_id}",
-            platform=props.os_type.value,
+            platform=self.get_os_type_string(parent_ami.os_type),
             version=props.image_version,
             data=deadline_component_data,
             description='Installs Deadline client',
@@ -100,7 +96,7 @@ class DeadlineMachineImage(Construct):
             f"DeadlineRecipe{construct_id}",
             components=component_arn_list,
             name=f"DeadlineInstallationRecipe{construct_id}",
-            parent_image=props.parent_ami.get_image(self).image_id,
+            parent_image=parent_ami.image_id,
             version=props.image_version
         )
         image_recipe.add_depends_on(deadline_component)
@@ -123,12 +119,12 @@ class DeadlineMachineImage(Construct):
     def get_deadline_component(
         self,
         deadline_version: str,
-        os_type: OSType,
+        os_type: OperatingSystemType,
     ) -> str:
         """
         Create the YAML document that has the instructions to install Deadline.
         """
-        if os_type is OSType.LINUX:
+        if os_type is OperatingSystemType.LINUX:
             s3_uri = f"s3://thinkbox-installers/Deadline/{deadline_version}/Linux/DeadlineClient-{deadline_version}-linux-x64-installer.run"
         else:
             s3_uri = f"s3://thinkbox-installers/Deadline/{deadline_version}/Windows/DeadlineClient-{deadline_version}-windows-installer.exe"
@@ -139,7 +135,7 @@ class DeadlineMachineImage(Construct):
                     os.getcwd(),
                     "..",
                     "components",
-                    f"deadline-{os_type.value.lower()}.component.template"
+                    f"deadline-{self.get_os_type_string(os_type).lower()}.component.template"
                 ),
                 tokens={
                     "s3uri": s3_uri,
@@ -189,3 +185,11 @@ class DeadlineMachineImage(Construct):
         infrastructure_configuration.add_depends_on(image_builder_profile)
 
         return infrastructure_configuration
+
+    def get_os_type_string(self, os_type: OperatingSystemType) -> str:
+        if (os_type is OperatingSystemType.LINUX):
+            return 'Linux'
+        elif (os_type is OperatingSystemType.WINDOWS):
+            return 'Windows'
+
+        return 'Unknown'

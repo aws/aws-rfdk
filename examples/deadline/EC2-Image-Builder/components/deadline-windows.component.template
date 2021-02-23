@@ -47,8 +47,6 @@ phases:
             - 'New-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control" -Name "ServicesPipeTimeout" -Value 60000 -PropertyType DWORD -Force | Out-Null'
             - '(Get-Content C:\ProgramData\Amazon\EC2-Windows\Launch\Config\LaunchConfig.json).replace("`"setComputerName`": false", "`"setComputerName`": true") | Set-Content C:\ProgramData\Amazon\EC2-Windows\Launch\Config\LaunchConfig.json'
             - 'C:\ProgramData\Amazon\EC2-Windows\Launch\Scripts\InitializeInstance.ps1 -Schedule'
-            - '# If we do not wait at this point we are running into issues with the launcher never stopping until you manually kill the Worker and launcher on the AMI.'
-            - 'Start-Sleep -s 50'
             - 'Stop-Service -Name "deadline10launcherservice"'
       -
         name: Delete
@@ -59,3 +57,6 @@ phases:
         inputs:
           commands:
             - 'Remove-Item -Path "{{ build.DownloadDeadlineClient.inputs[0].destination }}" -Force'
+            - 'Remove-Item -Path "C:\ProgramData\Thinkbox\Deadline10\logs\deadlinelauncher*.log" -Force'
+            - 'Remove-Item -Path "C:\ProgramData\Thinkbox\Deadline10\logs\deadlineslave*.log" -Force'
+            - 'Remove-Item -Path "C:\ProgramData\Amazon\EC2-Windows\Launch\Log\UserdataExecution*.log" -Force'

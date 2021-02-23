@@ -21,8 +21,7 @@ from aws_rfdk.deadline import (
 
 from .deadline_machine_image import (
     DeadlineMachineImage,
-    ImageBuilderProps,
-    OSType
+    ImageBuilderProps
 )
 
 @dataclass
@@ -63,7 +62,6 @@ class ComputeStack(Stack):
             "LinuxImage",
             props=ImageBuilderProps(
                 deadline_version=version.linux_full_version_string(),
-                os_type=OSType.LINUX,
                 parent_ami=MachineImage.latest_amazon_linux(),
                 image_version=props.image_recipe_version
             )
@@ -84,7 +82,6 @@ class ComputeStack(Stack):
             "WindowsImage",
             props=ImageBuilderProps(
                 deadline_version=version.linux_full_version_string(),
-                os_type=OSType.WINDOWS,
                 parent_ami=MachineImage.latest_windows(WindowsVersion.WINDOWS_SERVER_2019_ENGLISH_CORE_BASE),
                 image_version=props.image_recipe_version
             )
