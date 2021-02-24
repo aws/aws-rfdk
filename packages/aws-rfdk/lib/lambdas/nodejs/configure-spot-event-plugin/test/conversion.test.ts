@@ -401,6 +401,13 @@ describe('isValidTagSpecification', () => {
       Key: 'key',
     }],
   };
+  const tagElementValueNotString = {
+    ResourceType: 'type',
+    Tags: [{
+      Key: 'key',
+      Value: 10,
+    }],
+  };
 
   test.each([
     undefined,
@@ -415,6 +422,7 @@ describe('isValidTagSpecification', () => {
     tagElementNoKey,
     tagElementKeyNotString,
     tagElementNoValue,
+    tagElementValueNotString,
   ])('returns false with invalid input %p', (invalidInput: any) => {
     // WHEN
     const result = isValidTagSpecification(invalidInput);

@@ -6,8 +6,6 @@
 import * as http from 'http';
 import * as https from 'https';
 
-/* eslint-disable no-console */
-
 /**
  * Properties for setting up an {@link TLSProps}.
  */
@@ -121,12 +119,10 @@ export class DeadlineClient {
    *
    * @param path The resource to request for.
    * @param requestOptions Other request options, including headers, timeout, etc.
-   * @param retries The number of retries if received status code 503 Service Temporarily unavailable. Default: 3
-   * @param retryWaitMs The amount of time in milliseconds to wait between the retries. Default: 1 min
    */
-  public async GetRequest(path: string, requestOptions?: https.RequestOptions, retries: number=3, retryWaitMs=60000): Promise<Response> {
+  public async GetRequest(path: string, requestOptions?: https.RequestOptions): Promise<Response> {
     const options = this.FillRequestOptions(path, 'GET', requestOptions);
-    return this.performRequestWithRetry(options, retries, retryWaitMs);
+    return this.performRequest(options);
   }
 
   /**
@@ -135,12 +131,10 @@ export class DeadlineClient {
    * @param path The resource to request for.
    * @param data The data (body) of the request that contains the information to be sent.
    * @param requestOptions Other request options, including headers, timeout, etc.
-   * @param retries The number of retries if received status code 503 Service Temporarily unavailable. Default: 3
-   * @param retryWaitMs The amount of time in milliseconds to wait between the retries. Default: 1 min
    */
-  public async PostRequest(path: string, data?: any, requestOptions?: https.RequestOptions, retries: number=3, retryWaitMs=60000): Promise<Response> {
+  public async PostRequest(path: string, data?: any, requestOptions?: https.RequestOptions): Promise<Response> {
     const options = this.FillRequestOptions(path, 'POST', requestOptions);
-    return this.performRequestWithRetry(options, retries, retryWaitMs, data ? JSON.stringify(data) : undefined);
+    return this.performRequest(options, data ? JSON.stringify(data) : undefined);
   }
 
   private FillRequestOptions(path: string, method: string, requestOptions?: https.RequestOptions): https.RequestOptions {
@@ -156,50 +150,38 @@ export class DeadlineClient {
     return options;
   }
 
-  private async performRequestWithRetry(options: https.RequestOptions, retriesLeft: number, retryDelayMs: number, data?: string): Promise<Response> {
-    return this.performRequest(options, data)
-      .catch(async (rejection) => {
-        if (rejection.statusCode === 503 && retriesLeft > 0) {
-          console.log(`Request failed with ${rejection.statusCode}: ${rejection.statusMessage}. Will retry after ${retryDelayMs} ms.`);
-          console.log(`Retries left: ${retriesLeft}`);
-          const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
-          await delay(retryDelayMs);
-          return await this.performRequestWithRetry(options, retriesLeft - 1, retryDelayMs, data);
-        }
-        else {
-          return await Promise.reject(new Error(rejection.statusMessage));
-        }
-      });
-  }
-
   private async performRequest(options: https.RequestOptions, data?: string): Promise<Response> {
     return new Promise<Response>((resolve, reject) => {
-      const req = this.protocol.request(options, response => {
-        const { statusCode } = response;
-        if (!statusCode || statusCode >= 300) {
-          reject(response);
-        }
-        else {
-          const chunks: any = [];
-          response.on('data', (chunk) => {
-            chunks.push(chunk);
-          });
-          response.on('end', () => {
-            const stringData = Buffer.concat(chunks).toString();
-            const result: Response = {
-              data: JSON.parse(stringData),
-              fullResponse: response,
-            };
-            resolve(result);
-          });
-        }
-      });
+      try {
+        const req = this.protocol.request(options, response => {
+          const { statusCode } = response;
+          if (!statusCode || statusCode >= 300) {
+            return reject(response.statusMessage);
+          }
+          else {
+            const chunks: any = [];
+            response.on('data', (chunk) => {
+              chunks.push(chunk);
+            });
+            response.on('end', () => {
+              const stringData = Buffer.concat(chunks).toString();
+              const result: Response = {
+                data: JSON.parse(stringData),
+                fullResponse: response,
+              };
+              return resolve(result);
+            });
+          }
+        });
 
-      if (data) {
-        req.write(data);
+        req.on('error', reject);
+        if (data) {
+          req.write(data);
+        }
+        req.end();
+      } catch (e) {
+        reject(e);
       }
-
-      req.end();
     });
   }
 }

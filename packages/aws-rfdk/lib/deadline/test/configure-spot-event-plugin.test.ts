@@ -10,6 +10,7 @@ import {
   objectLike,
   arrayWith,
   countResourcesLike,
+  ABSENT,
 } from '@aws-cdk/assert';
 import {
   BlockDeviceVolume, EbsDeviceVolumeType,
@@ -24,11 +25,10 @@ import {
 import {
   ContainerImage,
 } from '@aws-cdk/aws-ecs';
+import { ManagedPolicy } from '@aws-cdk/aws-iam';
 import { PrivateHostedZone } from '@aws-cdk/aws-route53';
-import { ArtifactMetadataEntryType } from '@aws-cdk/cloud-assembly-schema';
 import {
   App,
-  CfnElement,
   Duration,
   Expiration,
   Fn,
@@ -186,12 +186,12 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      cdkExpect(stack).notTo(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', {
-        spotFleetRequestConfigurations: expect.any(Object),
+      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', {
+        spotFleetRequestConfigurations: ABSENT,
       }));
     });
 
-    test('with connection', () => {
+    test('provides RQ connection parameters to custom resource', () => {
       // WHEN
       new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
         vpc,
@@ -204,14 +204,9 @@ describe('ConfigureSpotEventPlugin', () => {
       // THEN
       cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
         connection: objectLike({
-          hostname: {
-            'Fn::GetAtt': [
-              'RQLB3B7B1CBC',
-              'DNSName',
-            ],
-          },
-          port: '8080',
-          protocol: 'HTTP',
+          hostname: stack.resolve(renderQueue.endpoint.hostname),
+          port: stack.resolve(renderQueue.endpoint.portAsString()),
+          protocol: stack.resolve(renderQueue.endpoint.applicationProtocol.toString()),
         }),
       })));
     });
@@ -232,47 +227,19 @@ describe('ConfigureSpotEventPlugin', () => {
         spotFleetRequestConfigurations: objectLike({
           [groupName]: objectLike({
             AllocationStrategy: fleet.allocationStrategy.toString(),
-            IamFleetRole: {
-              'Fn::GetAtt': [
-                stack.getLogicalId(fleet.fleetRole.node.defaultChild as CfnElement),
-                'Arn',
-              ],
-            },
+            IamFleetRole: stack.resolve(fleet.fleetRole.roleArn),
             LaunchSpecifications: arrayWith(
               objectLike({
                 IamInstanceProfile: {
-                  Arn: {
-                    'Fn::GetAtt': [
-                      stack.getLogicalId(fleet.instanceProfile as CfnElement),
-                      'Arn',
-                    ],
-                  },
+                  Arn: stack.resolve(fleet.instanceProfile.attrArn),
                 },
                 ImageId: fleet.imageId,
                 SecurityGroups: arrayWith(
                   objectLike({
-                    GroupId: {
-                      'Fn::GetAtt': [
-                        stack.getLogicalId(fleet.securityGroups[0].node.defaultChild as CfnElement),
-                        'GroupId',
-                      ],
-                    },
+                    GroupId: stack.resolve(fleet.securityGroups[0].securityGroupId),
                   }),
                 ),
-                SubnetId: {
-                  'Fn::Join': [
-                    '',
-                    [
-                      {
-                        Ref: stack.getLogicalId(vpc.privateSubnets[0].node.defaultChild as CfnElement),
-                      },
-                      ',',
-                      {
-                        Ref: stack.getLogicalId(vpc.privateSubnets[1].node.defaultChild as CfnElement),
-                      },
-                    ],
-                  ],
-                },
+                SubnetId: stack.resolve(Fn.join('', [vpc.privateSubnets[0].subnetId, ',', vpc.privateSubnets[1].subnetId])),
                 TagSpecifications: arrayWith(
                   objectLike({
                     ResourceType: 'instance',
@@ -321,30 +288,8 @@ describe('ConfigureSpotEventPlugin', () => {
       // THEN
       cdkExpect(stack).to(countResourcesLike('AWS::IAM::Role', 1, {
         ManagedPolicyArns: arrayWith(
-          {
-            'Fn::Join': [
-              '',
-              [
-                'arn:',
-                {
-                  Ref: 'AWS::Partition',
-                },
-                ':iam::aws:policy/AWSThinkboxDeadlineSpotEventPluginAdminPolicy',
-              ],
-            ],
-          },
-          {
-            'Fn::Join': [
-              '',
-              [
-                'arn:',
-                {
-                  Ref: 'AWS::Partition',
-                },
-                ':iam::aws:policy/AWSThinkboxDeadlineResourceTrackerAdminPolicy',
-              ],
-            ],
-          },
+          stack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginAdminPolicy').managedPolicyArn),
+          stack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAdminPolicy').managedPolicyArn),
         ),
       }));
 
@@ -360,18 +305,8 @@ describe('ConfigureSpotEventPlugin', () => {
               },
               Effect: 'Allow',
               Resource: [
-                {
-                  'Fn::GetAtt': [
-                    stack.getLogicalId(fleet.fleetRole.node.defaultChild as CfnElement),
-                    'Arn',
-                  ],
-                },
-                {
-                  'Fn::GetAtt': [
-                    stack.getLogicalId(fleet.fleetInstanceRole.node.defaultChild as CfnElement),
-                    'Arn',
-                  ],
-                },
+                stack.resolve(fleet.fleetRole.roleArn),
+                stack.resolve(fleet.fleetInstanceRole.roleArn),
               ],
             },
             {
@@ -387,7 +322,7 @@ describe('ConfigureSpotEventPlugin', () => {
       }));
     });
 
-    test('does not add resource tracker policy if rt disabled', () => {
+    test('adds resource tracker policy even if rt disabled', () => {
       // WHEN
       new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
         vpc,
@@ -401,20 +336,9 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      cdkExpect(stack).notTo(haveResourceLike('AWS::IAM::Role', {
+      cdkExpect(stack).to(haveResourceLike('AWS::IAM::Role', {
         ManagedPolicyArns: arrayWith(
-          {
-            'Fn::Join': [
-              '',
-              [
-                'arn:',
-                {
-                  Ref: 'AWS::Partition',
-                },
-                ':iam::aws:policy/AWSThinkboxDeadlineResourceTrackerAdminPolicy',
-              ],
-            ],
-          },
+          stack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAdminPolicy').managedPolicyArn),
         ),
       }));
     });
@@ -431,36 +355,14 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      cdkExpect(stack).notTo(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-        spotFleetRequestConfigurations: objectLike({}),
+      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
+        spotFleetRequestConfigurations: ABSENT,
       })));
 
       cdkExpect(stack).notTo(haveResourceLike('AWS::IAM::Role', {
         ManagedPolicyArns: arrayWith(
-          {
-            'Fn::Join': [
-              '',
-              [
-                'arn:',
-                {
-                  Ref: 'AWS::Partition',
-                },
-                ':iam::aws:policy/AWSThinkboxDeadlineSpotEventPluginAdminPolicy',
-              ],
-            ],
-          },
-          {
-            'Fn::Join': [
-              '',
-              [
-                'arn:',
-                {
-                  Ref: 'AWS::Partition',
-                },
-                ':iam::aws:policy/AWSThinkboxDeadlineResourceTrackerAdminPolicy',
-              ],
-            ],
-          },
+          stack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginAdminPolicy').managedPolicyArn),
+          stack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAdminPolicy').managedPolicyArn),
         ),
       }));
 
@@ -476,18 +378,8 @@ describe('ConfigureSpotEventPlugin', () => {
               },
               Effect: 'Allow',
               Resource: [
-                {
-                  'Fn::GetAtt': [
-                    stack.getLogicalId(fleet.fleetRole.node.defaultChild as CfnElement),
-                    'Arn',
-                  ],
-                },
-                {
-                  'Fn::GetAtt': [
-                    stack.getLogicalId(fleet.fleetInstanceRole.node.defaultChild as CfnElement),
-                    'Arn',
-                  ],
-                },
+                stack.resolve(fleet.fleetRole.roleArn),
+                stack.resolve(fleet.fleetInstanceRole.roleArn),
               ],
             },
             {
@@ -533,7 +425,7 @@ describe('ConfigureSpotEventPlugin', () => {
       cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
         spotFleetRequestConfigurations: objectLike({
           [groupName]: objectLike({
-            ValidUntil: validUntil.date.toUTCString(),
+            ValidUntil: validUntil.date.toISOString(),
           }),
         }),
       })));
@@ -646,36 +538,6 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      cdkExpect(stack).notTo(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-        spotFleetRequestConfigurations: objectLike({
-          [groupName]: objectLike({
-            LaunchSpecifications: arrayWith(objectLike({
-              BlockDeviceMappings: arrayWith(objectLike({
-                DeviceName: deviceName,
-                Ebs: objectLike({
-                  Encrypted: true,
-                }),
-              })),
-            })),
-          }),
-        }),
-      })));
-
-      cdkExpect(stack).notTo(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-        spotFleetRequestConfigurations: objectLike({
-          [groupName]: objectLike({
-            LaunchSpecifications: arrayWith(objectLike({
-              BlockDeviceMappings: arrayWith(objectLike({
-                DeviceName: deviceName,
-                Ebs: objectLike({
-                  Encrypted: false,
-                }),
-              })),
-            })),
-          }),
-        }),
-      })));
-
       cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
         spotFleetRequestConfigurations: objectLike({
           [groupName]: objectLike({
@@ -688,6 +550,7 @@ describe('ConfigureSpotEventPlugin', () => {
                   Iops: iops,
                   VolumeSize: volumeSize,
                   VolumeType: volumeType,
+                  Encrypted: ABSENT,
                 }),
                 VirtualName: virtualName,
               })),
@@ -789,87 +652,6 @@ describe('ConfigureSpotEventPlugin', () => {
         }),
       })));
     });
-
-    test('throws if block devices without iops and wrong volume type', () => {
-      // GIVEN
-      const deviceName = '/dev/xvda';
-      const volumeSize = 50;
-      const volumeType = EbsDeviceVolumeType.IO1;
-
-      const fleetWithCustomProps = new SpotEventPluginFleet(stack, 'SpotEventPluginFleet', {
-        vpc,
-        renderQueue,
-        deadlineGroups: [
-          groupName,
-        ],
-        instanceTypes: [
-          InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
-        ],
-        workerMachineImage,
-        maxCapacity: 1,
-        blockDevices: [{
-          deviceName,
-          volume: BlockDeviceVolume.ebs(volumeSize, {
-            volumeType,
-          }),
-        }],
-      });
-
-      // WHEN
-      function createConfigureSpotEventPlugin() {
-        new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
-          vpc,
-          renderQueue: renderQueue,
-          spotFleets: [
-            fleetWithCustomProps,
-          ],
-        });
-      }
-
-      // THEN
-      expect(createConfigureSpotEventPlugin).toThrowError(/iops property is required with volumeType: EbsDeviceVolumeType.IO1/);
-    });
-
-    test('warning if block devices with iops and wrong volume type', () => {
-      // GIVEN
-      const deviceName = '/dev/xvda';
-      const volumeSize = 50;
-      const iops = 100;
-      const volumeType = EbsDeviceVolumeType.STANDARD;
-
-      const fleetWithCustomProps = new SpotEventPluginFleet(stack, 'SpotEventPluginFleet', {
-        vpc,
-        renderQueue,
-        deadlineGroups: [
-          groupName,
-        ],
-        instanceTypes: [
-          InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
-        ],
-        workerMachineImage,
-        maxCapacity: 1,
-        blockDevices: [{
-          deviceName,
-          volume: BlockDeviceVolume.ebs(volumeSize, {
-            iops,
-            volumeType,
-          }),
-        }],
-      });
-
-      // WHEN
-      const config = new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
-        vpc,
-        renderQueue: renderQueue,
-        spotFleets: [
-          fleetWithCustomProps,
-        ],
-      });
-
-      // THEN
-      expect(config.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-      expect(config.node.metadata[0].data).toMatch('iops will be ignored without volumeType: EbsDeviceVolumeType.IO1');
-    });
   });
 
   test('only one object allowed per render queue', () => {
@@ -948,38 +730,6 @@ describe('ConfigureSpotEventPlugin', () => {
 
     // THEN
     expect(createConfigureSpotEventPlugin).toThrowError(/The provided render queue is not an instance of RenderQueue class. Some functionality is not supported./);
-  });
-
-  test('skipes subnets if fleet does not have any', () => {
-    // GIVEN
-    const mockedFleet = {
-      ...fleet,
-      subnets: {
-        subnetIds: [],
-      },
-    } as unknown;
-
-    // WHEN
-    new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin2', {
-      vpc,
-      renderQueue,
-      spotFleets: [
-        mockedFleet as SpotEventPluginFleet,
-      ],
-    });
-
-    // THEN
-    cdkExpect(stack).notTo(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-      spotFleetRequestConfigurations: objectLike({
-        [groupName]: objectLike({
-          LaunchSpecifications: arrayWith(
-            objectLike({
-              SubnetId: objectLike({}),
-            }),
-          ),
-        }),
-      }),
-    })));
   });
 
   test('tagSpecifications returns undefined if fleet does not have tags', () => {
@@ -1094,8 +844,8 @@ describe('ConfigureSpotEventPlugin', () => {
       cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
         connection: objectLike({
           hostname: stack.resolve(renderQueueWithTls.endpoint.hostname),
-          port: '4433',
-          protocol: 'HTTPS',
+          port: stack.resolve(renderQueueWithTls.endpoint.portAsString()),
+          protocol: stack.resolve(renderQueueWithTls.endpoint.applicationProtocol.toString()),
           caCertificateArn: stack.resolve((renderQueueWithTls as RenderQueue).certChain!.secretArn),
         }),
       })));

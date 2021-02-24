@@ -78,7 +78,9 @@ import {
 import {
   RenderQueueConnection,
 } from './rq-connection';
-import { WaitForStableService } from './wait-for-stable-service';
+import {
+  WaitForStableService,
+} from './wait-for-stable-service';
 
 /**
  * Interface for Deadline Render Queue.
@@ -215,6 +217,11 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    * Whether SEP policies have been added
    */
   private haveAddedSEPPolicies: boolean = false;
+
+  /**
+   * Whether Resource Tracker policies have been added
+   */
+  private haveAddedResourceTrackerPolicies: boolean = false;
 
   /**
    * The log group where the RCS container will log to
@@ -517,13 +524,15 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     if (!this.haveAddedSEPPolicies) {
       const sepPolicy = ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginAdminPolicy');
       this.taskDefinition.taskRole.addManagedPolicy(sepPolicy);
+      this.haveAddedSEPPolicies = true;
+    }
 
+    if (!this.haveAddedResourceTrackerPolicies) {
       if (includeResourceTracker) {
         const rtPolicy = ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAdminPolicy');
         this.taskDefinition.taskRole.addManagedPolicy(rtPolicy);
+        this.haveAddedResourceTrackerPolicies = true;
       }
-
-      this.haveAddedSEPPolicies = true;
     }
   }
 

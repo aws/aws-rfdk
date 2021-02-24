@@ -16,10 +16,6 @@ import { config } from './config';
 // --- Validate Config Values --- //
 // ------------------------------ //
 
-if (!config.keyPairName) {
-  console.log('EC2 key pair name not specified. You will not have SSH access to the render farm.');
-}
-
 if (config.deadlineClientLinuxAmiMap === {['region']: 'ami-id'}) {
   throw new Error('Deadline Client Linux AMI map is required but was not specified.');
 }
@@ -40,5 +36,4 @@ new SEPStack(app, 'SEPStack', {
   env,
   dockerRecipesStagePath: path.join(__dirname, '..', pkg.config.stage_path), // Stage directory in config is relative, make it absolute
   workerMachineImage: MachineImage.genericLinux(config.deadlineClientLinuxAmiMap),
-  keyPairName: config.keyPairName ?? undefined,
 });

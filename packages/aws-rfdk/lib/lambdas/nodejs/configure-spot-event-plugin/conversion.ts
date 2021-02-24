@@ -16,9 +16,8 @@ import {
 } from './types';
 
 /**
- * Convert the configuration we received from ConfigureSpotEventPlugin construct to the fromat
- * expected by the Spot Event Plugin. This requires renaming (often just capitalizing) properties, but also
- * boolean and number properties get converted into strings when passed to this custom resource,
+ * Convert the configuration we received from ConfigureSpotEventPlugin construct to the fromat expected by the Spot Event Plugin.
+ * boolean and number properties get converted into strings when passed to the Lambda,
  * so we need to restore the original types.
  */
 export function convertSpotFleetRequestConfiguration(spotFleetRequestConfigs: SpotFleetRequestConfiguration): SpotFleetRequestConfiguration {
@@ -42,9 +41,8 @@ export function convertSpotFleetRequestConfiguration(spotFleetRequestConfigs: Sp
 }
 
 /**
- * Convert the configuration we received from ConfigureSpotEventPlugin construct to the fromat
- * expected by the Spot Event Plugin. This requires renaming (often just capitalizing) properties, but also
- * boolean and number properties get converted into strings when passed to this custom resource,
+ * Convert the configuration we received from ConfigureSpotEventPlugin construct to the fromat expected by the Spot Event Plugin.
+ * boolean and number properties get converted into strings when passed to the Lambda,
  * so we need to restore the original types.
  */
 export function convertSpotEventPluginSettings(pluginOptions: PluginSettings): PluginSettings {
@@ -103,7 +101,8 @@ export function isValidTagSpecification(tagSpecification: SpotFleetTagSpecificat
   if (!tagSpecification.Tags || !Array.isArray(tagSpecification.Tags)) { return false; }
   for (let element of tagSpecification.Tags) {
     if (!element || typeof(element) !== 'object') { return false; };
-    if (!element.Key || typeof(element.Key) !== 'string' || !element.Value) { return false; }
+    if (!element.Key || typeof(element.Key) !== 'string') { return false; }
+    if (!element.Value || typeof(element.Value) !== 'string') { return false; }
   }
   return true;
 }

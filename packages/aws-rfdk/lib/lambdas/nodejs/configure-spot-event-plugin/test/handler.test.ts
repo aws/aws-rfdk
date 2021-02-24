@@ -99,7 +99,7 @@ describe('SEPConfiguratorResource', () => {
         },
       ],
     }],
-    ValidUntil: Expiration.atDate(new Date(2022, 11, 17)).date.toUTCString(),
+    ValidUntil: Expiration.atDate(new Date(2022, 11, 17)).date.toISOString(),
   };
 
   const validConvertedLaunchSpecifications = {
@@ -146,7 +146,7 @@ describe('SEPConfiguratorResource', () => {
     TargetCapacity: 1,
     TerminateInstancesWithExpiration: true,
     Type: 'maintain',
-    ValidUntil: 'Sat, 17 Dec 2022 00:00:00 GMT',
+    ValidUntil: Expiration.atDate(new Date(2022, 11, 17)).date.toISOString(),
     TagSpecifications: [{
       ResourceType: 'spot-fleet-request',
       Tags: [
@@ -681,7 +681,7 @@ describe('SEPConfiguratorResource', () => {
     });
   });
 
-  describe('.toPluginPropertyArray()', () => {
+  describe('.toKeyValueArray()', () => {
     test('converts to array of key value pairs', () => {
       // GIVEN
       const pluginConfig = {
@@ -695,7 +695,7 @@ describe('SEPConfiguratorResource', () => {
       // WHEN
       const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
       // eslint-disable-next-line dot-notation
-      const returnValue = handler['toPluginPropertyArray'](pluginConfig as PluginSettings);
+      const returnValue = handler['toKeyValueArray'](pluginConfig as PluginSettings);
 
       // THEN
       expect(returnValue).toContainEqual(expectedResult);
@@ -709,13 +709,13 @@ describe('SEPConfiguratorResource', () => {
 
       // WHEN
       const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
-      function toPluginPropertyArray() {
+      function toKeyValueArray() {
         // eslint-disable-next-line dot-notation
-        handler['toPluginPropertyArray'](pluginConfig as PluginSettings);
+        handler['toKeyValueArray'](pluginConfig as PluginSettings);
       }
 
       // THEN
-      expect(toPluginPropertyArray).toThrowError();
+      expect(toKeyValueArray).toThrowError();
     });
   });
 });

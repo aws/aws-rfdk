@@ -28,8 +28,6 @@ describe('DeadlineClient', () => {
     public end() {}
     public write(_data: string) {}
   }
-
-  let consoleLogMock: jest.SpyInstance<any, any>;
   let request: MockRequest;
   let response: MockResponse;
 
@@ -48,7 +46,6 @@ describe('DeadlineClient', () => {
 
   describe('successful responses', () => {
     beforeEach(() => {
-      consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
       request = new MockRequest();
       jest.requireMock('http').request.mockReset();
       jest.requireMock('https').request.mockReset();
@@ -242,11 +239,15 @@ describe('DeadlineClient', () => {
         protocol: 'HTTP',
       });
 
+      const responseData = {
+        test: true,
+      };
+
       // WHEN
       const promise = deadlineClient.PostRequest('/save/version/test', 'anydata');
-      response.emit('data', Buffer.from(JSON.stringify(''), 'utf8'));
+      response.emit('data', Buffer.from(JSON.stringify(responseData), 'utf8'));
       response.emit('end');
-      await promise;
+      const result = await promise;
 
       // THEN
       // should make an HTTP request
@@ -261,6 +262,8 @@ describe('DeadlineClient', () => {
           },
           expect.any(Function),
         );
+
+      expect(result.data).toEqual(responseData);
     });
 
     test('successful https post request', async () => {
@@ -360,220 +363,42 @@ describe('DeadlineClient', () => {
 
   describe('failed responses', () => {
     beforeEach(() => {
-      consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
       request = new MockRequest();
-      jest.requireMock('http').request.mockReset();
-      jest.requireMock('https').request.mockReset();
-      (jest.requireMock('https').Agent as jest.Mock).mockClear();
+      jest.requireMock('http').request.mockImplementation(httpRequestMock);
+      jest.requireMock('https').request.mockImplementation(httpRequestMock);
 
       response = new MockResponse(400);
     });
 
-    test('failed http get request', async () => {
-      // GIVEN
-      jest.requireMock('http').request.mockImplementation(httpRequestMock);
-
-      deadlineClient = new DeadlineClient({
-        host: 'hostname',
-        port: 8080,
-        protocol: 'HTTP',
-      });
-
-      // WHEN
-      const promise = deadlineClient.GetRequest('/get/version/test');
-
-      // THEN
-      await expect(promise)
-        .rejects
-        .toThrowError(response.statusMessage);
-    });
-
-    test('failed https get request', async () => {
-      // GIVEN
-      jest.requireMock('https').request.mockImplementation(httpRequestMock);
-
-      deadlineClient = new DeadlineClient({
-        host: 'hostname',
-        port: 4433,
-        protocol: 'HTTPS',
-      });
-
-      // WHEN
-      const promise = deadlineClient.GetRequest('/get/version/test');
-
-      // THEN
-      await expect(promise)
-        .rejects
-        .toThrowError(response.statusMessage);
-    });
-
-    test('failed http post request', async () => {
-      // GIVEN
-      jest.requireMock('http').request.mockImplementation(httpRequestMock);
-
-      deadlineClient = new DeadlineClient({
-        host: 'hostname',
-        port: 8080,
-        protocol: 'HTTP',
-      });
-
-      // WHEN
-      const promise = deadlineClient.PostRequest('/save/version/test');
-
-      // THEN
-      await expect(promise)
-        .rejects
-        .toThrowError(response.statusMessage);
-    });
-
-    test('failed https post request', async () => {
-      // GIVEN
-      jest.requireMock('https').request.mockImplementation(httpRequestMock);
-
-      deadlineClient = new DeadlineClient({
-        host: 'hostname',
-        port: 4433,
-        protocol: 'HTTPS',
-      });
-
-      // WHEN
-      const promise = deadlineClient.PostRequest('/get/version/test', 'anydata');
-
-      // THEN
-      await expect(promise)
-        .rejects
-        .toThrowError(response.statusMessage);
-    });
-  });
-
-  describe('retries with 503 error', () => {
-    const retries = 3;
-
-    beforeEach(() => {
-      consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
-      request = new MockRequest();
+    afterEach(() => {
       jest.requireMock('http').request.mockReset();
       jest.requireMock('https').request.mockReset();
-
-      response = new MockResponse(503);
     });
 
-    afterEach(() => {
-      jest.clearAllMocks();
-    });
-
-    test('get http request', async () => {
+    test.each([
+      ['HTTP', 'GET'],
+      ['HTTP', 'POST'],
+      ['HTTPS', 'GET'],
+      ['HTTPS', 'POST'],
+    ])('with %p %p', async (protocol: string, requestType: string) => {
       // GIVEN
-      jest.requireMock('http').request.mockImplementation(httpRequestMock);
-
       deadlineClient = new DeadlineClient({
         host: 'hostname',
-        port: 8080,
-        protocol: 'HTTP',
+        port: 0,
+        protocol: protocol,
       });
 
       // WHEN
-      const promise = deadlineClient.GetRequest('/get/version/test', undefined, retries, 0);
+      function performRequest() {
+        if (requestType === 'GET') { return deadlineClient.GetRequest('anypath'); }
+        return deadlineClient.PostRequest('anypath', 'anydata');
+      }
+      const promise = performRequest();
 
       // THEN
       await expect(promise)
         .rejects
-        .toThrowError(response.statusMessage);
-
-      expect(jest.requireMock('http').request)
-        .toBeCalledTimes(retries + 1);
-
-      expect(consoleLogMock.mock.calls.length).toBe(retries * 2);
-      expect(consoleLogMock.mock.calls[0][0]).toMatch(/Request failed with/);
-      expect(consoleLogMock.mock.calls[1][0]).toMatch(/Retries left:/);
-    });
-
-    test('post http request', async () => {
-      // GIVEN
-      jest.requireMock('http').request.mockImplementation(httpRequestMock);
-
-      deadlineClient = new DeadlineClient({
-        host: 'hostname',
-        port: 8080,
-        protocol: 'HTTP',
-      });
-
-      // WHEN
-      const promise = deadlineClient.PostRequest('/save/version/test', 'anydata', undefined, retries, 0);
-
-      // THEN
-      await expect(promise)
-        .rejects
-        .toThrowError(response.statusMessage);
-
-      expect(jest.requireMock('http').request)
-        .toBeCalledTimes(retries + 1);
-
-      expect(consoleLogMock.mock.calls.length).toBe(retries * 2);
-      expect(consoleLogMock.mock.calls[0][0]).toMatch(/Request failed with/);
-      expect(consoleLogMock.mock.calls[1][0]).toMatch(/Retries left:/);
-    });
-
-    test('get https request', async () => {
-      // GIVEN
-      jest.requireMock('https').request.mockImplementation(httpRequestMock);
-
-      deadlineClient = new DeadlineClient({
-        host: 'hostname',
-        port: 4433,
-        protocol: 'HTTPS',
-        tls: {
-          ca: 'cacontent',
-          pfx: 'pfxcontent',
-          passphrase: 'passphrasecontent',
-        },
-      });
-
-      // WHEN
-      const promise = deadlineClient.GetRequest('/get/version/test', undefined, retries, 0);
-
-      // THEN
-      await expect(promise)
-        .rejects
-        .toThrowError(response.statusMessage);
-
-      expect(jest.requireMock('https').request)
-        .toBeCalledTimes(retries + 1);
-
-      expect(consoleLogMock.mock.calls.length).toBe(retries * 2);
-      expect(consoleLogMock.mock.calls[0][0]).toMatch(/Request failed with/);
-      expect(consoleLogMock.mock.calls[1][0]).toMatch(/Retries left:/);
-    });
-
-    test('post https request', async () => {
-      // GIVEN
-      jest.requireMock('https').request.mockImplementation(httpRequestMock);
-
-      deadlineClient = new DeadlineClient({
-        host: 'hostname',
-        port: 4433,
-        protocol: 'HTTPS',
-        tls: {
-          ca: 'cacontent',
-          pfx: 'pfxcontent',
-          passphrase: 'passphrasecontent',
-        },
-      });
-
-      // WHEN
-      const promise = deadlineClient.PostRequest('/save/version/test', 'anydata', undefined, retries, 0);
-
-      // THEN
-      await expect(promise)
-        .rejects
-        .toThrowError(response.statusMessage);
-
-      expect(jest.requireMock('https').request)
-        .toBeCalledTimes(retries + 1);
-
-      expect(consoleLogMock.mock.calls.length).toBe(retries * 2);
-      expect(consoleLogMock.mock.calls[0][0]).toMatch(/Request failed with/);
-      expect(consoleLogMock.mock.calls[1][0]).toMatch(/Retries left:/);
+        .toEqual(response.statusMessage);
     });
   });
 });

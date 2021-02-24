@@ -7,19 +7,8 @@
 
 import {
   DeadlineClient,
-  DeadlineClientProps,
   Response,
 } from '../deadline-client';
-
-/**
- * Properties of SpotEventPluginClient
- */
-export interface SpotEventPluginClientProps {
-  /**
-   * Properties for setting up a simple Deadline HTTP(S) client.
-   */
-  readonly deadlineClientProps: DeadlineClientProps;
-}
 
 /**
  * A single entry of the server data received from describeServerData request.
@@ -44,8 +33,8 @@ export class SpotEventPluginClient {
 
   private readonly deadlineClient: DeadlineClient;
 
-  constructor(props: SpotEventPluginClientProps) {
-    this.deadlineClient = new DeadlineClient(props.deadlineClientProps);
+  constructor(client: DeadlineClient) {
+    this.deadlineClient = client;
   }
 
   public async saveServerData(config: string): Promise<boolean> {
@@ -78,7 +67,7 @@ export class SpotEventPluginClient {
     }
   }
 
-  public async configureSpotEventPlugin(configs: { Key: string, Value: any }[]): Promise<boolean> {
+  public async configureSpotEventPlugin(configs: Array<{ Key: string, Value: any }>): Promise<boolean> {
     console.log('Saving plugin configuration:');
     console.log(configs);
 

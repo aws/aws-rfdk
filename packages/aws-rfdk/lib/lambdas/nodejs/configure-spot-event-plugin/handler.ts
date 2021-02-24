@@ -8,6 +8,7 @@ import { SecretsManager } from 'aws-sdk';
 import { LambdaContext } from '../lib/aws-lambda';
 import { SpotEventPluginClient } from '../lib/configure-spot-event-plugin';
 import { CfnRequestEvent, SimpleCustomResource } from '../lib/custom-resource';
+import { DeadlineClient } from '../lib/deadline-client';
 import {
   isArn as isSecretArn,
   readCertificateData,
@@ -21,11 +22,6 @@ import {
   PluginSettings,
   SEPConfiguratorResourceProps,
 } from './types';
-
-interface PluginProperty {
-  readonly Key: string;
-  readonly Value: any;
-}
 
 /**
  * A custom resource used to save Spot Event Plugin server data and configurations.
@@ -61,7 +57,7 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
     }
     if (resourceProperties.spotPluginConfigurations) {
       const convertedSpotPluginConfigs = convertSpotEventPluginSettings(resourceProperties.spotPluginConfigurations);
-      const pluginSettings = this.toPluginPropertyArray(convertedSpotPluginConfigs);
+      const pluginSettings = this.toKeyValueArray(convertedSpotPluginConfigs);
       const securitySettings = this.securitySettings();
       const response = await spotEventPluginClient.configureSpotEventPlugin([...pluginSettings, ...securitySettings]);
       if (!response) {
@@ -105,20 +101,18 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
   }
 
   private async spotEventPluginClient(connection: ConnectionOptions): Promise<SpotEventPluginClient> {
-    return new SpotEventPluginClient({
-      deadlineClientProps: {
-        host: connection.hostname,
-        port: Number.parseInt(connection.port, 10),
-        protocol: connection.protocol,
-        tls: {
-          ca: connection.caCertificateArn ? await readCertificateData(connection.caCertificateArn, this.secretsManagerClient) : undefined,
-        },
+    return new SpotEventPluginClient(new DeadlineClient({
+      host: connection.hostname,
+      port: Number.parseInt(connection.port, 10),
+      protocol: connection.protocol,
+      tls: {
+        ca: connection.caCertificateArn ? await readCertificateData(connection.caCertificateArn, this.secretsManagerClient) : undefined,
       },
-    });
+    }));
   }
 
-  private toPluginPropertyArray(input: PluginSettings): PluginProperty[] {
-    const configs: PluginProperty[] = [];
+  private toKeyValueArray(input: PluginSettings): Array<{ Key: string, Value: any }> {
+    const configs: Array<{ Key: string, Value: any }> = [];
     for (const [key, value] of Object.entries(input)) {
       if (value === undefined) {
         throw new Error(`Value for ${key} should be defined.`);
@@ -131,7 +125,7 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
     return configs;
   }
 
-  private securitySettings(): PluginProperty[] {
+  private securitySettings(): Array<{ Key: string, Value: any }> {
     return [
       {
         Key: 'UseLocalCredentials',

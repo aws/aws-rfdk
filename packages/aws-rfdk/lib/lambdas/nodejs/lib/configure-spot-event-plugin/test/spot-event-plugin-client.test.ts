@@ -5,7 +5,7 @@
 
 import { IncomingMessage } from 'http';
 import { Socket } from 'net';
-import { Response } from '../../deadline-client';
+import { DeadlineClient, Response } from '../../deadline-client';
 import { SpotEventPluginClient } from '../spot-event-plugin-client';
 
 describe('SpotEventPluginClient', () => {
@@ -33,13 +33,11 @@ describe('SpotEventPluginClient', () => {
       fullResponse: new IncomingMessage(new Socket()),
     };
 
-    spotEventPluginClient = new SpotEventPluginClient({
-      deadlineClientProps: {
-        host: 'test',
-        port: 100,
-        protocol: 'HTTP',
-      },
-    });
+    spotEventPluginClient = new SpotEventPluginClient(new DeadlineClient({
+      host: 'test',
+      port: 0,
+      protocol: 'HTTP',
+    }));
     // eslint-disable-next-line dot-notation
     spotEventPluginClient['deadlineClient'].PostRequest = jest.fn();
     // eslint-disable-next-line dot-notation

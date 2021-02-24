@@ -8,7 +8,6 @@ import * as path from 'path';
 import {
   BlockDevice,
   BlockDeviceVolume,
-  EbsDeviceVolumeType,
 } from '@aws-cdk/aws-autoscaling';
 import {
   IVpc,
@@ -27,7 +26,6 @@ import {
 } from '@aws-cdk/aws-lambda';
 import { RetentionDays } from '@aws-cdk/aws-logs';
 import {
-  Annotations,
   Construct,
   CustomResource,
   Duration,
@@ -381,7 +379,10 @@ export class ConfigureSpotEventPlugin extends Construct {
       }
 
       if (props.spotFleets && props.spotFleets.length !== 0) {
-        props.renderQueue.addSEPPolicies(props.configuration?.enableResourceTracker ?? true);
+        // Always add Resource Tracker admin policy, even if props.configuration?.enableResourceTracker is false.
+        // This improves usability, as customers won't need to add this policy manually, if they
+        // enable Resource Tracker later in the Spot Event Plugin configuration (e.g., using Deadline Monitor and not RFDK).
+        props.renderQueue.addSEPPolicies(true);
 
         const fleetRoles = props.spotFleets.map(sf => sf.fleetRole.roleArn);
         const fleetInstanceRoles = props.spotFleets.map(sf => sf.fleetInstanceRole.roleArn);
@@ -484,7 +485,7 @@ export class ConfigureSpotEventPlugin extends Construct {
     // /* istanbul ignore next */
     // Add a dependency on the render queue to ensure that
     // it is running before we try to send requests to it.
-    props.renderQueue.addChildDependency(resource);
+    resource.node.addDependency(props.renderQueue);
 
     this.node.defaultChild = resource;
   }
@@ -524,7 +525,7 @@ export class ConfigureSpotEventPlugin extends Construct {
       this.synthesizeBlockDeviceMappings(fleet.blockDevices) : undefined);
 
     const { subnetIds } = fleet.subnets;
-    const subnetId = subnetIds.length != 0 ? subnetIds.join(',') : undefined;
+    const subnetId = subnetIds.join(',');
 
     const instanceTagsToken = this.tagsSpecifications(fleet, SpotFleetResourceType.INSTANCE);
     const spotFleetRequestTagsToken = this.tagsSpecifications(fleet, SpotFleetResourceType.SPOT_FLEET_REQUEST);
@@ -561,7 +562,7 @@ export class ConfigureSpotEventPlugin extends Construct {
       TerminateInstancesWithExpiration: true,
       // In order to work with Deadline, Spot Fleets Requests must be set to maintain.
       Type: SpotFleetRequestType.MAINTAIN,
-      ValidUntil: fleet.validUntil ? fleet.validUntil?.date.toUTCString() : undefined,
+      ValidUntil: fleet.validUntil?.date.toISOString(),
       // Need to convert from IResolvable to bypass TypeScript
       TagSpecifications: (spotFleetRequestTagsToken as unknown) as SpotFleetTagSpecification[],
     };
@@ -598,14 +599,6 @@ export class ConfigureSpotEventPlugin extends Construct {
 
       if (ebs) {
         const { iops, volumeType, volumeSize, snapshotId, deleteOnTermination } = ebs;
-
-        if (!iops) {
-          if (volumeType === EbsDeviceVolumeType.IO1) {
-            throw new Error('iops property is required with volumeType: EbsDeviceVolumeType.IO1');
-          }
-        } else if (volumeType !== EbsDeviceVolumeType.IO1) {
-          Annotations.of(this).addWarning('iops will be ignored without volumeType: EbsDeviceVolumeType.IO1');
-        }
 
         Ebs = {
           DeleteOnTermination: deleteOnTermination,

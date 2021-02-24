@@ -49,11 +49,6 @@ export interface SEPStackProps extends StackProps {
    * The {@link IMachineImage} to use for Workers (needs Deadline Client installed).
    */
   readonly workerMachineImage: IMachineImage;
-
-  /**
-   * The name of the EC2 keypair to associate with Worker nodes.
-   */
-  readonly keyPairName?: string;
 }
 
 export class SEPStack extends Stack {
@@ -87,7 +82,6 @@ export class SEPStack extends Stack {
       },
     });
 
-    // The following code is used to demonstrate how to use the ConfigureSpotEventPlugin if TLS is enabled.
     const host = 'renderqueue';
     const zoneName = 'deadline-test.internal';
 

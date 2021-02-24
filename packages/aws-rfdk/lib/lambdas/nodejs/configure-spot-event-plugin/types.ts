@@ -54,7 +54,7 @@ export interface ConnectionOptions {
 /**
  * Interface for communication between Lambda and ConfigureSpotEventPlugin construct.
  * The properties correspond to SpotEventPluginSettings from '../../../deadline/lib/configure-spot-event-plugin',
- * but the types and name may differ.
+ * but the types and names may differ.
  */
 export interface PluginSettings {
   /**
@@ -147,7 +147,8 @@ export interface SpotFleetRequestProps {
   readonly ReplaceUnhealthyInstances: boolean;
 
   /**
-   * The number of units to request for the Spot Fleet.
+   * In order to work with Deadline, the 'Target Capacity' of the Spot fleet Request is
+   * the maximum number of Workers that Deadline will start.
    */
   readonly TargetCapacity: number;
 
@@ -167,7 +168,7 @@ export interface SpotFleetRequestProps {
   readonly TagSpecifications: SpotFleetTagSpecification[];
 
   /**
-   * The end date and time of the request, in UTC format (YYYY -MM -DD T*HH* :MM :SS Z).
+   * The end date and time of the request, in UTC format.
    * After the end date and time, no new Spot Instance requests are placed or able to fulfill the request.
    *
    * @default - the Spot Fleet request remains until you cancel it.
@@ -357,5 +358,5 @@ export interface SpotFleetTag {
   /**
    * The value of the tag.
    */
-  readonly Value: any;
+  readonly Value: string;
 }

@@ -7,14 +7,15 @@ import {
   arrayWith,
   countResourcesLike,
   expect as cdkExpect,
-  // countResources,
   haveResourceLike,
   objectLike,
-  // objectLike,
-  // arrayWith,
-  // countResourcesLike,
 } from '@aws-cdk/assert';
-import { InstanceClass, InstanceSize, InstanceType, SubnetType } from '@aws-cdk/aws-ec2';
+import {
+  InstanceClass,
+  InstanceSize,
+  InstanceType,
+  SubnetType,
+} from '@aws-cdk/aws-ec2';
 import {
   Cluster,
   ContainerImage,
@@ -22,10 +23,15 @@ import {
   Ec2TaskDefinition,
 } from '@aws-cdk/aws-ecs';
 import {
+  ManagedPolicy,
+} from '@aws-cdk/aws-iam';
+import {
   App,
   Stack,
 } from '@aws-cdk/core';
-import { WaitForStableService } from '../lib/wait-for-stable-service';
+import {
+  WaitForStableService,
+} from '../lib/wait-for-stable-service';
 
 describe('WaitForStableService', () => {
   let app: App;
@@ -97,18 +103,7 @@ describe('WaitForStableService', () => {
     // THEN
     cdkExpect(isolatedStack).to(haveResourceLike('AWS::IAM::Role', {
       ManagedPolicyArns: arrayWith(
-        {
-          'Fn::Join': [
-            '',
-            [
-              'arn:',
-              {
-                Ref: 'AWS::Partition',
-              },
-              ':iam::aws:policy/service-role/AWSLambdaBasicExecutionRole',
-            ],
-          ],
-        },
+        isolatedStack.resolve(ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole').managedPolicyArn),
       ),
       Policies: [{
         PolicyDocument: objectLike({

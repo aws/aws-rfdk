@@ -8,6 +8,7 @@ import {
 } from '@aws-cdk/aws-autoscaling';
 import {
   Connections,
+  EbsDeviceVolumeType,
   IConnectable,
   IMachineImage,
   InstanceType,
@@ -131,6 +132,7 @@ export interface SpotEventPluginFleetProps {
 
   /**
    * An IAM role to associate with the instance profile assigned to its resources.
+   * Create this role on the same stack with the SpotEventPluginFleet to avoid circular dependencies.
    *
    * The role must be assumable by the service principal `ec2.amazonaws.com` and
    * have AWSThinkboxDeadlineSpotEventPluginWorkerPolicy policy attached:
@@ -535,6 +537,15 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
         if (device.volume.ebsDevice === undefined) {
           // Suppressed or Ephemeral Block Device
           return;
+        }
+
+        const { iops, volumeType } = device.volume.ebsDevice;
+        if (!iops) {
+          if (volumeType === EbsDeviceVolumeType.IO1) {
+            throw new Error('iops property is required with volumeType: EbsDeviceVolumeType.IO1');
+          }
+        } else if (volumeType !== EbsDeviceVolumeType.IO1) {
+          Annotations.of(this).addWarning('iops will be ignored without volumeType: EbsDeviceVolumeType.IO1');
         }
 
         // encrypted is not exposed as part of ebsDeviceProps so we need to confirm it exists then access it via [].

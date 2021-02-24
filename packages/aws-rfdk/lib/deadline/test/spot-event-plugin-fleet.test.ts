@@ -10,6 +10,7 @@
 import {
   arrayWith,
   countResources,
+  countResourcesLike,
   expect as expectCDK,
   haveResource,
   haveResourceLike,
@@ -17,6 +18,7 @@ import {
 } from '@aws-cdk/assert';
 import {
   BlockDeviceVolume,
+  EbsDeviceVolumeType,
 } from '@aws-cdk/aws-autoscaling';
 import {
   GenericLinuxImage,
@@ -140,12 +142,7 @@ describe('SpotEventPluginFleet', () => {
       expectCDK(spotFleetStack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
         IpProtocol: 'tcp',
         ToPort: parseInt(renderQueue.endpoint.portAsString(), 10),
-        SourceSecurityGroupId: {
-          'Fn::GetAtt': [
-            spotFleetStack.getLogicalId(fleet.connections.securityGroups[0].node.defaultChild as CfnElement),
-            'GroupId',
-          ],
-        },
+        SourceSecurityGroupId: spotFleetStack.resolve(fleet.connections.securityGroups[0].securityGroupId),
       }));
     });
 
@@ -173,17 +170,7 @@ describe('SpotEventPluginFleet', () => {
           })],
         }),
         ManagedPolicyArns: arrayWith(
-          objectLike({
-            'Fn::Join': arrayWith(
-              [
-                'arn:',
-                {
-                  Ref: 'AWS::Partition',
-                },
-                ':iam::aws:policy/AWSThinkboxDeadlineSpotEventPluginWorkerPolicy',
-              ],
-            ),
-          }),
+          spotFleetStack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy').managedPolicyArn),
         ),
       }));
     });
@@ -232,18 +219,7 @@ describe('SpotEventPluginFleet', () => {
           })],
         }),
         ManagedPolicyArns: arrayWith(
-          {
-            'Fn::Join': [
-              '',
-              [
-                'arn:',
-                {
-                  Ref: 'AWS::Partition',
-                },
-                ':iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole',
-              ],
-            ],
-          },
+          spotFleetStack.resolve(ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonEC2SpotFleetTaggingRole').managedPolicyArn),
         ),
       }));
     });
@@ -473,7 +449,7 @@ describe('SpotEventPluginFleet', () => {
 
     test('uses provided spot fleet instance role', () => {
       // GIVEN
-      const spotFleetInstanceRole = new Role(stack, 'SpotFleetInstanceRole', {
+      const spotFleetInstanceRole = new Role(spotFleetStack, 'SpotFleetInstanceRole', {
         assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
         managedPolicies: [
           ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy'),
@@ -481,8 +457,7 @@ describe('SpotEventPluginFleet', () => {
       });
 
       // WHEN
-      // Using spotFleetStack creates a circular dependency
-      const fleet = new SpotEventPluginFleet(stack, 'SpotFleet', {
+      const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
         vpc,
         renderQueue,
         deadlineGroups,
@@ -493,9 +468,21 @@ describe('SpotEventPluginFleet', () => {
       });
 
       // THEN
-      // Using spotFleetStack creates a circular dependency
-      // expectCDK(spotFleetStack).notTo(haveResourceLike('AWS::IAM::Role', {...}));
       expect(fleet.fleetInstanceRole).toBe(spotFleetInstanceRole);
+      expectCDK(spotFleetStack).to(countResourcesLike('AWS::IAM::Role', 1, {
+        AssumeRolePolicyDocument: objectLike({
+          Statement: [objectLike({
+            Action: 'sts:AssumeRole',
+            Effect: 'Allow',
+            Principal: {
+              Service: 'ec2.amazonaws.com',
+            },
+          })],
+        }),
+        ManagedPolicyArns: arrayWith(
+          spotFleetStack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy').managedPolicyArn),
+        ),
+      }));
     });
 
     test('uses provided spot fleet role', () => {
@@ -531,23 +518,12 @@ describe('SpotEventPluginFleet', () => {
           })],
         }),
         ManagedPolicyArns: arrayWith(
-          {
-            'Fn::Join': [
-              '',
-              [
-                'arn:',
-                {
-                  Ref: 'AWS::Partition',
-                },
-                ':iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole',
-              ],
-            ],
-          },
+          stack.resolve(ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonEC2SpotFleetTaggingRole').managedPolicyArn),
         ),
       }));
     });
 
-    test('allows adding tags', () => {
+    test('tags resources deployed by CDK', () => {
       // GIVEN
       const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
         vpc,
@@ -1083,7 +1059,7 @@ describe('SpotEventPluginFleet', () => {
 
         // WHEN
         function createSpotEventPluginFleet() {
-          new SpotEventPluginFleet(stack, 'SpotFleet9', {
+          new SpotEventPluginFleet(stack, 'SpotFleet', {
             vpc,
             renderQueue,
             deadlineGroups,
@@ -1225,6 +1201,71 @@ describe('SpotEventPluginFleet', () => {
 
         //THEN
         expect(fleet.node.metadata).toHaveLength(0);
+      });
+
+      test('throws if block devices without iops and wrong volume type', () => {
+        // GIVEN
+        const deviceName = '/dev/xvda';
+        const volumeSize = 50;
+        const volumeType = EbsDeviceVolumeType.IO1;
+
+        // WHEN
+        function createSpotEventPluginFleet() {
+          return new SpotEventPluginFleet(stack, 'SpotEventPluginFleet', {
+            vpc,
+            renderQueue,
+            deadlineGroups: [
+              groupName,
+            ],
+            instanceTypes: [
+              InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
+            ],
+            workerMachineImage,
+            maxCapacity: 1,
+            blockDevices: [{
+              deviceName,
+              volume: BlockDeviceVolume.ebs(volumeSize, {
+                volumeType,
+              }),
+            }],
+          });
+        }
+
+        // THEN
+        expect(createSpotEventPluginFleet).toThrowError(/iops property is required with volumeType: EbsDeviceVolumeType.IO1/);
+      });
+
+      test('warning if block devices with iops and wrong volume type', () => {
+        // GIVEN
+        const deviceName = '/dev/xvda';
+        const volumeSize = 50;
+        const iops = 100;
+        const volumeType = EbsDeviceVolumeType.STANDARD;
+
+        // WHEN
+        const fleet = new SpotEventPluginFleet(stack, 'SpotEventPluginFleet', {
+          vpc,
+          renderQueue,
+          deadlineGroups: [
+            groupName,
+          ],
+          instanceTypes: [
+            InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
+          ],
+          workerMachineImage,
+          maxCapacity: 1,
+          blockDevices: [{
+            deviceName,
+            volume: BlockDeviceVolume.ebs(volumeSize, {
+              iops,
+              volumeType,
+            }),
+          }],
+        });
+
+        // THEN
+        expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+        expect(fleet.node.metadata[0].data).toMatch('iops will be ignored without volumeType: EbsDeviceVolumeType.IO1');
       });
     });
   });

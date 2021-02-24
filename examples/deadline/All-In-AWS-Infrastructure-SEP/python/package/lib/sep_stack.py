@@ -2,16 +2,16 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from typing import (
-    Optional
+    Optional,
 )
 from dataclasses import dataclass
-
 from aws_cdk.core import (
     Construct,
     Duration,
+    RemovalPolicy,
     Stack,
     StackProps,
-    Tags
+    Tags,
 )
 from aws_cdk.aws_ec2 import (
     IMachineImage,
@@ -19,18 +19,18 @@ from aws_cdk.aws_ec2 import (
     InstanceSize,
     InstanceType,
     SecurityGroup,
-    Vpc
+    Vpc,
 )
 from aws_cdk.aws_iam import (
     ManagedPolicy,
     Role,
-    ServicePrincipal
+    ServicePrincipal,
 )
 from aws_cdk.aws_elasticloadbalancingv2 import (
-    ApplicationProtocol
+    ApplicationProtocol,
 )
 from aws_cdk.aws_route53 import (
-    PrivateHostedZone
+    PrivateHostedZone,
 )
 from aws_rfdk.deadline import (
     ConfigureSpotEventPlugin,
@@ -43,11 +43,11 @@ from aws_rfdk.deadline import (
     SpotEventPluginFleet,
     SpotEventPluginSettings,
     Stage,
-    ThinkboxDockerRecipes
+    ThinkboxDockerRecipes,
 )
 from aws_rfdk import (
     DistinguishedName,
-    X509CertificatePem
+    X509CertificatePem,
 )
 
 
@@ -60,8 +60,6 @@ class SEPStackProps(StackProps):
     docker_recipes_stage_path: str
     # The IMachineImage to use for Workers (needs Deadline Client installed).
     worker_machine_image: IMachineImage
-    # The name of the EC2 keypair to associate with Worker nodes.
-    key_pair_name: Optional[str]
 
 
 class SEPStack(Stack):
@@ -83,13 +81,13 @@ class SEPStack(Stack):
         vpc = Vpc(
             self,
             'Vpc',
-            max_azs=2
+            max_azs=2,
         )
 
         recipes = ThinkboxDockerRecipes(
             self,
             'Image',
-            stage=Stage.from_directory(props.docker_recipes_stage_path)
+            stage=Stage.from_directory(props.docker_recipes_stage_path),
         )
 
         repository = Repository(
@@ -104,8 +102,8 @@ class SEPStack(Stack):
             # or just remove the removal_policy parameter.
             removal_policy=RepositoryRemovalPolicies(
                 database=RemovalPolicy.DESTROY,
-                filesystem=RemovalPolicy.DESTROY
-            )
+                filesystem=RemovalPolicy.DESTROY,
+            ),
         )
 
         host = 'renderqueue'
@@ -116,15 +114,15 @@ class SEPStack(Stack):
             self,
             'DnsZone',
             vpc=vpc,
-            zone_name=zone_name
+            zone_name=zone_name,
         )
 
         ca_cert = X509CertificatePem(
             self,
             'RootCA',
             subject=DistinguishedName(
-                cn='SampleRootCA'
-            )
+                cn='SampleRootCA',
+            ),
         )
 
         server_cert = X509CertificatePem(
@@ -133,9 +131,9 @@ class SEPStack(Stack):
             subject=DistinguishedName(
                 cn=f'{host}.{dns_zone.zone_name}',
                 o='RFDK-Sample',
-                ou='RenderQueueExternal'
+                ou='RenderQueueExternal',
             ),
-            signing_certificate=ca_cert
+            signing_certificate=ca_cert,
         )
 
         render_queue = RenderQueue(
@@ -151,14 +149,14 @@ class SEPStack(Stack):
             deletion_protection=False,
             hostname=RenderQueueHostNameProps(
                 hostname=host,
-                zone=dns_zone
+                zone=dns_zone,
             ),
             traffic_encryption=RenderQueueTrafficEncryptionProps(
                 external_tls=RenderQueueExternalTLSProps(
-                    rfdk_certificate=server_cert
+                    rfdk_certificate=server_cert,
                 ),
-                internal_protocol=ApplicationProtocol.HTTPS
-            )
+                internal_protocol=ApplicationProtocol.HTTPS,
+            ),
         )
 
         # Creates the Resource Tracker Access role. This role is required to exist in your account so the resource tracker will work properly
@@ -168,7 +166,7 @@ class SEPStack(Stack):
             'ResourceTrackerRole',
             assumed_by=ServicePrincipal('lambda.amazonaws.com'),
             managed_policies= [ManagedPolicy.from_aws_managed_policy_name('AWSThinkboxDeadlineResourceTrackerAccessPolicy')],
-            role_name= 'DeadlineResourceTrackerAccessRole'
+            role_name= 'DeadlineResourceTrackerAccessRole',
         )
 
         fleet = SpotEventPluginFleet(
@@ -180,7 +178,6 @@ class SEPStack(Stack):
             instance_types=[InstanceType.of(InstanceClass.BURSTABLE3, InstanceSize.LARGE)],
             worker_machine_image=props.worker_machine_image,
             max_capacity=1,
-            key_name=props.key_pair_name
         )
 
         # Optional: Add additional tags to both spot fleet request and spot instances.
@@ -193,7 +190,7 @@ class SEPStack(Stack):
             render_queue=render_queue,
             spot_fleets=[fleet],
             configuration=SpotEventPluginSettings(
-                enable_resource_tracker=True
-            )
+                enable_resource_tracker=True,
+            ),
         )
 
