@@ -213,9 +213,9 @@ export interface RenderQueueAccessLogProps {
 }
 
 /**
- * Options for security groups of the Render Queue.
+ * Security groups of the Render Queue.
  */
-export interface RenderQueueSecurityGroupsOptions {
+export interface RenderQueueSecurityGroups {
   /**
    * The security group for the backend components of the Render Queue, which consists of the AutoScalingGroup for the Deadline RCS.
    */
@@ -329,9 +329,11 @@ export interface RenderQueueProps {
   readonly deletionProtection?: boolean;
 
   /**
-   * Options to add additional security groups to the Render Queue.
+   * Security groups to use for the Render Queue.
+   *
+   * @default - new security groups are created
    */
-  readonly securityGroupsOptions?: RenderQueueSecurityGroupsOptions;
+  readonly securityGroups?: RenderQueueSecurityGroups;
 }
 
 /**

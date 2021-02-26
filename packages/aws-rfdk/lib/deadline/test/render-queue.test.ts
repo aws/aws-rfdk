@@ -67,7 +67,7 @@ import {
   RenderQueue,
   RenderQueueImages,
   RenderQueueProps,
-  RenderQueueSecurityGroupsOptions,
+  RenderQueueSecurityGroups,
   Repository,
   VersionQuery,
 } from '../lib';
@@ -2286,7 +2286,7 @@ describe('RenderQueue', () => {
 
     test('adds security groups on construction', () => {
       // GIVEN
-      const securityGroupsOptions: RenderQueueSecurityGroupsOptions = {
+      const securityGroups: RenderQueueSecurityGroups = {
         backend: backendSecurityGroup,
         frontend: frontendSecurityGroup,
       };
@@ -2297,11 +2297,11 @@ describe('RenderQueue', () => {
         repository,
         version: renderQueueVersion,
         vpc,
-        securityGroupsOptions,
+        securityGroups,
       });
 
       // THEN
-      assertSecurityGroupsWereAdded(securityGroupsOptions);
+      assertSecurityGroupsWereAdded(securityGroups);
     });
 
     test('adds backend security groups post-construction', () => {
@@ -2374,7 +2374,7 @@ describe('RenderQueue', () => {
       }));
     });
 
-    function assertSecurityGroupsWereAdded(securityGroups: RenderQueueSecurityGroupsOptions) {
+    function assertSecurityGroupsWereAdded(securityGroups: RenderQueueSecurityGroups) {
       if (securityGroups.backend !== undefined) {
         expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
           SecurityGroups: arrayWith(stack.resolve(securityGroups.backend.securityGroupId)),

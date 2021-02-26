@@ -306,7 +306,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       }],
       updateType: UpdateType.ROLLING_UPDATE,
       // @ts-ignore
-      securityGroup: props.securityGroupsOptions?.backend,
+      securityGroup: props.securityGroups?.backend,
     });
 
     /**
@@ -350,7 +350,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       vpcSubnets: props.vpcSubnetsAlb ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
       internetFacing: false,
       deletionProtection: props.deletionProtection ?? true,
-      securityGroup: props.securityGroupsOptions?.frontend,
+      securityGroup: props.securityGroups?.frontend,
     });
 
     this.pattern = new ApplicationLoadBalancedEc2Service(this, 'AlbEc2ServicePattern', {
