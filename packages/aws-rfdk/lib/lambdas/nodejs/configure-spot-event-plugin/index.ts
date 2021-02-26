@@ -3,6 +3,5 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export * from './read-certificate';
-export * from './secret';
-export * from './validation';
+export * from './handler';
+export * from './types';

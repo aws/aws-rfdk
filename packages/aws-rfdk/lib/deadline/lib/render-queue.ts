@@ -75,10 +75,12 @@ import {
 import {
   tagConstruct,
 } from '../../core/lib/runtime-info';
-
 import {
   RenderQueueConnection,
 } from './rq-connection';
+import {
+  WaitForStableService,
+} from './wait-for-stable-service';
 
 /**
  * Interface for Deadline Render Queue.
@@ -202,6 +204,26 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   public readonly asg: AutoScalingGroup;
 
   /**
+   * The version of Deadline that the RenderQueue uses
+   */
+  public readonly version: IVersion;
+
+  /**
+   * The secret containing the cert chain for external connections.
+   */
+  public readonly certChain?: ISecret;
+
+  /**
+   * Whether SEP policies have been added
+   */
+  private haveAddedSEPPolicies: boolean = false;
+
+  /**
+   * Whether Resource Tracker policies have been added
+   */
+  private haveAddedResourceTrackerPolicies: boolean = false;
+
+  /**
    * The log group where the RCS container will log to
    */
   private readonly logGroup: ILogGroup;
@@ -222,11 +244,6 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   private readonly rqConnection: RenderQueueConnection;
 
   /**
-   * The secret containing the cert chain for external connections.
-   */
-  private readonly certChain?: ISecret;
-
-  /**
    * The listener on the ALB that is redirecting traffic to the RCS.
    */
   private readonly listener: ApplicationListener;
@@ -237,9 +254,9 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   private readonly taskDefinition: Ec2TaskDefinition;
 
   /**
-   * The version of Deadline installed in the container images
+   * Depend on this to ensure that ECS Service is stable.
    */
-  private readonly version?: IVersion;
+  private ecsServiceStabilized: WaitForStableService;
 
   constructor(scope: Construct, id: string, props: RenderQueueProps) {
     super(scope, id);
@@ -277,6 +294,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     } else {
       externalProtocol = ApplicationProtocol.HTTP;
     }
+
+    this.version = props.version;
 
     const internalProtocol = props.trafficEncryption?.internalProtocol ?? ApplicationProtocol.HTTPS;
 
@@ -435,7 +454,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     });
 
     this.endpoint = new ConnectableApplicationEndpoint({
-      address: this.pattern.loadBalancer.loadBalancerDnsName,
+      address: loadBalancerFQDN ?? this.pattern.loadBalancer.loadBalancerDnsName,
       port: externalPortNumber,
       connections: this.connections,
       protocol: externalProtocol,
@@ -451,6 +470,10 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
         caCert: this.certChain!,
       });
     }
+
+    this.ecsServiceStabilized = new WaitForStableService(this, 'WaitForStableService', {
+      service: this.pattern.service,
+    });
 
     this.node.defaultChild = taskDefinition;
 
@@ -491,19 +514,25 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   }
 
   /**
-   * Adds AWS Managed Policies to the Render Queue so it is able to control Deadlines Spot Event Plugin.
+   * Adds AWS Managed Policies to the Render Queue so it is able to control Deadline's Spot Event Plugin.
    *
    * See: https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html for additonal information.
    *
-   * @param includeResourceTracker Whether or not the Resource tracker admin policy should also be addd (Default: True)
+   * @param includeResourceTracker Whether or not the Resource tracker admin policy should also be added (Default: True)
    */
-  public addSEPPolicies( includeResourceTracker: boolean = true): void {
-    const sepPolicy = ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginAdminPolicy');
-    this.taskDefinition.taskRole.addManagedPolicy(sepPolicy);
+  public addSEPPolicies(includeResourceTracker: boolean = true): void {
+    if (!this.haveAddedSEPPolicies) {
+      const sepPolicy = ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginAdminPolicy');
+      this.taskDefinition.taskRole.addManagedPolicy(sepPolicy);
+      this.haveAddedSEPPolicies = true;
+    }
 
-    if (includeResourceTracker) {
-      const rtPolicy = ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAdminPolicy');
-      this.taskDefinition.taskRole.addManagedPolicy(rtPolicy);
+    if (!this.haveAddedResourceTrackerPolicies) {
+      if (includeResourceTracker) {
+        const rtPolicy = ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAdminPolicy');
+        this.taskDefinition.taskRole.addManagedPolicy(rtPolicy);
+        this.haveAddedResourceTrackerPolicies = true;
+      }
     }
   }
 
@@ -521,6 +550,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     // ex: cycles that involve the security group of the RenderQueue & child.
     child.node.addDependency(this.listener);
     child.node.addDependency(this.taskDefinition);
+    child.node.addDependency(this.pattern.service);
+    child.node.addDependency(this.ecsServiceStabilized);
   }
 
   /**

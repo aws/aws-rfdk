@@ -7,14 +7,27 @@ import os
 
 from aws_cdk.core import (
     App,
-    Environment
+    Environment,
+)
+
+from aws_cdk.aws_ec2 import (
+    MachineImage,
 )
 
 from .lib import (
     sep_stack,
 )
 
+from .config import config
+
 def main():
+    # ------------------------------
+    # Validate Config Values
+    # ------------------------------
+
+    if 'region' in config.deadline_client_linux_ami_map:
+        raise ValueError('Deadline Client Linux AMI map is required but was not specified.')
+
     # ------------------------------
     # Application
     # ------------------------------
@@ -28,11 +41,10 @@ def main():
         account=os.environ.get('CDK_DEPLOY_ACCOUNT', os.environ.get('CDK_DEFAULT_ACCOUNT')),
         region=os.environ.get('CDK_DEPLOY_REGION', os.environ.get('CDK_DEFAULT_REGION'))
     )
-    # ------------------------------
-    # Service Tier
-    # ------------------------------
+
     sep_props = sep_stack.SEPStackProps(
         docker_recipes_stage_path=os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, 'stage'),
+        worker_machine_image=MachineImage.generic_linux(config.deadline_client_linux_ami_map),
     )
     service = sep_stack.SEPStack(app, 'SEPStack', props=sep_props, env=env)
 

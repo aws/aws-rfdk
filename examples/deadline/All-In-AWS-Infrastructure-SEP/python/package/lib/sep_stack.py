@@ -1,50 +1,75 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-import typing
+from typing import (
+    Optional,
+)
 from dataclasses import dataclass
-
 from aws_cdk.core import (
     Construct,
     Duration,
+    RemovalPolicy,
     Stack,
-    StackProps
+    StackProps,
+    Tags,
 )
 from aws_cdk.aws_ec2 import (
+    IMachineImage,
+    InstanceClass,
+    InstanceSize,
+    InstanceType,
     SecurityGroup,
     Vpc,
 )
 from aws_cdk.aws_iam import (
     ManagedPolicy,
     Role,
-    ServicePrincipal 
+    ServicePrincipal,
+)
+from aws_cdk.aws_elasticloadbalancingv2 import (
+    ApplicationProtocol,
+)
+from aws_cdk.aws_route53 import (
+    PrivateHostedZone,
 )
 from aws_rfdk.deadline import (
+    ConfigureSpotEventPlugin,
     RenderQueue,
+    RenderQueueExternalTLSProps,
+    RenderQueueHostNameProps,
+    RenderQueueTrafficEncryptionProps,
     Repository,
+    RepositoryRemovalPolicies,
+    SpotEventPluginFleet,
+    SpotEventPluginSettings,
     Stage,
     ThinkboxDockerRecipes,
+)
+from aws_rfdk import (
+    DistinguishedName,
+    X509CertificatePem,
 )
 
 
 @dataclass
 class SEPStackProps(StackProps):
     """
-    Properties for ServiceTier
+    Properties for SEPStack
     """
     # The path to the directory where the staged Deadline Docker recipes are.
     docker_recipes_stage_path: str
+    # The IMachineImage to use for Workers (needs Deadline Client installed).
+    worker_machine_image: IMachineImage
 
 
 class SEPStack(Stack):
     """
-    The service tier contains all "business-logic" constructs
-    (e.g. Render Queue, UBL Licensing/License Forwarder, etc.).
+    This stack contains all the constructs required to set the Spot Event Plugin Configuration.
     """
 
     def __init__(self, scope: Construct, stack_id: str, *, props: SEPStackProps, **kwargs):
         """
-        Initialize a new instance of ServiceTier
+        Initialize a new instance of SEPStack
         :param scope: The scope of this construct.
         :param stack_id: The ID of this construct.
         :param props: The properties for this construct.
@@ -56,13 +81,13 @@ class SEPStack(Stack):
         vpc = Vpc(
             self,
             'Vpc',
-            max_azs=2
+            max_azs=2,
         )
 
         recipes = ThinkboxDockerRecipes(
             self,
             'Image',
-            stage=Stage.from_directory(props.docker_recipes_stage_path)
+            stage=Stage.from_directory(props.docker_recipes_stage_path),
         )
 
         repository = Repository(
@@ -70,51 +95,71 @@ class SEPStack(Stack):
             'Repository',
             vpc=vpc,
             version=recipes.version,
-            repository_installation_timeout=Duration.minutes(20)
+            repository_installation_timeout=Duration.minutes(20),
+            # TODO - Evaluate deletion protection for your own needs. These properties are set to RemovalPolicy.DESTROY
+            # to cleanly remove everything when this stack is destroyed. If you would like to ensure
+            # that these resources are not accidentally deleted, you should set these properties to RemovalPolicy.RETAIN
+            # or just remove the removal_policy parameter.
+            removal_policy=RepositoryRemovalPolicies(
+                database=RemovalPolicy.DESTROY,
+                filesystem=RemovalPolicy.DESTROY,
+            ),
+        )
+
+        host = 'renderqueue'
+        zone_name = 'deadline-test.internal'
+
+        # Internal DNS zone for the VPC.
+        dns_zone = PrivateHostedZone(
+            self,
+            'DnsZone',
+            vpc=vpc,
+            zone_name=zone_name,
+        )
+
+        ca_cert = X509CertificatePem(
+            self,
+            'RootCA',
+            subject=DistinguishedName(
+                cn='SampleRootCA',
+            ),
+        )
+
+        server_cert = X509CertificatePem(
+            self,
+            'RQCert',
+            subject=DistinguishedName(
+                cn=f'{host}.{dns_zone.zone_name}',
+                o='RFDK-Sample',
+                ou='RenderQueueExternal',
+            ),
+            signing_certificate=ca_cert,
         )
 
         render_queue = RenderQueue(
             self,
             'RenderQueue',
-            vpc=props.vpc,
+            vpc=vpc,
             version=recipes.version,
             images=recipes.render_queue_images,
             repository=repository,
             # TODO - Evaluate deletion protection for your own needs. This is set to false to
             # cleanly remove everything when this stack is destroyed. If you would like to ensure
             # that this resource is not accidentally deleted, you should set this to true.
-            deletion_protection=False
-        )
-        # Adds the following IAM managed Policies to the Render Queue so it has the necessary permissions
-        # to run the Spot Event Plugin and launch a Resource Tracker:
-        # * AWSThinkboxDeadlineSpotEventPluginAdminPolicy
-        # * AWSThinkboxDeadlineResourceTrackerAdminPolicy
-        render_queue.add_sep_policies()
-
-        # Create the security group that you will assign to your workers
-        worker_security_group = SecurityGroup(
-            self,
-            'SpotSecurityGroup', 
-            vpc=props.vpc,
-            allow_all_outbound=True,
-            security_group_name='DeadlineSpotSecurityGroup',
-        )
-        worker_security_group.connections.allow_to_default_port(
-            render_queue.endpoint
-        )
-        
-        # Create the IAM Role for the Spot Event Plugins workers.
-        # Note: This Role MUST have a roleName that begins with "DeadlineSpot"
-        # Note: If you already have a worker IAM role in your account you can remove this code.
-        worker_iam_role = Role(
-            self,
-            'SpotWorkerRole',
-            assumed_by=ServicePrincipal('ec2.amazonaws.com'),
-            managed_policies= [ManagedPolicy.from_aws_managed_policy_name('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy')],
-            role_name= 'DeadlineSpotWorkerRole',
+            deletion_protection=False,
+            hostname=RenderQueueHostNameProps(
+                hostname=host,
+                zone=dns_zone,
+            ),
+            traffic_encryption=RenderQueueTrafficEncryptionProps(
+                external_tls=RenderQueueExternalTLSProps(
+                    rfdk_certificate=server_cert,
+                ),
+                internal_protocol=ApplicationProtocol.HTTPS,
+            ),
         )
 
-        # Creates the Resource Tracker Access role.  This role is required to exist in your account so the resource tracker will work properly
+        # Creates the Resource Tracker Access role. This role is required to exist in your account so the resource tracker will work properly
         # Note: If you already have a Resource Tracker IAM role in your account you can remove this code.
         Role(
             self,
@@ -122,5 +167,30 @@ class SEPStack(Stack):
             assumed_by=ServicePrincipal('lambda.amazonaws.com'),
             managed_policies= [ManagedPolicy.from_aws_managed_policy_name('AWSThinkboxDeadlineResourceTrackerAccessPolicy')],
             role_name= 'DeadlineResourceTrackerAccessRole',
+        )
+
+        fleet = SpotEventPluginFleet(
+            self,
+            'SpotEventPluginFleet',
+            vpc=vpc,
+            render_queue=render_queue,
+            deadline_groups=['group_name'],
+            instance_types=[InstanceType.of(InstanceClass.BURSTABLE3, InstanceSize.LARGE)],
+            worker_machine_image=props.worker_machine_image,
+            max_capacity=1,
+        )
+
+        # Optional: Add additional tags to both spot fleet request and spot instances.
+        Tags.of(fleet).add('name', 'SEPtest')
+
+        ConfigureSpotEventPlugin(
+            self,
+            'ConfigureSpotEventPlugin',
+            vpc=vpc,
+            render_queue=render_queue,
+            spot_fleets=[fleet],
+            configuration=SpotEventPluginSettings(
+                enable_resource_tracker=True,
+            ),
         )
 
