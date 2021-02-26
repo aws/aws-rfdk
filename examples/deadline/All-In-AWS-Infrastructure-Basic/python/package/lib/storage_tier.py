@@ -213,7 +213,7 @@ class StorageTierMongoDB(StorageTier):
         mongo_vpc_subnet = SubnetSelection(
             subnet_type=SubnetType.PRIVATE,
             availability_zones=[availability_zone]
-        ),
+        )
 
         mongo_db = MongoDbInstance(
             self,
@@ -240,7 +240,7 @@ class StorageTierMongoDB(StorageTier):
             users=MongoDbUsers(
                 x509_auth_users=[
                     MongoDbX509User(
-                        certificate=client_cert,
+                        certificate=client_cert.cert,
                         roles=json.dumps([
                             {
                                 'role': 'readWriteAnyDatabase',
