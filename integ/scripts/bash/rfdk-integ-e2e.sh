@@ -37,6 +37,7 @@ fi
 
 # Create temp directory
 export INTEG_TEMP_DIR="$INTEG_ROOT/.e2etemp"
+rm -rf $INTEG_TEMP_DIR
 mkdir -p $INTEG_TEMP_DIR
 
 # Stage deadline from script
@@ -76,6 +77,7 @@ $BASH_SCRIPTS/deploy-infrastructure.sh || cleanup_on_failure
 export INFRASTRUCTURE_DEPLOY_FINISH_TIME=$SECONDS
 
 # Pull the top level directory for each cdk app in the components directory
+COMPONENTS=()
 for COMPONENT in **/cdk.json; do
     # In case the yarn install was done inside this integ package, there are some example cdk.json files in the aws-cdk
     # package we want to avoid.
@@ -90,10 +92,49 @@ for COMPONENT in **/cdk.json; do
     export ${COMPONENT_NAME}_START_TIME=$SECONDS
     if [[ "$COMPONENT_NAME" != _* ]]; then
         # Excecute the e2e test in the component's scripts directory
-        cd "$INTEG_ROOT/$COMPONENT_ROOT" && ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" || cleanup_on_failure
+        cd "$INTEG_ROOT/$COMPONENT_ROOT"
+        if [ "${RUN_TESTS_IN_PARALLEL}" = true ]; then
+            (../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" || ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" --destroy-only) &
+            export ${COMPONENT_NAME}_PID=$!
+            COMPONENTS+=(${COMPONENT_NAME})
+        else
+            ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" || cleanup_on_failure
+        fi
     fi
     export ${COMPONENT_NAME}_FINISH_TIME=$SECONDS
 done
+
+if [ "${RUN_TESTS_IN_PARALLEL}" = true ]; then
+    while [ "${#COMPONENTS[@]}" -ne 0 ]; do
+        ACTIVE_COMPONENTS=()
+        for COMPONENT_NAME in ${COMPONENTS[@]}; do
+            PID=$(eval echo \"\$${COMPONENT_NAME}_PID\")
+            if ps -p "$PID" > /dev/null; then
+              ACTIVE_COMPONENTS+=(${COMPONENT_NAME})
+            else
+              echo "Test app $COMPONENT_NAME finished."
+              if [ -f "$INTEG_TEMP_DIR/${COMPONENT_NAME}_deploy.txt" ]; then
+                cat "$INTEG_TEMP_DIR/${COMPONENT_NAME}_deploy.txt"
+              fi
+              if [ -f "$INTEG_TEMP_DIR/${COMPONENT_NAME}.txt" ]; then
+                cat "$INTEG_TEMP_DIR/${COMPONENT_NAME}.txt"
+              fi
+              if [ -f "$INTEG_TEMP_DIR/${COMPONENT_NAME}_destroy.txt" ]; then
+                cat "$INTEG_TEMP_DIR/${COMPONENT_NAME}_destroy.txt"
+              fi
+            fi
+            export ${COMPONENT_NAME}_FINISH_TIME=$SECONDS
+        done
+        if [ "${#ACTIVE_COMPONENTS[@]}" -ne 0 ]; then
+          COMPONENTS=(${ACTIVE_COMPONENTS[@]})
+        else
+          COMPONENTS=()
+        fi
+        sleep 1
+    done
+
+    wait
+fi
 
 # Mark infrastructure destroy start time
 export INFRASTRUCTURE_DESTROY_START_TIME=$SECONDS
