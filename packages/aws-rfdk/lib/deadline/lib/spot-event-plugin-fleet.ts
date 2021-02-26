@@ -385,7 +385,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
    *
    * @default - Workers are not assigned to any group
    */
-  readonly deadlineGroups: string[];
+  public readonly deadlineGroups: string[];
 
   /**
    * Name of SSH keypair to grant access to instances.
@@ -400,7 +400,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
    *
    * @default - the Spot Fleet request remains until you cancel it.
    */
-  readonly validUntil?: Expiration;
+  public readonly validUntil?: Expiration;
 
   /**
    * The Block devices that will be attached to your workers.
