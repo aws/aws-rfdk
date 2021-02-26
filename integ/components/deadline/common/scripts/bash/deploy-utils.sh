@@ -20,7 +20,7 @@ function deploy_component_stacks () {
   echo "Running $COMPONENT_NAME end-to-end test..."
 
   echo "Deploying test app for $COMPONENT_NAME test suite"
-  if [ "${RUN_TESTS_IN_PARALLEL}" = true ]; then
+  if [ "${RUN_TESTS_IN_PARALLEL-}" = true ]; then
     npx cdk deploy "*" --require-approval=never > "$INTEG_TEMP_DIR/${COMPONENT_NAME}_deploy.txt" 2>&1
   else
     npx cdk deploy "*" --require-approval=never
@@ -36,7 +36,7 @@ function execute_component_test () {
   run_aws_interaction_hook
 
   echo "Running test suite $COMPONENT_NAME..."
-  if [ "${RUN_TESTS_IN_PARALLEL}" = true ]; then
+  if [ "${RUN_TESTS_IN_PARALLEL-}" = true ]; then
     yarn run test "$COMPONENT_NAME.test" --json --outputFile="$INTEG_TEMP_DIR/$COMPONENT_NAME.json" > "$INTEG_TEMP_DIR/${COMPONENT_NAME}.txt" 2>&1
   else
     yarn run test "$COMPONENT_NAME.test" --json --outputFile="$INTEG_TEMP_DIR/$COMPONENT_NAME.json"
@@ -52,7 +52,7 @@ function destroy_component_stacks () {
   run_aws_interaction_hook
 
   echo "Destroying test app $COMPONENT_NAME..."
-  if [ "${RUN_TESTS_IN_PARALLEL}" = true ]; then
+  if [ "${RUN_TESTS_IN_PARALLEL-}" = true ]; then
     npx cdk destroy "*" -f > "$INTEG_TEMP_DIR/${COMPONENT_NAME}_destroy.txt" 2>&1
   else
     npx cdk destroy "*" -f
