@@ -19,6 +19,7 @@ import {
   SecurityGroup,
   SelectedSubnets,
   SubnetSelection,
+  SubnetType,
   UserData,
 } from '@aws-cdk/aws-ec2';
 import {
@@ -88,15 +89,20 @@ export interface SpotEventPluginFleetProps {
 
   /**
    * Deadline groups these workers need to be assigned to.
-   * Note that the Spot Fleet configuration does not allow using wildcards as part of the Group name
-   * as described here https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#wildcards
    *
-   * @default - Workers are not assigned to any group
+   * Note that you will have to create the groups manually using Deadline before submitting jobs.
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html
+   *
+   * Also, note that the Spot Fleet configuration does not allow using wildcards as part of the Group name
+   * as described here https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#wildcards
    */
   readonly deadlineGroups: string[];
 
   /**
    * Deadline pools these workers need to be assigned to.
+   *
+   * Note that you will have to create the pools manually using Deadline before submitting jobs.
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html
    *
    * @default - Workers are not assigned to any pool.
    */
@@ -257,7 +263,7 @@ export interface ISpotEventPluginFleet extends IConnectable, IScriptHost, IGrant
  * This construct reperesents a fleet from the Spot Fleet Request created by the Spot Event Plugin.
  * This fleet is intended to be used as input for the {@link @aws-rfdk/deadline#ConfigureSpotEventPlugin} construct.
  *
- * The construct itself doesn't create the Spot Fleet Request, but it deployes all the resources
+ * The construct itself doesn't create the Spot Fleet Request, but deploys all the resources
  * required for the Spot Fleet Request and generates the Spot Fleet Configuration setting:
  * a one to one mapping between a Deadline Group and Spot Fleet Request Configurations.
  *
@@ -435,7 +441,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     });
 
     this.blockDevices = props.blockDevices;
-    this.subnets = props.vpc.selectSubnets(props.vpcSubnets);
+    this.subnets = props.vpc.selectSubnets(props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE });
     this.instanceTypes = props.instanceTypes;
     this.allocationStrategy = props.allocationStrategy ?? SpotFleetAllocationStrategy.LOWEST_PRICE;
     this.maxCapacity = props.maxCapacity;
@@ -489,11 +495,20 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   }
 
   private validateProps(props: SpotEventPluginFleetProps): void {
+    this.validateFleetInstanceRole(props.fleetInstanceRole);
     this.validateInstanceTypes(props.instanceTypes);
     this.validateSubnets(props.vpc, props.vpcSubnets);
     this.validateGroups('deadlineGroups', props.deadlineGroups);
     this.validateRegion('deadlineRegion', props.deadlineRegion);
     this.validateBlockDevices(props.blockDevices);
+  }
+
+  private validateFleetInstanceRole(fleetInstanceRole?: IRole): void {
+    if (fleetInstanceRole) {
+      if (Stack.of(fleetInstanceRole) !== Stack.of(this)) {
+        throw new Error(`Fleet instance role should be created on the same stack as ${this.constructor.name} to avoid circular dependencies.`);
+      }
+    }
   }
 
   private validateInstanceTypes(array: InstanceType[]): void {

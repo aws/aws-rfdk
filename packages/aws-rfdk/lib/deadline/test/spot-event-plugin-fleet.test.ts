@@ -447,7 +447,7 @@ describe('SpotEventPluginFleet', () => {
       expect(renderedUserData).not.toEqual(renderedOriginalUser);
     });
 
-    test('uses provided spot fleet instance role', () => {
+    test('uses provided spot fleet instance role from the same stack', () => {
       // GIVEN
       const spotFleetInstanceRole = new Role(spotFleetStack, 'SpotFleetInstanceRole', {
         assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
@@ -483,6 +483,35 @@ describe('SpotEventPluginFleet', () => {
           spotFleetStack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy').managedPolicyArn),
         ),
       }));
+    });
+
+    test('throws if provided spot fleet instance role is not from the same stack', () => {
+      // GIVEN
+      const otherStack = new Stack(app, 'OtherStack', {
+        env: { region: 'us-east-1' },
+      });
+      const spotFleetInstanceRole = new Role(otherStack, 'SpotFleetInstanceRole', {
+        assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
+        managedPolicies: [
+          ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy'),
+        ],
+      });
+
+      // WHEN
+      function createSpotEventPluginFleet() {
+        new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
+          vpc,
+          renderQueue,
+          deadlineGroups,
+          instanceTypes,
+          workerMachineImage,
+          maxCapacity,
+          fleetInstanceRole: spotFleetInstanceRole,
+        });
+      }
+
+      // THEN
+      expect(createSpotEventPluginFleet).toThrowError('Fleet instance role should be created on the same stack as SpotEventPluginFleet to avoid circular dependencies.');
     });
 
     test('uses provided spot fleet role', () => {

@@ -255,7 +255,7 @@ export interface ConfigureSpotEventPluginProps {
 
   /**
    * The Spot Event Plugin settings.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html?highlight=spot%20even%20plugin#event-plugin-configuration-options
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
    *
    * @default Default values of SpotEventPluginSettings will be set.
    */
@@ -490,7 +490,7 @@ export class ConfigureSpotEventPlugin extends Construct {
     this.node.defaultChild = resource;
   }
 
-  private tagsSpecifications(fleet: SpotEventPluginFleet, resourceType: SpotFleetResourceType): IResolvable {
+  private tagSpecifications(fleet: SpotEventPluginFleet, resourceType: SpotFleetResourceType): IResolvable {
     return Lazy.any({
       produce: () => {
         if (fleet.tags.hasTags()) {
@@ -527,8 +527,8 @@ export class ConfigureSpotEventPlugin extends Construct {
     const { subnetIds } = fleet.subnets;
     const subnetId = subnetIds.join(',');
 
-    const instanceTagsToken = this.tagsSpecifications(fleet, SpotFleetResourceType.INSTANCE);
-    const spotFleetRequestTagsToken = this.tagsSpecifications(fleet, SpotFleetResourceType.SPOT_FLEET_REQUEST);
+    const instanceTagsToken = this.tagSpecifications(fleet, SpotFleetResourceType.INSTANCE);
+    const spotFleetRequestTagsToken = this.tagSpecifications(fleet, SpotFleetResourceType.SPOT_FLEET_REQUEST);
 
     const launchSpecifications: LaunchSpecification[] = [];
 

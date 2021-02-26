@@ -750,7 +750,7 @@ describe('ConfigureSpotEventPlugin', () => {
 
     // WHEN
     // eslint-disable-next-line dot-notation
-    const result = stack.resolve(config['tagsSpecifications'](mockedFleet,  SpotFleetResourceType.INSTANCE));
+    const result = stack.resolve(config['tagSpecifications'](mockedFleet,  SpotFleetResourceType.INSTANCE));
 
     // THEN
     expect(result).toBeUndefined();
