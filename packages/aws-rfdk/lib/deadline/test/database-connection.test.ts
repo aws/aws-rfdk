@@ -315,7 +315,7 @@ describe('DocumentDB', () => {
   });
 
   // This test can be removed once the following CDK PR is merged:
-  // TODO: make PR
+  // https://github.com/aws/aws-cdk/pull/13290
   test('adds warning annotation when a security group cannot be added due to implementation changes in DatabaseCluster', () => {
     // GIVEN
     if (!database.node.tryRemoveChild('Resource')) {
