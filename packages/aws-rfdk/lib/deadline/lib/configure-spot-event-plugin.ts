@@ -317,12 +317,18 @@ export interface ConfigureSpotEventPluginProps {
  * Logs for all AWS Lambdas are automatically recorded in Amazon CloudWatch.
  *
  * This construct will configure the Spot Event Plugin, but the Spot Fleet Requests will not be created unless you:
- * - Create the Deadline Group associated with the Spot Fleet Request Configuration.
- * - Create the Deadline Pools to which the fleet Workers are added.
- * - Submit the job with the assigned Deadline Group and Deadline Pool.
+ * - Create the Deadline Group associated with the Spot Fleet Request Configuration. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html).
+ * - Create the Deadline Pools to which the fleet Workers are added. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html).
+ * - Submit the job with the assigned Deadline Group and Deadline Pool. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/job-submitting.html#submitting-jobs).
  *
- * Important: any resources created by the Spot Event Plugin will not be deleted with 'cdk destroy'.
+ * Important: Disable 'Allow Workers to Perform House Cleaning If Pulse is not Running' in the 'Configure Repository Options'
+ * when using Spot Event Plugin.
+ * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#prerequisites
+ *
+ * Important: Any resources created by the Spot Event Plugin will not be deleted with 'cdk destroy'.
  * Make sure that all such resources (e.g. Spot Fleet Request or Fleet Instances) are cleaned up, before destroying the stacks.
+ * Disable the Spot Event Plugin by setting 'state' property to 'SpotEventPluginState.DISABLED' or via Deadline Monitor,
+ * ensure you shutdown all Pulse instances and then terminate any Spot Fleet Requests in the AWS EC2 Instance Console.
  *
  * Note that this construct adds additional policies to the Render Queue's role
  * required to run the Spot Event Plugin and launch a Resource Tracker:
