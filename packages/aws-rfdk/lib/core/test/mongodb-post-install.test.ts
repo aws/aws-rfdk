@@ -80,19 +80,19 @@ describe('MongoDbPostInstall', () => {
       vpc,
     });
 
-    pwUser1Arn = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/User1';
-    pwUser2Arn = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/User2';
-    pwUser1 = Secret.fromSecretArn(stack, 'PwUser1', pwUser1Arn);
-    pwUser2 = Secret.fromSecretArn(stack, 'PwUser2', pwUser2Arn);
+    pwUser1Arn = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/User1-abcdef';
+    pwUser2Arn = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/User2-abcdef';
+    pwUser1 = Secret.fromSecretCompleteArn(stack, 'PwUser1', pwUser1Arn);
+    pwUser2 = Secret.fromSecretCompleteArn(stack, 'PwUser2', pwUser2Arn);
 
-    x509User1Arn = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/X509User1';
-    x509User2Arn = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/X509User2';
+    x509User1Arn = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/X509User1-abcdef';
+    x509User2Arn = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/X509User2-abcdef';
     x509User1 = {
-      certificate: Secret.fromSecretArn(stack, 'x509User1', x509User1Arn),
+      certificate: Secret.fromSecretCompleteArn(stack, 'x509User1', x509User1Arn),
       roles: JSON.stringify([ { role: 'readWrite', db: 'testdb1' } ]),
     };
     x509User2 = {
-      certificate: Secret.fromSecretArn(stack, 'x509User2', x509User2Arn),
+      certificate: Secret.fromSecretCompleteArn(stack, 'x509User2', x509User2Arn),
       roles: JSON.stringify([ { role: 'readWrite', db: 'testdb2' } ]),
     };
   });
@@ -173,7 +173,7 @@ describe('MongoDbPostInstall', () => {
               'secretsmanager:DescribeSecret',
             ],
             Effect: 'Allow',
-            Resource: 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/User1',
+            Resource: pwUser1Arn,
           },
           {
             Action: [
@@ -181,7 +181,7 @@ describe('MongoDbPostInstall', () => {
               'secretsmanager:DescribeSecret',
             ],
             Effect: 'Allow',
-            Resource: 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/User2',
+            Resource: pwUser2Arn,
           },
         ],
       },
@@ -272,7 +272,7 @@ describe('MongoDbPostInstall', () => {
               'secretsmanager:DescribeSecret',
             ],
             Effect: 'Allow',
-            Resource: 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/User1',
+            Resource: pwUser1Arn,
           },
           {
             Action: [
@@ -280,7 +280,7 @@ describe('MongoDbPostInstall', () => {
               'secretsmanager:DescribeSecret',
             ],
             Effect: 'Allow',
-            Resource: 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/User2',
+            Resource: pwUser2Arn,
           },
         ],
       },
