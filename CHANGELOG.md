@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.26.0](https://github.com/aws/aws-rfdk/compare/v0.25.0...v0.26.0) (2021-03-01)
+
+
+### Supported CDK Version
+
+* [1.91.0](https://github.com/aws/aws-cdk/releases/tag/v1.91.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.13.2](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **core:** add vpcSubnets prop to HealthMonitor ([#310](https://github.com/aws/aws-rfdk/issues/310)) ([12b6d89](https://github.com/aws/aws-rfdk/commit/12b6d89503fafdb645c5721d3b07d301fcd72521)), closes [#305](https://github.com/aws/aws-rfdk/issues/305)
+* **deadline:** add ConfigureSpotEventPlugin and SpotEventPluginFleet constructs ([#279](https://github.com/aws/aws-rfdk/issues/279)) ([b418e8a](https://github.com/aws/aws-rfdk/commit/b418e8a6857b7ee46a2fd984acb3f642231b6273))
+* **deadline:** add security group configuration for Repository and RenderQueue ([#319](https://github.com/aws/aws-rfdk/issues/319)) ([b7a43d6](https://github.com/aws/aws-rfdk/commit/b7a43d679be00ff4fc228ae0ee5bc3c6685a6025))
+
+
+### Bug Fixes
+
+* **deadline:** VersionQuery cross-stack issue ([#306](https://github.com/aws/aws-rfdk/issues/306)) ([e6bb60d](https://github.com/aws/aws-rfdk/commit/e6bb60dc5cb186dca16b70daf4990e845b2825e1))
+* **examples:** Fix errors in MongoDB Python example ([#322](https://github.com/aws/aws-rfdk/issues/322)) ([e1bfc79](https://github.com/aws/aws-rfdk/commit/e1bfc79b11c685d140057b7f58adcf49bfad23ab))
+* **integ:** Ignore unbound RUN_TESTS_IN_PARALLEL variable ([#326](https://github.com/aws/aws-rfdk/issues/326)) ([76edf55](https://github.com/aws/aws-rfdk/commit/76edf559be8c4873403fe0938319f11612bb078a))
+
 ## [0.25.0](https://github.com/aws/aws-rfdk/compare/v0.24.0...v0.25.0) (2021-01-28)
 
 
