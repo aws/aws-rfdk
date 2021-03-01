@@ -11,9 +11,12 @@ import {
 } from '@aws-cdk/assert';
 import {
   DatabaseCluster,
+  Endpoint,
+  IDatabaseCluster,
 } from '@aws-cdk/aws-docdb';
 import {
   AmazonLinuxGeneration,
+  Connections,
   Instance,
   InstanceClass,
   InstanceSize,
@@ -31,11 +34,17 @@ import {
 import {
   PrivateHostedZone,
 } from '@aws-cdk/aws-route53';
-import { Secret } from '@aws-cdk/aws-secretsmanager';
 import {
+  Secret,
+  SecretAttachmentTargetProps,
+} from '@aws-cdk/aws-secretsmanager';
+import {
+  Construct,
   Duration,
+  ResourceEnvironment,
   Stack,
 } from '@aws-cdk/core';
+import * as sinon from 'sinon';
 
 import {
   IMongoDb,
@@ -262,6 +271,70 @@ describe('DocumentDB', () => {
     expect(() => {
       connection.addConnectionDBArgs(instance);
     }).toThrowError('Connecting to the Deadline Database is currently only supported for Linux.');
+  });
+
+  test('adds warning annotation when a security group cannot be added due to unsupported IDatabaseCluster implementation', () => {
+    // GIVEN
+    class FakeDatabaseCluster extends Construct implements IDatabaseCluster {
+      public readonly clusterIdentifier: string = '';
+      public readonly instanceIdentifiers: string[] = [];
+      public readonly clusterEndpoint: Endpoint = new Endpoint('address', 123);
+      public readonly clusterReadEndpoint: Endpoint = new Endpoint('readAddress', 123);
+      public readonly instanceEndpoints: Endpoint[] = [];
+      public readonly securityGroupId: string = '';
+      public readonly connections: Connections = new Connections();
+
+      public readonly stack: Stack;
+      public readonly env: ResourceEnvironment;
+
+      constructor(scope: Construct, id: string) {
+        super(scope, id);
+        this.stack = Stack.of(scope);
+        this.env = {account: this.stack.account, region: this.stack.region};
+      }
+
+      asSecretAttachmentTarget(): SecretAttachmentTargetProps {
+        throw new Error('Method not implemented.');
+      }
+    }
+    const fakeDatabase = new FakeDatabaseCluster(stack, 'FakeDatabase');
+    const securityGroup = new SecurityGroup(stack, 'NewSecurityGroup', { vpc });
+    const connection = DatabaseConnection.forDocDB({database: fakeDatabase, login: database.secret!});
+
+    // WHEN
+    connection.addSecurityGroup(securityGroup);
+
+    // THEN
+    expect(fakeDatabase.node.metadata).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: 'aws:cdk:warning',
+        data: expect.stringMatching(new RegExp(`Failed to add the following security groups to ${fakeDatabase.node.id}: .*\\. ` +
+        'The \\"database\\" property passed to this class is not an instance of AWS CDK\'s DocumentDB cluster construct.')),
+      }),
+    ]));
+  });
+
+  // This test can be removed once the following CDK PR is merged:
+  // https://github.com/aws/aws-cdk/pull/13290
+  test('adds warning annotation when a security group cannot be added due to implementation changes in DatabaseCluster', () => {
+    // GIVEN
+    if (!database.node.tryRemoveChild('Resource')) {
+      throw new Error('The internal implementation of AWS CDK\'s DocumentDB cluster construct has changed. The addSecurityGroup method needs to be updated.');
+    }
+    const securityGroup = new SecurityGroup(stack, 'NewSecurityGroup', { vpc });
+    const connection = DatabaseConnection.forDocDB({database, login: database.secret!});
+
+    // WHEN
+    connection.addSecurityGroup(securityGroup);
+
+    // THEN
+    expect(database.node.metadata).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        type: 'aws:cdk:warning',
+        data: expect.stringMatching(new RegExp(`Failed to add the following security groups to ${database.node.id}: .*\\. ` +
+        'The internal implementation of AWS CDK\'s DocumentDB cluster construct has changed.')),
+      }),
+    ]));
   });
 
 });
@@ -615,5 +688,20 @@ describe('MongoDB', () => {
     expect(() => {
       connection.addConnectionDBArgs(instance);
     }).toThrowError('Connecting to the Deadline Database is currently only supported for Linux.');
+  });
+
+  test('adds security group', () => {
+    // GIVEN
+    const dbSpy = sinon.spy(database, 'addSecurityGroup');
+    const connection = DatabaseConnection.forMongoDbInstance({database, clientCertificate: clientCert});
+    const securityGroup = new SecurityGroup(stack, 'NewSecurityGroup', {
+      vpc,
+    });
+
+    // WHEN
+    connection.addSecurityGroup(securityGroup);
+
+    // THEN
+    expect(dbSpy.calledOnce).toBeTruthy();
   });
 });

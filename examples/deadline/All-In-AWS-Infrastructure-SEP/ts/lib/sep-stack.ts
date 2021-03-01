@@ -4,26 +4,36 @@
  */
 
 import {
-  SecurityGroup,
+  IMachineImage,
+  InstanceClass,
+  InstanceSize,
+  InstanceType,
   Vpc,
 } from '@aws-cdk/aws-ec2';
 import {
   Construct,
   Duration,
+  RemovalPolicy,
   Stack,
-  StackProps
+  StackProps,
+  Tags,
 } from '@aws-cdk/core';
+import { ApplicationProtocol } from '@aws-cdk/aws-elasticloadbalancingv2';
 import {
   ManagedPolicy,
   Role,
-  ServicePrincipal
+  ServicePrincipal,
 } from '@aws-cdk/aws-iam';
+import { PrivateHostedZone } from '@aws-cdk/aws-route53';
 import {
+  ConfigureSpotEventPlugin,
   RenderQueue,
   Repository,
+  SpotEventPluginFleet,
   Stage,
   ThinkboxDockerRecipes,
 } from 'aws-rfdk/deadline';
+import { X509CertificatePem } from 'aws-rfdk';
 
 /**
  * Properties for {@link SEPStack}.
@@ -34,12 +44,17 @@ export interface SEPStackProps extends StackProps {
    * The path to the directory where the staged Deadline Docker recipes are.
    */
   readonly dockerRecipesStagePath: string;
+
+  /**
+   * The {@link IMachineImage} to use for Workers (needs Deadline Client installed).
+   */
+  readonly workerMachineImage: IMachineImage;
 }
 
 export class SEPStack extends Stack {
 
   /**
-   * Initializes a new instance of {@link NetworkTier}.
+   * Initializes a new instance of SEPStack.
    * @param scope The scope of this construct.
    * @param id The ID of this construct.
    * @param props The stack properties.
@@ -57,7 +72,46 @@ export class SEPStack extends Stack {
       vpc,
       version: recipes.version,
       repositoryInstallationTimeout: Duration.minutes(20),
+      // TODO - Evaluate deletion protection for your own needs. These properties are set to RemovalPolicy.DESTROY
+      // to cleanly remove everything when this stack is destroyed. If you would like to ensure
+      // that these resources are not accidentally deleted, you should set these properties to RemovalPolicy.RETAIN
+      // or just remove the removalPolicy parameter.
+      removalPolicy: {
+        database: RemovalPolicy.DESTROY,
+        filesystem: RemovalPolicy.DESTROY,
+      },
     });
+
+    const host = 'renderqueue';
+    const zoneName = 'deadline-test.internal';
+
+    const hostname = {
+      zone: new PrivateHostedZone(this, 'DnsZone', {
+        vpc,
+        zoneName: zoneName,
+      }),
+      hostname: host,
+    };
+
+    const caCert = new X509CertificatePem(this, 'RootCA', {
+      subject: {
+        cn: 'SampleRootCA',
+      },
+    });
+
+    const trafficEncryption = {
+      externalTLS: {
+        rfdkCertificate: new X509CertificatePem(this, 'RQCert', {
+          subject: {
+            cn: `${host}.${zoneName}`,
+            o: 'RFDK-Sample',
+            ou: 'RenderQueueExternal',
+          },
+          signingCertificate: caCert,
+        }),
+        internalProtocol: ApplicationProtocol.HTTPS,
+      },
+    };
 
     const renderQueue = new RenderQueue(this, 'RenderQueue', {
       vpc,
@@ -68,41 +122,45 @@ export class SEPStack extends Stack {
       // cleanly remove everything when this stack is destroyed. If you would like to ensure
       // that this resource is not accidentally deleted, you should set this to true.
       deletionProtection: false,
+      hostname,
+      trafficEncryption,
     });
 
-    // Adds the following IAM managed Policies to the Render Queue so it has the necessary permissions
-    // to run the Spot Event Plugin and launch a Resource Tracker:
-    // * AWSThinkboxDeadlineSpotEventPluginAdminPolicy
-    // * AWSThinkboxDeadlineResourceTrackerAdminPolicy
-    renderQueue.addSEPPolicies();
-
-    // Create the security group that you will assign to your workers
-    const workerSecurityGroup = new SecurityGroup(this, 'SpotSecurityGroup', {
-      vpc,
-      allowAllOutbound: true,
-      securityGroupName: 'DeadlineSpotSecurityGroup',
-    });
-    workerSecurityGroup.connections.allowToDefaultPort(renderQueue.endpoint);
-    
-    // Create the IAM Role for the Spot Event Plugins workers.
-    // Note: This Role MUST have a roleName that begins with "DeadlineSpot"
-    // Note if you already have a worker IAM role in your account you can remove this code.
-    new Role( this, 'SpotWorkerRole', {
-      assumedBy: new ServicePrincipal('ec2.amazonaws.com'),
-      managedPolicies: [
-        ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginWorkerPolicy'),
-      ],
-      roleName: 'DeadlineSpotWorkerRole',
-    });
-
-    // Creates the Resource Tracker Access role.  This role is required to exist in your account so the resource tracker will work properly
+    // Creates the Resource Tracker Access role. This role is required to exist in your account so the resource tracker will work properly
     // Note: If you already have a Resource Tracker IAM role in your account you can remove this code.
-    new Role( this, 'ResourceTrackerRole', {
+    new Role(this, 'ResourceTrackerRole', {
       assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
       managedPolicies: [
         ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAccessPolicy'),
       ],
       roleName: 'DeadlineResourceTrackerAccessRole',
+    });
+
+    const fleet = new SpotEventPluginFleet(this, 'SpotEventPluginFleet', {
+      vpc,
+      renderQueue,
+      deadlineGroups: [
+        'group_name',
+      ],
+      instanceTypes: [
+        InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
+      ],
+      workerMachineImage: props.workerMachineImage,
+      maxCapacity: 1,
+    });
+
+    // Optional: Add additional tags to both spot fleet request and spot instances.
+    Tags.of(fleet).add('name', 'SEPtest');
+
+    new ConfigureSpotEventPlugin(this, 'ConfigureSpotEventPlugin', {
+      vpc,
+      renderQueue: renderQueue,
+      spotFleets: [
+        fleet,
+      ],
+      configuration: {
+        enableResourceTracker: true,
+      },
     });
   }
 }

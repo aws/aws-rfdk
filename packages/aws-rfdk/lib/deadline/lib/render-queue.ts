@@ -15,6 +15,7 @@ import {
   Connections,
   IConnectable,
   InstanceType,
+  ISecurityGroup,
   Port,
   SubnetType,
 } from '@aws-cdk/aws-ec2';
@@ -52,13 +53,16 @@ import {
 import {
   Construct,
   IConstruct,
+  Stack,
 } from '@aws-cdk/core';
 
 import {
   ECSConnectOptions,
   InstanceConnectOptions,
   IRepository,
+  IVersion,
   RenderQueueProps,
+  VersionQuery,
 } from '.';
 
 import {
@@ -71,10 +75,12 @@ import {
 import {
   tagConstruct,
 } from '../../core/lib/runtime-info';
-
 import {
   RenderQueueConnection,
 } from './rq-connection';
+import {
+  WaitForStableService,
+} from './wait-for-stable-service';
 
 /**
  * Interface for Deadline Render Queue.
@@ -198,6 +204,26 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   public readonly asg: AutoScalingGroup;
 
   /**
+   * The version of Deadline that the RenderQueue uses
+   */
+  public readonly version: IVersion;
+
+  /**
+   * The secret containing the cert chain for external connections.
+   */
+  public readonly certChain?: ISecret;
+
+  /**
+   * Whether SEP policies have been added
+   */
+  private haveAddedSEPPolicies: boolean = false;
+
+  /**
+   * Whether Resource Tracker policies have been added
+   */
+  private haveAddedResourceTrackerPolicies: boolean = false;
+
+  /**
    * The log group where the RCS container will log to
    */
   private readonly logGroup: ILogGroup;
@@ -218,11 +244,6 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   private readonly rqConnection: RenderQueueConnection;
 
   /**
-   * The secret containing the cert chain for external connections.
-   */
-  private readonly certChain?: ISecret;
-
-  /**
    * The listener on the ALB that is redirecting traffic to the RCS.
    */
   private readonly listener: ApplicationListener;
@@ -231,6 +252,11 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    * The ECS task for the RCS.
    */
   private readonly taskDefinition: Ec2TaskDefinition;
+
+  /**
+   * Depend on this to ensure that ECS Service is stable.
+   */
+  private ecsServiceStabilized: WaitForStableService;
 
   constructor(scope: Construct, id: string, props: RenderQueueProps) {
     super(scope, id);
@@ -242,6 +268,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     if (props.renderQueueSize && props.renderQueueSize.desired !== undefined && props.renderQueueSize.desired > 1) {
       throw new Error(`renderQueueSize.desired cannot be greater than 1 - got ${props.renderQueueSize.desired}`);
     }
+
+    this.version = props?.version;
 
     let externalProtocol: ApplicationProtocol;
     if ( props.trafficEncryption?.externalTLS ) {
@@ -266,6 +294,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     } else {
       externalProtocol = ApplicationProtocol.HTTP;
     }
+
+    this.version = props.version;
 
     const internalProtocol = props.trafficEncryption?.internalProtocol ?? ApplicationProtocol.HTTPS;
 
@@ -294,6 +324,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
         volume: BlockDeviceVolume.ebs(30, { encrypted: true }),
       }],
       updateType: UpdateType.ROLLING_UPDATE,
+      // @ts-ignore
+      securityGroup: props.securityGroups?.backend,
     });
 
     /**
@@ -337,6 +369,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       vpcSubnets: props.vpcSubnetsAlb ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
       internetFacing: false,
       deletionProtection: props.deletionProtection ?? true,
+      securityGroup: props.securityGroups?.frontend,
     });
 
     this.pattern = new ApplicationLoadBalancedEc2Service(this, 'AlbEc2ServicePattern', {
@@ -421,7 +454,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     });
 
     this.endpoint = new ConnectableApplicationEndpoint({
-      address: this.pattern.loadBalancer.loadBalancerDnsName,
+      address: loadBalancerFQDN ?? this.pattern.loadBalancer.loadBalancerDnsName,
       port: externalPortNumber,
       connections: this.connections,
       protocol: externalProtocol,
@@ -438,10 +471,30 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       });
     }
 
+    this.ecsServiceStabilized = new WaitForStableService(this, 'WaitForStableService', {
+      service: this.pattern.service,
+    });
+
     this.node.defaultChild = taskDefinition;
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
+  }
+
+  protected onValidate(): string[] {
+    const validationErrors = [];
+
+    // Using the output of VersionQuery across stacks can cause issues. CloudFormation stack outputs cannot change if
+    // a resource in another stack is referencing it.
+    if (this.version instanceof VersionQuery) {
+      const versionStack = Stack.of(this.version);
+      const thisStack = Stack.of(this);
+      if (versionStack != thisStack) {
+        validationErrors.push('A VersionQuery can not be supplied from a different stack');
+      }
+    }
+
+    return validationErrors;
   }
 
   /**
@@ -461,19 +514,25 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   }
 
   /**
-   * Adds AWS Managed Policies to the Render Queue so it is able to control Deadlines Spot Event Plugin.
+   * Adds AWS Managed Policies to the Render Queue so it is able to control Deadline's Spot Event Plugin.
    *
    * See: https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html for additonal information.
    *
-   * @param includeResourceTracker Whether or not the Resource tracker admin policy should also be addd (Default: True)
+   * @param includeResourceTracker Whether or not the Resource tracker admin policy should also be added (Default: True)
    */
-  public addSEPPolicies( includeResourceTracker: boolean = true): void {
-    const sepPolicy = ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginAdminPolicy');
-    this.taskDefinition.taskRole.addManagedPolicy(sepPolicy);
+  public addSEPPolicies(includeResourceTracker: boolean = true): void {
+    if (!this.haveAddedSEPPolicies) {
+      const sepPolicy = ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginAdminPolicy');
+      this.taskDefinition.taskRole.addManagedPolicy(sepPolicy);
+      this.haveAddedSEPPolicies = true;
+    }
 
-    if (includeResourceTracker) {
-      const rtPolicy = ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAdminPolicy');
-      this.taskDefinition.taskRole.addManagedPolicy(rtPolicy);
+    if (!this.haveAddedResourceTrackerPolicies) {
+      if (includeResourceTracker) {
+        const rtPolicy = ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAdminPolicy');
+        this.taskDefinition.taskRole.addManagedPolicy(rtPolicy);
+        this.haveAddedResourceTrackerPolicies = true;
+      }
     }
   }
 
@@ -491,6 +550,24 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     // ex: cycles that involve the security group of the RenderQueue & child.
     child.node.addDependency(this.listener);
     child.node.addDependency(this.taskDefinition);
+    child.node.addDependency(this.pattern.service);
+    child.node.addDependency(this.ecsServiceStabilized);
+  }
+
+  /**
+   * Adds security groups to the frontend of the Render Queue, which is its load balancer.
+   * @param securityGroups The security groups to add.
+   */
+  public addFrontendSecurityGroups(...securityGroups: ISecurityGroup[]): void {
+    securityGroups.forEach(securityGroup => this.loadBalancer.addSecurityGroup(securityGroup));
+  }
+
+  /**
+   * Adds security groups to the backend components of the Render Queue, which consists of the AutoScalingGroup for the Deadline RCS.
+   * @param securityGroups The security groups to add.
+   */
+  public addBackendSecurityGroups(...securityGroups: ISecurityGroup[]): void {
+    securityGroups.forEach(securityGroup => this.asg.addSecurityGroup(securityGroup));
   }
 
   private createTaskDefinition(props: {

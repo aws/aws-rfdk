@@ -14,6 +14,7 @@ import {
   not,
   objectLike,
   ResourcePart,
+  SynthUtils,
 } from '@aws-cdk/assert';
 import {
   Certificate,
@@ -25,6 +26,8 @@ import {
   InstanceSize,
   InstanceType,
   MachineImage,
+  Port,
+  SecurityGroup,
   Subnet,
   Vpc,
   WindowsVersion,
@@ -64,6 +67,7 @@ import {
   RenderQueue,
   RenderQueueImages,
   RenderQueueProps,
+  RenderQueueSecurityGroups,
   Repository,
   VersionQuery,
 } from '../lib';
@@ -81,6 +85,7 @@ describe('RenderQueue', () => {
 
   let repository: Repository;
   let version: IVersion;
+  let renderQueueVersion: IVersion;
 
   let renderQueueCommon: RenderQueue;
 
@@ -99,10 +104,11 @@ describe('RenderQueue', () => {
     images = {
       remoteConnectionServer: rcsImage,
     };
+    renderQueueVersion = new VersionQuery(stack, 'Version');
     renderQueueCommon = new RenderQueue(stack, 'RenderQueueCommon', {
       images,
       repository,
-      version,
+      version: renderQueueVersion,
       vpc,
     });
   });
@@ -198,6 +204,8 @@ describe('RenderQueue', () => {
       DependsOn: arrayWith(
         'RenderQueueCommonLBPublicListener935F5635',
         'RenderQueueCommonRCSTask2A4D5EA5',
+        'RenderQueueCommonAlbEc2ServicePatternService42BEFF4C',
+        'RenderQueueCommonWaitForStableServiceDB53E266',
       ),
     }, ResourcePart.CompleteDefinition));
   });
@@ -223,7 +231,7 @@ describe('RenderQueue', () => {
         new RenderQueue(isolatedStack, 'RenderQueue', {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           renderQueueSize: {},
         });
@@ -243,7 +251,7 @@ describe('RenderQueue', () => {
       const props: RenderQueueProps = {
         images,
         repository,
-        version,
+        version: renderQueueVersion,
         vpc,
         renderQueueSize: {
           min,
@@ -262,16 +270,16 @@ describe('RenderQueue', () => {
     test('configures minimum number of ASG instances', () => {
       // GIVEN
       const min = 1;
+      const isolatedStack = new Stack(app, 'IsolatedStack');
       const props: RenderQueueProps = {
         images,
         repository,
-        version,
+        version: new VersionQuery(isolatedStack, 'Version'),
         vpc,
         renderQueueSize: {
           min,
         },
       };
-      const isolatedStack = new Stack(app, 'IsolatedStack');
 
       // WHEN
       new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -297,7 +305,7 @@ describe('RenderQueue', () => {
       const props: RenderQueueProps = {
         images,
         repository,
-        version,
+        version: renderQueueVersion,
         vpc,
         renderQueueSize: {
           desired: 2,
@@ -318,16 +326,16 @@ describe('RenderQueue', () => {
 
       beforeEach(() => {
         // GIVEN
+        isolatedStack = new Stack(app, 'IsolatedStack');
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           renderQueueSize: {
             desired,
           },
         };
-        isolatedStack = new Stack(app, 'IsolatedStack');
 
         // WHEN
         new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -354,14 +362,14 @@ describe('RenderQueue', () => {
 
       beforeEach(() => {
         // GIVEN
+        isolatedStack = new Stack(app, 'IsolatedStack');
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           trafficEncryption: {},
         };
-        isolatedStack = new Stack(app, 'IsolatedStack');
 
         // WHEN
         new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -392,16 +400,16 @@ describe('RenderQueue', () => {
 
       beforeEach(() => {
         // GIVEN
+        isolatedStack = new Stack(app, 'IsolatedStack');
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           trafficEncryption: {
             internalProtocol: ApplicationProtocol.HTTPS,
           },
         };
-        isolatedStack = new Stack(app, 'IsolatedStack');
 
         // WHEN
         renderQueue = new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -519,16 +527,16 @@ describe('RenderQueue', () => {
 
       beforeEach(() => {
         // GIVEN
+        isolatedStack = new Stack(app, 'IsolatedStack');
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           trafficEncryption: {
             internalProtocol: ApplicationProtocol.HTTP,
           },
         };
-        isolatedStack = new Stack(app, 'IsolatedStack');
 
         // WHEN
         new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -563,7 +571,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           trafficEncryption: {
             externalTLS: {
@@ -608,7 +616,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: renderQueueVersion,
           vpc,
           trafficEncryption: {
             externalTLS: {
@@ -655,7 +663,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           trafficEncryption: {
             externalTLS: {
@@ -743,7 +751,7 @@ describe('RenderQueue', () => {
       const props: RenderQueueProps = {
         images,
         repository,
-        version,
+        version: new VersionQuery(isolatedStack, 'Version'),
         vpc,
         trafficEncryption: {
           externalTLS: {
@@ -778,7 +786,7 @@ describe('RenderQueue', () => {
       const props: RenderQueueProps = {
         images,
         repository,
-        version,
+        version: new VersionQuery(isolatedStack, 'Version'),
         vpc,
         trafficEncryption: {
           externalTLS: {
@@ -811,7 +819,7 @@ describe('RenderQueue', () => {
       const props: RenderQueueProps = {
         images,
         repository,
-        version,
+        version: new VersionQuery(isolatedStack, 'Version'),
         vpc,
         trafficEncryption: {
           externalTLS: {
@@ -849,7 +857,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           hostname: {
             zone,
@@ -1019,14 +1027,7 @@ describe('RenderQueue', () => {
                   },
                 ],
               },
-              '" --render-queue "http://',
-              {
-                'Fn::GetAtt': [
-                  'RenderQueueLB235D35F4',
-                  'DNSName',
-                ],
-              },
-              ':8080" \n' +
+              `" --render-queue "http://renderqueue.${ZONE_NAME}:8080" \n` +
               'rm -f "/tmp/',
               {
                 'Fn::Select': [
@@ -1197,14 +1198,7 @@ describe('RenderQueue', () => {
                   },
                 ],
               },
-              '" --render-queue "http://',
-              {
-                'Fn::GetAtt': [
-                  'RenderQueueLB235D35F4',
-                  'DNSName',
-                ],
-              },
-              ':8080"  2>&1\n' +
+              `" --render-queue "http://renderqueue.${ZONE_NAME}:8080"  2>&1\n` +
               'Remove-Item -Path "C:/temp/',
               {
                 'Fn::Select': [
@@ -1278,7 +1272,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           hostname: {
             zone,
@@ -1448,14 +1442,7 @@ describe('RenderQueue', () => {
                   },
                 ],
               },
-              '" --render-queue "https://',
-              {
-                'Fn::GetAtt': [
-                  'RenderQueueLB235D35F4',
-                  'DNSName',
-                ],
-              },
-              `:4433" --tls-ca "${CA_ARN}"\n` +
+              `" --render-queue "https://renderqueue.${ZONE_NAME}:4433" --tls-ca "${CA_ARN}"\n` +
               'rm -f "/tmp/',
               {
                 'Fn::Select': [
@@ -1619,14 +1606,7 @@ describe('RenderQueue', () => {
                   },
                 ],
               },
-              '" --render-queue "https://',
-              {
-                'Fn::GetAtt': [
-                  'RenderQueueLB235D35F4',
-                  'DNSName',
-                ],
-              },
-              `:4433" --tls-ca \"${CA_ARN}\" 2>&1\n` +
+              `" --render-queue "https://renderqueue.${ZONE_NAME}:4433" --tls-ca \"${CA_ARN}\" 2>&1\n` +
               'Remove-Item -Path "C:/temp/',
               {
                 'Fn::Select': [
@@ -1688,10 +1668,11 @@ describe('RenderQueue', () => {
         availabilityZone: 'us-west-2b',
       }),
     ];
+    const isolatedStack = new Stack(app, 'IsolatedStack');
     const props: RenderQueueProps = {
       images,
       repository,
-      version,
+      version: new VersionQuery(isolatedStack, 'Version'),
       vpc,
       vpcSubnets: {
         subnets,
@@ -1700,7 +1681,6 @@ describe('RenderQueue', () => {
         subnets,
       },
     };
-    const isolatedStack = new Stack(app, 'IsolatedStack');
 
     // WHEN
     new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -1721,14 +1701,14 @@ describe('RenderQueue', () => {
 
   test('can specify instance type', () => {
     // GIVEN
+    const isolatedStack = new Stack(app, 'IsolatedStack');
     const props: RenderQueueProps = {
       images,
       instanceType: InstanceType.of(InstanceClass.C5, InstanceSize.LARGE),
       repository,
-      version,
+      version: new VersionQuery(isolatedStack, 'Version'),
       vpc,
     };
-    const isolatedStack = new Stack(app, 'IsolatedStack');
 
     // WHEN
     new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -1741,14 +1721,14 @@ describe('RenderQueue', () => {
 
   test('no deletion protection', () => {
     // GIVEN
+    const isolatedStack = new Stack(app, 'IsolatedStack');
     const props: RenderQueueProps = {
       images,
       repository,
-      version,
+      version: new VersionQuery(isolatedStack, 'Version'),
       vpc,
       deletionProtection: false,
     };
-    const isolatedStack = new Stack(app, 'IsolatedStack');
 
     // WHEN
     new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -1768,13 +1748,13 @@ describe('RenderQueue', () => {
 
   test('drop invalid http header fields enabled', () => {
     // GIVEN
+    const isolatedStack = new Stack(app, 'IsolatedStack');
     const props: RenderQueueProps = {
       images,
       repository,
-      version,
+      version: new VersionQuery(isolatedStack, 'Version'),
       vpc,
     };
-    const isolatedStack = new Stack(app, 'IsolatedStack');
 
     // WHEN
     new RenderQueue(isolatedStack, 'RenderQueue', props);
@@ -1803,7 +1783,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
         };
 
@@ -1832,7 +1812,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
-          version,
+          version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           hostname: {
             zone,
@@ -2184,9 +2164,9 @@ describe('RenderQueue', () => {
       resourceTypeCounts: {
         'AWS::ECS::Cluster': 1,
         'AWS::EC2::SecurityGroup': 2,
-        'AWS::IAM::Role': 7,
+        'AWS::IAM::Role': 8,
         'AWS::AutoScaling::AutoScalingGroup': 1,
-        'AWS::Lambda::Function': 3,
+        'AWS::Lambda::Function': 4,
         'AWS::SNS::Topic': 1,
         'AWS::ECS::TaskDefinition': 1,
         'AWS::DynamoDB::Table': 2,
@@ -2200,7 +2180,10 @@ describe('RenderQueue', () => {
 
   describe('SEP Policies', () => {
     test('with resource tracker', () => {
+      // WHEN
       renderQueueCommon.addSEPPolicies();
+
+      // THEN
       expectCDK(stack).to(countResourcesLike('AWS::IAM::Role', 1, {
         ManagedPolicyArns: arrayWith(
           {
@@ -2232,7 +2215,10 @@ describe('RenderQueue', () => {
     });
 
     test('no resource tracker', () => {
+      // WHEN
       renderQueueCommon.addSEPPolicies(false);
+
+      // THEN
       expectCDK(stack).to(haveResourceLike('AWS::IAM::Role', {
         ManagedPolicyArns: arrayWith(
           {
@@ -2266,6 +2252,147 @@ describe('RenderQueue', () => {
         ),
       }));
     });
+  });
 
+  test('creates WaitForStableService by default', () => {
+    // THEN
+    expectCDK(stack).to(haveResourceLike('Custom::RFDK_WaitForStableService', {
+      cluster: stack.resolve(renderQueueCommon.cluster.clusterArn),
+      // eslint-disable-next-line dot-notation
+      services: [stack.resolve(renderQueueCommon['pattern'].service.serviceArn)],
+    }));
+  });
+
+  describe('Security Groups', () => {
+    let backendSecurityGroup: SecurityGroup;
+    let frontendSecurityGroup: SecurityGroup;
+
+    beforeEach(() => {
+      backendSecurityGroup = new SecurityGroup(stack, 'ASGSecurityGroup', { vpc });
+      frontendSecurityGroup = new SecurityGroup(stack, 'LBSecurityGroup', { vpc });
+    });
+
+    test('adds security groups on construction', () => {
+      // GIVEN
+      const securityGroups: RenderQueueSecurityGroups = {
+        backend: backendSecurityGroup,
+        frontend: frontendSecurityGroup,
+      };
+
+      // WHEN
+      new RenderQueue(stack, 'RenderQueue', {
+        images,
+        repository,
+        version: renderQueueVersion,
+        vpc,
+        securityGroups,
+      });
+
+      // THEN
+      assertSecurityGroupsWereAdded(securityGroups);
+    });
+
+    test('adds backend security groups post-construction', () => {
+      // GIVEN
+      const renderQueue = new RenderQueue(stack, 'RenderQueue', {
+        images,
+        repository,
+        version: renderQueueVersion,
+        vpc,
+      });
+
+      // WHEN
+      renderQueue.addBackendSecurityGroups(backendSecurityGroup);
+
+      // THEN
+      assertSecurityGroupsWereAdded({
+        backend: backendSecurityGroup,
+      });
+    });
+
+    test('adds frontend security groups post-construction', () => {
+      // GIVEN
+      const renderQueue = new RenderQueue(stack, 'RenderQueue', {
+        images,
+        repository,
+        version: renderQueueVersion,
+        vpc,
+      });
+
+      // WHEN
+      renderQueue.addFrontendSecurityGroups(frontendSecurityGroup);
+
+      // THEN
+      assertSecurityGroupsWereAdded({
+        frontend: frontendSecurityGroup,
+      });
+    });
+
+    test('security groups added post-construction are not attached to Connections object', () => {
+      // GIVEN
+      const renderQueue = new RenderQueue(stack, 'RenderQueue', {
+        images,
+        repository,
+        version: renderQueueVersion,
+        vpc,
+      });
+      renderQueue.addBackendSecurityGroups(backendSecurityGroup);
+      renderQueue.addFrontendSecurityGroups(frontendSecurityGroup);
+      const peerSecurityGroup = new SecurityGroup(stack, 'PeerSecurityGroup', { vpc });
+
+      // WHEN
+      renderQueue.connections.allowFrom(peerSecurityGroup, Port.tcp(22));
+
+      // THEN
+      // Existing LoadBalancer security groups shouldn't have the ingress rule added
+      expectCDK(stack).notTo(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+        IpProtocol: 'tcp',
+        FromPort: 22,
+        ToPort: 22,
+        GroupId: stack.resolve(frontendSecurityGroup.securityGroupId),
+        SourceSecurityGroupId: stack.resolve(peerSecurityGroup.securityGroupId),
+      }));
+      // Existing AutoScalingGroup security groups shouldn't have the ingress rule added
+      expectCDK(stack).notTo(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+        IpProtocol: 'tcp',
+        FromPort: 22,
+        ToPort: 22,
+        GroupId: stack.resolve(backendSecurityGroup.securityGroupId),
+        SourceSecurityGroupId: stack.resolve(peerSecurityGroup.securityGroupId),
+      }));
+    });
+
+    function assertSecurityGroupsWereAdded(securityGroups: RenderQueueSecurityGroups) {
+      if (securityGroups.backend !== undefined) {
+        expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+          SecurityGroups: arrayWith(stack.resolve(securityGroups.backend.securityGroupId)),
+        }));
+      }
+      if (securityGroups.frontend !== undefined) {
+        expectCDK(stack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+          SecurityGroups: arrayWith(stack.resolve(securityGroups.frontend.securityGroupId)),
+        }));
+      }
+    }
+  });
+
+  test('validates VersionQuery is not in a different stack', () => {
+    // GIVEN
+    const newStack = new Stack(app, 'NewStack');
+    // WHEN
+    new RenderQueue(newStack, 'RenderQueueNew', {
+      images,
+      repository,
+      version,
+      vpc,
+    });
+
+    // WHEN
+    function synth() {
+      SynthUtils.synthesize(newStack);
+    }
+
+    // THEN
+    expect(synth).toThrow('A VersionQuery can not be supplied from a different stack');
   });
 });

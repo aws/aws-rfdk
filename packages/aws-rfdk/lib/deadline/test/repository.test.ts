@@ -11,6 +11,7 @@ import {
   haveResourceLike,
   ResourcePart,
   stringLike,
+  SynthUtils,
 } from '@aws-cdk/assert';
 import {AutoScalingGroup} from '@aws-cdk/aws-autoscaling';
 import {DatabaseCluster} from '@aws-cdk/aws-docdb';
@@ -20,8 +21,10 @@ import {
   InstanceClass,
   InstanceSize,
   InstanceType,
+  ISecurityGroup,
   IVpc,
   MachineImage,
+  SecurityGroup,
   Subnet,
   SubnetType,
   Vpc,
@@ -49,6 +52,8 @@ import {
   DatabaseConnection,
   IVersion,
   Repository,
+  VersionQuery,
+  Version,
 } from '../lib';
 import {
   REPO_DC_ASSET,
@@ -70,19 +75,22 @@ beforeEach(() => {
   app = new App();
   stack = new Stack(app, 'Stack');
   vpc = new Vpc(stack, 'VPC');
-  version = {
-    majorVersion: 10,
-    minorVersion: 1,
-    releaseVersion: 9,
-    linuxInstallers: {
-      patchVersion: 2,
+
+  class MockVersion extends Version implements IVersion {
+    readonly linuxInstallers = {
+      patchVersion: 0,
       repository: {
         objectKey: 'testInstaller',
-        s3Bucket: new Bucket(stack, 'InstallerBucket'),
+        s3Bucket: new Bucket(stack, 'LinuxInstallerBucket'),
       },
-    },
-    linuxFullVersionString: () => '10.1.9.2',
-  };
+    }
+
+    public linuxFullVersionString() {
+      return this.toString();
+    }
+  }
+
+  version = new MockVersion([10,1,9,2]);
 });
 
 test('can create two repositories', () => {
@@ -871,8 +879,9 @@ test('validate instance self-termination', () => {
   const asgLogicalId = stack.getLogicalId(repo.node.defaultChild!.node.defaultChild as CfnElement);
 
   // THEN
-  const expectedString = `function exitTrap(){\nexitCode=$?\nsleep 1m\nINSTANCE=\"$(curl http://169.254.169.254/latest/meta-data/instance-id)\"\nASG=\"$(aws --region \${Token[AWS.Region.4]} ec2 describe-tags --filters \"Name=resource-id,Values=\${INSTANCE}\" \"Name=key,Values=aws:autoscaling:groupName\" --query \"Tags[0].Value\" --output text)\"\naws --region \${Token[AWS.Region.4]} autoscaling update-auto-scaling-group --auto-scaling-group-name \${ASG} --min-size 0 --max-size 0 --desired-capacity 0\n/opt/aws/bin/cfn-signal --stack ${stack.stackName} --resource ${asgLogicalId} --region \${Token[AWS.Region.4]} -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n}`;
-  expect((repo.node.defaultChild as AutoScalingGroup).userData.render()).toMatch(expectedString);
+  const regionToken = escapeTokenRegex('${Token[AWS.Region.\\d+]}');
+  const expectedString = `function exitTrap\\(\\)\\{\nexitCode=\\$\\?\nsleep 1m\nINSTANCE="\\$\\(curl http:\\/\\/169\\.254\\.169\\.254\\/latest\\/meta-data\\/instance-id\\)"\nASG="\\$\\(aws --region ${regionToken} ec2 describe-tags --filters "Name=resource-id,Values=\\$\\{INSTANCE\\}" "Name=key,Values=aws:autoscaling:groupName" --query "Tags\\[0\\]\\.Value" --output text\\)"\naws --region ${regionToken} autoscaling update-auto-scaling-group --auto-scaling-group-name \\$\\{ASG\\} --min-size 0 --max-size 0 --desired-capacity 0\n\\/opt\\/aws\\/bin\\/cfn-signal --stack ${stack.stackName} --resource ${asgLogicalId} --region ${regionToken} -e \\$exitCode \\|\\| echo 'Failed to send Cloudformation Signal'\n\\}`;
+  expect((repo.node.defaultChild as AutoScalingGroup).userData.render()).toMatch(new RegExp(expectedString));
   expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
     PolicyDocument: {
       Statement: arrayWith(
@@ -1057,4 +1066,90 @@ describe('tagging', () => {
       'AWS::SSM::Parameter': 1,
     },
   });
+});
+
+describe('Security Groups', () => {
+  let repositorySecurityGroup: ISecurityGroup;
+
+  beforeEach(() => {
+    repositorySecurityGroup = new SecurityGroup(stack, 'AdditionalSecurityGroup', { vpc });
+  });
+
+  describe('DocDB', () => {
+
+    test('adds security groups on construction', () => {
+      // WHEN
+      new Repository(stack, 'Repository', {
+        version,
+        vpc,
+        securityGroupsOptions: {
+          database: repositorySecurityGroup,
+        },
+      });
+
+      // THEN
+      expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBCluster', {
+        VpcSecurityGroupIds: arrayWith(stack.resolve(repositorySecurityGroup.securityGroupId)),
+      }));
+    });
+  });
+
+  describe('EFS', () => {
+
+    test('adds security groups on construction', () => {
+      // WHEN
+      new Repository(stack, 'Repository', {
+        version,
+        vpc,
+        securityGroupsOptions: {
+          fileSystem: repositorySecurityGroup,
+        },
+      });
+
+      // THEN
+      // The EFS construct adds the security group to each mount target, and one mount target is generated per subnet.
+      const numMountTargets = vpc.selectSubnets().subnets.length;
+      expectCDK(stack).to(countResourcesLike('AWS::EFS::MountTarget', numMountTargets, {
+        SecurityGroups: arrayWith(stack.resolve(repositorySecurityGroup.securityGroupId)),
+      }));
+    });
+  });
+
+  describe('Installer', () => {
+
+    test('adds security groups on construction', () => {
+      // WHEN
+      new Repository(stack, 'Repository', {
+        version,
+        vpc,
+        securityGroupsOptions: {
+          installer: repositorySecurityGroup,
+        },
+      });
+
+      // THEN
+      expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+        SecurityGroups: arrayWith(stack.resolve(repositorySecurityGroup.securityGroupId)),
+      }));
+    });
+
+  });
+});
+
+test('validates VersionQuery is not in a different stack', () => {
+  // GIVEN
+  const newStack = new Stack(app, 'NewStack');
+  version = new VersionQuery(stack, 'Version');
+  new Repository(newStack, 'Repository', {
+    vpc,
+    version,
+  });
+
+  // WHEN
+  function synth() {
+    SynthUtils.synthesize(newStack);
+  }
+
+  // THEN
+  expect(synth).toThrow('A VersionQuery can not be supplied from a different stack');
 });

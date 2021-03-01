@@ -724,6 +724,31 @@ describe('Test MongoDbInstance', () => {
     }));
   });
 
+  test('adds security group', () => {
+    // GIVEN
+    const securityGroup = new SecurityGroup(stack, 'NewSecurityGroup', {
+      vpc,
+    });
+    const instance = new MongoDbInstance(stack, 'MongoDbInstance', {
+      mongoDb: {
+        version,
+        dnsZone,
+        hostname,
+        serverCertificate: serverCert,
+        userSsplAcceptance,
+      },
+      vpc,
+    });
+
+    // WHEN
+    instance.addSecurityGroup(securityGroup);
+
+    // THEN
+    cdkExpect(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+      SecurityGroups: arrayWith(stack.resolve(securityGroup.securityGroupId)),
+    }));
+  });
+
   testConstructTags({
     constructName: 'MongoDbInstance',
     createConstruct: () => {

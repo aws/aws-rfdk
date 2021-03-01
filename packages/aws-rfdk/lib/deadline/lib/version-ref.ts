@@ -4,6 +4,7 @@
  */
 
 import { IBucket } from '@aws-cdk/aws-s3';
+import { Version } from './version';
 
 /**
  * This interface represents a deadline installer object stored on
@@ -62,6 +63,20 @@ export interface IReleaseVersion {
    * The release version number.
    */
   readonly releaseVersion: number;
+
+  /**
+   * A string representation of the version using the best available information at synthesis-time.
+   *
+   * This value is not guaranteed to be resolved, and is intended for output to CDK users.
+   */
+  readonly versionString: string;
+
+  /**
+   * Returns whether this version is less than another version
+   *
+   * @param other Other version to be compared
+   */
+  isLessThan(other: Version): boolean;
 }
 
 /**

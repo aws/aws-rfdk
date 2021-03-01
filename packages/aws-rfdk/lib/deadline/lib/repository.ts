@@ -24,6 +24,7 @@ import {
   InstanceClass,
   InstanceSize,
   InstanceType,
+  ISecurityGroup,
   IVpc,
   OperatingSystemType,
   SubnetSelection,
@@ -64,6 +65,7 @@ import {
 
 import { DatabaseConnection } from './database-connection';
 import { IHost } from './host-ref';
+import { VersionQuery } from './version-query';
 import { IVersion } from './version-ref';
 
 /**
@@ -242,6 +244,26 @@ export interface RepositoryRemovalPolicies {
 }
 
 /**
+ * Options for the security groups of the Repository.
+ */
+export interface RepositorySecurityGroupsOptions {
+  /**
+   * The security group for the filesystem of the Repository. This is ignored if the Repository is not creating
+   * its own Amazon Elastic File System (EFS) because one was given.
+   */
+  readonly fileSystem?: ISecurityGroup;
+  /**
+   * The security group for the database of the Repository. This is ignored if the Repository is not creating
+   * its own DocumentDB database because one was given.
+   */
+  readonly database?: ISecurityGroup;
+  /**
+   * The security group for the AutoScalingGroup of the instance that runs the Deadline Repository installer.
+   */
+  readonly installer?: ISecurityGroup;
+}
+
+/**
  * Properties for the Deadline repository
  */
 export interface RepositoryProps {
@@ -338,6 +360,11 @@ export interface RepositoryProps {
    * @default Duration.days(15) for the database
    */
   readonly backupOptions?: RepositoryBackupOptions;
+
+  /**
+   * Options to add additional security groups to the Repository.
+   */
+  readonly securityGroupsOptions?: RepositorySecurityGroupsOptions;
 }
 
 /**
@@ -436,6 +463,12 @@ export class Repository extends Construct implements IRepository {
   public readonly fileSystem: IMountableLinuxFilesystem;
 
   /**
+   * The underlying Amazon Elastic File System (EFS) used by the Repository.
+   * This is only defined if this Repository created its own filesystem, otherwise it will be `undefined`.
+   */
+  public readonly efs?: EfsFileSystem;
+
+  /**
    * The autoscaling group for this repository's installer-running instance.
    */
   private readonly installerGroup: AutoScalingGroup;
@@ -455,17 +488,24 @@ export class Repository extends Construct implements IRepository {
 
     this.version = props.version;
 
-    // Set up the Filesystem and Database components of the repository
-    this.fileSystem = props.fileSystem ?? new MountableEfs(this, {
-      filesystem: new EfsFileSystem(this, 'FileSystem', {
+    // Set up the Filesystem of the repository
+    if (props.fileSystem !== undefined) {
+      this.fileSystem = props.fileSystem;
+    } else {
+      this.efs = new EfsFileSystem(this, 'FileSystem', {
         vpc: props.vpc,
         vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
         encrypted: true,
         lifecyclePolicy: EfsLifecyclePolicy.AFTER_14_DAYS,
         removalPolicy: props.removalPolicy?.filesystem ?? RemovalPolicy.RETAIN,
-      }),
-    });
+        securityGroup: props.securityGroupsOptions?.fileSystem,
+      });
+      this.fileSystem = new MountableEfs(this, {
+        filesystem: this.efs,
+      });
+    }
 
+    // Set up the Database of the repository
     if (props.database) {
       this.databaseConnection = props.database;
       if (props.databaseAuditLogging !== undefined){
@@ -497,6 +537,7 @@ export class Repository extends Construct implements IRepository {
           instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
           vpc: props.vpc,
           vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
+          securityGroup: props.securityGroupsOptions?.database,
         },
         instances,
         backup: {
@@ -549,6 +590,7 @@ export class Repository extends Construct implements IRepository {
       resourceSignalTimeout: (props.repositoryInstallationTimeout || Duration.minutes(15)),
       updateType: UpdateType.REPLACING_UPDATE,
       replacingUpdateMinSuccessfulInstancesPercent: 100,
+      securityGroup: props.securityGroupsOptions?.installer,
     });
     this.node.defaultChild = this.installerGroup;
     // Ensure the DB is serving before we try to connect to it.
@@ -583,6 +625,22 @@ export class Repository extends Construct implements IRepository {
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
+  }
+
+  protected onValidate(): string[] {
+    const validationErrors = [];
+
+    // Using the output of VersionQuery across stacks can cause issues. CloudFormation stack outputs cannot change if
+    // a resource in another stack is referencing it.
+    if (this.version instanceof VersionQuery) {
+      const versionStack = Stack.of(this.version);
+      const thisStack = Stack.of(this);
+      if (versionStack != thisStack) {
+        validationErrors.push('A VersionQuery can not be supplied from a different stack');
+      }
+    }
+
+    return validationErrors;
   }
 
   /**
