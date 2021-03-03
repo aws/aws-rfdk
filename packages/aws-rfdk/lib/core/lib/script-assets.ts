@@ -104,8 +104,6 @@ export interface ExecuteScriptProps {
   /**
    * Command-line arguments to invoke the script with.
    *
-   * @remarks
-   *
    * If supplied, these arguments are simply concatenated with a space character between. No shell escaping is done.
    *
    * @default No command-line arguments

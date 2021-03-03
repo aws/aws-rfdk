@@ -30,7 +30,7 @@ from aws_cdk.aws_route53 import (
 
 from aws_rfdk import (
     DistinguishedName,
-    IMountableLinuxFilesystem,
+    MountableEfs,
     SessionManagerHelper,
     X509CertificatePem
 )
@@ -58,8 +58,8 @@ class ServiceTierProps(StackProps):
     vpc: IVpc
     # The database to connect to.
     database: DatabaseConnection
-    # The file system to install Deadline Repository to.
-    file_system: IMountableLinuxFilesystem
+    # The file-system to install Deadline Repository to.
+    mountable_file_system: MountableEfs
     # The ARN of the secret containing the UBL certificates .zip file (in binary form).
     ubl_certs_secret_arn: typing.Optional[str]
     # The UBL licenses to configure
@@ -109,9 +109,9 @@ class ServiceTier(Stack):
             ]
         )
 
-        # Granting the bastion access to the file system mount for convenience.
-        # This can also safely be removed.
-        props.file_system.mount_to_linux_instance(
+        # Mounting the root of the EFS file-system to the bastion access for convenience.
+        # This can safely be removed.
+        MountableEfs(self, filesystem=props.mountable_file_system.file_system).mount_to_linux_instance(
             self.bastion.instance,
             location='/mnt/efs'
         )
@@ -127,8 +127,9 @@ class ServiceTier(Stack):
             'Repository',
             vpc=props.vpc,
             database=props.database,
-            file_system=props.file_system,
+            file_system=props.mountable_file_system,
             repository_installation_timeout=Duration.minutes(20),
+            repository_installation_prefix='/',
             version=self.version
         )
 

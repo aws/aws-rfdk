@@ -10,11 +10,13 @@ import {
 } from '@aws-cdk/aws-ec2';
 import * as cdk from '@aws-cdk/core';
 import { DatabaseCluster } from '@aws-cdk/aws-docdb';
-import { FileSystem } from '@aws-cdk/aws-efs';
+import {
+  AccessPoint,
+  FileSystem,
+} from '@aws-cdk/aws-efs';
 import { IPrivateHostedZone } from '@aws-cdk/aws-route53';
 import { RemovalPolicy, Duration } from '@aws-cdk/core';
 import {
-  IMountableLinuxFilesystem,
   MongoDbInstance,
   MongoDbPostInstallSetup,
   MongoDbSsplLicenseAcceptance,
@@ -45,9 +47,9 @@ export interface StorageTierProps extends cdk.StackProps {
  */
 export abstract class StorageTier extends cdk.Stack {
   /**
-   * The file system to use (e.g. to install Deadline Repository onto).
+   * The mountable file-system to use for the Deadline Repository
    */
-  public readonly fileSystem: IMountableLinuxFilesystem;
+  public readonly mountableFileSystem: MountableEfs;
 
   /**
    * The database to connect Deadline to.
@@ -63,15 +65,45 @@ export abstract class StorageTier extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props: StorageTierProps) {
     super(scope, id, props);
 
-    this.fileSystem = new MountableEfs(this, {
-      filesystem: new FileSystem(this, 'EfsFileSystem', {
-        vpc: props.vpc,
-        encrypted: true,
-        // TODO - Evaluate this removal policy for your own needs. This is set to DESTROY to
-        // cleanly remove everything when this stack is destroyed. If you would like to ensure
-        // that your data is not accidentally deleted, you should modify this value.
-        removalPolicy: RemovalPolicy.DESTROY,
-      }),
+    const fileSystem = new FileSystem(this, 'EfsFileSystem', {
+      vpc: props.vpc,
+      encrypted: true,
+      // TODO - Evaluate this removal policy for your own needs. This is set to DESTROY to
+      // cleanly remove everything when this stack is destroyed. If you would like to ensure
+      // that your data is not accidentally deleted, you should modify this value.
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    // Create an EFS access point that is used to grant the Repository and RenderQueue with write access to the Deadline
+    // Repository directory in the EFS file-system.
+    const accessPoint = new AccessPoint(this, 'AccessPoint', {
+      fileSystem,
+
+      // The AccessPoint will create the directory (denoted by the "path" property below) if it doesn't exist with the
+      // owning UID/GID set as specified here. These should be set up to grant read and write access to the UID/GID
+      // configured in the "poxisUser" property below.
+      createAcl: {
+        ownerGid: '10000',
+        ownerUid: '10000',
+        permissions: '750',
+      },
+
+      // When you mount the EFS via the access point, the mount will be rooted at this path in the EFS file-system
+      path: '/DeadlineRepository',
+
+      // TODO - When you mount the EFS via the access point, all file-system operations will be performed using these
+      // UID/GID values instead of those from the user on the system where the EFS is mounted. If you intend to use the
+      // same EFS file-system for other purposes (e.g. render assets, plug-in storage), you may want to evaluate the
+      // UID/GID permissions based on your requirements.
+      posixUser: {
+        uid: '10000',
+        gid: '10000',
+      },
+    });
+
+    this.mountableFileSystem = new MountableEfs(this, {
+      filesystem: fileSystem,
+      accessPoint,
     });
   }
 }

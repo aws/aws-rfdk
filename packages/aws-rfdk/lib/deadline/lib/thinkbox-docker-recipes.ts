@@ -97,15 +97,19 @@ export class ThinkboxDockerRecipes extends Construct {
   public readonly ublImages: UsageBasedLicensingImages;
 
   /**
+   * The staged recipes
+   */
+  private readonly stage: Stage;
+
+  /**
    * The version of Deadline in the stage directory.
    */
-  public readonly version: IVersion;
+  private versionInstance?: IVersion;
 
   constructor(scope: Construct, id: string, props: ThinkboxDockerRecipesProps) {
     super(scope, id);
 
-    this.version  = props.stage.getVersion(this, 'Version');
-
+    this.stage = props.stage;
     for (const recipe of [ThinkboxManagedDeadlineDockerRecipes.REMOTE_CONNECTION_SERVER, ThinkboxManagedDeadlineDockerRecipes.LICENSE_FORWARDER]) {
       if (!props.stage.manifest.recipes[recipe]) {
         throw new Error(`Could not find ${recipe} recipe`);
@@ -131,5 +135,12 @@ export class ThinkboxDockerRecipes extends Construct {
     this.ublImages = {
       licenseForwarder: ContainerImage.fromDockerImageAsset(this.licenseForwarder),
     };
+  }
+
+  public get version(): IVersion {
+    if (!this.versionInstance) {
+      this.versionInstance = this.stage.getVersion(this, 'Version');
+    }
+    return this.versionInstance;
   }
 }

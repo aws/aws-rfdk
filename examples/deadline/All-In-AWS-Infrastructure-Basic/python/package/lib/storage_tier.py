@@ -25,7 +25,10 @@ from aws_cdk.aws_ec2 import (
     SubnetType
 )
 from aws_cdk.aws_efs import (
+    AccessPoint,
+    Acl,
     FileSystem,
+    PosixUser
 )
 from aws_cdk.aws_route53 import (
     IPrivateHostedZone
@@ -75,18 +78,52 @@ class StorageTier(Stack):
         :param kwargs: Any kwargs that need to be passed on to the parent class.
         """
         super().__init__(scope, stack_id, **kwargs)
-        # The file system to use (e.g. to install Deadline Repository onto).
-        self.file_system = MountableEfs(
+
+        # The file-system to use (e.g. to install Deadline Repository onto).
+        file_system = FileSystem(
             self,
-            filesystem=FileSystem(
-                self,
-                'EfsFileSystem',
-                vpc=props.vpc,
-                # TODO - Evaluate this removal policy for your own needs. This is set to DESTROY to
-                # cleanly remove everything when this stack is destroyed. If you would like to ensure
-                # that your data is not accidentally deleted, you should modify this value.
-                removal_policy=RemovalPolicy.DESTROY
+            'EfsFileSystem',
+            vpc=props.vpc,
+            encrypted=True,
+            # TODO - Evaluate this removal policy for your own needs. This is set to DESTROY to
+            # cleanly remove everything when this stack is destroyed. If you would like to ensure
+            # that your data is not accidentally deleted, you should modify this value.
+            removal_policy=RemovalPolicy.DESTROY
+        )
+
+        # Create an EFS access point that is used to grant the Repository and RenderQueue with write access to the
+        # Deadline Repository directory in the EFS file-system.
+        access_point = AccessPoint(
+            self,
+            'AccessPoint',
+            file_system=file_system,
+
+            # The AccessPoint will create the directory (denoted by the path property below) if it doesn't exist with
+            # the owning UID/GID set as specified here. These should be set up to grant read and write access to the
+            # UID/GID configured in the "poxis_user" property below.
+            create_acl=Acl(
+                owner_uid='10000',
+                owner_gid='10000',
+                permissions='750',
+            ),
+
+            # When you mount the EFS via the access point, the mount will be rooted at this path in the EFS file-system
+            path='/DeadlineRepository',
+
+            # TODO - When you mount the EFS via the access point, all file-system operations will be performed using
+            # these UID/GID values instead of those from the user on the system where the EFS is mounted. If you intend
+            # to use the same EFS file-system for other purposes (e.g. render assets, plug-in storage), you may want to
+            # evaluate the UID/GID permissions based on your requirements.
+            posix_user=PosixUser(
+                uid='10000',
+                gid='10000'
             )
+        )
+
+        self.mountable_file_system = MountableEfs(
+            self,
+            filesystem=file_system,
+            access_point=access_point
         )
 
         # The database to connect Deadline to.

@@ -4,8 +4,10 @@
  */
 
 import {
+  arrayWith,
   expect as cdkExpect,
   haveResourceLike,
+  objectLike,
 } from '@aws-cdk/assert';
 import {
   AmazonLinuxGeneration,
@@ -17,6 +19,8 @@ import {
 } from '@aws-cdk/aws-ec2';
 import * as efs from '@aws-cdk/aws-efs';
 import {
+  App,
+  CfnResource,
   Stack,
 } from '@aws-cdk/core';
 
@@ -26,17 +30,23 @@ import {
 } from '../lib';
 
 import {
+  MountPermissionsHelper,
+} from '../lib/mount-permissions-helper';
+
+import {
   escapeTokenRegex,
 } from './token-regex-helpers';
 
 describe('Test MountableEFS', () => {
+  let app: App;
   let stack: Stack;
   let vpc: Vpc;
   let efsFS: efs.FileSystem;
   let instance: Instance;
 
   beforeEach(() => {
-    stack = new Stack();
+    app = new App();
+    stack = new Stack(app);
     vpc = new Vpc(stack, 'Vpc');
     efsFS = new efs.FileSystem(stack, 'EFS', { vpc });
     instance = new Instance(stack, 'Instance', {
@@ -120,6 +130,114 @@ describe('Test MountableEFS', () => {
 
     // THEN
     expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 r')));
+  });
+
+  describe.each<[MountPermissions | undefined]>([
+    [undefined],
+    [MountPermissions.READONLY],
+    [MountPermissions.READWRITE],
+  ])('access point with %s access permissions', (mountPermission) => {
+    describe.each<[string, { readonly posixUser?: efs.PosixUser, readonly expectedClientRootAccess: boolean}]>([
+      [
+        'unspecified POSIX user',
+        {
+          expectedClientRootAccess: false,
+        },
+      ],
+      [
+        'resolved non-root POSIX user',
+        {
+          posixUser: { uid: '1000', gid: '1000' },
+          expectedClientRootAccess: false,
+        },
+      ],
+      [
+        'resolved root POSIX user',
+        {
+          posixUser: { uid: '1000', gid: '0' },
+          expectedClientRootAccess: true,
+        },
+      ],
+      [
+        'resolved root POSIX user',
+        {
+          posixUser: { uid: '0', gid: '1000' },
+          expectedClientRootAccess: true,
+        },
+      ],
+    ])('%s', (_name, testCase) => {
+      // GIVEN
+      const { posixUser, expectedClientRootAccess } = testCase;
+      const expectedActions: string[] = MountPermissionsHelper.toEfsIAMActions(mountPermission);
+      if (expectedClientRootAccess) {
+        expectedActions.push('elasticfilesystem:ClientRootAccess');
+      }
+      const mountPath = '/mnt/efs/fs1';
+
+      let userData: any;
+      let accessPoint: efs.AccessPoint;
+      let expectedMountMode: string;
+
+      beforeEach(() => {
+        // GIVEN
+        accessPoint = new efs.AccessPoint(stack, 'AccessPoint', {
+          fileSystem: efsFS,
+          posixUser,
+        });
+        const mount = new MountableEfs(efsFS, {
+          filesystem: efsFS,
+          accessPoint,
+        });
+        expectedMountMode = (mountPermission === MountPermissions.READONLY) ? 'ro' : 'rw';
+
+        // WHEN
+        mount.mountToLinuxInstance(instance, {
+          location: mountPath,
+          permissions: mountPermission,
+        });
+        userData = stack.resolve(instance.userData.render());
+      });
+
+      test('userdata specifies access point when mounting', () => {
+        // THEN
+        expect(userData).toEqual({
+          'Fn::Join': [
+            '',
+            expect.arrayContaining([
+              expect.stringMatching(new RegExp('(\\n|^)bash \\./mountEfs.sh $')),
+              stack.resolve(efsFS.fileSystemId),
+              ` ${mountPath} ${expectedMountMode},iam,accesspoint=`,
+              stack.resolve(accessPoint.accessPointId),
+              expect.stringMatching(/^\n/),
+            ]),
+          ],
+        });
+      });
+
+      test('grants IAM access point permissions', () => {
+        cdkExpect(stack).to(haveResourceLike('AWS::IAM::Policy', {
+          PolicyDocument: objectLike({
+            Statement: arrayWith(
+              {
+                Action: expectedActions.length === 1 ? expectedActions[0] : expectedActions,
+                Condition: {
+                  StringEquals: {
+                    'elasticfilesystem:AccessPointArn': stack.resolve(accessPoint.accessPointArn),
+                  },
+                },
+                Effect: 'Allow',
+                Resource: stack.resolve((efsFS.node.defaultChild as efs.CfnFileSystem).attrArn),
+              },
+            ),
+            Version: '2012-10-17',
+          }),
+          Roles: arrayWith(
+            // The Policy construct micro-optimizes the reference to a role in the same stack using its logical ID
+            stack.resolve((instance.role.node.defaultChild as CfnResource).ref),
+          ),
+        }));
+      });
+    });
   });
 
   test('extra mount options', () => {
