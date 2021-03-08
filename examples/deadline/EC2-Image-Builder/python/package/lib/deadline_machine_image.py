@@ -45,7 +45,7 @@ class ImageBuilderProps():
     # Must be in the format x.x.x
     image_version: str
 
-    # Customer defined Image Builder components
+    # Customer-defined Image Builder components
     components: List[CfnComponent] = field(default_factory=list)
 
     # The Image Builder distribution configuration.
@@ -86,11 +86,12 @@ class DeadlineMachineImage(Construct):
             name=f"DeadlineComponent{construct_id}"
         )
 
-        # Create the image recipe that includes all the information required to create an image
+        # Create a list of the Deadline component and any other user defined components we want
         component_arn_list = [{ "componentArn": deadline_component.attr_arn }]
         for component in props.components:
             component_arn_list.append({ "componentArn": component.attr_arn })
 
+        # Create our image recipe that defines how to create our AMI, using our components list
         image_recipe = CfnImageRecipe(
             self,
             f"DeadlineRecipe{construct_id}",

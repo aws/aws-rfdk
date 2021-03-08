@@ -23,7 +23,7 @@ class TemplateProps():
     tokens: dict
 
 # Simple templating function. Loads a template from a path and substitutes all
-# occurrences of the tokens with their values. Tokens are of the form
+# occurrences of the tokens with their values.
 def template_component(props: TemplateProps) -> str:
     if not props.template_path.endswith('.component.template'):
         raise Exception(f"Path does not end with \".component.template\": {props.template_path}")

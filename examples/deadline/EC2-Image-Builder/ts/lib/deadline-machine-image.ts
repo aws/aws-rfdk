@@ -51,7 +51,7 @@ export interface DeadlineMachineImageProps {
   readonly imageVersion: string,
 
   /**
-   * Customer defined Image Builder components
+   * Customer-defined Image Builder components
    *
    * @default - No extra components
    */
@@ -100,7 +100,7 @@ export class DeadlineMachineImage extends Construct {
       name: `Deadline${id}`,
     });
 
-    // Create a list of the Deadline component any other user defined components we want
+    // Create a list of the Deadline component and any other user defined components we want
     const componentArnList = [{ componentArn: deadlineComponent.attrArn }];
     props.components?.forEach(component => {
       componentArnList.push({ componentArn: component.attrArn });

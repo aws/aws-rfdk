@@ -62,6 +62,8 @@ export class ComputeStack extends Stack {
 
     // Take a Linux image and install Deadline on it to create a new image
     const linuxImage = new DeadlineMachineImage(this, 'LinuxImage', {
+      // We use the linux full version string here as there is no Windows equivalent available on the
+      // VersionQuery right now, since it is only exposing Linux installers.
       deadlineVersion: version.linuxFullVersionString(),
       parentAmi: MachineImage.latestAmazonLinux(),
       imageVersion: props.imageRecipeVersion,
@@ -72,7 +74,7 @@ export class ComputeStack extends Stack {
       renderQueue: props.renderQueue,
       workerMachineImage: MachineImage.genericLinux({ [region]: linuxImage.amiId }),
     });
-    workerFleetLinux.fleet.node.defaultChild?.node.addDependency(linuxImage.node.defaultChild as CfnResource);
+    workerFleetLinux.fleet.node.addDependency(linuxImage.node.defaultChild as CfnResource);
 
     // Take a Windows image and install Deadline on it to create a new image
     const windowsImage = new DeadlineMachineImage(this, 'WindowsImage', {
@@ -86,6 +88,6 @@ export class ComputeStack extends Stack {
       renderQueue: props.renderQueue,
       workerMachineImage: MachineImage.genericWindows({ [region]: windowsImage.amiId }),
     });
-    workerFleetWindows.fleet.node.defaultChild?.node.addDependency(windowsImage.node.defaultChild as CfnResource);
+    workerFleetWindows.fleet.node.addDependency(windowsImage.node.defaultChild as CfnResource);
   }
 }

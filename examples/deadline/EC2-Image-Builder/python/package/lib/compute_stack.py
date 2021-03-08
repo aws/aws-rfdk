@@ -61,6 +61,8 @@ class ComputeStack(Stack):
             self,
             "LinuxImage",
             props=ImageBuilderProps(
+                # We use the linux full version string here as there is no Windows equivalent available on the
+                # VersionQuery right now, since it is only exposing Linux installers.
                 deadline_version=version.linux_full_version_string(),
                 parent_ami=MachineImage.latest_amazon_linux(),
                 image_version=props.image_recipe_version
