@@ -18,6 +18,7 @@ from aws_cdk.aws_route53 import (
 from aws_cdk.core import (
     Construct,
     Duration,
+    RemovalPolicy,
     Stack,
     StackProps
 )
@@ -34,6 +35,7 @@ from aws_rfdk.deadline import (
     RenderQueueTrafficEncryptionProps,
     RenderQueueExternalTLSProps,
     Repository,
+    RepositoryRemovalPolicies,
     ThinkboxDockerImages,
     VersionQuery
 )
@@ -93,6 +95,10 @@ class ServiceTier(Stack):
             'Repository',
             vpc=props.vpc,
             repository_installation_timeout=Duration.minutes(20),
+            removal_policy=RepositoryRemovalPolicies(
+                database=RemovalPolicy.DESTROY,
+                filesystem=RemovalPolicy.DESTROY,
+            ),
             version=self.version,
             vpc_subnets=repository_subnets
         )
