@@ -72,10 +72,8 @@ class NetworkTier(Stack):
             subnet_type=SubnetType.PUBLIC
         )
 
-        # The VPC that all components of the render farm will be created in.
-        # This overrides the availability zones the Stack will use. The zones that we set here are what
-        # our VPC will use, so adding local zones to this return value will enable us to then deploy
-        # infrastructure to them.
+        # The VPC that all components of the render farm will be created in. We are using the `availability_zones()`
+        # method to override the availability zones that this VPC will use.
         self.vpc = Vpc(
             self,
             'Vpc',
@@ -84,12 +82,12 @@ class NetworkTier(Stack):
                 SubnetConfiguration(
                     name='Public',
                     subnet_type=SubnetType.PUBLIC,
-                    cidr_mask=24
+                    cidr_mask=28
                 ),
                 SubnetConfiguration(
                     name='Private',
                     subnet_type=SubnetType.PRIVATE,
-                    cidr_mask=24
+                    cidr_mask=18
                 )
             ],
             nat_gateway_subnets=subnets

@@ -19,11 +19,11 @@ These instructions assume that your working directory is `examples/deadline/Loca
     public readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA;
     ```
 
-3.  Change the value of the `deadlineVersion` variable in `bin/config.ts` to specify the desired version of Deadline to be deployed to your render farm. RFDK is compatible with Deadline versions 10.1.9.x and later. To see the available versions of Deadline, consult the [Deadline release notes](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html). It is recommended to use the latest version of Deadline available when building your farm, but to pin this version when the farm is ready for production use. For example, to pin to the latest `10.1.13` release of Deadline, use `10.1.13.1`.
+3.  Change the value of the `deadlineVersion` variable in `bin/config.ts` to specify the desired version of Deadline to be deployed to your render farm. RFDK is compatible with Deadline versions 10.1.9.x and later. To see the available versions of Deadline, consult the [Deadline release notes](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html). It is recommended to use the latest version of Deadline available when building your farm, but to pin this version when the farm is ready for production use. For example, to pin to the `10.1.13` release of Deadline, use `10.1.13.2`.
 
 4. Change the value of the `deadlineClientLinuxAmiMap` variable in `bin/config.ts` to include the region + AMI ID mapping of your EC2 AMI(s) with Deadline Worker.
 
-5. Also in `bin/config.ts`, you can set the `availabilityZonesStandard` and `availabilityZonesLocal` values to the availability zones you want to use. These values must all be from the same region. It's recommended you use at least two standard zones, but you can use more if you'd like. For the local zones you can use as many as you'd like.
+5. Also in `bin/config.ts`, you can set the `availabilityZonesStandard` and `availabilityZonesLocal` values to the availability zones you want to use. These values must all be from the same region. It's recommended you use at least two standard zones, but you can use more if you'd like. For the local zones, you can use as many as you'd like.
 
 6. Build the `aws-rfdk` package, and then build the sample app. The `tsconfig.json` for this example app contains a reference to the local `aws-rfdk` package and will link your build artifacts:
 

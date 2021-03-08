@@ -98,7 +98,7 @@ export class ServiceTier extends Stack {
     // We are excluding the local zones from the Repository. This construct will create an
     // EFS filesystem and DocDB cluster, both of which aren't available in any local zones at this time.
     const repositorySubnets: SubnetSelection = {
-      availabilityZones: [ props.availabilityZones[0] ],
+      availabilityZones: props.availabilityZones,
       subnetType: SubnetType.PRIVATE,
     };
     const repository = new Repository(this, 'Repository', {

@@ -83,6 +83,8 @@ export class NetworkTier extends cdk.Stack {
       subnetType: SubnetType.PUBLIC,
     };
 
+    // The VPC that all components of the render farm will be created in. We are using the `availabilityZones()`
+    // method to override the availability zones that this VPC will use.
     this.vpc = new Vpc(this, 'Vpc', {
       maxAzs: this.availabilityZones.length,
       subnetConfiguration: [
@@ -94,7 +96,7 @@ export class NetworkTier extends cdk.Stack {
         {
           name: 'Private',
           subnetType: SubnetType.PRIVATE,
-          cidrMask: 18, // 16,382 IP addresses
+          cidrMask: 18,
         },
       ],
       natGatewaySubnets: subnets,

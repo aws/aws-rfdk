@@ -70,7 +70,7 @@ class ComputeTier(Stack):
         subnets = SubnetSelection(
             availability_zones=props.availability_zones,
             subnet_type=SubnetType.PRIVATE,
-            # one_per_az=True,
+            one_per_az=True
         )
 
         # We can put the health monitor in all of the local zones we're using for the worker fleet
@@ -91,7 +91,8 @@ class ComputeTier(Stack):
             # Not all instance types will be available in local zones. For a list of the instance types
             # available in each local zone, you can refer to:
             # https://aws.amazon.com/about-aws/global-infrastructure/localzones/features/#AWS_Services
-            instance_type=InstanceType.of(InstanceClass.STANDARD5, InstanceSize.LARGE),
+            # BURSTABLE3 is a T3; the third generation of burstable instances
+            instance_type=InstanceType.of(InstanceClass.BURSTABLE3, InstanceSize.LARGE),
             worker_machine_image=props.worker_machine_image,
             health_monitor=self.health_monitor,
             key_name=props.key_pair_name
