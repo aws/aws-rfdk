@@ -499,7 +499,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
 
     const workerConfig = new WorkerInstanceConfiguration(this, id, {
       worker: this.fleet,
-      cloudwatchLogSettings: {
+      cloudWatchLogSettings: {
         logGroupPrefix: WorkerInstanceFleet.DEFAULT_LOG_GROUP_PREFIX,
         ...props.logGroupProps,
       },

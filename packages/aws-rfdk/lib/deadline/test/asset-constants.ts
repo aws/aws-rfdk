@@ -55,6 +55,350 @@ export const RQ_CONNECTION_ASSET = {
   Key: 'AssetParameters74fd6cba5cebe5a13738b535ab6b010a0fe1154689bad4df3ef49ed7bddc1075S3VersionKey144181B5',
 };
 
+export function linuxCloudWatchScriptBoilerplate(scriptParams: string) {
+  return [
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            { Ref: CWA_ASSET_LINUX.Key },
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            { Ref: CWA_ASSET_LINUX.Key },
+          ],
+        },
+      ],
+    },
+    "')\naws s3 cp 's3://",
+    {
+      Ref: CWA_ASSET_LINUX.Bucket,
+    },
+    '/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            { Ref: CWA_ASSET_LINUX.Key },
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            { Ref: CWA_ASSET_LINUX.Key },
+          ],
+        },
+      ],
+    },
+    "' '/tmp/",
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            { Ref: CWA_ASSET_LINUX.Key },
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            { Ref: CWA_ASSET_LINUX.Key },
+          ],
+        },
+      ],
+    },
+    "'\nset -e\nchmod +x '/tmp/",
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            { Ref: CWA_ASSET_LINUX.Key },
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            { Ref: CWA_ASSET_LINUX.Key },
+          ],
+        },
+      ],
+    },
+    "'\n'/tmp/",
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            { Ref: CWA_ASSET_LINUX.Key },
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            { Ref: CWA_ASSET_LINUX.Key },
+          ],
+        },
+      ],
+    },
+    "' -i ",
+    {
+      Ref: 'AWS::Region',
+    },
+    ' ',
+    {
+      Ref: 'ConfigStringParameterC2BE550F',
+    },
+    "\nmkdir -p $(dirname '/tmp/",
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    "')\naws s3 cp 's3://",
+    {Ref: CONFIG_WORKER_ASSET_WINDOWS.Bucket},
+    '/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    "' '/tmp/",
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    "'\nmkdir -p $(dirname '/tmp/",
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+          ],
+        },
+      ],
+    },
+    '\')\naws s3 cp \'s3://',
+    {Ref: CONFIG_WORKER_ASSET_LINUX.Bucket},
+    '/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+          ],
+        },
+      ],
+    },
+    '\' \'/tmp/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+          ],
+        },
+      ],
+    },
+    '\'\n' +
+    'set -e\n' +
+    'chmod +x \'/tmp/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+          ],
+        },
+      ],
+    },
+    '\'\n\'/tmp/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
+          ],
+        },
+      ],
+    },
+    scriptParams,
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+  ];
+}
+
 export function linuxConfigureWorkerScriptBoilerplate(scriptParams: string) {
   return [
     {
@@ -227,7 +571,6 @@ export function linuxConfigureWorkerScriptBoilerplate(scriptParams: string) {
     {
       'Fn::Select': [
         0,
-
         {
           'Fn::Split': [
             '||',
@@ -273,7 +616,7 @@ export function linuxConfigureWorkerScriptBoilerplate(scriptParams: string) {
   ];
 }
 
-export function linuxCloudWatchScriptBoilerplate() {
+export function windowsCloudWatchScriptBoilerplate(scriptParams: string) {
   return [
     {
       'Fn::Select': [
@@ -281,7 +624,7 @@ export function linuxCloudWatchScriptBoilerplate() {
         {
           'Fn::Split': [
             '||',
-            {Ref: CWA_ASSET_LINUX.Key},
+            { Ref: CWA_ASSET_WINDOWS.Key },
           ],
         },
       ],
@@ -292,21 +635,21 @@ export function linuxCloudWatchScriptBoilerplate() {
         {
           'Fn::Split': [
             '||',
-            {Ref: CWA_ASSET_LINUX.Key},
+            { Ref: CWA_ASSET_WINDOWS.Key },
           ],
         },
       ],
     },
-    '\')\naws s3 cp \'s3://',
-    {Ref: CWA_ASSET_LINUX.Bucket},
-    '/',
+    "' ) -ea 0\nRead-S3Object -BucketName '",
+    { Ref: CWA_ASSET_WINDOWS.Bucket },
+    "' -key '",
     {
       'Fn::Select': [
         0,
         {
           'Fn::Split': [
             '||',
-            {Ref: CWA_ASSET_LINUX.Key},
+            { Ref: CWA_ASSET_WINDOWS.Key },
           ],
         },
       ],
@@ -317,19 +660,19 @@ export function linuxCloudWatchScriptBoilerplate() {
         {
           'Fn::Split': [
             '||',
-            {Ref: CWA_ASSET_LINUX.Key},
+            { Ref: CWA_ASSET_WINDOWS.Key },
           ],
         },
       ],
     },
-    '\' \'/tmp/',
+    "' -file 'C:/temp/",
     {
       'Fn::Select': [
         0,
         {
           'Fn::Split': [
             '||',
-            {Ref: CWA_ASSET_LINUX.Key},
+            { Ref: CWA_ASSET_WINDOWS.Key },
           ],
         },
       ],
@@ -340,21 +683,19 @@ export function linuxCloudWatchScriptBoilerplate() {
         {
           'Fn::Split': [
             '||',
-            {Ref: CWA_ASSET_LINUX.Key},
+            { Ref: CWA_ASSET_WINDOWS.Key },
           ],
         },
       ],
     },
-    '\'\n' +
-    'set -e\n' +
-    'chmod +x \'/tmp/',
+    "' -ErrorAction Stop\n&'C:/temp/",
     {
       'Fn::Select': [
         0,
         {
           'Fn::Split': [
             '||',
-            {Ref: CWA_ASSET_LINUX.Key},
+            { Ref: CWA_ASSET_WINDOWS.Key },
           ],
         },
       ],
@@ -365,20 +706,23 @@ export function linuxCloudWatchScriptBoilerplate() {
         {
           'Fn::Split': [
             '||',
-            {Ref: CWA_ASSET_LINUX.Key},
+            { Ref: CWA_ASSET_WINDOWS.Key },
           ],
         },
       ],
     },
-    '\'\n\'/tmp/',
+    "' -i ",
+    { Ref: 'AWS::Region' },
+    ' ',
+    { Ref: 'ConfigStringParameterC2BE550F' },
+    "\nif (!$?) { Write-Error 'Failed to execute the file \"C:/temp/",
     {
       'Fn::Select': [
         0,
-
         {
           'Fn::Split': [
             '||',
-            {Ref: CWA_ASSET_LINUX.Key},
+            { Ref: CWA_ASSET_WINDOWS.Key },
           ],
         },
       ],
@@ -389,7 +733,222 @@ export function linuxCloudWatchScriptBoilerplate() {
         {
           'Fn::Split': [
             '||',
-            {Ref: CWA_ASSET_LINUX.Key},
+            { Ref: CWA_ASSET_WINDOWS.Key },
+          ],
+        },
+      ],
+    },
+    "\"' -ErrorAction Stop }\nmkdir (Split-Path -Path 'C:/temp/",
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    '\' ) -ea 0\nRead-S3Object -BucketName \'',
+    {Ref: CONFIG_WORKER_ASSET_WINDOWS.Bucket},
+    '\' -key \'',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    '\' -file \'C:/temp/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    "' -ErrorAction Stop\nmkdir (Split-Path -Path 'C:/temp/",
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_PORT_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_PORT_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    "' ) -ea 0\nRead-S3Object -BucketName '",
+    {Ref: CONFIG_WORKER_PORT_ASSET_WINDOWS.Bucket},
+    "' -key '",
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_PORT_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_PORT_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    "' -file 'C:/temp/",
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_PORT_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_PORT_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    '\' -ErrorAction Stop\n&\'C:/temp/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_PORT_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_PORT_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    scriptParams,
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {
+              Ref: CONFIG_WORKER_ASSET_WINDOWS.Key,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {
+              Ref: CONFIG_WORKER_ASSET_WINDOWS.Key,
+            },
+          ],
+        },
+      ],
+    },
+    '\nif (!$?) { Write-Error \'Failed to execute the file \"C:/temp/',
+    {
+      'Fn::Select': [
+        0,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_PORT_ASSET_WINDOWS.Key},
+          ],
+        },
+      ],
+    },
+    {
+      'Fn::Select': [
+        1,
+        {
+          'Fn::Split': [
+            '||',
+            {Ref: CONFIG_WORKER_PORT_ASSET_WINDOWS.Key},
           ],
         },
       ],
@@ -609,104 +1168,6 @@ export function windowsConfigureWorkerScriptBoilerplate(scriptParams: string) {
           'Fn::Split': [
             '||',
             {Ref: CONFIG_WORKER_PORT_ASSET_WINDOWS.Key},
-          ],
-        },
-      ],
-    },
-  ];
-}
-
-export function windowsCloudWatchScriptBoilerplate() {
-  return [
-    {
-      'Fn::Select': [
-        0,
-        {
-          'Fn::Split': [
-            '||',
-            {Ref: CWA_ASSET_WINDOWS.Key},
-          ],
-        },
-      ],
-    },
-    {
-      'Fn::Select': [
-        1,
-        {
-          'Fn::Split': [
-            '||',
-            {Ref: CWA_ASSET_WINDOWS.Key},
-          ],
-        },
-      ],
-    },
-    '\' ) -ea 0\nRead-S3Object -BucketName \'',
-    {Ref: CWA_ASSET_WINDOWS.Bucket},
-    '\' -key \'',
-    {
-      'Fn::Select': [
-        0,
-        {
-          'Fn::Split': [
-            '||',
-            {Ref: CWA_ASSET_WINDOWS.Key},
-          ],
-        },
-      ],
-    },
-    {
-      'Fn::Select': [
-        1,
-        {
-          'Fn::Split': [
-            '||',
-            {Ref: CWA_ASSET_WINDOWS.Key},
-          ],
-        },
-      ],
-    },
-    '\' -file \'C:/temp/',
-    {
-      'Fn::Select': [
-        0,
-        {
-          'Fn::Split': [
-            '||',
-            {Ref: CWA_ASSET_WINDOWS.Key},
-          ],
-        },
-      ],
-    },
-    {
-      'Fn::Select': [
-        1,
-        {
-          'Fn::Split': [
-            '||',
-            {Ref: CWA_ASSET_WINDOWS.Key},
-          ],
-        },
-      ],
-    },
-    '\' -ErrorAction Stop\n&\'C:/temp/',
-    {
-      'Fn::Select': [
-        0,
-        {
-          'Fn::Split': [
-            '||',
-            {Ref: CWA_ASSET_WINDOWS.Key},
-          ],
-        },
-      ],
-    },
-    {
-      'Fn::Select': [
-        1,
-        {
-          'Fn::Split': [
-            '||',
-            {Ref: CWA_ASSET_WINDOWS.Key},
           ],
         },
       ],

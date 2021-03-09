@@ -5,11 +5,12 @@
 
 import * as path from 'path';
 
-import {IGrantable} from '@aws-cdk/aws-iam';
-import {Bucket} from '@aws-cdk/aws-s3';
-import {StringParameter} from '@aws-cdk/aws-ssm';
-import {Construct} from '@aws-cdk/core';
-import {IScriptHost, ScriptAsset} from './script-assets';
+import { IGrantable } from '@aws-cdk/aws-iam';
+import { Bucket } from '@aws-cdk/aws-s3';
+import { StringParameter } from '@aws-cdk/aws-ssm';
+import { Construct, Stack } from '@aws-cdk/core';
+
+import { IScriptHost, ScriptAsset } from './script-assets';
 
 /**
  *  Properties for creating the resources needed for CloudWatch Agent configuration.
@@ -26,6 +27,13 @@ export interface CloudWatchAgentProps {
    * The host instance/ASG/fleet with a CloudWatch Agent to be configured.
    */
   readonly host: IScriptHost;
+
+  /**
+   * Whether or not we should attempt to install the CloudWatch agent
+   *
+   * @default true
+   */
+  readonly shouldInstallAgent?: boolean;
 }
 
 /**
@@ -71,6 +79,11 @@ export class CloudWatchAgent extends Construct {
   private static readonly SKIP_CWAGENT_VALIDATION_FLAG = '-s';
 
   /**
+   * The flag for configureCloudWatchAgent script to skip CloudWatch agent installer validation.
+   */
+  private static readonly INSTALL_CWAGENT_FLAG = '-i';
+
+  /**
    * An S3 script asset that configures the CloudWatch agent.
    */
   private readonly configurationScript: ScriptAsset;
@@ -82,6 +95,8 @@ export class CloudWatchAgent extends Construct {
 
   constructor(scope: Construct, id: string, props: CloudWatchAgentProps) {
     super(scope, id);
+
+    const shouldInstallAgent = props.shouldInstallAgent ?? true;
 
     // Create the asset for the configuration script
     this.configurationScript = ScriptAsset.fromPathConvention(scope, 'CloudWatchConfigurationScriptAsset', {
@@ -97,7 +112,11 @@ export class CloudWatchAgent extends Construct {
     });
 
     this.grantRead(props.host);
-    this.configure(props.host, this.node.tryGetContext(CloudWatchAgent.SKIP_CWAGENT_VALIDATION_CTX_VAR) === 'TRUE');
+    this.configure(
+      props.host,
+      shouldInstallAgent,
+      this.node.tryGetContext(CloudWatchAgent.SKIP_CWAGENT_VALIDATION_CTX_VAR) === 'TRUE',
+    );
   }
 
   /**
@@ -114,18 +133,37 @@ export class CloudWatchAgent extends Construct {
    * This is done by adding UserData commands to the target host.
    *
    * @param host The host to configure the CloudWatch agent on
+   * @param shouldInstallAgent Attempts to install the CloudWatch agent on the instance if set to true.
    * @param skipValidation Skips the validation of the CloudWatch agent installer if set to true.
    */
-  private configure(host: IScriptHost, skipValidation: boolean) {
-    // Grant access to the required CloudWatch Agent installer files
-    const cloudWatchAgentBucket = Bucket.fromBucketArn(this, 'CloudWatchAgentBucket', 'arn:aws:s3:::amazoncloudwatch-agent');
-    cloudWatchAgentBucket.grantRead(host);
+  private configure(
+    host: IScriptHost,
+    shouldInstallAgent: boolean,
+    skipValidation: boolean,
+  ) {
+    const region = Stack.of(this).region;
+    if (shouldInstallAgent) {
+      // Grant access to the required CloudWatch Agent and GPG installer files.
+      const cloudWatchAgentBucket = Bucket.fromBucketArn(this, 'CloudWatchAgentBucket', `arn:aws:s3:::amazoncloudwatch-agent-${region}`);
+      cloudWatchAgentBucket.grantRead(host);
+      const gpgBucket = Bucket.fromBucketArn(this, 'GpgBucket', `arn:aws:s3:::rfdk-external-dependencies-${region}`);
+      gpgBucket.grantRead(host);
+    }
 
     const scriptArgs = [];
+
+    // Flags must be set before positional arguments for some scripts
+    if (shouldInstallAgent) {
+      scriptArgs.push(CloudWatchAgent.INSTALL_CWAGENT_FLAG);
+    }
     if (skipValidation) {
-      // Flags must be set before positional arguments for some scripts
       scriptArgs.push(CloudWatchAgent.SKIP_CWAGENT_VALIDATION_FLAG);
     }
+
+    // This assumes that the CloudWatch agent construct is always put in the same region as the instance or ASG
+    // using it, which should always hold true.
+    scriptArgs.push(region);
+
     scriptArgs.push(this.ssmParameterForConfig.parameterName);
 
     this.configurationScript.executeOn({

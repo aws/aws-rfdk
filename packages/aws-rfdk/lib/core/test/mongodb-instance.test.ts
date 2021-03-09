@@ -48,7 +48,7 @@ import {
 } from '../lib';
 
 import {
-  MONGODB_INSTANCE_3_6_SCRIPT,
+  CWA_ASSET_LINUX,
 } from './asset-constants';
 import {
   testConstructTags,
@@ -199,7 +199,7 @@ describe('Test MongoDbInstance', () => {
                     },
                     ':s3:::',
                     {
-                      Ref: MONGODB_INSTANCE_3_6_SCRIPT.Bucket,
+                      Ref: CWA_ASSET_LINUX.Bucket,
                     },
                   ],
                 ],
@@ -214,7 +214,7 @@ describe('Test MongoDbInstance', () => {
                     },
                     ':s3:::',
                     {
-                      Ref: MONGODB_INSTANCE_3_6_SCRIPT.Bucket,
+                      Ref: CWA_ASSET_LINUX.Bucket,
                     },
                     '/*',
                   ],
@@ -334,7 +334,7 @@ describe('Test MongoDbInstance', () => {
     // CloudWatch Agent
     const setE = 'set -e\n';
     const setChmod = 'chmod \\+x \'/tmp/' + token + token + '\'\n';
-    const execute = '\'/tmp/' + token + token + '\' ' + token + '\n';
+    const execute = '\'/tmp/' + token + token + '\' -i ${Token[AWS.Region.\\d+]} ' + token + '\n';
     expect(userData).toMatch(new RegExp(escapeTokenRegex(createTempDir + s3Copy + setE + setChmod + execute)));
 
     // Make sure we mount EBS volume
