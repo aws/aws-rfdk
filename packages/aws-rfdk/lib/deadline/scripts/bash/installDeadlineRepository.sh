@@ -3,21 +3,48 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-# This script downloads the deadline repository installer and executes it.
-# Arguments:
-# $1: s3 path for the deadline repository installer.
-# $2: Path where deadline repository needs to be installed.
-# $3: Deadline Repository Version being installed.
-# $4: (Optional) Deadline Repository settings file to import.
-
 # exit when any command fails
 set -xeuo pipefail
 
-S3PATH=$1
-PREFIX=$2
-DEADLINE_REPOSITORY_VERSION=$3
-DEADLINE_REPOSITORY_SETTINGS_FILE=${4:-}
-shift;shift;
+USAGE="Usage: $0 -i <installer-s3-path> -p <local-installer-path> -v <deadline-version>
+
+This script downloads the deadline repository installer and executes it.
+
+Required arguments:
+  -i s3 path for the deadline repository installer.
+  -p Path where deadline repository needs to be installed.
+  -v Deadline Repository Version being installed.
+
+Optional arguments
+  -s Deadline Repository settings file to import.
+  -o The UID[:GID] that this script will chown the Repository files for. If GID is not specified, it defults to be the same as UID."
+
+while getopts "i:p:v:s:o:" opt; do
+  case $opt in
+    i) S3PATH="$OPTARG"
+    ;;
+    p) PREFIX="$OPTARG" 
+    ;;
+    v) DEADLINE_REPOSITORY_VERSION="$OPTARG"
+    ;;
+    s) DEADLINE_REPOSITORY_SETTINGS_FILE="$OPTARG"
+    ;;
+    o) DEADLINE_REPOSITORY_OWNER="$OPTARG"
+    ;;
+    /?)
+      echo "$USAGE"
+      exit 1
+    ;;
+  esac
+done
+
+if [ -z "${S3PATH+x}" ] || \
+   [ -z "${PREFIX+x}" ] || \
+   [ -z "${DEADLINE_REPOSITORY_VERSION+x}" ]; then
+  echo "ERROR: Required arguments are missing."
+  echo "$USAGE"
+  exit 1
+fi
 
 # check if repository is already installed at the given path
 REPOSITORY_FILE_PATH="$PREFIX/settings/repository.ini"
@@ -73,7 +100,7 @@ INSTALLER_DB_ARGS_STRING=''
 for key in "${!INSTALLER_DB_ARGS[@]}"; do INSTALLER_DB_ARGS_STRING=$INSTALLER_DB_ARGS_STRING"${key} ${INSTALLER_DB_ARGS[$key]} "; done
 
 REPOSITORY_SETTINGS_ARG_STRING=''
-if [ ! -z "$DEADLINE_REPOSITORY_SETTINGS_FILE" ]; then
+if [ ! -z "${DEADLINE_REPOSITORY_SETTINGS_FILE+x}" ]; then
   if [ ! -f "$DEADLINE_REPOSITORY_SETTINGS_FILE" ]; then
     echo "ERROR: Repository settings file was specified but is not a file: $DEADLINE_REPOSITORY_SETTINGS_FILE."
     exit 1
@@ -82,7 +109,41 @@ if [ ! -z "$DEADLINE_REPOSITORY_SETTINGS_FILE" ]; then
   fi
 fi
 
+if [[ -n "${DEADLINE_REPOSITORY_OWNER+x}" ]]; then
+  if [[ ! "$DEADLINE_REPOSITORY_OWNER" =~ ^[0-9]+(:[0-9]+)?$ ]]; then
+    echo "ERROR: Deadline Repository owner is invalid: ${DEADLINE_REPOSITORY_OWNER}"
+    exit 1
+  fi
+  REPOSITORY_OWNER_UID="${DEADLINE_REPOSITORY_OWNER%:*}"
+  REPOSITORY_OWNER_GID="${DEADLINE_REPOSITORY_OWNER#*:}"
+
+  if [[ -z $REPOSITORY_OWNER_GID ]]; then
+    echo "Repository owner GID not specified. Defaulting to UID $REPOSITORY_OWNER_UID"
+    REPOSITORY_OWNER_GID=$REPOSITORY_OWNER_UID
+  fi
+
+  EXISTING_GROUP=$(id -g $REPOSITORY_OWNER_UID)
+  if [[ $? -eq 0 ]]; then
+    # UID already taken, make sure the GID matches
+    if [[ ! $EXISTING_GROUP -eq $REPOSITORY_OWNER_GID ]]; then
+      echo "ERROR: Deadline Repository owner UID $REPOSITORY_OWNER_UID is already in use and has incorrect GID. Got GID $EXISTING_GROUP, expected $REPOSITORY_OWNER_GID"
+      exit 1
+    fi
+  else
+    # Create the group
+    groupadd deadline-rcs-user -g $REPOSITORY_OWNER_GID
+
+    # Create the user
+    useradd deadline-rcs-user -u $REPOSITORY_OWNER_UID -g $REPOSITORY_OWNER_GID
+  fi
+fi
+
 $REPO_INSTALLER --mode unattended --setpermissions false --prefix "$PREFIX" --installmongodb false --backuprepo false ${INSTALLER_DB_ARGS_STRING} $REPOSITORY_SETTINGS_ARG_STRING
+
+if [[ -n "${REPOSITORY_OWNER_UID+x}" ]]; then
+  echo "Changing ownership of Deadline Repository files to UID=$REPOSITORY_OWNER_UID GID=$REPOSITORY_OWNER_GID"
+  sudo chown -R "$REPOSITORY_OWNER_UID:$REPOSITORY_OWNER_GID" "$PREFIX"
+fi
 
 set -x
 

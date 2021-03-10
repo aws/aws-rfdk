@@ -1224,3 +1224,17 @@ test('imports repository settings', () => {
   const installerGroup = repository.node.tryFindChild('Installer') as AutoScalingGroup;
   expect(installerGroup.userData.render()).toContain(`aws s3 cp '${repositorySettings.s3ObjectUrl}'`);
 });
+
+test('changes ownership of repository files', () => {
+  // GIVEN
+  const repo = new Repository(stack, 'Repository', {
+    version,
+    vpc,
+  });
+
+  // WHEN
+  const script = (repo.node.defaultChild as AutoScalingGroup).userData.render();
+
+  // THEN
+  expect(script).toMatch('-o 1000:1000');
+});
