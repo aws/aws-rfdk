@@ -3,46 +3,47 @@
 
 # This script downloads, installs and configures the cloudwatch agent. Must be run as sudo capable user.
 # Arguments:
-# $1: SSM parameter name
-# [Switch] s: Skips the verification of the cloudwatch agent installer
+# $1: The region this script is running in
+# $2: SSM parameter name
+# [Switch] s: Skips the verification of the CloudWatch agent installer
+# [Switch] i: Attempts to install the CloudWatch agent
 
 param (
-    [Parameter(Mandatory=$True)] $ssmParameterName,
+  [Parameter(Mandatory=$True)] $region,
+  [Parameter(Mandatory=$True)] $ssmParameterName,
 
-    # This parameter name intentionally does not follow the standard PascalCase style used in Powershell
-    # so that in our Typescript code, we can pass the same flag regardless of the script being called
-    [switch] $s = $False
+  # These parameter names intentionally do not follow the standard PascalCase style used in Powershell
+  # so that in our Typescript code, we can pass the same flag regardless of the script being called
+  [switch] $i = $False,
+  [switch] $s = $False
 )
 
-$ErrorActionPreference = "Stop"
 
-Write-Output "Starting CloudWatch installation and configuration script."
+function Install-CloudWatchAgent($region) {
+  try {
+    # If this command doesn't throw an error, we have the CloudWatch agent installed already
+    $status = & $Env:ProgramFiles\Amazon\AmazonCloudWatchAgent\amazon-cloudwatch-agent-ctl.ps1 -m ec2 -a status
+    Write-Output "Found CloudWatch agent already installed, skipping installation."
+    return
+  } catch {
+    Write-Output "CloudWatch agent is not already installed, proceeding with installation."
+  }
 
-$is_cloudwatch_installed = $False
-try {
-  # If this command doesn't throw an error, we have the CloudWatch agent installed already
-  $status = & $Env:ProgramFiles\Amazon\AmazonCloudWatchAgent\amazon-cloudwatch-agent-ctl.ps1 -m ec2 -a status
-  $is_cloudwatch_installed = $True
-  Write-Output "Found CloudWatch agent already installed, skipping installation."
-} catch {
-  Write-Output "CloudWatch agent is not already installed, proceeding with installation."
-}
-
-if (-Not $is_cloudwatch_installed) {
   $cwa_installer = "$env:temp\amazon-cloudwatch-agent.msi"
   try {
-    Read-S3Object -BucketName amazoncloudwatch-agent -Key windows/amd64/latest/amazon-cloudwatch-agent.msi -File $cwa_installer -Region us-east-1
+    Read-S3Object -BucketName amazoncloudwatch-agent-$region -Key windows/amd64/latest/amazon-cloudwatch-agent.msi -File $cwa_installer -Region $region
   } catch {
     Write-Output "Failed to download CloudWatch agent installer."
-    Exit 1
+    return
   }
 
   $cwa_installer_sig = "$env:temp\amazon-cloudwatch-agent.msi.sig"
   try {
-    Read-S3Object -BucketName amazoncloudwatch-agent -Key windows/amd64/latest/amazon-cloudwatch-agent.msi.sig -File $cwa_installer_sig -Region us-east-1
+    Read-S3Object -BucketName amazoncloudwatch-agent-$region -Key windows/amd64/latest/amazon-cloudwatch-agent.msi.sig -File $cwa_installer_sig -Region $region
   } catch {
     Write-Output "Failed to download CloudWatch agent installer signature file."
-    Exit 1
+    Remove-Item -Path $cwa_installer -Force
+    return
   }
 
   if (-Not $s) {
@@ -50,21 +51,35 @@ if (-Not $is_cloudwatch_installed) {
 
     # Download GPG
     $gpg_installer = "$env:temp\gnupg-w32-2.2.27_20210111.exe"
-    wget https://gnupg.org/ftp/gcrypt/binary/gnupg-w32-2.2.27_20210111.exe -OutFile $gpg_installer
+    try {
+      Read-S3Object -BucketName rfdk-external-dependencies-$region -Key gnupg-w32-2.2.27_20210111.exe -File $gpg_installer -Region $region
+    } catch {
+      Write-Output "Failed downloading GPG to verify CloudWatch agent."
+      Remove-Item -Path $cwa_installer -Force
+      Remove-Item -Path $cwa_installer_sig -Force
+      return
+    }
 
     # Verify GPG
     $gpg_sig = Get-AuthenticodeSignature $gpg_installer
     $status = $gpg_sig | Select-Object -ExpandProperty 'Status'
     if ( $status -ne 'Valid' ) {
       Write-Output "GPG installer does not have a valid signature."
-      Exit 1
+      Remove-Item -Path $cwa_installer -Force
+      Remove-Item -Path $cwa_installer_sig -Force
+      Remove-Item -Path $gpg_installer -Force
+      return
     }
+
     $sha256_expected = '5D89E239790822711EAE2899467A764879D21440AB68E9413452FA96CEDEBA50'
     $sha256 = Get-FileHash $gpg_installer -Algorithm SHA256
     if ( $sha256 -inotmatch $sha256_expected) {
       Write-Output "GPG failed checksum verification. Expected sha256 to equal $sha256_expected but got:"
       Write-Output $sha256
-      Exit 1
+      Remove-Item -Path $cwa_installer -Force
+      Remove-Item -Path $cwa_installer_sig -Force
+      Remove-Item -Path $gpg_installer -Force
+      return
     }
 
     # Install GPG
@@ -75,7 +90,17 @@ if (-Not $is_cloudwatch_installed) {
 
     # Download Amazon's public key and import it to GPG's keyring
     $cloudwatch_pub_key = "$env:temp\amazon-cloudwatch-agent.gpg"
-    Read-S3Object -BucketName amazoncloudwatch-agent -Key assets/amazon-cloudwatch-agent.gpg -File $cloudwatch_pub_key -Region us-east-1
+
+    try {
+      Read-S3Object -BucketName amazoncloudwatch-agent-$region -Key assets/amazon-cloudwatch-agent.gpg -File $cloudwatch_pub_key -Region $region
+    } catch {
+      Write-Output "Failed to download CloudWatch's GPG key."
+      Remove-Item -Path $cwa_installer -Force
+      Remove-Item -Path $cwa_installer_sig -Force
+      Remove-Item -Path $gpg_installer -Force
+      return
+    }
+
     gpg --no-default-keyring --keyring $gpg_keyring --import $cloudwatch_pub_key
 
     # Verify that the imported key has the correct fingerprint
@@ -86,7 +111,12 @@ if (-Not $is_cloudwatch_installed) {
     if ($keys -inotlike "*$fingerprint*") {
       Write-Output "Expected CloudWatch agent's public key to equal $fingerprint but got:"
       Get-Content $keys
-      Exit 1
+      Remove-Item -Path $cwa_installer -Force
+      Remove-Item -Path $cwa_installer_sig -Force
+      Remove-Item -Path $gpg_installer -Force
+      Remove-Item -Path $cloudwatch_pub_key -Force
+      Remove-Item -Path $gpg_keyring -Force
+      return
     }
 
     # Now that we have the public key on the keyring, we can use gpg to perform the verification of the installer with the signature file.
@@ -99,22 +129,43 @@ if (-Not $is_cloudwatch_installed) {
     if (-Not $verification) {
       Write-Output "Could not verify CloudWatch agent's signature file with GPG."
       Get-Content $gpg_output
-      Exit 1
+      Remove-Item -Path $cwa_installer -Force
+      Remove-Item -Path $cwa_installer_sig -Force
+      Remove-Item -Path $gpg_installer -Force
+      Remove-Item -Path $cloudwatch_pub_key -Force
+      Remove-Item -Path $gpg_keyring -Force
+      Remove-Item -Path $gpg_output -Force
+      return
     }
+
+    return
   }
 
   # Install the agent
   Start-Process "msiexec.exe" -ArgumentList "/i $cwa_installer /qn /norestart" -Wait -Passthru -NoNewWindow
 
-  Remove-Item -Path $cloudwatch_pub_key -Force
   Remove-Item -Path $cwa_installer -Force
   Remove-Item -Path $cwa_installer_sig -Force
   Remove-Item -Path $gpg_installer -Force
-  Remove-Item -Path $gpg_output -Force
+  Remove-Item -Path $cloudwatch_pub_key -Force
   Remove-Item -Path $gpg_keyring -Force
+  Remove-Item -Path $gpg_output -Force
 }
 
-# Configure the agent from an ssm parameter-store parameter.
-& 'C:/Program Files/Amazon/AmazonCloudWatchAgent/amazon-cloudwatch-agent-ctl.ps1' -a append-config -m ec2 -c ssm:$ssmParameterName -s
 
-Write-Output "CloudWatch agent has been successfully installed and configured"
+Write-Output "Starting CloudWatch installation and configuration script."
+
+if ($i) {
+  Install-CloudWatchAgent $region
+} else {
+  Write-Output "Skipped installation of CloudWatch agent"
+}
+
+try  {
+  # Configure the agent from an ssm parameter-store parameter.
+  & 'C:/Program Files/Amazon/AmazonCloudWatchAgent/amazon-cloudwatch-agent-ctl.ps1' -a append-config -m ec2 -c ssm:$ssmParameterName -s
+} catch {
+  Write-Output "Failed attempt to configure the CloudWatch agent"
+}
+
+Write-Output "CloudWatch agent script has completed successfully"

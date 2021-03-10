@@ -173,8 +173,54 @@ describe('CloudWatchAgent', () => {
             ],
             Effect: 'Allow',
             Resource: [
-              'arn:aws:s3:::amazoncloudwatch-agent',
-              'arn:aws:s3:::amazoncloudwatch-agent/*',
+              {
+                'Fn::Join': [
+                  '',
+                  [
+                    'arn:aws:s3:::amazoncloudwatch-agent-',
+                    { Ref: 'AWS::Region' },
+                  ],
+                ],
+              },
+              {
+                'Fn::Join': [
+                  '',
+                  [
+                    'arn:aws:s3:::amazoncloudwatch-agent-',
+                    { Ref: 'AWS::Region' },
+                    '/*',
+                  ],
+                ],
+              },
+            ],
+          },
+          {
+            Action: [
+              's3:GetObject*',
+              's3:GetBucket*',
+              's3:List*',
+            ],
+            Effect: 'Allow',
+            Resource: [
+              {
+                'Fn::Join': [
+                  '',
+                  [
+                    'arn:aws:s3:::rfdk-external-dependencies-',
+                    { Ref: 'AWS::Region' },
+                  ],
+                ],
+              },
+              {
+                'Fn::Join': [
+                  '',
+                  [
+                    'arn:aws:s3:::rfdk-external-dependencies-',
+                    { Ref: 'AWS::Region' },
+                    '/*',
+                  ],
+                ],
+              },
             ],
           },
         ],
@@ -185,7 +231,11 @@ describe('CloudWatchAgent', () => {
     }));
   });
 
-  test('adds user data commands to fetch and execute the script (linux)', () => {
+  test.each([
+    ["' -i ", undefined],
+    ["' -i ", true],
+    ["' ", false],
+  ])('adds user data commands to fetch and execute the script (linux). installFlag: %s shouldInstallAgent: %p', (installFlag: string, shouldInstallAgent?: boolean) => {
     // GIVEN
     const host = new Instance(stack, 'Instance', {
       instanceType: InstanceType.of(InstanceClass.T2, InstanceSize.LARGE),
@@ -199,6 +249,7 @@ describe('CloudWatchAgent', () => {
     new CloudWatchAgent(stack, 'testResource', {
       cloudWatchConfig,
       host,
+      shouldInstallAgent,
     });
 
     // THEN
@@ -324,14 +375,20 @@ describe('CloudWatchAgent', () => {
               },
             ],
           },
-          "' ",
+          installFlag,
+          { Ref: 'AWS::Region' },
+          ' ',
           { Ref: 'StringParameter472EED0E' },
         ],
       ],
     });
   });
 
-  test('adds user data commands to fetch and execute the script (windows)', () => {
+  test.each([
+    ["' -i ", undefined],
+    ["' -i ", true],
+    ["' ", false],
+  ])('adds user data commands to fetch and execute the script (windows). installFlag: %s shouldInstallAgent: %p', (installFlag: string, shouldInstallAgent?: boolean) => {
     // GIVEN
     const host = new Instance(stack, 'Instance', {
       instanceType: InstanceType.of(InstanceClass.T2, InstanceSize.LARGE),
@@ -343,6 +400,7 @@ describe('CloudWatchAgent', () => {
     new CloudWatchAgent(stack, 'testResource', {
       cloudWatchConfig,
       host,
+      shouldInstallAgent,
     });
 
     // THEN
@@ -445,7 +503,9 @@ describe('CloudWatchAgent', () => {
               },
             ],
           },
-          "' ",
+          installFlag,
+          { Ref: 'AWS::Region' },
+          ' ',
           { Ref: 'StringParameter472EED0E' },
           "\nif (!$?) { Write-Error 'Failed to execute the file \"C:/temp/",
           {

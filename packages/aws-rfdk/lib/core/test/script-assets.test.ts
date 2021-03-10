@@ -20,7 +20,7 @@ import { Stack } from '@aws-cdk/core';
 
 import { ScriptAsset } from '../lib/script-assets';
 
-import { CWA_ASSET_LINUX } from './asset-constants';
+import { CWA_ASSET_LINUX, CWA_ASSET_WINDOWS } from './asset-constants';
 
 const instanceType = InstanceType.of(InstanceClass.T3, InstanceSize.MICRO);
 const linuxImage = new AmazonLinuxImage();
@@ -37,9 +37,9 @@ describe('executeScriptAsset', () => {
   });
 
   it.each([
-    [linuxImage],
-    [windowsImage],
-  ])('grants read permissions', (machineImage: AmazonLinuxImage | WindowsImage) => {
+    [linuxImage, '../scripts/bash/configureCloudWatchAgent.sh', CWA_ASSET_LINUX.Bucket],
+    [windowsImage, '../scripts/powershell/configureCloudWatchAgent.ps1', CWA_ASSET_WINDOWS.Bucket],
+  ])('grants read permissions', (machineImage: AmazonLinuxImage | WindowsImage, scriptLocation: string, bucketKey: string) => {
     // GIVEN
     const instance = new Instance(stack, 'inst', {
       vpc,
@@ -47,7 +47,7 @@ describe('executeScriptAsset', () => {
       machineImage,
     });
     const asset = new ScriptAsset(stack, 'asset', {
-      path: path.join(__dirname, '../scripts/bash/configureCloudWatchAgent.sh'),
+      path: path.join(__dirname, scriptLocation),
     });
 
     // WHEN
@@ -72,7 +72,7 @@ describe('executeScriptAsset', () => {
                     'arn:',
                     { Ref: 'AWS::Partition' },
                     ':s3:::',
-                    { Ref: CWA_ASSET_LINUX.Bucket },
+                    { Ref: bucketKey },
                   ],
                 ],
               },
@@ -83,7 +83,7 @@ describe('executeScriptAsset', () => {
                     'arn:',
                     { Ref: 'AWS::Partition' },
                     ':s3:::',
-                    { Ref: CWA_ASSET_LINUX.Bucket },
+                    { Ref: bucketKey },
                     '/*',
                   ],
                 ],
@@ -255,7 +255,7 @@ describe('executeScriptAsset', () => {
       machineImage: windowsImage,
     });
     const asset = new ScriptAsset(stack, 'asset', {
-      path: path.join(__dirname, '../scripts/bash/configureCloudWatchAgent.sh'),
+      path: path.join(__dirname, '../scripts/powershell/configureCloudWatchAgent.ps1'),
     });
 
     // WHEN
@@ -278,7 +278,7 @@ describe('executeScriptAsset', () => {
                   {
                     'Fn::Split': [
                       '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
+                      { Ref: CWA_ASSET_WINDOWS.Key },
                     ],
                   },
                 ],
@@ -289,13 +289,13 @@ describe('executeScriptAsset', () => {
                   {
                     'Fn::Split': [
                       '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
+                      { Ref: CWA_ASSET_WINDOWS.Key },
                     ],
                   },
                 ],
               },
               "' ) -ea 0\nRead-S3Object -BucketName '",
-              { Ref: CWA_ASSET_LINUX.Bucket },
+              { Ref: CWA_ASSET_WINDOWS.Bucket },
               "' -key '",
               {
                 'Fn::Select': [
@@ -303,7 +303,7 @@ describe('executeScriptAsset', () => {
                   {
                     'Fn::Split': [
                       '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
+                      { Ref: CWA_ASSET_WINDOWS.Key },
                     ],
                   },
                 ],
@@ -314,7 +314,7 @@ describe('executeScriptAsset', () => {
                   {
                     'Fn::Split': [
                       '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
+                      { Ref: CWA_ASSET_WINDOWS.Key },
                     ],
                   },
                 ],
@@ -326,7 +326,7 @@ describe('executeScriptAsset', () => {
                   {
                     'Fn::Split': [
                       '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
+                      { Ref: CWA_ASSET_WINDOWS.Key },
                     ],
                   },
                 ],
@@ -337,7 +337,7 @@ describe('executeScriptAsset', () => {
                   {
                     'Fn::Split': [
                       '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
+                      { Ref: CWA_ASSET_WINDOWS.Key },
                     ],
                   },
                 ],
@@ -349,7 +349,7 @@ describe('executeScriptAsset', () => {
                   {
                     'Fn::Split': [
                       '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
+                      { Ref: CWA_ASSET_WINDOWS.Key },
                     ],
                   },
                 ],
@@ -360,7 +360,7 @@ describe('executeScriptAsset', () => {
                   {
                     'Fn::Split': [
                       '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
+                      { Ref: CWA_ASSET_WINDOWS.Key },
                     ],
                   },
                 ],
@@ -372,7 +372,7 @@ describe('executeScriptAsset', () => {
                   {
                     'Fn::Split': [
                       '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
+                      { Ref: CWA_ASSET_WINDOWS.Key },
                     ],
                   },
                 ],
@@ -383,7 +383,7 @@ describe('executeScriptAsset', () => {
                   {
                     'Fn::Split': [
                       '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
+                      { Ref: CWA_ASSET_WINDOWS.Key },
                     ],
                   },
                 ],

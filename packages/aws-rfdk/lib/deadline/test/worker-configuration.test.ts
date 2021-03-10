@@ -27,9 +27,6 @@ import {
   ILogGroup,
 } from '@aws-cdk/aws-logs';
 import {
-  StringParameter,
-} from '@aws-cdk/aws-ssm';
-import {
   Stack,
 } from '@aws-cdk/core';
 import {
@@ -43,11 +40,10 @@ import {
   WorkerInstanceConfiguration,
 } from '../lib';
 import {
-  CWA_ASSET_WINDOWS,
-  linuxCloudWatchScriptBoilerplate,
   linuxConfigureWorkerScriptBoilerplate,
-  windowsCloudWatchScriptBoilerplate,
+  linuxCloudWatchScriptBoilerplate,
   windowsConfigureWorkerScriptBoilerplate,
+  windowsCloudWatchScriptBoilerplate,
 } from './asset-constants';
 
 describe('Test WorkerInstanceConfiguration for Linux', () => {
@@ -143,11 +139,9 @@ describe('Test WorkerInstanceConfiguration for Linux', () => {
     // WHEN
     const config = new WorkerInstanceConfiguration(stack, 'Config', {
       worker: instance,
-      cloudwatchLogSettings: logGroupProps,
+      cloudWatchLogSettings: logGroupProps,
     });
-    const ssmParam = config.node.findChild('StringParameter');
     const logGroup = config.node.findChild('ConfigLogGroupWrapper');
-    const ssmParamName = stack.resolve((ssmParam as StringParameter).parameterName);
     const logGroupName = stack.resolve((logGroup as ILogGroup).logGroupName);
     const userData = stack.resolve(instance.userData.render());
 
@@ -157,11 +151,7 @@ describe('Test WorkerInstanceConfiguration for Linux', () => {
         '',
         [
           '#!/bin/bash\nmkdir -p $(dirname \'/tmp/',
-          ...linuxCloudWatchScriptBoilerplate(),
-          '\' ',
-          ssmParamName,
-          '\nmkdir -p $(dirname \'/tmp/',
-          ...linuxConfigureWorkerScriptBoilerplate(
+          ...linuxCloudWatchScriptBoilerplate(
             `\' \'\' \'\' \'\' \'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}\' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} /tmp/`),
         ],
       ],
@@ -282,11 +272,9 @@ describe('Test WorkerInstanceConfiguration for Windows', () => {
     // WHEN
     const config = new WorkerInstanceConfiguration(stack, 'Config', {
       worker: instance,
-      cloudwatchLogSettings: logGroupProps,
+      cloudWatchLogSettings: logGroupProps,
     });
-    const ssmParam = config.node.findChild('StringParameter');
     const logGroup = config.node.findChild('ConfigLogGroupWrapper');
-    const ssmParamName = stack.resolve((ssmParam as StringParameter).parameterName);
     const logGroupName = stack.resolve((logGroup as ILogGroup).logGroupName);
     const userData = stack.resolve(instance.userData.render());
 
@@ -296,37 +284,7 @@ describe('Test WorkerInstanceConfiguration for Windows', () => {
         '',
         [
           '<powershell>mkdir (Split-Path -Path \'C:/temp/',
-          ...windowsCloudWatchScriptBoilerplate(),
-          '\' ',
-          ssmParamName,
-          '\nif (!$?) { Write-Error \'Failed to execute the file \"C:/temp/',
-          {
-            'Fn::Select': [
-              0,
-              {
-                'Fn::Split': [
-                  '||',
-                  {
-                    Ref: CWA_ASSET_WINDOWS.Key,
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            'Fn::Select': [
-              1,
-              {
-                'Fn::Split': [
-                  '||',
-                  {Ref: CWA_ASSET_WINDOWS.Key},
-                ],
-              },
-            ],
-          },
-          '\"\' -ErrorAction Stop }' +
-          '\nmkdir (Split-Path -Path \'C:/temp/',
-          ...windowsConfigureWorkerScriptBoilerplate(
+          ...windowsCloudWatchScriptBoilerplate(
             `\' \'\' \'\' \'\' \'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}\' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} C:/temp/`),
           '\"\' -ErrorAction Stop }</powershell>',
         ],

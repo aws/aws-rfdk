@@ -150,7 +150,17 @@ export interface WorkerInstanceConfigurationProps {
    *
    * @default The Worker logs will not be streamed to CloudWatch.
    */
-  readonly cloudwatchLogSettings?: LogGroupFactoryProps;
+  readonly cloudWatchLogSettings?: LogGroupFactoryProps;
+
+  /**
+   * Whether or not the CloudWatch agent should be automatically installed onto all worker instances.
+   * This installation will be a best effort, but will not fail the deployment if it isn't completed
+   * successfully. Ideally the CloudWatch agent should be installed on the AMI to avoid issues. If
+   * the installation fails, logs will not be streamed off of the workers into CloudWatch.
+   *
+   * @default true
+   */
+  readonly shouldInstallCloudWatchAgent?: boolean;
 
   /**
    * The settings to apply to the Deadline Worker.
@@ -202,8 +212,13 @@ export class WorkerInstanceConfiguration extends Construct {
   constructor(scope: Construct, id: string, props: WorkerInstanceConfigurationProps) {
     super(scope, id);
     props.userDataProvider?.preCloudWatchAgent(props.worker);
-    if (props.cloudwatchLogSettings) {
-      this.configureCloudWatchLogStream(props.worker, id, props.cloudwatchLogSettings);
+    if (props.cloudWatchLogSettings) {
+      this.configureCloudWatchLogStream(
+        props.worker,
+        id,
+        props.cloudWatchLogSettings,
+        props.shouldInstallCloudWatchAgent,
+      );
     }
     props.userDataProvider?.preRenderQueueConfiguration(props.worker);
     props.renderQueue?.configureClientInstance({ host: props.worker });
@@ -225,9 +240,15 @@ export class WorkerInstanceConfiguration extends Construct {
    *
    * @param worker The worker to configure. This can be an instance, auto scaling group, launch template, etc.
    * @param id Identifier to disambiguate the resources that are created.
+   * @param shouldInstallAgent Boolean for if the worker's User Data should attempt to install the CloudWatch agent
    * @param logGroupProps Configuration for the log group in CloudWatch.
    */
-  protected configureCloudWatchLogStream(worker: IHost, id: string, logGroupProps?: LogGroupFactoryProps): void {
+  protected configureCloudWatchLogStream(
+    worker: IHost,
+    id: string,
+    logGroupProps: LogGroupFactoryProps,
+    shouldInstallAgent?: boolean,
+  ): void {
     const logGroup = LogGroupFactory.createOrFetch(this, `${id}LogGroupWrapper`, id, logGroupProps);
 
     logGroup.grantWrite(worker);
@@ -259,6 +280,7 @@ export class WorkerInstanceConfiguration extends Construct {
     new CloudWatchAgent(this, `${id}LogsConfig`, {
       cloudWatchConfig: cloudWatchConfigurationBuilder.generateCloudWatchConfiguration(),
       host: worker,
+      shouldInstallAgent,
     });
   }
 

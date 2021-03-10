@@ -589,7 +589,7 @@ test('default worker fleet is created correctly custom subnet values', () => {
             },
           ],
         },
-        '\' ',
+        '\' -i us-east-1 ',
         {Ref: 'workerFleetStringParameterDB3717DA'},
         '\nmkdir -p $(dirname \'/tmp/',
         {
@@ -1082,7 +1082,7 @@ test('default worker fleet is created correctly with groups, pools and region', 
           },
         ],
       },
-      "' ",
+      "' -i us-east-1 ",
       {Ref: 'workerFleetStringParameterDB3717DA'},
       '\nmkdir -p $(dirname \'/tmp/',
       {

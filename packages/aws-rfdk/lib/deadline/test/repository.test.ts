@@ -10,7 +10,6 @@ import {
   haveResource,
   haveResourceLike,
   ResourcePart,
-  stringLike,
   SynthUtils,
 } from '@aws-cdk/assert';
 import {AutoScalingGroup} from '@aws-cdk/aws-autoscaling';
@@ -48,6 +47,9 @@ import {
 import {
   testConstructTags,
 } from '../../core/test/tag-helpers';
+import {
+  CWA_ASSET_LINUX,
+} from '../../deadline/test/asset-constants';
 import {
   DatabaseConnection,
   IVersion,
@@ -259,6 +261,7 @@ IAM Policy document tests. The policy for the installer instance is:
         {}, // cloudwatch agent install script
         {}, // cloudwatch agent string parameters
         {}, // cloudwatch agent get installer permissions
+        {}, // gpg get installer permissions
         {}, // DocDB secret get
         {}, // filesystem mount script get
         {}, // installer get
@@ -290,6 +293,7 @@ test('repository installer iam permissions: db secret access', () => {
   expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
     PolicyDocument: {
       Statement: [
+        {},
         {},
         {},
         {},
@@ -343,7 +347,7 @@ test('repository installer iam permissions: installer get', () => {
                   },
                   ':s3:::',
                   {
-                    Ref: stringLike('AssetParameters*S3Bucket352E624B'),
+                    Ref: CWA_ASSET_LINUX.Bucket,
                   },
                 ],
               ],
@@ -358,7 +362,7 @@ test('repository installer iam permissions: installer get', () => {
                   },
                   ':s3:::',
                   {
-                    Ref: stringLike('AssetParameters*S3Bucket352E624B'),
+                    Ref: CWA_ASSET_LINUX.Bucket,
                   },
                   '/*',
                 ],

@@ -7,14 +7,14 @@ import { stringLike } from '@aws-cdk/assert';
 
 // ConfigureCloudWatchAgent.sh
 export const CWA_ASSET_LINUX = {
-  Bucket: 'AssetParameters3793207e75b2a1b5dd4ebe458ab7a5cc20154224e846267d2c22da1d0631f94fS3Bucket352E624B',
-  Key: 'AssetParameters3793207e75b2a1b5dd4ebe458ab7a5cc20154224e846267d2c22da1d0631f94fS3VersionKeyAE2B9691',
+  Bucket: 'AssetParametersf3261b0f6923b012a8fce5cd6984211bc48b9977844b3fa44229234dc6f21d43S3BucketCC60E56A',
+  Key: 'AssetParametersf3261b0f6923b012a8fce5cd6984211bc48b9977844b3fa44229234dc6f21d43S3VersionKey027288B6',
 };
 
 // ConfigureCloudWatchAgent.ps1
 export const CWA_ASSET_WINDOWS = {
-  Bucket: 'AssetParameters07782992a7a530f8752341d912c95ba2fe3f0a212d413b5d097959c51ea8e2ecS3Bucket95C4512E',
-  Key: 'AssetParameters07782992a7a530f8752341d912c95ba2fe3f0a212d413b5d097959c51ea8e2ecS3VersionKey3DB883AC',
+  Bucket: 'AssetParametersb3a03a74afa8a045b35e08f11a719544622172869cc031787f580407d665ee36S3BucketE3A6D532',
+  Key: 'AssetParametersb3a03a74afa8a045b35e08f11a719544622172869cc031787f580407d665ee36S3VersionKey0A26AF8C',
 };
 
 // mountEbsBlockVolume.sh + metadataUtilities.sh + ec2-certificates.crt
@@ -24,8 +24,4 @@ export const MOUNT_EBS_SCRIPT_LINUX = {
 
 export const INSTALL_MONGODB_3_6_SCRIPT_LINUX = {
   Bucket: stringLike('AssetParameters*S3BucketAF54A815'),
-};
-
-export const MONGODB_INSTANCE_3_6_SCRIPT = {
-  Bucket: stringLike('AssetParameters*S3Bucket352E624B'),
 };

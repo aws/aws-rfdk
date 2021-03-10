@@ -456,7 +456,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
 
     const workerConfig = new WorkerInstanceConfiguration(this, id, {
       worker: this,
-      cloudwatchLogSettings: {
+      cloudWatchLogSettings: {
         logGroupPrefix: SpotEventPluginFleet.DEFAULT_LOG_GROUP_PREFIX,
         ...props.logGroupProps,
       },
