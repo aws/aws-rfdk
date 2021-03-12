@@ -120,8 +120,8 @@ export class StorageStruct extends Construct {
       const accessPoint = new AccessPoint(this, 'AccessPoint', {
         fileSystem: deadlineEfs,
         posixUser: {
-          uid: "0",
-          gid: "0",
+          uid: '0',
+          gid: '0',
         },
       });
       deadlineMountableEfs = new MountableEfs(this, {
