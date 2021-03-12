@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.27.0](https://github.com/aws/aws-rfdk/compare/v0.26.0...v0.27.0) (2021-03-12)
+
+
+### Supported CDK Version
+
+* [1.91.0](https://github.com/aws/aws-cdk/releases/tag/v1.91.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.13.2](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### ⚠ BREAKING CHANGES
+
+* Repository constructs supplied with an EFS file-system must also pass an EFS Access Point
+- If your application provides an EFS file-system to a Repository construct, it must now also pass an
+  EFS Access Point to work properly with the Deadline container images.
+- Consult https://github.com/aws/aws-rfdk/blob/v0.27.0/packages/aws-rfdk/docs/upgrade/upgrading-0.27.md
+  for detailed instructions on how to upgrade
+
+### Features
+
+* **core:** make cloudwatch agent install optional ([#338](https://github.com/aws/aws-rfdk/issues/338)) ([ac052ea](https://github.com/aws/aws-rfdk/commit/ac052ea67ab90e8c6ac18af71a950b20c68a24f1))
+* add ability to use EFS access points ([#339](https://github.com/aws/aws-rfdk/issues/339)) ([544496c](https://github.com/aws/aws-rfdk/commit/544496cb67b3880fc187716a33ebeca595c108d7))
+
+
+### Bug Fixes
+
+* **integ:** supply Repository with EFS access point ([#343](https://github.com/aws/aws-rfdk/issues/343)) ([d6512af](https://github.com/aws/aws-rfdk/commit/d6512af790e68d3cd803649de15c888191755517))
+
 ## [0.26.0](https://github.com/aws/aws-rfdk/compare/v0.25.0...v0.26.0) (2021-03-01)
 
 
