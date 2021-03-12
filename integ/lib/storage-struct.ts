@@ -11,7 +11,10 @@ import {
   Vpc,
   SubnetType,
 } from '@aws-cdk/aws-ec2';
-import { FileSystem } from '@aws-cdk/aws-efs';
+import {
+  AccessPoint,
+  FileSystem,
+} from '@aws-cdk/aws-efs';
 import { PrivateHostedZone } from '@aws-cdk/aws-route53';
 import { ISecret } from '@aws-cdk/aws-secretsmanager';
 import {
@@ -114,8 +117,16 @@ export class StorageStruct extends Construct {
         vpc,
         removalPolicy: RemovalPolicy.DESTROY,
       });
+      const accessPoint = new AccessPoint(this, 'AccessPoint', {
+        fileSystem: deadlineEfs,
+        posixUser: {
+          uid: "0",
+          gid: "0",
+        },
+      });
       deadlineMountableEfs = new MountableEfs(this, {
         filesystem: deadlineEfs,
+        accessPoint,
       });
     }
     // If databaseType is MongoDB, a MongoDB instance is created in place of the DocDB
