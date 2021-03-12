@@ -30,6 +30,8 @@ import {
   WindowsVersion,
 } from '@aws-cdk/aws-ec2';
 import {
+  AccessPoint,
+  CfnFileSystem,
   FileSystem as EfsFileSystem,
 } from '@aws-cdk/aws-efs';
 import { Bucket } from '@aws-cdk/aws-s3';
@@ -476,8 +478,12 @@ test('repository warns if removal policy for filesystem when filesystem provided
   const testEFS = new EfsFileSystem(stack, 'TestEfsFileSystem', {
     vpc,
   });
+  const testAP = new AccessPoint(stack, 'TestAccessPoint', {
+    fileSystem: testEFS,
+  });
   const testFS = new MountableEfs(stack, {
     filesystem: testEFS,
+    accessPoint: testAP,
   });
 
   // WHEN
@@ -545,8 +551,12 @@ test('repository creates deadlineDatabase if none provided', () => {
   const testEFS = new EfsFileSystem(stack, 'TestEfsFileSystem', {
     vpc,
   });
+  const testAP = new AccessPoint(stack, 'TestAccessPoint', {
+    fileSystem: testEFS,
+  });
   const testFS = new MountableEfs(stack, {
     filesystem: testEFS,
+    accessPoint: testAP,
   });
 
   // WHEN
@@ -576,8 +586,12 @@ test('disabling Audit logging does not enable Cloudwatch audit logs', () => {
   const testEFS = new EfsFileSystem(stack, 'TestEfsFileSystem', {
     vpc,
   });
+  const testAP = new AccessPoint(stack, 'TestAccessPoint', {
+    fileSystem: testEFS,
+  });
   const testFS = new MountableEfs(stack, {
     filesystem: testEFS,
+    accessPoint: testAP,
   });
 
   // WHEN
@@ -975,9 +989,7 @@ test('configureClientInstance uses singleton for repo config script', () => {
   // Make sure that both instances have access to the same Asset for the configureRepositoryDirectConnect script
   expectCDK(stack).to(countResourcesLike('AWS::IAM::Policy', 2, {
     PolicyDocument: {
-      Statement: [
-        {}, // secretsmanager:GetSecretValue for docdb secret
-        {}, // asset access for EFS mount script
+      Statement: arrayWith(
         {
           Effect: 'Allow',
           Action: [
@@ -1019,7 +1031,7 @@ test('configureClientInstance uses singleton for repo config script', () => {
             },
           ],
         },
-      ],
+      ),
     },
   }));
 });
@@ -1156,4 +1168,46 @@ test('validates VersionQuery is not in a different stack', () => {
 
   // THEN
   expect(synth).toThrow('A VersionQuery can not be supplied from a different stack');
+});
+
+test('creates an EFS AccessPoint when no filesystem is supplied', () => {
+  // WHEN
+  const repo = new Repository(stack, 'Repository', {
+    version,
+    vpc,
+  });
+
+  // THEN
+  const efsResource = (repo.node.findChild('FileSystem') as CfnElement).node.defaultChild as CfnFileSystem;
+  expectCDK(stack).to(haveResource('AWS::EFS::AccessPoint', {
+    FileSystemId: stack.resolve(efsResource.ref),
+    PosixUser: {
+      Gid: '0',
+      Uid: '0',
+    },
+    RootDirectory: {},
+  }));
+});
+
+test('throws an error if supplied a MountableEfs with no Access Point', () => {
+  // GIVEN
+  const newStack = new Stack(app, 'NewStack');
+  const fs = new EfsFileSystem(newStack, 'FileSystem', {
+    vpc,
+  });
+  const mountableFs = new MountableEfs(newStack, {
+    filesystem: fs,
+  });
+
+  // WHEN
+  function when() {
+    new Repository(newStack, 'Repo', {
+      version,
+      vpc,
+      fileSystem: mountableFs,
+    });
+  }
+
+  // THEN
+  expect(when).toThrow('When using EFS with the Repository, you must provide an EFS Access Point');
 });

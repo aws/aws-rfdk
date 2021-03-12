@@ -101,7 +101,7 @@ def main():
     # ------------------------------
     service_props = service_tier.ServiceTierProps(
         database=storage.database,
-        file_system=storage.file_system,
+        mountable_file_system=storage.mountable_file_system,
         vpc=network.vpc,
         ubl_certs_secret_arn=config.ubl_certificate_secret_arn,
         ubl_licenses=config.ubl_licenses,

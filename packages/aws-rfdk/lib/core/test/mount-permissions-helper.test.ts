@@ -17,3 +17,29 @@ test.each([
 ])('toLinuxMountOption test: %p', (permission, expected) => {
   expect(MountPermissionsHelper.toLinuxMountOption(permission)).toBe(expected);
 });
+
+test.each<[MountPermissions | undefined, string[]]>([
+  [
+    MountPermissions.READONLY,
+    [
+      'elasticfilesystem:ClientMount',
+    ],
+  ],
+  [
+    MountPermissions.READWRITE,
+    [
+      'elasticfilesystem:ClientMount',
+      'elasticfilesystem:ClientWrite',
+    ],
+  ],
+  [
+    undefined,
+    [
+      'elasticfilesystem:ClientMount',
+      'elasticfilesystem:ClientWrite',
+    ],
+  ],
+])('toEfsIAMActions test: %p', (permission, expected) => {
+  expect(MountPermissionsHelper.toEfsIAMActions(permission)).toEqual(expected);
+});
+

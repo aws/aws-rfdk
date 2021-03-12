@@ -298,12 +298,12 @@ export interface RepositoryProps {
   /**
    * Specify the file system where the deadline repository needs to be initialized.
    *
-   * @default An Encrypted EFS File System will be created
+   * @default An Encrypted EFS File System and Access Point will be created
    */
   readonly fileSystem?: IMountableLinuxFilesystem;
 
   /**
-   * The prefix for the deadline repository installation path on the given file system.
+   * The prefix for the Deadline Repository installation path on the mounted file system.
    *
    * @default: "/DeadlineRepository/"
    */
@@ -383,6 +383,7 @@ export interface RepositoryProps {
  * Resources Deployed
  * ------------------------
  * - Encrypted Amazon Elastic File System (EFS) - If no file system is provided.
+ * - An Amazon EFS Point - If no filesystem is provided
  * - An Amazon DocumentDB - If no database connection is provided.
  * - Auto Scaling Group (ASG) with min & max capacity of 1 instance.
  * - Instance Role and corresponding IAM Policy.
@@ -404,6 +405,10 @@ export interface RepositoryProps {
  *   submitted jobs, machine information and status, and so on. An actor with access to this database can read any information
  *   that is entered into Deadline, and modify the bevavior of your render farm. You should restrict access to this database
  *   to only those who require it.
+ * - If no file-system is provided to the Repository, then the Repository creates an EFS access point with unrestricted
+ *   access to the entire EFS file-system. If you would like a single EFS file-system that is used by the Deadline
+ *   Repository and other agents, you should supply the file-system and a access-restricted EFS access point to the
+ *   Repository construct instead.
  */
 export class Repository extends Construct implements IRepository {
   /**
@@ -485,14 +490,14 @@ export class Repository extends Construct implements IRepository {
     if (props.database && props.removalPolicy?.database) {
       this.node.addWarning('RemovalPolicy for database will not be applied since a database is not being created by this construct');
     }
+    if (props.fileSystem instanceof MountableEfs && !props.fileSystem.accessPoint) {
+      throw new Error('When using EFS with the Repository, you must provide an EFS Access Point');
+    }
 
     this.version = props.version;
 
-    // Set up the Filesystem of the repository
-    if (props.fileSystem !== undefined) {
-      this.fileSystem = props.fileSystem;
-    } else {
-      this.efs = new EfsFileSystem(this, 'FileSystem', {
+    this.fileSystem = props.fileSystem ?? (() => {
+      const fs = new EfsFileSystem(this, 'FileSystem', {
         vpc: props.vpc,
         vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
         encrypted: true,
@@ -500,10 +505,19 @@ export class Repository extends Construct implements IRepository {
         removalPolicy: props.removalPolicy?.filesystem ?? RemovalPolicy.RETAIN,
         securityGroup: props.securityGroupsOptions?.fileSystem,
       });
-      this.fileSystem = new MountableEfs(this, {
-        filesystem: this.efs,
+
+      const accessPoint = fs.addAccessPoint('AccessPoint', {
+        posixUser: {
+          uid: '0',
+          gid: '0',
+        },
       });
-    }
+
+      return new MountableEfs(this, {
+        filesystem: fs,
+        accessPoint,
+      });
+    })();
 
     // Set up the Database of the repository
     if (props.database) {
