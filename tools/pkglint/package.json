@@ -1,6 +1,6 @@
 {
   "name": "pkglint",
-  "version": "0.26.0",
+  "version": "0.27.0",
   "private": true,
   "description": "Validate and fix package.json files",
   "main": "lib/index.js",
@@ -35,7 +35,7 @@
   },
   "license": "Apache-2.0",
   "devDependencies": {
-    "@types/fs-extra": "^9.0.7",
+    "@types/fs-extra": "^9.0.8",
     "@types/semver": "^7.3.4",
     "@types/yargs": "^16.0.0",
     "typescript": "~4.2.2"

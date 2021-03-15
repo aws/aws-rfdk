@@ -98,7 +98,7 @@ if (config.deployMongoDB) {
 const service = new ServiceTier(app, 'ServiceTier', {
   env,
   database: storage.database,
-  fileSystem: storage.fileSystem,
+  mountableFileSystem: storage.mountableFileSystem,
   vpc: network.vpc,
   deadlineVersion: config.deadlineVersion,
   ublCertsSecretArn: config.ublCertificatesSecretArn,

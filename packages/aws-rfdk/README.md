@@ -15,3 +15,4 @@ Please see the following sources for additional information:
 * The [RFDK API Documentation](https://docs.aws.amazon.com/rfdk/api/latest/docs/aws-rfdk-construct-library.html)
 * The [README for the main module](https://github.com/aws/aws-rfdk/blob/mainline/packages/aws-rfdk/lib/core/README.md)
 * The [README for the Deadline module](https://github.com/aws/aws-rfdk/blob/mainline/packages/aws-rfdk/lib/deadline/README.md)
+* The [RFDK Upgrade Documentation](./docs/upgrade/index.md)

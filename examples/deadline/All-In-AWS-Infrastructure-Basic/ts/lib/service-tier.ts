@@ -17,7 +17,7 @@ import {
 } from '@aws-cdk/aws-route53';
 import * as cdk from '@aws-cdk/core';
 import {
-  IMountableLinuxFilesystem,
+  MountableEfs,
   X509CertificatePem,
 } from 'aws-rfdk';
 import {
@@ -33,7 +33,6 @@ import {
 import {
   Secret,
 } from '@aws-cdk/aws-secretsmanager';
-import { Duration } from '@aws-cdk/core';
 import { SessionManagerHelper } from 'aws-rfdk/lib/core';
 
 /**
@@ -51,9 +50,9 @@ export interface ServiceTierProps extends cdk.StackProps {
   readonly database: DatabaseConnection;
 
   /**
-   * The file system to install Deadline Repository to.
+   * The file-system to install Deadline Repository to.
    */
-  readonly fileSystem: IMountableLinuxFilesystem;
+  readonly mountableFileSystem: MountableEfs;
 
   /**
    * Our self-signed root CA certificate for the internal endpoints in the farm.
@@ -136,11 +135,15 @@ export class ServiceTier extends cdk.Stack {
         volume: BlockDeviceVolume.ebs(50, {
           encrypted: true,
         })},
-      ]
+      ],
     });
-    // Granting the bastion access to the file system mount for convenience
+    props.database.allowConnectionsFrom(this.bastion);
+
+    // Granting the bastion access to the entire EFS file-system.
     // This can also be safely removed
-    props.fileSystem.mountToLinuxInstance(this.bastion.instance, {
+    new MountableEfs(this, {
+      filesystem: props.mountableFileSystem.fileSystem,
+    }).mountToLinuxInstance(this.bastion.instance, {
       location: '/mnt/efs',
     });
 
@@ -152,8 +155,9 @@ export class ServiceTier extends cdk.Stack {
       vpc: props.vpc,
       version: this.version,
       database: props.database,
-      fileSystem: props.fileSystem,
-      repositoryInstallationTimeout: Duration.minutes(20),
+      fileSystem: props.mountableFileSystem,
+      repositoryInstallationTimeout: cdk.Duration.minutes(20),
+      repositoryInstallationPrefix: "/",
     });
 
     const images = new ThinkboxDockerImages(this, 'Images', {

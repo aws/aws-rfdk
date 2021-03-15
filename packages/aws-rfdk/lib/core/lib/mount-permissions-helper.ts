@@ -29,4 +29,21 @@ export class MountPermissionsHelper {
     }
     throw new Error(`Unhandled MountPermission: ${permission}`);
   }
+
+  /**
+   * Convert the given permission into the appropriate list of IAM actions allowed on the EFS FileSystem required for
+   * the mount.
+   *
+   * @param permission The permission to convert. Defaults to {@link MountPermissions.READWRITE} if not defined.
+   */
+  public static toEfsIAMActions(permission?: MountPermissions): string[] {
+    permission = permission ?? MountPermissions.READWRITE;
+    const iamActions = [
+      'elasticfilesystem:ClientMount',
+    ];
+    if (permission === MountPermissions.READWRITE) {
+      iamActions.push('elasticfilesystem:ClientWrite');
+    }
+    return iamActions;
+  }
 }

@@ -7,6 +7,7 @@ import * as path from 'path';
 
 import {
   expect as expectCDK,
+  haveResource,
   haveResourceLike,
   stringLike,
 } from '@aws-cdk/assert';
@@ -134,16 +135,30 @@ describe('ThinkboxDockerRecipes', () => {
     expect(actualImage.sourceHash).toEqual(expectedImage.sourceHash);
   });
 
-  test('provides the Deadline version', () => {
-    // WHEN
-    new ThinkboxDockerRecipes(stack, 'Recipes', {
-      stage,
+  describe('.version', () => {
+    test('creates a VersionQuery when referenced', () => {
+      // GIVEN
+      const recipes = new ThinkboxDockerRecipes(stack, 'Recipes', {
+        stage,
+      });
+
+      // WHEN
+      recipes.version;
+
+      expectCDK(stack).to(haveResourceLike('Custom::RFDK_DEADLINE_INSTALLERS', {
+        forceRun: stringLike('*'),
+        versionString: RELEASE_VERSION_STRING,
+      }));
     });
 
-    expectCDK(stack).to(haveResourceLike('Custom::RFDK_DEADLINE_INSTALLERS', {
-      forceRun: stringLike('*'),
-      versionString: RELEASE_VERSION_STRING,
-    }));
+    test('does not create a VersionQuery when not referenced', () => {
+      // GIVEN
+      new ThinkboxDockerRecipes(stack, 'Recipes', {
+        stage,
+      });
+
+      expectCDK(stack).notTo(haveResource('Custom::RFDK_DEADLINE_INSTALLERS'));
+    });
   });
 
   test.each([
