@@ -3,7 +3,7 @@
 name: Auto Approve Dependabot PR's
 
 on:
-  pull_request
+  pull_request_target
 
 jobs:
   auto-approve:
