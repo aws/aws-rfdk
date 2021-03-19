@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+require('./stack-order.js');
