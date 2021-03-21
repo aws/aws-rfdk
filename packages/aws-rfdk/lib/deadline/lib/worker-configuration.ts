@@ -221,7 +221,14 @@ export class WorkerInstanceConfiguration extends Construct {
       );
     }
     props.userDataProvider?.preRenderQueueConfiguration(props.worker);
-    props.renderQueue?.configureClientInstance({ host: props.worker });
+    props.renderQueue?.configureClientInstance({
+      host: props.worker,
+      // Don't restart the Deadline Launcher service after configuring the connection to the Render Queue. We need to
+      // restart it later anyways, and the Windows service for the Deadline Launcher can get locked in the "stopping"
+      // state if you attempt to stop or restart it while it is still restarting. This can cause the user data execution
+      // to get locked waiting for the service to finish stopping/restarting.
+      restartLauncher: false,
+    });
     props.userDataProvider?.preWorkerConfiguration(props.worker);
 
     this.listenerPort = props.workerSettings?.listenerPort ?? WorkerInstanceConfiguration.DEFAULT_LISTENER_PORT;

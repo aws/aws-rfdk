@@ -127,7 +127,7 @@ If (Get-Service $serviceName -ErrorAction SilentlyContinue) {
     $DEADLINE_LAUNCHER = $DEADLINE_PATH + '/deadlinelauncher.exe'
     & $DEADLINE_LAUNCHER -shutdownall | Out-Default
     taskkill /f /fi "IMAGENAME eq deadlineworker.exe"
-    & $DEADLINE_LAUNCHER
+    & $DEADLINE_LAUNCHER -nogui
 }
 
 Write-Host "Script completed successfully."
