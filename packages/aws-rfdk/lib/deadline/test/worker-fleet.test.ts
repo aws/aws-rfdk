@@ -721,9 +721,6 @@ test('default worker fleet is created correctly custom subnet values', () => {
           ],
         },
         '\"\n' +
-        'if service --status-all | grep -q "Deadline 10 Launcher"; then\n' +
-        '  service deadline10launcher restart\n' +
-        'fi\n' +
         "mkdir -p $(dirname '/tmp/",
         {
           'Fn::Select': [
@@ -1214,9 +1211,6 @@ test('default worker fleet is created correctly with groups, pools and region', 
         ],
       },
       '\"\n' +
-      'if service --status-all | grep -q "Deadline 10 Launcher"; then\n' +
-      '  service deadline10launcher restart\n' +
-      'fi\n' +
       "mkdir -p $(dirname '/tmp/",
       {
         'Fn::Select': [

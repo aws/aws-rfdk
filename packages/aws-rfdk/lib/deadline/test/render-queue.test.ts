@@ -1227,7 +1227,7 @@ describe('RenderQueue', () => {
               '  Restart-Service "deadline10launcherservice"\n' +
               '} Else {\n' +
               '  & "$DEADLINE_PATH/deadlinelauncher.exe" -shutdownall 2>&1\n' +
-              '  & "$DEADLINE_PATH/deadlinelauncher.exe" 2>&1\n' +
+              '  & "$DEADLINE_PATH/deadlinelauncher.exe" -nogui 2>&1\n' +
               '}</powershell>',
             ],
           ],
@@ -1635,7 +1635,7 @@ describe('RenderQueue', () => {
               '  Restart-Service "deadline10launcherservice"\n' +
               '} Else {\n' +
               '  & "$DEADLINE_PATH/deadlinelauncher.exe" -shutdownall 2>&1\n' +
-              '  & "$DEADLINE_PATH/deadlinelauncher.exe" 2>&1\n' +
+              '  & "$DEADLINE_PATH/deadlinelauncher.exe" -nogui 2>&1\n' +
               '}</powershell>',
             ],
           ],
