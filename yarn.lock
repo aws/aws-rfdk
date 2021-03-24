@@ -455,13 +455,6 @@
     "@aws-cdk/region-info" "1.94.1"
     constructs "^3.2.0"
 
-"@aws-cdk/aws-imagebuilder@1.94.1":
-  version "1.94.1"
-  resolved "https://registry.yarnpkg.com/@aws-cdk/aws-imagebuilder/-/aws-imagebuilder-1.94.1.tgz#9166c733b46d24dbc033081c2a96a426dec05d31"
-  integrity sha512-7Y6T8BFawnv7rWEwR4Dh3Lm/R8f7gfBlubMwwLRHNyCAXkW4XDnV2ZftLwE83IwsWLcNU80p5E/ZqK+Q6+j/+A==
-  dependencies:
-    "@aws-cdk/core" "1.94.1"
-
 "@aws-cdk/aws-kinesis@1.94.1":
   version "1.94.1"
   resolved "https://registry.yarnpkg.com/@aws-cdk/aws-kinesis/-/aws-kinesis-1.94.1.tgz#1eddde067229f9ee77297deca094ed7dd1d408a1"
@@ -3920,11 +3913,6 @@ crc32-stream@^4.0.1:
     crc-32 "^1.2.0"
     readable-stream "^3.4.0"
 
-create-require@^1.1.0:
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/create-require/-/create-require-1.1.1.tgz#c1d7e8f1e5f6cfc9ff65f9cd352d37348756c333"
-  integrity sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==
-
 cross-spawn@^4:
   version "4.0.2"
   resolved "https://registry.yarnpkg.com/cross-spawn/-/cross-spawn-4.0.2.tgz#7b9247621c23adfdd3856004a823cbe397424d41"
@@ -6683,7 +6671,7 @@ jsii-diff@^1.26.0:
     typescript "~3.9.9"
     yargs "^16.2.0"
 
-jsii-pacmak@^1.24.0, jsii-pacmak@^1.26.0:
+jsii-pacmak@^1.25.0, jsii-pacmak@^1.26.0:
   version "1.26.0"
   resolved "https://registry.yarnpkg.com/jsii-pacmak/-/jsii-pacmak-1.26.0.tgz#c600cb190255e080944c906d885e9b436edd2cd9"
   integrity sha512-KOKOIazxddh8CuyuLMoBURW2bj3prhzyT0qF5ojUhHrbZeuH3eulF/Sn5PaIAadmQdmCiu69DYJe2JIwY/zwjw==
@@ -6724,7 +6712,7 @@ jsii-rosetta@^1.26.0:
     xmldom "^0.5.0"
     yargs "^16.2.0"
 
-jsii@^1.24.0:
+jsii@^1.25.0:
   version "1.26.0"
   resolved "https://registry.yarnpkg.com/jsii/-/jsii-1.26.0.tgz#8994498b69a616be7c255285dc6d8142b5032b61"
   integrity sha512-ZUu5N8+u12VyNkPgSgvVzIhZ+aEAd531zDZK4qkth7UsGNhSy4zBz9BJMSSKnaVV0oR6Pvehhg5DJ3dCu8qJrw==
@@ -9240,10 +9228,10 @@ semver-intersect@^1.4.0:
   resolved "https://registry.yarnpkg.com/semver/-/semver-5.7.1.tgz#a954f931aeba508d307bbf069eff0c01c96116f7"
   integrity sha512-sauaDf/PZdVgrLTNYHRtpXa1iRiKcaebiKQ1BJdpQlWH2lCvexQdX55snPFyK7QzpudqbCI0qXFfOasHdyNDGQ==
 
-semver@7.x, semver@^7.0.0, semver@^7.1.1, semver@^7.1.3, semver@^7.2.1, semver@^7.3.2, semver@^7.3.4:
-  version "7.3.4"
-  resolved "https://registry.yarnpkg.com/semver/-/semver-7.3.4.tgz#27aaa7d2e4ca76452f98d3add093a72c943edc97"
-  integrity sha512-tCfb2WLjqFAtXn4KEdxIhalnRtoKFN7nAwj0B3ZXCbQloV2tq5eDbcTmT68JJD3nRJq24/XgxtQKFIpQdtvmVw==
+semver@7.x, semver@^7.0.0, semver@^7.1.1, semver@^7.1.3, semver@^7.2.1, semver@^7.3.2, semver@^7.3.4, semver@^7.3.5:
+  version "7.3.5"
+  resolved "https://registry.yarnpkg.com/semver/-/semver-7.3.5.tgz#0b621c879348d8998e4b0e4be94b3f12e6018ef7"
+  integrity sha512-PoeGJYh8HK4BTO/a9Tf6ZG3veo/A7ZVsYrSA6J8ny9nb3B1VrpkuN+z9OE5wfE5p6H4LchYZsegiQgbJD94ZFQ==
   dependencies:
     lru-cache "^6.0.0"
 
@@ -10241,18 +10229,6 @@ ts-node@^8.0.2:
   integrity sha512-ISJJGgkIpDdBhWVu3jufsWpK3Rzo7bdiIXJjQc0ynKxVOVcg2oIrf2H2cejminGrptVc6q6/uynAHNCuWGbpVA==
   dependencies:
     arg "^4.1.0"
-    diff "^4.0.1"
-    make-error "^1.1.1"
-    source-map-support "^0.5.17"
-    yn "3.1.1"
-
-ts-node@^9.1.1:
-  version "9.1.1"
-  resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-9.1.1.tgz#51a9a450a3e959401bda5f004a72d54b936d376d"
-  integrity sha512-hPlt7ZACERQGf03M253ytLY3dHbGNGrAq9qIHWUY9XHYl1z7wYngSr3OQ5xmui8o2AaxsONxIzjafLUiWBo1Fg==
-  dependencies:
-    arg "^4.1.0"
-    create-require "^1.1.0"
     diff "^4.0.1"
     make-error "^1.1.1"
     source-map-support "^0.5.17"
