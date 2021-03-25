@@ -78,7 +78,22 @@ function escapeTokenRegex(s: string): string {
 beforeEach(() => {
   app = new App();
   stack = new Stack(app, 'Stack');
-  vpc = new Vpc(stack, 'VPC');
+  vpc = new Vpc(stack, 'VPC', {
+    subnetConfiguration: [
+      {
+        name: 'Public',
+        subnetType: SubnetType.PUBLIC,
+      },
+      {
+        name: 'Private',
+        subnetType: SubnetType.PRIVATE,
+      },
+      {
+        name: 'Isolated',
+        subnetType: SubnetType.ISOLATED,
+      },
+    ],
+  });
 
   class MockVersion extends Version implements IVersion {
     readonly linuxInstallers = {
@@ -182,21 +197,21 @@ test('repository installer honors vpcSubnet', () => {
   // private subnets.
 
   // WHEN
-  const publicSubnetIds = [ 'PublicSubnet1', 'PublicSubnet2' ];
+  const isolatedSubnetIds = [ 'PublicSubnet1', 'PublicSubnet2' ];
   const attrVpc = Vpc.fromVpcAttributes(stack, 'TestVpc', {
     availabilityZones: ['us-east-1a', 'us-east-1b'],
     vpcId: 'vpcid',
-    publicSubnetIds,
+    isolatedSubnetIds,
   });
   new Repository(stack, 'repositoryInstaller', {
     vpc: attrVpc,
     version,
-    vpcSubnets: { subnetType: SubnetType.PUBLIC },
+    vpcSubnets: { subnetType: SubnetType.ISOLATED },
   });
 
   // THEN
   expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
-    VPCZoneIdentifier: publicSubnetIds,
+    VPCZoneIdentifier: isolatedSubnetIds,
   }));
 });
 
@@ -798,7 +813,7 @@ test('repository creates filesystem if none provided', () => {
   }
 
   // WHEN
-  new Repository(stack, 'repositoryInstaller', {
+  const repo = new Repository(stack, 'repositoryInstaller', {
     vpc,
     database: DatabaseConnection.forDocDB({ database: fsDatabase, login: fsDatabase.secret }),
     version,
@@ -807,6 +822,7 @@ test('repository creates filesystem if none provided', () => {
   // THEN
   expectCDK(stack).to(haveResource('AWS::EFS::FileSystem'));
   expectCDK(stack).to(haveResource('AWS::EFS::MountTarget'));
+  expect(repo.node.tryFindChild('PadEfsStorage')).toBeDefined();
 });
 
 test('default repository instance is created using user defined installation path prefix', () => {
