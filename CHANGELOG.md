@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.28.0](https://github.com/aws/aws-rfdk/compare/v0.27.0...v0.28.0) (2021-03-25)
+
+
+### Supported CDK Version
+
+* [1.94.1](https://github.com/aws/aws-cdk/releases/tag/v1.94.1)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.14.5](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **examples:** added ec2 image builder example ([#292](https://github.com/aws/aws-rfdk/issues/292)) ([2375439](https://github.com/aws/aws-rfdk/commit/2375439abb39a29ec4ab40a27dadb18b44fcfc28))
+
+
+### Bug Fixes
+
+* **deadline:** Windows Workers fail to deploy waiting for Deadline launcher service to restart ([#354](https://github.com/aws/aws-rfdk/issues/354)) ([a508ebb](https://github.com/aws/aws-rfdk/commit/a508ebb7828feb68599cd9d04c10cbe42decb64b)), closes [#353](https://github.com/aws/aws-rfdk/issues/353) [#312](https://github.com/aws/aws-rfdk/issues/312)
+
 ## [0.27.0](https://github.com/aws/aws-rfdk/compare/v0.26.0...v0.27.0) (2021-03-12)
 
 
