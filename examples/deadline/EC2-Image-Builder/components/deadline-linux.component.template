@@ -1,0 +1,45 @@
+name: Deadline-${version}
+schemaVersion: 1.0
+
+phases:
+  -
+    name: 'build'
+    steps:
+      -
+        name: DownloadDeadlineClient
+        action: S3Download
+        timeoutSeconds: 120
+        onFailure: Abort
+        maxAttempts: 3
+        inputs:
+          -
+            source: '${s3uri}'
+            destination: '/tmp/DeadlineClient-${version}-linux-x64-installer.run'
+      -
+        name: InstallDeadline
+        action: ExecuteBash
+        timeoutSeconds: 600
+        onFailure: Abort
+        maxAttempts: 1
+        inputs:
+          commands:
+            - "chmod +x {{ build.DownloadDeadlineClient.inputs[0].destination }}"
+            - "{{ build.DownloadDeadlineClient.inputs[0].destination }} --mode unattended \
+                  --connectiontype Remote \
+                  --noguimode true \
+                  --slavestartup false \
+                  --launcherdaemon true \
+                  --restartstalled true \
+                  --autoupdateoverride false"
+      -
+        name: Delete
+        action: ExecuteBash
+        timeoutSeconds: 120
+        onFailure: Continue
+        maxAttempts: 3
+        inputs:
+          commands:
+            - "rm {{ build.DownloadDeadlineClient.inputs[0].destination }}"
+            - "rm /var/log/Thinkbox/Deadline10/deadlineslave*.log"
+            - "rm /var/log/Thinkbox/Deadline10/deadlinelauncher*.log"
+            - "rm /var/log/cloud-init-output.log"

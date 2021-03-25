@@ -133,7 +133,7 @@ else
   DEADLINE_LAUNCHER="$DEADLINE_PATH/deadlinelauncher"
   "$DEADLINE_LAUNCHER" -shutdownall
   sudo killall -w deadlineworker || true
-  "$DEADLINE_LAUNCHER"
+  "$DEADLINE_LAUNCHER" -nogui
 fi
 
 echo "Script completed successfully."

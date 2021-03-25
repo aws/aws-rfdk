@@ -361,4 +361,11 @@ export interface InstanceConnectOptions {
    * The Instance/UserData which will directly connect to the Repository
    */
   readonly host: IHost;
+
+  /**
+   * Whether or not to start or restart the Deadline Launcher after configuring the connection.
+   *
+   * @default true
+   */
+  readonly restartLauncher?: boolean;
 }

@@ -18,8 +18,8 @@ export {
 
 // configureWorker.sh
 export const CONFIG_WORKER_ASSET_LINUX = {
-  Bucket: 'AssetParameters21c2af3bc1d4fd78061765b059dcc8e32568828e5cf479b08115489651491c8fS3BucketF10C60A7',
-  Key: 'AssetParameters21c2af3bc1d4fd78061765b059dcc8e32568828e5cf479b08115489651491c8fS3VersionKey7FDCC89A',
+  Bucket: 'AssetParameters1cfdffe73bb016717ba1f43d64fe528af27b3784f524a97bb36533a6e6d057ffS3Bucket9FBDD688',
+  Key: 'AssetParameters1cfdffe73bb016717ba1f43d64fe528af27b3784f524a97bb36533a6e6d057ffS3VersionKey02A3157B',
 };
 
 // configureWorker.ps1
@@ -29,8 +29,8 @@ export const CONFIG_WORKER_ASSET_WINDOWS = {
 };
 
 export const CONFIG_WORKER_PORT_ASSET_WINDOWS = {
-  Bucket: 'AssetParameters0b4fe3ffb7177773bb2781f92b37d9b01b3bd37ee60ea1715c0ad407f141005dS3BucketE7B32C3E',
-  Key: 'AssetParameters0b4fe3ffb7177773bb2781f92b37d9b01b3bd37ee60ea1715c0ad407f141005dS3VersionKey843794E3',
+  Bucket: 'AssetParameters3227efc256da3ae31791b7c80e1532cac975116846f179f118a20843e0c2ee80S3Bucket6583BE37',
+  Key: 'AssetParameters3227efc256da3ae31791b7c80e1532cac975116846f179f118a20843e0c2ee80S3VersionKey6C80977B',
 };
 
 // installDeadlineRepository.sh

@@ -39,10 +39,20 @@ export interface HTTPSConnectionOptions extends BaseConnectionOptions {
 }
 
 interface ConnectionScriptArguments {
-
+  /**
+   * The address of the Render Queue
+   */
   readonly address: string;
 
+  /**
+   * The ARN to the AWS Secrets Manager secret containing the X509 CA Certificate in PEM format.
+   */
   readonly tlsCaArn?: string;
+
+  /**
+   * Whether to restart the Deadline launcher after configuring the Render Queue connection.
+   */
+  readonly restartLauncher?: boolean;
 }
 
 /**
@@ -114,23 +124,31 @@ export abstract class RenderQueueConnection {
         `"\${DEADLINE_PATH}/deadlinecommand" -executeScriptNoGui "${configureScriptPath}" --render-queue "${args.address}" ${dlExtraCommands.join(' ')}`,
         // Cleanup
         `rm -f "${configureScriptPath}"`,
-        'if service --status-all | grep -q "Deadline 10 Launcher"; then',
-        '  service deadline10launcher restart',
-        'fi',
       );
+      if (args.restartLauncher ?? true) {
+        host.userData.addCommands(
+          'if service --status-all | grep -q "Deadline 10 Launcher"; then',
+          '  service deadline10launcher restart',
+          'fi',
+        );
+      }
     } else if ( host.osType === OperatingSystemType.WINDOWS ) {
       host.userData.addCommands(
         '$ErrorActionPreference = "Stop"',
         '$DEADLINE_PATH = (get-item env:"DEADLINE_PATH").Value',
         `& "$DEADLINE_PATH/deadlinecommand.exe" -executeScriptNoGui "${configureScriptPath}" --render-queue "${args.address}" ${dlExtraCommands.join(' ')} 2>&1`,
         `Remove-Item -Path "${configureScriptPath}"`,
-        'If (Get-Service "deadline10launcherservice" -ErrorAction SilentlyContinue) {',
-        '  Restart-Service "deadline10launcherservice"',
-        '} Else {',
-        '  & "$DEADLINE_PATH/deadlinelauncher.exe" -shutdownall 2>&1',
-        '  & "$DEADLINE_PATH/deadlinelauncher.exe" 2>&1',
-        '}',
       );
+      if (args.restartLauncher ?? true) {
+        host.userData.addCommands(
+          'If (Get-Service "deadline10launcherservice" -ErrorAction SilentlyContinue) {',
+          '  Restart-Service "deadline10launcherservice"',
+          '} Else {',
+          '  & "$DEADLINE_PATH/deadlinelauncher.exe" -shutdownall 2>&1',
+          '  & "$DEADLINE_PATH/deadlinelauncher.exe" -nogui 2>&1',
+          '}',
+        );
+      }
     }
   }
 
@@ -163,6 +181,7 @@ class HTTPConnection extends RenderQueueConnection {
       params.host,
       {
         address: `http://${this.config.endpoint.socketAddress}`,
+        restartLauncher: params.restartLauncher,
       },
     );
   }
@@ -200,6 +219,7 @@ class HTTPSConnection extends RenderQueueConnection {
       {
         address: `https://${this.config.endpoint.socketAddress}`,
         tlsCaArn: this.config.caCert.secretArn,
+        restartLauncher: params.restartLauncher,
       },
     );
 
