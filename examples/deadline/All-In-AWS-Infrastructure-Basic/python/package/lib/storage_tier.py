@@ -123,7 +123,11 @@ class StorageTier(Stack):
         self.mountable_file_system = MountableEfs(
             self,
             filesystem=file_system,
-            access_point=access_point
+            access_point=access_point,
+            # We have enable_local_file_caching set to True on the RenderQueue in the
+            # Service Tier. EFS requires the 'fsc' mount option to take advantage of
+            # that.
+            extra_mount_options=['fsc']
         )
 
         # The database to connect Deadline to.

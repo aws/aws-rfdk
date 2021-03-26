@@ -171,7 +171,11 @@ class ServiceTier(Stack):
             # TODO - Evaluate deletion protection for your own needs. This is set to false to
             # cleanly remove everything when this stack is destroyed. If you would like to ensure
             # that this resource is not accidentally deleted, you should set this to true.
-            deletion_protection=False
+            deletion_protection=False,
+            # Enable a local transparent filesystem cache of the Repository filesystem to reduce
+            # data traffic from the Repository's filesystem.
+            # For an EFS and NFS filesystem, this requires the 'fsc' mount option.
+            enable_local_file_caching=True,
         )
         self.render_queue.connections.allow_default_port_from(self.bastion)
 

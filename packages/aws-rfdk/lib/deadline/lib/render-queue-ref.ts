@@ -334,6 +334,27 @@ export interface RenderQueueProps {
    * @default - new security groups are created
    */
   readonly securityGroups?: RenderQueueSecurityGroups;
+
+  /**
+   * If enabled, then Linux's cachefilesd will be installed and set to running on the
+   * ECS container host for the Deadline Remote Connection Server. This can reduce
+   * the amount of read throughput required for the Repository Filesystem.
+   *
+   * For more information, please see: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/storage_administration_guide/ch-fscache
+   *
+   * Note: If enabling this, then your Repository filesystem may require additional
+   * mount options to take advantage. Not every filesystem's driver supports integration
+   * with cachefilesd. e.g. NFS and Amazon EFS do support it, and require the 'fsc' mount
+   * option be provided.
+   *
+   * Note2: Your ECS container host will require access to port 80 on the regional S3 service
+   * when enabling this option so that it can install cachefilesd. This host is based on
+   * Amazon Linux 2, and the package repository for these systems is hosted on S3 and reached
+   * via port 80.
+   *
+   * @default false
+   */
+  readonly enableLocalFileCaching?: boolean;
 }
 
 /**
