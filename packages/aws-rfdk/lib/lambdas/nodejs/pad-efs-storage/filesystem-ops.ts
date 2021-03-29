@@ -99,7 +99,8 @@ export async function determineNextSequentialFilename(location: string): Promise
  */
 export async function writePaddingFile(filename: string, filesize: number): Promise<void> {
   const execPromise = promisify(exec);
-  const command = `/usr/bin/dd if=/dev/zero of=${filename} bs=10M count=${filesize/10}`;
+  const numberOfBlocks = filesize / 32;
+  const command = `/usr/bin/dd if=/dev/zero of=${filename} bs=32M count=${numberOfBlocks}`;
   console.log(`Writing ${filesize}MiB to ${filename}: ${command}`);
   const { stderr } = await execPromise(command);
   console.log(stderr);
