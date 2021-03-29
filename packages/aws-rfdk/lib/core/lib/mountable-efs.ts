@@ -18,6 +18,7 @@ import {
 } from '@aws-cdk/aws-s3-assets';
 import {
   Construct,
+  IConstruct,
   IResolvable,
   Stack,
   isResolvableObject,
@@ -136,7 +137,7 @@ export class MountableEfs implements IMountableLinuxFilesystem {
 
     target.connections.allowTo(this.props.filesystem, this.props.filesystem.connections.defaultPort as Port);
 
-    const mountScriptAsset = this.mountAssetSingleton();
+    const mountScriptAsset = this.mountAssetSingleton(target);
     mountScriptAsset.grantRead(target.grantPrincipal);
     const mountScript: string = target.userData.addS3DownloadCommand({
       bucket: mountScriptAsset.bucket,
@@ -214,8 +215,8 @@ export class MountableEfs implements IMountableLinuxFilesystem {
   /**
    * Fetch the Asset singleton for the EFS mounting scripts, or generate it if needed.
    */
-  protected mountAssetSingleton(): Asset {
-    const stack = Stack.of(this.scope);
+  protected mountAssetSingleton(scope: IConstruct): Asset {
+    const stack = Stack.of(scope);
     const uuid = '2b31c419-5b0b-4bb8-99ad-5b2575b2c06b';
     const uniqueId = 'MountableEfsAsset' + uuid.replace(/[-]/g, '');
     return (stack.node.tryFindChild(uniqueId) as Asset) ?? new Asset(stack, uniqueId, {
