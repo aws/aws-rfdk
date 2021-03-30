@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.29.0](https://github.com/aws/aws-rfdk/compare/v0.28.0...v0.29.0) (2021-03-30)
+
+
+### Supported CDK Version
+
+* [1.94.1](https://github.com/aws/aws-cdk/releases/tag/v1.94.1)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.14.5](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Bug Fixes
+
+* **deadline:** Relax UsageBasedLicensing.grantPortAccess() to IConnectable ([#352](https://github.com/aws/aws-rfdk/issues/352)) ([9f05768](https://github.com/aws/aws-rfdk/commit/9f0576856f949090658c7a14e79e02f081516b80))
+
 ## [0.28.0](https://github.com/aws/aws-rfdk/compare/v0.27.0...v0.28.0) (2021-03-25)
 
 
