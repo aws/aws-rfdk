@@ -10,7 +10,9 @@
 set -euo pipefail
 shopt -s globstar
 
-#Mark test start time
+SCRIPT_EXIT_CODE=0
+
+# Mark test start time
 export TEST_START_TIME="$(date +%s)"
 SECONDS=$TEST_START_TIME
 
@@ -94,7 +96,8 @@ for COMPONENT in **/cdk.json; do
         # Excecute the e2e test in the component's scripts directory
         cd "$INTEG_ROOT/$COMPONENT_ROOT"
         if [ "${RUN_TESTS_IN_PARALLEL-}" = true ]; then
-            (../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" || ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" --destroy-only) &
+            ( (../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME"; exit_code=$?; echo $exit_code > "$INTEG_TEMP_DIR/${COMPONENT_NAME}_exitcode"; exit $exit_code) \
+            || ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" --destroy-only) &
             export ${COMPONENT_NAME}_PID=$!
             COMPONENTS+=(${COMPONENT_NAME})
         else
@@ -112,7 +115,12 @@ if [ "${RUN_TESTS_IN_PARALLEL-}" = true ]; then
             if ps -p "$PID" > /dev/null; then
               ACTIVE_COMPONENTS+=(${COMPONENT_NAME})
             else
-              echo "Test app $COMPONENT_NAME finished."
+              COMPONENT_EXIT_CODE=$(cat "$INTEG_TEMP_DIR/${COMPONENT_NAME}_exitcode" || echo 1)
+              if [ $COMPONENT_EXIT_CODE -ne 0 ]; then
+                SCRIPT_EXIT_CODE=1
+              fi
+
+              echo "Test app $COMPONENT_NAME finished with exit code $COMPONENT_EXIT_CODE"
               if [ -f "$INTEG_TEMP_DIR/${COMPONENT_NAME}_deploy.txt" ]; then
                 cat "$INTEG_TEMP_DIR/${COMPONENT_NAME}_deploy.txt"
               fi
@@ -158,4 +166,4 @@ yarn run clean
 
 echo "Exiting..."
 
-exit 0
+exit $SCRIPT_EXIT_CODE
