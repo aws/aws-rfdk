@@ -302,7 +302,7 @@ export interface RepositoryProps {
    * If not providing a filesystem, then we will provision an Amazon EFS filesystem for you.
    * This filesystem will contain files for the Deadline Repository filesystem. It will also
    * contain 40GB of additional padding files (see RFDK's PadEfsStorage for details) to increase
-   * the baseline throughput of the filesystem; these files will be added to the /PaddingFiles directory
+   * the baseline throughput of the filesystem; these files will be added to the /RFDK_PaddingFiles directory
    * in the filesystem.
    *
    * @default An Encrypted EFS File System and Access Point will be created.
@@ -520,7 +520,7 @@ export class Repository extends Construct implements IRepository {
           ownerUid: '0',
           permissions: '744',
         },
-        path: '/PaddingFiles',
+        path: '/RFDK_PaddingFiles',
       });
 
       new PadEfsStorage(this, 'PadEfsStorage', {

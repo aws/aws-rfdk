@@ -54,7 +54,7 @@ export async function listNumberedFiles(location: string): Promise<string[]> {
 }
 
 /**
- * Invoke "du -sh -BM" on the given location, to determine the total size in MB stored
+ * Invoke "du -sh -BMB" on the given location, to determine the total size in MB stored
  * in the filesystem location.
  * @param location Directory location.
  * @returns Filesystem size under the location, in MB.

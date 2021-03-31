@@ -72,6 +72,7 @@ describe('Test PadEfsStorage', () => {
       ],
       Handler: 'pad-efs-storage.getDiskUsage',
       Runtime: 'nodejs14.x',
+      Timeout: 300,
       VpcConfig: {
         SecurityGroupIds: [ stack.resolve(sg.securityGroupId) ],
         SubnetIds: [
@@ -151,10 +152,11 @@ describe('Test PadEfsStorage', () => {
 
   test('Set desiredPadding', () => {
     // WHEN
+    const desiredPaddingGB = 200;
     new PadEfsStorage(stack, 'PadEfs', {
       vpc,
       accessPoint,
-      desiredPaddingGB: 200,
+      desiredPaddingGB,
     });
 
     // THEN
@@ -162,23 +164,25 @@ describe('Test PadEfsStorage', () => {
       Create: {
         'Fn::Join': [
           '',
-          arrayWith('","input":"{\\"desiredPadding\\":200}"}}'),
+          arrayWith(`","input":"{\\"desiredPadding\\":${desiredPaddingGB}}"}}`),
         ],
       },
       Update: {
         'Fn::Join': [
           '',
-          arrayWith('","input":"{\\"desiredPadding\\":200}"}}'),
+          arrayWith(`","input":"{\\"desiredPadding\\":${desiredPaddingGB}}"}}`),
         ],
       },
     }));
   });
 
   test('Provide SecurityGroup', () => {
-    // WHEN
+    // GIVEN
     const sg = new SecurityGroup(stack, 'TestSG', {
       vpc,
     });
+
+    // WHEN
     new PadEfsStorage(stack, 'PadEfs', {
       vpc,
       accessPoint,

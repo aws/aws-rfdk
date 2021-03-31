@@ -73,8 +73,8 @@ function getMountPoint(event: { [key: string]: string }): string {
  */
 export async function growFilesystem(numFilesToAdd: number, filesize: number, mountPoint: string): Promise<void> {
   // We find the highest numbered file created thus far, and start adding numbered files after it.
-  var filename: string = await determineNextSequentialFilename(mountPoint);
-  for (var i=0; i<numFilesToAdd; i++) {
+  let filename: string = await determineNextSequentialFilename(mountPoint);
+  for (let i=0; i<numFilesToAdd; i++) {
     const outfilename = join(mountPoint, filename);
     await writePaddingFile(outfilename, filesize);
     filename = nextSequentialFile(filename);
@@ -91,8 +91,8 @@ export async function shrinkFilesystem(numFilesToRemove: number, mountPoint: str
   // Find all of the numbered "files" in the directory, and then delete the highest numbered ones until
   // we've deleted as many as we need to.
   const numberedFiles = await listNumberedFiles(mountPoint);
-  var numFilesDeleted = 0;
-  var index = numberedFiles.length - 1;
+  let numFilesDeleted = 0;
+  let index = numberedFiles.length - 1;
   while (numFilesDeleted < numFilesToRemove && index >= 0) {
     const filename = join(mountPoint, numberedFiles[index]);
     try {

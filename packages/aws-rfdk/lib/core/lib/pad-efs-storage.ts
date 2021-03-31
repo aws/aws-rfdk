@@ -78,7 +78,7 @@ export interface PadEfsStorageProps {
   /**
    * Security group for the AWS Lambdas created by this construct.
    *
-   * @default Security group with full egress and no ingress will be automaticaally created for each Lambda.
+   * @default Security group with no egress or ingress will be automatically created for each Lambda.
    */
   readonly securityGroup?: ISecurityGroup;
 

@@ -333,5 +333,4 @@ describe('Testing padFilesystem macro behavior', () => {
       expect(stat.size).toBe(10000000);
     }
   });
-
 });

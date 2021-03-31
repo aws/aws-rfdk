@@ -197,7 +197,7 @@ test('repository installer honors vpcSubnet', () => {
   // private subnets.
 
   // WHEN
-  const isolatedSubnetIds = [ 'PublicSubnet1', 'PublicSubnet2' ];
+  const isolatedSubnetIds = [ 'IsolatedSubnet1', 'IsolatedSubnet2' ];
   const attrVpc = Vpc.fromVpcAttributes(stack, 'TestVpc', {
     availabilityZones: ['us-east-1a', 'us-east-1b'],
     vpcId: 'vpcid',
