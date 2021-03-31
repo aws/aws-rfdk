@@ -165,7 +165,7 @@ export class PadEfsStorage extends Construct {
       }
       return success
     } catch (error) {
-      Fail the step function
+      return failure
     }
      */
 

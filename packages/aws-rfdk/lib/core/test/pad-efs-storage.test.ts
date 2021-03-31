@@ -4,7 +4,6 @@
  */
 
 import {
-  anything,
   arrayWith,
   expect as cdkExpect,
   haveResourceLike,
@@ -17,6 +16,9 @@ import {
   AccessPoint,
   FileSystem as EfsFileSystem,
 } from '@aws-cdk/aws-efs';
+import {
+  Function as LambdaFunction,
+} from '@aws-cdk/aws-lambda';
 import {
   App,
   Stack,
@@ -61,6 +63,8 @@ describe('Test PadEfsStorage', () => {
       desiredPaddingGB: 20,
     });
     const sg = pad.node.findChild('LambdaSecurityGroup') as SecurityGroup;
+    const diskUsage = pad.node.findChild('DiskUsage') as LambdaFunction;
+    const padFilesystem = pad.node.findChild('PadFilesystem') as LambdaFunction;
 
     // THEN
     cdkExpect(stack).to(haveResourceLike('AWS::Lambda::Function', {
@@ -108,10 +112,102 @@ describe('Test PadEfsStorage', () => {
       },
     }));
 
+    const lambdaRetryCatch = {
+      Retry: [
+        {
+          ErrorEquals: [
+            'Lambda.ServiceException',
+            'Lambda.AWSLambdaException',
+            'Lambda.SdkClientException',
+          ],
+          IntervalSeconds: 2,
+          MaxAttempts: 6,
+          BackoffRate: 2,
+        },
+      ],
+      Catch: [
+        {
+          ErrorEquals: ['States.ALL'],
+          Next: 'Fail',
+        },
+      ],
+    };
     cdkExpect(stack).to(haveResourceLike('AWS::StepFunctions::StateMachine', {
-      // Note: No value in verifying the state machine description -- it's a massive string, so the
-      // test will be fragile to changes in code generation and challenging to identify differences with.
-      DefinitionString: anything(),
+      DefinitionString: stack.resolve(JSON.stringify({
+        StartAt: 'QueryDiskUsage',
+        States: {
+          QueryDiskUsage: {
+            Next: 'BranchOnDiskUsage',
+            ...lambdaRetryCatch,
+            Type: 'Task',
+            Comment: 'Determine the number of GB currently stored in the EFS access point',
+            TimeoutSeconds: 300,
+            ResultPath: '$.diskUsage',
+            Resource: `arn:${stack.partition}:states:::lambda:invoke`,
+            Parameters: {
+              FunctionName: `${diskUsage.functionArn}`,
+              Payload: {
+                'desiredPadding.$': '$.desiredPadding',
+                'mountPoint': '/mnt/efs',
+              },
+            },
+          },
+          GrowTask: {
+            Next: 'QueryDiskUsage',
+            ...lambdaRetryCatch,
+            Type: 'Task',
+            Comment: 'Add up to 20 numbered 1GB files to the EFS access point',
+            TimeoutSeconds: 900,
+            ResultPath: '$.null',
+            Resource: `arn:${stack.partition}:states:::lambda:invoke`,
+            Parameters: {
+              FunctionName: `${padFilesystem.functionArn}`,
+              Payload: {
+                'desiredPadding.$': '$.desiredPadding',
+                'mountPoint': '/mnt/efs',
+              },
+            },
+          },
+          BranchOnDiskUsage: {
+            Type: 'Choice',
+            Choices: [
+              {
+                Variable: '$.diskUsage.Payload',
+                NumericLessThanPath: '$.desiredPadding',
+                Next: 'GrowTask',
+              },
+              {
+                Variable: '$.diskUsage.Payload',
+                NumericGreaterThanPath: '$.desiredPadding',
+                Next: 'ShrinkTask',
+              },
+            ],
+            Default: 'Succeed',
+          },
+          Succeed: {
+            Type: 'Succeed',
+          },
+          ShrinkTask: {
+            Next: 'Succeed',
+            ...lambdaRetryCatch,
+            Type: 'Task',
+            Comment: 'Remove 1GB numbered files from the EFS access point to shrink the padding',
+            TimeoutSeconds: 900,
+            ResultPath: '$.null',
+            Resource: `arn:${stack.partition}:states:::lambda:invoke`,
+            Parameters: {
+              FunctionName: `${padFilesystem.functionArn}`,
+              Payload: {
+                'desiredPadding.$': '$.desiredPadding',
+                'mountPoint': '/mnt/efs',
+              },
+            },
+          },
+          Fail: {
+            Type: 'Fail',
+          },
+        },
+      })),
     }));
 
     cdkExpect(stack).to(haveResourceLike('Custom::AWS', {
