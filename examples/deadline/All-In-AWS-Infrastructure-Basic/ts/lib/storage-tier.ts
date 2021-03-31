@@ -104,6 +104,10 @@ export abstract class StorageTier extends cdk.Stack {
     this.mountableFileSystem = new MountableEfs(this, {
       filesystem: fileSystem,
       accessPoint,
+      // We have enableLocalFilecaching set to 'true' on the RenderQueue in the
+      // Service Tier. EFS requires the 'fsc' mount option to take advantage of
+      // that.
+      extraMountOptions: [ 'fsc' ]
     });
   }
 }

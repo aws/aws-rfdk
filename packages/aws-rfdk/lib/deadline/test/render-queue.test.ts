@@ -2395,4 +2395,41 @@ describe('RenderQueue', () => {
     // THEN
     expect(synth).toThrow('A VersionQuery can not be supplied from a different stack');
   });
+
+  test('Does not enable filesystem cache by default', () => {
+    expectCDK(stack).notTo(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+      UserData: {
+        'Fn::Base64': {
+          'Fn::Join': arrayWith(arrayWith(' >> /etc/ecs/ecs.config\nsudo iptables --insert FORWARD 1 --in-interface docker+ --destination 169.254.169.254/32 --jump DROP\nsudo service iptables save\necho ECS_AWSVPC_BLOCK_IMDS=true >> /etc/ecs/ecs.config\nyum install -yq awscli unzip\n# RenderQueue file caching enabled\nmkdir -p $(dirname \'/tmp/')),
+        },
+      },
+    }));
+  });
+
+  test('Enables filesystem cache if required', () => {
+    // GIVEN
+    const isolatedStack = new Stack(app, 'IsolatedStack');
+
+    // WHEN
+    new RenderQueue(isolatedStack, 'RenderQueue', {
+      images,
+      repository,
+      version: new VersionQuery(isolatedStack, 'Version'),
+      vpc,
+      enableLocalFileCaching: true,
+    });
+
+    // THEN
+    // Note: If this test breaks/fails, then it is probable that the
+    //  'Does not enable filesystem cache by default' test above will also require
+    //  updating/fixing.
+    expectCDK(isolatedStack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+      UserData: {
+        'Fn::Base64': {
+          'Fn::Join': arrayWith(arrayWith(' >> /etc/ecs/ecs.config\nsudo iptables --insert FORWARD 1 --in-interface docker+ --destination 169.254.169.254/32 --jump DROP\nsudo service iptables save\necho ECS_AWSVPC_BLOCK_IMDS=true >> /etc/ecs/ecs.config\nyum install -yq awscli unzip\n# RenderQueue file caching enabled\nmkdir -p $(dirname \'/tmp/')),
+        },
+      },
+    }));
+  });
+
 });

@@ -4,6 +4,9 @@
  */
 
 import {
+  join,
+} from 'path';
+import {
   AutoScalingGroup,
   BlockDeviceVolume,
   UpdateType,
@@ -69,6 +72,7 @@ import {
   ConnectableApplicationEndpoint,
   ImportedAcmCertificate,
   LogGroupFactory,
+  ScriptAsset,
   X509CertificatePem,
   X509CertificatePkcs12,
 } from '../../core';
@@ -336,6 +340,10 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     this.asg.userData.addCommands(
       'yum install -yq awscli unzip',
     );
+    if (props.enableLocalFileCaching ?? false) {
+      // Has to be done before any filesystems mount.
+      this.enableFilecaching(this.asg);
+    }
 
     const externalPortNumber = RenderQueue.RCS_PROTO_PORTS[externalProtocol];
     const internalPortNumber = RenderQueue.RCS_PROTO_PORTS[internalProtocol];
@@ -568,6 +576,19 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    */
   public addBackendSecurityGroups(...securityGroups: ISecurityGroup[]): void {
     securityGroups.forEach(securityGroup => this.asg.addSecurityGroup(securityGroup));
+  }
+
+  private enableFilecaching(asg: AutoScalingGroup): void {
+    const script = ScriptAsset.fromPathConvention(this, 'FilecachingScript', {
+      osType: asg.osType,
+      baseName: 'enableCacheFilesd',
+      rootDir: join(__dirname, '..', 'scripts'),
+    });
+    // A comment in userData to make this easier to test.
+    asg.userData.addCommands('# RenderQueue file caching enabled');
+    script.executeOn({
+      host: asg,
+    });
   }
 
   private createTaskDefinition(props: {
