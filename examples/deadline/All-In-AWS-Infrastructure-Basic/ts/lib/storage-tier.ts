@@ -252,7 +252,7 @@ export abstract class StorageTier extends cdk.Stack {
         message: `EMERGENCY! 100 GiB Threshold Breached: EFS ${filesystem.fileSystemId} is running out of burst credits. Add data to the EFS to increase baseline throughput or else the Render Farm will cease operation.`
       },
     ]
-    for (var config of thresholds) {
+    for (let config of thresholds) {
       const alarm = burstCreditsMetric.createAlarm(this, config.id, {
         alarmName: config.name,
         actionsEnabled: true,
