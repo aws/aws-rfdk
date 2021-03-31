@@ -24,7 +24,7 @@ class AppConfig {
   public readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA;
 
   /**
-   * Fill this in if you want to recieve alarm emails when:
+   * Fill this in if you want to receive alarm emails when:
    * 1) You are crossing thresholds on decreasing burst Credits on the Amazon EFS that is
    *  set up in the StorageTier, for the Deadline Repository.
    *
