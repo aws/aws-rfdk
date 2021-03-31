@@ -139,8 +139,9 @@ export abstract class StorageTier extends cdk.Stack {
     // The Amazon EFS filesystem deployed above has been deployed in bursting throughput
     // mode. This means that it can burst throughput up to 100 MiB/s (with reads counting as
     // 1/3 of their actual throughput for this purpose). However, the baseline throughput of the EFS
-    // is 50 KiB/s per 1 GiB stored in the filesystem and exceeding this throughput consumes burst credits;
-    // the EFS regains burst credits when throughput is below the baseline throughput threshold.
+    // is 50 KiB/s per 1 GiB stored in the filesystem and exceeding this throughput consumes burst credits.
+    // An EFS starts with a large amount of burst credits, and regains credits when throughput is below
+    // the baseline throughput threshold.
     //
     // The Deadline Repository is approximately 1 GiB in size; resulting in 50 KiB/s baseline throughput, which is
     // not sufficient for the operation of Deadline.
@@ -220,8 +221,8 @@ export abstract class StorageTier extends cdk.Stack {
       dimensions: {
         FileSystemId: filesystem.fileSystemId,
       },
-      // One 99-th percentile data point every 6 hours
-      period: Duration.hours(6),
+      // One 99-th percentile data point hour
+      period: Duration.hours(1),
       statistic: 'p99',
     });
     
@@ -231,25 +232,33 @@ export abstract class StorageTier extends cdk.Stack {
         id: 'CAUTION-EfsBurstCredits',
         name: `CAUTION Burst Credits - ${filesystem.fileSystemId}`,
         threshold: 2.00 * 2**40,
-        message: `CAUTION. 2 TiB Threshold Breached: EFS ${filesystem.fileSystemId} is depleting burst credits. Add data to the EFS to increase baseline throughput.`
+        message: `CAUTION. 2 TiB Threshold Breached: EFS ${filesystem.fileSystemId} is depleting burst credits. Add data to the EFS to increase baseline throughput.`,
+        // Alarm after 6 datapoints below threshold. We have 1 datapoint every hour. So, we alarm if below threshold for 6hrs
+        datapoints: 6
       },
       {
         id: 'WARNING-EfsBurstCredits',
         name: `WARNING Burst Credits - ${filesystem.fileSystemId}`,
         threshold: 1.25 * 2**40,
-        message: `WARNING. 1.25 TiB Threshold Breached: EFS ${filesystem.fileSystemId} is depleting burst credits. Add data to the EFS to increase baseline throughput.`
+        message: `WARNING. 1.25 TiB Threshold Breached: EFS ${filesystem.fileSystemId} is depleting burst credits. Add data to the EFS to increase baseline throughput.`,
+        // Alarm after 6 datapoints below threshold. We have 1 datapoint every hour. So, we alarm if below threshold for 6hrs
+        datapoints: 6
       },
       {
         id: 'ALERT-EfsBurstCredits',
         name: `ALERT Burst Credits - ${filesystem.fileSystemId}`,
         threshold: 0.50 * 2**40,
-        message: `ALERT! 500 GiB Threshold Breached: EFS ${filesystem.fileSystemId} is running out of burst credits. Add data to the EFS to increase baseline throughput or else the Render Farm may cease operation.`
+        message: `ALERT! 500 GiB Threshold Breached: EFS ${filesystem.fileSystemId} is running out of burst credits. Add data to the EFS to increase baseline throughput or else the Render Farm may cease operation.`,
+        // Alarm after 6 datapoints below threshold. We have 1 datapoint every hour. So, we alarm if below threshold for 6hrs
+        datapoints: 6
       },
       {
         id: 'EMERGENCY-EfsBurstCredits',
         name: `EMERGENCY Burst Credits - ${filesystem.fileSystemId}`,
         threshold: 0.10 * 2**40,
-        message: `EMERGENCY! 100 GiB Threshold Breached: EFS ${filesystem.fileSystemId} is running out of burst credits. Add data to the EFS to increase baseline throughput or else the Render Farm will cease operation.`
+        message: `EMERGENCY! 100 GiB Threshold Breached: EFS ${filesystem.fileSystemId} is running out of burst credits. Add data to the EFS to increase baseline throughput or else the Render Farm will cease operation.`,
+        // Alarm after 2 datapoints below threshold. We have 1 datapoint every hour. So, we alarm if below threshold for 2hrs
+        datapoints: 2
       },
     ]
     for (let config of thresholds) {
@@ -260,9 +269,7 @@ export abstract class StorageTier extends cdk.Stack {
         treatMissingData: TreatMissingData.NOT_BREACHING,
         threshold: config.threshold,
         comparisonOperator: ComparisonOperator.LESS_THAN_THRESHOLD,
-        // We have 1 datapoint every 6 hours. CloudWatch can check a period of time
-        // of at most 1 day. So, we alarm if we've gone a full day below the threshold.
-        evaluationPeriods: 4,
+        evaluationPeriods: config.datapoints,
       });
       alarm.addAlarmAction(alarmAction);
     }

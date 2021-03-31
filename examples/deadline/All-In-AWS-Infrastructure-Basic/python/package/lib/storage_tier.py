@@ -161,8 +161,9 @@ class StorageTier(Stack):
         # The Amazon EFS filesystem deployed above has been deployed in bursting throughput
         # mode. This means that it can burst throughput up to 100 MiB/s (with reads counting as
         # 1/3 of their actual throughput for this purpose). However, the baseline throughput of the EFS
-        # is 50 KiB/s per 1 GiB stored in the filesystem and exceeding this throughput consumes burst credits;
-        # the EFS regains burst credits when throughput is below the baseline throughput threshold.
+        # is 50 KiB/s per 1 GiB stored in the filesystem and exceeding this throughput consumes burst credits.
+        # An EFS starts with a large amount of burst credits, and regains credits when throughput is below
+        # the baseline throughput threshold.
         #
         # The Deadline Repository is approximately 1 GiB in size; resulting in 50 KiB/s baseline throughput, which is
         # not sufficient for the operation of Deadline.
@@ -247,8 +248,8 @@ class StorageTier(Stack):
             dimensions={
                 "FileSystemId": filesystem.file_system_id
             },
-            # One 99-th percentile data point every 6 hours
-            period=Duration.hours(6),
+            # One 99-th percentile data point sample every hour
+            period=Duration.hours(1),
             statistic='p99'
         )
         
@@ -258,25 +259,33 @@ class StorageTier(Stack):
                 "id": 'CAUTION-EfsBurstCredits',
                 "name": f"CAUTION Burst Credits - {filesystem.file_system_id}",
                 "threshold": int(2.00 * 2**40),
-                "message": f"CAUTION. 2 TiB Threshold Breached: EFS {filesystem.file_system_id} is depleting burst credits. Add data to the EFS to increase baseline throughput."
+                "message": f"CAUTION. 2 TiB Threshold Breached: EFS {filesystem.file_system_id} is depleting burst credits. Add data to the EFS to increase baseline throughput.",
+                # Alarm after 6 datapoints below threshold. We have 1 datapoint every hour. So, we alarm if below threshold for 6hrs
+                "datapoints": 6
             },
             {
                 "id": 'WARNING-EfsBurstCredits',
                 "name": f"WARNING Burst Credits - {filesystem.file_system_id}",
                 "threshold": int(1.25 * 2**40),
-                "message": f"WARNING. 1.25 TiB Threshold Breached: EFS {filesystem.file_system_id} is depleting burst credits. Add data to the EFS to increase baseline throughput."
+                "message": f"WARNING. 1.25 TiB Threshold Breached: EFS {filesystem.file_system_id} is depleting burst credits. Add data to the EFS to increase baseline throughput.",
+                # Alarm after 6 datapoints below threshold. We have 1 datapoint every hour. So, we alarm if below threshold for 6hrs
+                "datapoints": 6
             },
             {
                 "id": 'ALERT-EfsBurstCredits',
                 "name": f"ALERT Burst Credits - {filesystem.file_system_id}",
                 "threshold": int(0.50 * 2**40),
-                "message": f"ALERT! 500 GiB Threshold Breached: EFS {filesystem.file_system_id} is running out of burst credits. Add data to the EFS to increase baseline throughput or else the Render Farm may cease operation."
+                "message": f"ALERT! 500 GiB Threshold Breached: EFS {filesystem.file_system_id} is running out of burst credits. Add data to the EFS to increase baseline throughput or else the Render Farm may cease operation.",
+                # Alarm after 6 datapoints below threshold. We have 1 datapoint every hour. So, we alarm if below threshold for 6hrs
+                "datapoints": 6
             },
             {
                 "id": 'EMERGENCY-EfsBurstCredits',
                 "name": f"EMERGENCY Burst Credits - {filesystem.file_system_id}",
                 "threshold": int(0.10 * 2**40),
-                "message": f"EMERGENCY! 100 GiB Threshold Breached: EFS {filesystem.file_system_id} is running out of burst credits. Add data to the EFS to increase baseline throughput or else the Render Farm will cease operation."
+                "message": f"EMERGENCY! 100 GiB Threshold Breached: EFS {filesystem.file_system_id} is running out of burst credits. Add data to the EFS to increase baseline throughput or else the Render Farm will cease operation.",
+                # Alarm after 2 datapoints below threshold. We have 1 datapoint every hour. So, we alarm if below threshold for 2hrs
+                "datapoints": 2
             },
         ]
         for config in thresholds:
@@ -289,9 +298,7 @@ class StorageTier(Stack):
                 treat_missing_data=TreatMissingData.NOT_BREACHING,
                 threshold=config['threshold'],
                 comparison_operator=ComparisonOperator.LESS_THAN_THRESHOLD,
-                # We have 1 datapoint every 6 hours. CloudWatch can check a period of time
-                # of at most 1 day. So, we alarm if we've gone a full day below the threshold.
-                evaluation_periods=4
+                evaluation_periods=config['datapoints']
             )
             alarm.add_alarm_action(alarm_action)
 
