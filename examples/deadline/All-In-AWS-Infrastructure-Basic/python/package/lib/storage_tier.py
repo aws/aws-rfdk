@@ -44,6 +44,7 @@ from aws_rfdk import (
     MongoDbSsplLicenseAcceptance,
     MongoDbVersion,
     MountableEfs,
+    PadEfsStorage,
     X509CertificatePem,
     X509CertificatePkcs12
 )
@@ -89,6 +90,34 @@ class StorageTier(Stack):
             # cleanly remove everything when this stack is destroyed. If you would like to ensure
             # that your data is not accidentally deleted, you should modify this value.
             removal_policy=RemovalPolicy.DESTROY
+        )
+
+        # Add padding files to the filesystem to increase baseline throughput. Deadline's Repository filesystem
+        # is small (initial size of about 1GB), which results in a very low baseline throughput for the Amazon
+        # EFS filesystem. We add files to the filesystem to increase this baseline throughput, while retaining the
+        # ability to burst throughput. See RFDK's PadEfsStorage documentation for additional details.
+        pad_access_point = AccessPoint(
+            self, 
+            'PaddingAccessPoint',
+            file_system=file_system,
+            path='/PaddingFiles',
+            # TODO - We set the padding files to be owned by root (uid/gid = 0) by default. You may wish to change this.
+            create_acl=Acl(
+                owner_gid='0',
+                owner_uid='0',
+                permissions='700',
+            ),
+            posix_user=PosixUser(
+                uid='0',
+                gid='0',
+            ),
+        )
+        PadEfsStorage(
+            self,
+            'PadEfsStorage',
+            vpc=props.vpc,
+            access_point=pad_access_point,
+            desired_padding_gb=40, # Provides 2 MB/s of baseline throughput. Costs $12/month.
         )
 
         # Create an EFS access point that is used to grant the Repository and RenderQueue with write access to the

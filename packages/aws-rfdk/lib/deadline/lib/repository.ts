@@ -46,6 +46,7 @@ import {
   Duration,
   IConstruct,
   RemovalPolicy,
+  Size,
   Stack,
   Tags,
   Token,
@@ -57,6 +58,7 @@ import {
   LogGroupFactory,
   LogGroupFactoryProps,
   MountableEfs,
+  PadEfsStorage,
   ScriptAsset,
 } from '../../core';
 import {
@@ -298,7 +300,13 @@ export interface RepositoryProps {
   /**
    * Specify the file system where the deadline repository needs to be initialized.
    *
-   * @default An Encrypted EFS File System and Access Point will be created
+   * If not providing a filesystem, then we will provision an Amazon EFS filesystem for you.
+   * This filesystem will contain files for the Deadline Repository filesystem. It will also
+   * contain 40GB of additional padding files (see RFDK's PadEfsStorage for details) to increase
+   * the baseline throughput of the filesystem; these files will be added to the /RFDK_PaddingFiles directory
+   * in the filesystem.
+   *
+   * @default An Encrypted EFS File System and Access Point will be created.
    */
   readonly fileSystem?: IMountableLinuxFilesystem;
 
@@ -383,11 +391,12 @@ export interface RepositoryProps {
  * Resources Deployed
  * ------------------------
  * - Encrypted Amazon Elastic File System (EFS) - If no file system is provided.
- * - An Amazon EFS Point - If no filesystem is provided
+ * - An Amazon EFS Point - If no filesystem is provided.
  * - An Amazon DocumentDB - If no database connection is provided.
  * - Auto Scaling Group (ASG) with min & max capacity of 1 instance.
  * - Instance Role and corresponding IAM Policy.
  * - An Amazon CloudWatch log group that contains the Deadline Repository installation logs.
+ * - An RFDK PadEfsStorage - If no filesystem is provided.
  *
  * Security Considerations
  * ------------------------
@@ -504,6 +513,22 @@ export class Repository extends Construct implements IRepository {
         lifecyclePolicy: EfsLifecyclePolicy.AFTER_14_DAYS,
         removalPolicy: props.removalPolicy?.filesystem ?? RemovalPolicy.RETAIN,
         securityGroup: props.securityGroupsOptions?.fileSystem,
+      });
+
+      const paddingAccess = fs.addAccessPoint('PaddingAccessPoint', {
+        createAcl: {
+          ownerGid: '0',
+          ownerUid: '0',
+          permissions: '744',
+        },
+        path: '/RFDK_PaddingFiles',
+      });
+
+      new PadEfsStorage(this, 'PadEfsStorage', {
+        vpc: props.vpc,
+        vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
+        accessPoint: paddingAccess,
+        desiredPadding: Size.gibibytes(40),
       });
 
       const accessPoint = fs.addAccessPoint('AccessPoint', {
