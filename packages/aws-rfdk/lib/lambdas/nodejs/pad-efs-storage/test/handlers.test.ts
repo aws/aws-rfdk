@@ -62,7 +62,7 @@ describe('Testing filesystem modifications', () => {
 
   test('Add to empty directory', async () => {
     // WHEN
-    // Add 5 10MB files to the temp directory.
+    // Add 5 64 MiB files to the temp directory.
     await growFilesystem(5, 64, tempDirectory);
 
     // THEN
@@ -82,7 +82,7 @@ describe('Testing filesystem modifications', () => {
     }
 
     // WHEN
-    // Add 2 10MB files to the temp directory.
+    // Add 2 64 MiB files to the temp directory.
     await growFilesystem(2, 64, tempDirectory);
 
     // THEN
@@ -332,7 +332,7 @@ describe('Testing padFilesystem macro behavior', () => {
 
     // WHEN
     const preDirContents = (await fsp.readdir(tempDirectory)).sort();
-    // Desire for 10MB of files
+    // Desire for 64 MiB of files
     await padFilesystem({
       desiredPadding: '1',
       mountPoint: tempDirectory,
