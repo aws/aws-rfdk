@@ -112,6 +112,9 @@ export async function shrinkFilesystem(numFilesToRemove: number, mountPoint: str
     index -= 1;
   }
   console.log(`Deleted ${numFilesDeleted} numbered files`);
+  if (numFilesToRemove !== numFilesDeleted) {
+    throw Error('Could not delete the desired number of files.');
+  }
 }
 
 /**
