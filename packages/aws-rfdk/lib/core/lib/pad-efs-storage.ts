@@ -105,7 +105,7 @@ export interface PadEfsStorageProps {
  * are associated with the filesystem. When all burst credits have been expended, then your filesystem
  * is no longer allowed to burst throughput and you will be limited in throughput to the greater of 1MiB/s
  * or the throughput dictated by the amount of data stored in your filesystem; the filesystem will be able
- * to burst again if it is able to acrue burst credits by staying below its baseline throughput for a time.
+ * to burst again if it is able to accrue burst credits by staying below its baseline throughput for a time.
  *
  * Customers that deploy the Deadline Repository Filesystem on an Amazon EFS filesystem may find that
  * the filesystem does not contain sufficient data to meet the throughput needs of Deadline; evidenced by
