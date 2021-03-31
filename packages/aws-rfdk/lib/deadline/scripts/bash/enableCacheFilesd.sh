@@ -11,7 +11,7 @@ then
   # The yum install can fail if there is no route to the yum repository.
   # Since this is an AL2 instance, that is equivalent to requiring a route to
   # the regional S3 endpoint on port 80.
-  sudo yum install -y cachefilesd || exit 0
+  sudo yum install -y cachefilesd || ( echo 'ERROR -- Failed to install cachefilesd' && exit 0 )
 
   cat << EOF | sudo tee -a /etc/cachefilesd.conf
 # Allow 16k cull table entries
