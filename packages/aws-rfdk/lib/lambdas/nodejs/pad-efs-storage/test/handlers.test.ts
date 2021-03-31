@@ -70,7 +70,7 @@ describe('Testing filesystem modifications', () => {
     expect(dirContents).toEqual(['00000', '00001', '00002', '00003', '00004']);
     for (var file of dirContents) {
       const stat = await fsp.stat(join(tempDirectory, file));
-      expect(stat.size).toBe(10000000);
+      expect(stat.size).toBe(10485760);
     }
   });
 
@@ -158,7 +158,12 @@ describe('Testing getDiskUsage behavior', () => {
 
   test('Correctly calculates disk usage', async () => {
     // GIVEN
+
+    // This overrides the default padding file size to 10MB from 1000MB. Keep this in mind when interpreting the test.
+    // All of the interface points are phrased in terms of 1GB files, but this little hack changes the semantics of those
+    // to be phrased in terms of 10MB files.
     setDefaultFilesize(10);
+
     const execPromise = promisify(exec);
     await execPromise(`/usr/bin/dd if=/dev/zero of=${join(tempDirectory, 'file1.tmp')} bs=10MB count=1`);
     await fsp.mkdir(join(tempDirectory, 'subdir'));
@@ -248,6 +253,10 @@ describe('Testing padFilesystem macro behavior', () => {
   test('Adds file if needed', async () => {
     // GIVEN
     // Empty directory: tempDirectory
+
+    // This overrides the default padding file size to 10MB from 1000MB. Keep this in mind when interpreting the test.
+    // All of the interface points are phrased in terms of 1GB files, but this little hack changes the semantics of those
+    // to be phrased in terms of 10MB files.
     setDefaultFilesize(10);
 
     // WHEN
@@ -264,14 +273,17 @@ describe('Testing padFilesystem macro behavior', () => {
     expect(dirContents).toEqual(['00000']);
     for (var file of dirContents) {
       const stat = await fsp.stat(join(tempDirectory, file));
-      expect(stat.size).toBe(10000000);
+      expect(stat.size).toBe(10485760);
     }
   });
 
   test('Removes file if needed', async () => {
     // GIVEN
-    // tempDirectory with 2 10MB files in it
+    // This overrides the default padding file size to 10MB from 1000MB. Keep this in mind when interpreting the test.
+    // All of the interface points are phrased in terms of 1GB files, but this little hack changes the semantics of those
+    // to be phrased in terms of 10MB files.
     setDefaultFilesize(10);
+    // tempDirectory with 2 10MB files in it
     await padFilesystem({
       desiredPadding: '2',
       mountPoint: tempDirectory,
@@ -297,14 +309,17 @@ describe('Testing padFilesystem macro behavior', () => {
     expect(dirContents).toEqual(['00000']);
     for (var file of dirContents) {
       const stat = await fsp.stat(join(tempDirectory, file));
-      expect(stat.size).toBe(10000000);
+      expect(stat.size).toBe(10485760);
     }
   });
 
   test('No change to filesystem', async () => {
     // GIVEN
-    // tempDirectory with a 10MB file in it
+    // This overrides the default padding file size to 10MB from 1000MB. Keep this in mind when interpreting the test.
+    // All of the interface points are phrased in terms of 1GB files, but this little hack changes the semantics of those
+    // to be phrased in terms of 10MB files.
     setDefaultFilesize(10);
+    // tempDirectory with a 10MB file in it
     await padFilesystem({
       desiredPadding: '1',
       mountPoint: tempDirectory,
@@ -330,7 +345,7 @@ describe('Testing padFilesystem macro behavior', () => {
     expect(dirContents).toEqual(preDirContents);
     for (var file of dirContents) {
       const stat = await fsp.stat(join(tempDirectory, file));
-      expect(stat.size).toBe(10000000);
+      expect(stat.size).toBe(10485760);
     }
   });
 });

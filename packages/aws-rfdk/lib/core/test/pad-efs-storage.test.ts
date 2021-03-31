@@ -21,6 +21,7 @@ import {
 } from '@aws-cdk/aws-lambda';
 import {
   App,
+  Size,
   Stack,
 } from '@aws-cdk/core';
 import {
@@ -60,7 +61,7 @@ describe('Test PadEfsStorage', () => {
     const pad = new PadEfsStorage(stack, 'PadEfs', {
       vpc,
       accessPoint,
-      desiredPaddingGB: 20,
+      desiredPadding: Size.gibibytes(20),
     });
     const sg = pad.node.findChild('LambdaSecurityGroup') as SecurityGroup;
     const diskUsage = pad.node.findChild('DiskUsage') as LambdaFunction;
@@ -248,11 +249,11 @@ describe('Test PadEfsStorage', () => {
 
   test('Set desiredPadding', () => {
     // WHEN
-    const desiredPaddingGB = 200;
+    const desiredPadding = 200;
     new PadEfsStorage(stack, 'PadEfs', {
       vpc,
       accessPoint,
-      desiredPaddingGB,
+      desiredPadding: Size.gibibytes(desiredPadding),
     });
 
     // THEN
@@ -260,16 +261,35 @@ describe('Test PadEfsStorage', () => {
       Create: {
         'Fn::Join': [
           '',
-          arrayWith(`","input":"{\\"desiredPadding\\":${desiredPaddingGB}}"}}`),
+          arrayWith(`","input":"{\\"desiredPadding\\":${desiredPadding}}"}}`),
         ],
       },
       Update: {
         'Fn::Join': [
           '',
-          arrayWith(`","input":"{\\"desiredPadding\\":${desiredPaddingGB}}"}}`),
+          arrayWith(`","input":"{\\"desiredPadding\\":${desiredPadding}}"}}`),
         ],
       },
     }));
+  });
+
+  test('Throws on bad desiredPadding', () => {
+    // GIVEN
+    const pad = new PadEfsStorage(stack, 'PadEfs', {
+      vpc,
+      accessPoint,
+      desiredPadding: Size.mebibytes(100), // not rounable to GiB
+    });
+
+    // THEN
+    expect(pad.node.metadata).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'aws:cdk:error',
+          data: 'Failed to round desiredSize to an integer number of GiB. The size must be in GiB.',
+        }),
+      ]),
+    );
   });
 
   test('Provide SecurityGroup', () => {
@@ -282,7 +302,7 @@ describe('Test PadEfsStorage', () => {
     new PadEfsStorage(stack, 'PadEfs', {
       vpc,
       accessPoint,
-      desiredPaddingGB: 20,
+      desiredPadding: Size.gibibytes(20),
       securityGroup: sg,
     });
 

@@ -823,6 +823,7 @@ test('repository creates filesystem if none provided', () => {
   expectCDK(stack).to(haveResource('AWS::EFS::FileSystem'));
   expectCDK(stack).to(haveResource('AWS::EFS::MountTarget'));
   expect(repo.node.tryFindChild('PadEfsStorage')).toBeDefined();
+  expect(repo.node.findChild('FileSystem').node.tryFindChild('PaddingAccessPoint')).toBeDefined();
 });
 
 test('default repository instance is created using user defined installation path prefix', () => {

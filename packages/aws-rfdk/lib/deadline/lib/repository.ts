@@ -46,6 +46,7 @@ import {
   Duration,
   IConstruct,
   RemovalPolicy,
+  Size,
   Stack,
   Tags,
   Token,
@@ -527,7 +528,7 @@ export class Repository extends Construct implements IRepository {
         vpc: props.vpc,
         vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
         accessPoint: paddingAccess,
-        desiredPaddingGB: 40,
+        desiredPadding: Size.gibibytes(40),
       });
 
       const accessPoint = fs.addAccessPoint('AccessPoint', {

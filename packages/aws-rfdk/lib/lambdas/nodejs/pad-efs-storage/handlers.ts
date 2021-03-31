@@ -24,15 +24,15 @@ import {
 } from './filesystem-ops';
 
 /**
- * Default filesize for lambda operation, in MB.
- * External code that calls this assumes that this is exactly 1GB=1000MB
+ * Default filesize for lambda operation, in MiB.
+ * External code that calls this assumes that this is exactly 1GiB=1024MiB
  */
-var FILESIZE: number = 1000;
+var FILESIZE: number = 1024;
 
 /**
- * Provided solely for the purpose of testing to shrink the default file size from 1GB
+ * Provided solely for the purpose of testing to shrink the default file size from 1GiB
  * to something smaller.
- * @param filesize Desired filesize in MB. Must be a multiple of 10
+ * @param filesize Desired filesize in MiB. Must be a multiple of 10
  */
 export function setDefaultFilesize(filesize: number) {
   FILESIZE = filesize;
@@ -68,7 +68,7 @@ function getMountPoint(event: { [key: string]: string }): string {
  * Add numbered files (e.g. 00000, 00001) of a given size to a filesystem.
  * Note: exported so that we can test it.
  * @param numFilesToAdd How many numbered files to add.
- * @param filesize Size, in MB, of the files to create.
+ * @param filesize Size, in MiB, of the files to create.
  * @param mountPoint Directory in which to create the directory.
  */
 export async function growFilesystem(numFilesToAdd: number, filesize: number, mountPoint: string): Promise<void> {
@@ -117,10 +117,10 @@ export async function shrinkFilesystem(numFilesToRemove: number, mountPoint: str
 /**
  * Lambda handler. Expected to be invoked from a step function.
  * Calculates the disk size under the given directory. This is equivalent to calling:
- * du -sh -BGB <directory>
+ * du -sh -BG <directory>
  * @param event { "mountPoint": <string> }
  * @param context
- * @returns Disk usage in GB
+ * @returns Disk usage in GiB
  */
 export async function getDiskUsage(event: { [key: string]: string }, context: LambdaContext): Promise<number> {
   console.log(`Executing event: ${JSON.stringify(event)}`);
@@ -135,22 +135,22 @@ export async function getDiskUsage(event: { [key: string]: string }, context: La
     throw new Error(`Mount point '${mountPoint}' is not a directory. Please ensure that the EFS is mounted to this directory.`);
   }
 
-  const duGB = Math.floor(await diskUsage(mountPoint) / FILESIZE);
+  const scaledUsage = Math.floor(await diskUsage(mountPoint) / FILESIZE);
 
-  return duGB;
+  return scaledUsage;
 }
 
 /**
  * Lambda handler. Expected to be invoked from a step function.
  * Adds or removes files from a given EFS filesystem to pad the filesystem with data.
  *
- * If the filesystem is padded to less than the number of desired GB then files are added as numbered
- * files 1GB in size to the given 'mountPoint'; adding at most 20 on each invocation.
+ * If the filesystem is padded to less than the number of desired GiB then files are added as numbered
+ * files 1GiB in size to the given 'mountPoint'; adding at most 20 on each invocation.
  *
- * If the filesystem is padded with more than the desired GB then numbered files are removed from the
- * given filesystem. Each numbered file is assumed to be exactly 1GB in size.
+ * If the filesystem is padded with more than the desired GiB then numbered files are removed from the
+ * given filesystem. Each numbered file is assumed to be exactly 1GiB in size.
  * @param event {
- *    "desiredPadding": "<integer number of GB>",
+ *    "desiredPadding": "<integer number of GiB>",
  *    "mountPoint": "<string>"
  * }
  * @param context
@@ -170,21 +170,21 @@ export async function padFilesystem(event: { [key: string]: string }, context: L
     throw new Error(`Mount point '${mountPoint}' is not a directory. Please ensure that the EFS is mounted to this directory.`);
   }
 
-  const duGB = Math.floor(await diskUsage(mountPoint) / FILESIZE);
-  console.log(`Access point contains ${duGB}GB (rounded down) of data. Desired size is ${desiredPadding}GB.`);
-  if (duGB < desiredPadding) {
+  const scaledUsage = Math.floor(await diskUsage(mountPoint) / FILESIZE);
+  console.log(`Access point contains ${scaledUsage}GiB (rounded down) of data. Desired size is ${desiredPadding}GiB.`);
+  if (scaledUsage < desiredPadding) {
     // Create files.
 
-    // We'll be running this in a loop driven by a step function. Limit to 20GB written per invocation,
+    // We'll be running this in a loop driven by a step function. Limit to 20GiB written per invocation,
     // just to avoid any chance of hitting a lambda timeout.
-    const delta = Math.min(desiredPadding - duGB, 20);
+    const delta = Math.min(desiredPadding - scaledUsage, 20);
 
-    console.log(`Adding ${delta}GB of files to the filesystem to grow size.`);
+    console.log(`Adding ${delta}GiB of files to the filesystem to grow size.`);
     await growFilesystem(delta, FILESIZE, mountPoint);
-  } else if (duGB > desiredPadding) {
+  } else if (scaledUsage > desiredPadding) {
     // Remove files
-    const delta = duGB - desiredPadding;
-    console.log(`Removing ${delta}GB of files from the filesystem`);
+    const delta = scaledUsage - desiredPadding;
+    console.log(`Removing ${delta}GiB of files from the filesystem`);
     await shrinkFilesystem(delta, mountPoint);
   } else {
     console.log('No change to filesystem required.');

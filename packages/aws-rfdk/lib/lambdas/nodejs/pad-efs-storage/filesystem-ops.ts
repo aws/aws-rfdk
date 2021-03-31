@@ -48,22 +48,22 @@ export function nextSequentialFile(filename: string): string {
  */
 export async function listNumberedFiles(location: string): Promise<string[]> {
   const dirContents = await fsp.readdir(location);
-  const digitsRegex = /\d+/;
+  const digitsRegex = /^\d+$/;
   const numericFiles = dirContents.filter(name => digitsRegex.test(name)).sort();
   return numericFiles;
 }
 
 /**
- * Invoke "du -sh -BMB" on the given location, to determine the total size in MB stored
+ * Invoke "du -sh -BM" on the given location, to determine the total size in MB stored
  * in the filesystem location.
  * @param location Directory location.
- * @returns Filesystem size under the location, in MB.
+ * @returns Filesystem size under the location, in MiB.
  */
 export async function diskUsage(location: string): Promise<number> {
   await ensureIsDirectory(location);
 
   const execPromise = promisify(exec);
-  const { stdout, stderr } = await execPromise(`/usr/bin/du -sh -BMB ${location}`);
+  const { stdout, stderr } = await execPromise(`/usr/bin/du -sh -BM ${location}`);
   if (stderr) {
     throw Error(stderr);
   }
@@ -95,12 +95,12 @@ export async function determineNextSequentialFilename(location: string): Promise
 /**
  * Writes a file of zeroes to the given location.
  * @param filename Name of the file to create.
- * @param filesize Size of the file in MB. Must be a multiple of 10.
+ * @param filesize Size of the file in MiB. Must be a multiple of 10.
  */
 export async function writePaddingFile(filename: string, filesize: number): Promise<void> {
   const execPromise = promisify(exec);
-  const command = `/usr/bin/dd if=/dev/zero of=${filename} bs=10MB count=${filesize/10}`;
-  console.log(`Writing ${filesize}MB to ${filename}: ${command}`);
+  const command = `/usr/bin/dd if=/dev/zero of=${filename} bs=10M count=${filesize/10}`;
+  console.log(`Writing ${filesize}MiB to ${filename}: ${command}`);
   const { stderr } = await execPromise(command);
   console.log(stderr);
 }

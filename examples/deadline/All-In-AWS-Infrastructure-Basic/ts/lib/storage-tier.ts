@@ -86,7 +86,7 @@ export abstract class StorageTier extends cdk.Stack {
       createAcl: {
         ownerGid: '0',
         ownerUid: '0',
-        permissions: '744',
+        permissions: '700',
       },
       posixUser: {
         uid: '0',

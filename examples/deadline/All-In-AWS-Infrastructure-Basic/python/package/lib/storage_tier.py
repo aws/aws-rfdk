@@ -105,7 +105,7 @@ class StorageTier(Stack):
             create_acl=Acl(
                 owner_gid='0',
                 owner_uid='0',
-                permissions='744',
+                permissions='700',
             ),
             posix_user=PosixUser(
                 uid='0',

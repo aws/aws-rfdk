@@ -35,8 +35,11 @@ import {
   LambdaInvoke,
 } from '@aws-cdk/aws-stepfunctions-tasks';
 import {
+  Annotations,
   Construct,
   Duration,
+  Size,
+  SizeRoundingBehavior,
   Stack,
 } from '@aws-cdk/core';
 import {
@@ -83,9 +86,9 @@ export interface PadEfsStorageProps {
   readonly securityGroup?: ISecurityGroup;
 
   /**
-   * The desired total size, in GB, of files stored in the access point directory.
+   * The desired total size, in GiB, of files stored in the access point directory.
    */
-  readonly desiredPaddingGB: number;
+  readonly desiredPadding: Size;
 }
 
 /**
@@ -136,11 +139,6 @@ export interface PadEfsStorageProps {
  *   access only the given EFS Access Point.
  */
 export class PadEfsStorage extends Construct {
-  // Testing shows about 70-80 MB/s throughput from the lambda to the EFS,
-  // so 15 minutes gives us a maximum of about 63GB - 72GB of writing in one invocation.
-  protected static readonly MAX_GB_PER_CALL = 65;
-  protected static readonly LAMBDA_DURATION = Duration.minutes(15);
-
   constructor(scope: Construct, id: string, props: PadEfsStorageProps) {
     super(scope, id);
 
@@ -173,6 +171,13 @@ export class PadEfsStorage extends Construct {
     const paddingTimeout = Duration.minutes(15);
     // Location in the lambda environment where the EFS will be mounted.
     const efsMountPoint = '/mnt/efs';
+
+    let desiredSize;
+    try {
+      desiredSize = props.desiredPadding.toGibibytes({rounding: SizeRoundingBehavior.FAIL});
+    } catch (err) {
+      Annotations.of(this).addError('Failed to round desiredSize to an integer number of GiB. The size must be in GiB.');
+    }
 
     const securityGroup = props.securityGroup ?? new SecurityGroup(this, 'LambdaSecurityGroup', {
       vpc: props.vpc,
@@ -294,7 +299,7 @@ export class PadEfsStorage extends Construct {
       parameters: {
         stateMachineArn: statemachine.stateMachineArn,
         input: JSON.stringify({
-          desiredPadding: props.desiredPaddingGB,
+          desiredPadding: desiredSize,
         }),
       },
     };
