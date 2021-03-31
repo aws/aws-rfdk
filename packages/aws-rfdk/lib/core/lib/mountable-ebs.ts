@@ -126,7 +126,7 @@ export class MountableBlockVolume implements IMountableLinuxFilesystem {
 
     this.grantRequiredPermissions(target);
 
-    const mountScriptAsset = this.mountAssetSingleton();
+    const mountScriptAsset = this.mountAssetSingleton(target);
     mountScriptAsset.grantRead(target.grantPrincipal);
     const mountScriptZip: string = target.userData.addS3DownloadCommand({
       bucket: mountScriptAsset.bucket,
@@ -189,8 +189,8 @@ export class MountableBlockVolume implements IMountableLinuxFilesystem {
   /**
    * Fetch the Asset singleton for the Volume mounting scripts, or generate it if needed.
    */
-  protected mountAssetSingleton(): Asset {
-    const stack = Stack.of(this.scope);
+  protected mountAssetSingleton(scope: IConstruct): Asset {
+    const stack = Stack.of(scope);
     const uuid = '01ca4aa6-d440-4f83-84d8-80a5a21fd0e3';
     const uniqueId = 'MountableBlockVolumeAsset' + uuid.replace(/[-]/g, '');
     return (stack.node.tryFindChild(uniqueId) as Asset) ?? new Asset(stack, uniqueId, {
