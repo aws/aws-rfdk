@@ -78,6 +78,7 @@ if (config.deployMongoDB) {
     env,
     vpc: network.vpc,
     databaseInstanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
+    alarmEmail: config.alarmEmailAddress,
     rootCa: security.rootCa,
     dnsZone: network.dnsZone,
     acceptSsplLicense: config.acceptSsplLicense,
@@ -88,6 +89,7 @@ if (config.deployMongoDB) {
     env,
     vpc: network.vpc,
     databaseInstanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
+    alarmEmail: config.alarmEmailAddress,
   });
 }
 

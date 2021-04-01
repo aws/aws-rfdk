@@ -28,6 +28,14 @@ class AppConfig:
         # See https://www.awsthinkbox.com/end-user-license-agreement for the terms of the agreement.
         self.accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA
 
+        # Fill this in if you want to receive alarm emails when:
+        # 1) You are crossing thresholds on decreasing burst Credits on the Amazon EFS that is
+        #  set up in the StorageTier, for the Deadline Repository.
+        #
+        # Note: When deploying, you will be sent an email asking to authorize these emails. If you do not authorize,
+        # then you will receive no alarm emails.
+        self.alarm_email_address: Optional[str] = None
+
         # The version of Deadline to use on the render farm. Leave as None for the latest release or specify a version
         # to pin to. Some examples of pinned version values are "10", "10.1", or "10.1.12"
         self.deadline_version: Optional[str] = None

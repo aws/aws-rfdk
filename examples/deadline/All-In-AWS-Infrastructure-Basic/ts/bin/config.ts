@@ -24,6 +24,16 @@ class AppConfig {
   public readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA;
 
   /**
+   * Fill this in if you want to receive alarm emails when:
+   * 1) You are crossing thresholds on decreasing burst Credits on the Amazon EFS that is
+   *  set up in the StorageTier, for the Deadline Repository.
+   *
+   * Note: When deploying, you will be sent an email asking to authorize these emails. If you do not authorize,
+   * then you will receive no alarm emails.
+   */
+  public readonly alarmEmailAddress?: string;
+
+  /**
    * The version of Deadline to use on the render farm. Some examples of pinned version values are "10", "10.1", or
    * "10.1.12"
    * @default The latest available version of Deadline is used
