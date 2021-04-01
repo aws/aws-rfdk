@@ -205,6 +205,10 @@ export class PadEfsStorage extends Construct {
       memorySize: 128,
       ...lambdaProps,
     });
+    // Implicit reference should have been fine, but the lambda is unable to mount the filesystem if
+    // executed before the filesystem has been fully formed. We shouldn't have the lambda created until
+    // after the EFS is created.
+    diskUsage.node.addDependency(props.accessPoint);
 
     const doPadding = new LambdaFunction(this, 'PadFilesystem', {
       description: 'Used by RFDK PadEfsStorage to add or remove numbered 1GB files in an EFS access point',
@@ -216,7 +220,10 @@ export class PadEfsStorage extends Construct {
       memorySize: 256,
       ...lambdaProps,
     });
-
+    // Implicit reference should have been fine, but the lambda is unable to mount the filesystem if
+    // executed before the filesystem has been fully formed. We shouldn't have the lambda created until
+    // after the EFS is created.
+    doPadding.node.addDependency(props.accessPoint);
 
     // Build the step function's state machine.
     const fail = new Fail(this, 'Fail');
