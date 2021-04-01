@@ -151,10 +151,8 @@ test('repository installer instance is created correctly', () => {
       ],
     },
     CreationPolicy: {
-      AutoScalingCreationPolicy: {
-        MinSuccessfulInstancesPercent: 100,
-      },
       ResourceSignal: {
+        Count: 1,
         Timeout: 'PT15M',
       },
     },
@@ -310,28 +308,16 @@ test('repository installer iam permissions: db secret access', () => {
   // THEN
   expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
     PolicyDocument: {
-      Statement: [
-        {},
-        {},
-        {},
-        {},
-        {},
-        {
-          Action: [
-            'secretsmanager:GetSecretValue',
-            'secretsmanager:DescribeSecret',
-          ],
-          Effect: 'Allow',
-          Resource: {
-            Ref: 'repositoryInstallerDocumentDatabaseSecretAttachment29753B7C',
-          },
+      Statement: arrayWith({
+        Action: [
+          'secretsmanager:GetSecretValue',
+          'secretsmanager:DescribeSecret',
+        ],
+        Effect: 'Allow',
+        Resource: {
+          Ref: 'repositoryInstallerDocumentDatabaseSecretAttachment29753B7C',
         },
-        {},
-        {},
-        {},
-        {},
-        {},
-      ],
+      }),
     },
   }));
 });
@@ -853,10 +839,8 @@ test('repository instance is created with user defined timeout', () => {
   // THEN
   expectCDK(stack).to(haveResource('AWS::AutoScaling::AutoScalingGroup', {
     CreationPolicy: {
-      AutoScalingCreationPolicy: {
-        MinSuccessfulInstancesPercent: 100,
-      },
       ResourceSignal: {
+        Count: 1,
         Timeout: 'PT30M',
       },
     },

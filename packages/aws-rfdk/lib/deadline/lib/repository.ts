@@ -10,7 +10,8 @@ import {
 
 import {
   AutoScalingGroup,
-  UpdateType,
+  Signals,
+  UpdatePolicy,
 } from '@aws-cdk/aws-autoscaling';
 import {
   CfnDBInstance,
@@ -626,9 +627,10 @@ export class Repository extends Construct implements IRepository {
       },
       minCapacity: 1,
       maxCapacity: 1,
-      resourceSignalTimeout: (props.repositoryInstallationTimeout || Duration.minutes(15)),
-      updateType: UpdateType.REPLACING_UPDATE,
-      replacingUpdateMinSuccessfulInstancesPercent: 100,
+      updatePolicy: UpdatePolicy.replacingUpdate(),
+      signals: Signals.waitForAll({
+        timeout: (props.repositoryInstallationTimeout || Duration.minutes(15)),
+      }),
       securityGroup: props.securityGroupsOptions?.installer,
     });
     this.node.defaultChild = this.installerGroup;
