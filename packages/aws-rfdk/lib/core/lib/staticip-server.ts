@@ -51,6 +51,7 @@ import {
   Construct,
   Duration,
   Lazy,
+  Names,
   Stack,
   Tags,
 } from '@aws-cdk/core';
@@ -256,7 +257,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
     const eni = new CfnNetworkInterface(this, 'Eni', {
       subnetId: subnet.subnetId,
       description: `Static ENI for ${scopePath.join('/')}`,
-      groupSet: Lazy.listValue({ produce: () => this.connections.securityGroups.map(sg => sg.securityGroupId) }),
+      groupSet: Lazy.list({ produce: () => this.connections.securityGroups.map(sg => sg.securityGroupId) }),
       privateIpAddress: props.privateIpAddress,
     });
     this.privateIpAddress = eni.attrPrimaryPrivateIpAddress;
@@ -337,7 +338,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
     //  -> back to the start of the cycle.
     // Instead we use resourcetags condition to limit the scope of the lambda.
     const tagKey = 'RfdkStaticPrivateIpServerGrantConditionKey';
-    const tagValue = eventHandler.node.uniqueId;
+    const tagValue = Names.uniqueId(eventHandler);
     const grantCondition: { [key: string]: string } = {};
     grantCondition[`autoscaling:ResourceTag/${tagKey}`] = tagValue;
     Tags.of(this.autoscalingGroup).add(tagKey, tagValue);
@@ -355,7 +356,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
         'ForAnyValue:StringEquals': grantCondition,
       },
     });
-    eventHandler.role!.addToPolicy(iamCompleteLifecycle);
+    eventHandler.role!.addToPrincipalPolicy(iamCompleteLifecycle);
 
     if (!singletonPreExists) {
       // Allow the lambda to attach the ENI to the instance that was created.
@@ -372,7 +373,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
         ],
         resources: ['*'],
       });
-      eventHandler.role!.addToPolicy(iamEniAttach);
+      eventHandler.role!.addToPrincipalPolicy(iamEniAttach);
     }
 
     return eventHandler;

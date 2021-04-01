@@ -24,7 +24,6 @@ from aws_cdk.aws_cloudwatch_actions import (
 from aws_cdk.aws_docdb import (
     BackupProps,
     DatabaseCluster,
-    InstanceProps,
     Login
 )
 from aws_cdk.aws_ec2 import (
@@ -326,16 +325,13 @@ class StorageTierDocDB(StorageTier):
         :param kwargs: Any kwargs that need to be passed on to the parent class.
         """
         super().__init__(scope, stack_id, props=props, **kwargs)
-        instance_props = InstanceProps(
-            vpc=props.vpc,
-            vpc_subnets=SubnetSelection(subnet_type=SubnetType.PRIVATE),
-            instance_type=props.database_instance_type
-        )
 
         doc_db = DatabaseCluster(
             self,
             'DocDBCluster',
-            instance_props=instance_props,
+            vpc=props.vpc,
+            vpc_subnets=SubnetSelection(subnet_type=SubnetType.PRIVATE),
+            instance_type=props.database_instance_type,
             # TODO - For cost considerations this example only uses 1 Database instance. 
             # It is recommended that when creating your render farm you use at least 2 instances for redundancy.
             instances=1,

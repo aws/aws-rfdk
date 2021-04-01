@@ -48,6 +48,7 @@ import {
   App,
   CfnElement,
   Construct,
+  Names,
   Stack,
 } from '@aws-cdk/core';
 
@@ -168,7 +169,7 @@ describe('HealthMonitor', () => {
           },
         ],
       },
-      Description: `This key is used to encrypt SNS messages for ${healthMonitor.node.uniqueId}.`,
+      Description: `This key is used to encrypt SNS messages for ${Names.uniqueId(healthMonitor)}.`,
       EnableKeyRotation: true,
     }));
     expectCDK(hmStack).to(haveResourceLike('AWS::SNS::TopicPolicy', {

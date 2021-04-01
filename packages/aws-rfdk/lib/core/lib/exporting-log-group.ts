@@ -14,13 +14,13 @@ import { LambdaFunction } from '@aws-cdk/aws-events-targets';
 import { Effect, PolicyStatement } from '@aws-cdk/aws-iam';
 import {
   Code,
-  LogRetention,
   Runtime,
   SingletonFunction,
 } from '@aws-cdk/aws-lambda';
 import {
   ILogGroup,
   LogGroup,
+  LogRetention,
   RetentionDays,
 } from '@aws-cdk/aws-logs';
 import { Construct, Duration } from '@aws-cdk/core';

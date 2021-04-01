@@ -27,6 +27,7 @@ import {
   Construct,
   CustomResource,
   Duration,
+  Names,
   Stack,
 } from '@aws-cdk/core';
 
@@ -179,7 +180,7 @@ export class MongoDbPostInstallSetup extends Construct {
     const lamdbaFunc = new LambdaFunction(this, 'Lambda', {
       vpc: props.vpc,
       vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
-      description: `Used by a MongoDbPostInstallSetup ${this.node.uniqueId} to perform post-installation setup on a MongoDB`,
+      description: `Used by a MongoDbPostInstallSetup ${Names.uniqueId(this)} to perform post-installation setup on a MongoDB`,
       code: Code.fromAsset(path.join(__dirname, '..', '..', 'lambdas', 'nodejs'), {
         // Exclude commented out, for now, as a work-around for a CDK bug with at least CDK v1.49.1.
         // If we exclude files, then the asset hash is not calculated correctly and can result in updates to these

@@ -73,16 +73,14 @@ describe('DocumentDB', () => {
       masterUser: {
         username: 'master',
       },
-      instanceProps: {
-        instanceType: InstanceType.of(
-          InstanceClass.R5,
-          InstanceSize.XLARGE,
-        ),
-        vpc,
-        vpcSubnets: {
-          onePerAz: true,
-          subnetType: SubnetType.PRIVATE,
-        },
+      instanceType: InstanceType.of(
+        InstanceClass.R5,
+        InstanceSize.XLARGE,
+      ),
+      vpc,
+      vpcSubnets: {
+        onePerAz: true,
+        subnetType: SubnetType.PRIVATE,
       },
       backup: {
         retention: Duration.days(15),
@@ -353,16 +351,14 @@ describe('DocumentDB Version Checks', () => {
       masterUser: {
         username: 'master',
       },
-      instanceProps: {
-        instanceType: InstanceType.of(
-          InstanceClass.R5,
-          InstanceSize.XLARGE,
-        ),
-        vpc,
-        vpcSubnets: {
-          onePerAz: true,
-          subnetType: SubnetType.PRIVATE,
-        },
+      instanceType: InstanceType.of(
+        InstanceClass.R5,
+        InstanceSize.XLARGE,
+      ),
+      vpc,
+      vpcSubnets: {
+        onePerAz: true,
+        subnetType: SubnetType.PRIVATE,
       },
       backup: {
         retention: Duration.days(15),
@@ -406,16 +402,14 @@ describe('DocumentDB Version Checks', () => {
       masterUser: {
         username: 'master',
       },
-      instanceProps: {
-        instanceType: InstanceType.of(
-          InstanceClass.R5,
-          InstanceSize.XLARGE,
-        ),
-        vpc,
-        vpcSubnets: {
-          onePerAz: true,
-          subnetType: SubnetType.PRIVATE,
-        },
+      instanceType: InstanceType.of(
+        InstanceClass.R5,
+        InstanceSize.XLARGE,
+      ),
+      vpc,
+      vpcSubnets: {
+        onePerAz: true,
+        subnetType: SubnetType.PRIVATE,
       },
       backup: {
         retention: Duration.days(15),
@@ -442,16 +436,14 @@ describe('DocumentDB Version Checks', () => {
       masterUser: {
         username: 'master',
       },
-      instanceProps: {
-        instanceType: InstanceType.of(
-          InstanceClass.R5,
-          InstanceSize.XLARGE,
-        ),
-        vpc,
-        vpcSubnets: {
-          onePerAz: true,
-          subnetType: SubnetType.PRIVATE,
-        },
+      instanceType: InstanceType.of(
+        InstanceClass.R5,
+        InstanceSize.XLARGE,
+      ),
+      vpc,
+      vpcSubnets: {
+        onePerAz: true,
+        subnetType: SubnetType.PRIVATE,
       },
       backup: {
         retention: Duration.days(15),

@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { LogRetention } from '@aws-cdk/aws-lambda';
 import {
   ILogGroup,
   LogGroup,
+  LogRetention,
   RetentionDays,
 } from '@aws-cdk/aws-logs';
 import { Construct } from '@aws-cdk/core';

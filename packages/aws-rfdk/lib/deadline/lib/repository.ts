@@ -10,7 +10,8 @@ import {
 
 import {
   AutoScalingGroup,
-  UpdateType,
+  Signals,
+  UpdatePolicy,
 } from '@aws-cdk/aws-autoscaling';
 import {
   CfnDBInstance,
@@ -42,10 +43,12 @@ import {
   PolicyStatement,
 } from '@aws-cdk/aws-iam';
 import {
+  Annotations,
   Construct,
   Duration,
   IConstruct,
   RemovalPolicy,
+  Names,
   Size,
   Stack,
   Tags,
@@ -491,13 +494,13 @@ export class Repository extends Construct implements IRepository {
     super(scope, id);
 
     if (props.database && props.backupOptions?.databaseRetention) {
-      this.node.addWarning('Backup retention for database will not be applied since a database is not being created by this construct');
+      Annotations.of(this).addWarning('Backup retention for database will not be applied since a database is not being created by this construct');
     }
     if (props.fileSystem && props.removalPolicy?.filesystem) {
-      this.node.addWarning('RemovalPolicy for filesystem will not be applied since a filesystem is not being created by this construct');
+      Annotations.of(this).addWarning('RemovalPolicy for filesystem will not be applied since a filesystem is not being created by this construct');
     }
     if (props.database && props.removalPolicy?.database) {
-      this.node.addWarning('RemovalPolicy for database will not be applied since a database is not being created by this construct');
+      Annotations.of(this).addWarning('RemovalPolicy for database will not be applied since a database is not being created by this construct');
     }
     if (props.fileSystem instanceof MountableEfs && !props.fileSystem.accessPoint) {
       throw new Error('When using EFS with the Repository, you must provide an EFS Access Point');
@@ -550,7 +553,7 @@ export class Repository extends Construct implements IRepository {
       if (props.databaseAuditLogging !== undefined){
         const warningMsg = 'The parameter databaseAuditLogging only has an effect when the Repository is creating its own database.\n' +
           'Please ensure that the Database provided is configured correctly.';
-        this.node.addWarning(warningMsg);
+        Annotations.of(this).addWarning(warningMsg);
       }
     } else {
       const databaseAuditLogging = props.databaseAuditLogging ?? true;
@@ -572,12 +575,10 @@ export class Repository extends Construct implements IRepository {
       const dbCluster = new DatabaseCluster(this, 'DocumentDatabase', {
         masterUser: {username: 'DocDBUser'},
         engineVersion: '3.6.0',
-        instanceProps: {
-          instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
-          vpc: props.vpc,
-          vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
-          securityGroup: props.securityGroupsOptions?.database,
-        },
+        instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
+        vpc: props.vpc,
+        vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
+        securityGroup: props.securityGroupsOptions?.database,
         instances,
         backup: {
           retention: props.backupOptions?.databaseRetention ?? Repository.DEFAULT_DATABASE_RETENTION_PERIOD,
@@ -626,9 +627,10 @@ export class Repository extends Construct implements IRepository {
       },
       minCapacity: 1,
       maxCapacity: 1,
-      resourceSignalTimeout: (props.repositoryInstallationTimeout || Duration.minutes(15)),
-      updateType: UpdateType.REPLACING_UPDATE,
-      replacingUpdateMinSuccessfulInstancesPercent: 100,
+      updatePolicy: UpdatePolicy.replacingUpdate(),
+      signals: Signals.waitForAll({
+        timeout: (props.repositoryInstallationTimeout || Duration.minutes(15)),
+      }),
       securityGroup: props.securityGroupsOptions?.installer,
     });
     this.node.defaultChild = this.installerGroup;
@@ -849,9 +851,9 @@ export class Repository extends Construct implements IRepository {
     as it will cause cyclic dependency. Hence, using Condition Keys
     */
     const tagCondition: { [key: string]: any } = {};
-    tagCondition[`autoscaling:ResourceTag/${tagKey}`] = this.node.uniqueId;
+    tagCondition[`autoscaling:ResourceTag/${tagKey}`] = Names.uniqueId(this);
 
-    Tags.of(this.installerGroup).add(tagKey, this.node.uniqueId);
+    Tags.of(this.installerGroup).add(tagKey, Names.uniqueId(this));
 
     this.installerGroup.addToRolePolicy(new PolicyStatement({
       actions: [

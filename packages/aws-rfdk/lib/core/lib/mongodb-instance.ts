@@ -45,6 +45,7 @@ import {
   Construct,
   Duration,
   IConstruct,
+  Names,
   Size,
 } from '@aws-cdk/core';
 
@@ -441,7 +442,7 @@ export class MongoDbInstance extends Construct implements IMongoDb, IGrantable {
     });
 
     this.adminUser = props.mongoDb.adminUser ?? new Secret(this, 'AdminUser', {
-      description: `Admin credentials for the MongoDB database ${this.node.uniqueId}`,
+      description: `Admin credentials for the MongoDB database ${Names.uniqueId(this)}`,
       generateSecretString: {
         excludeCharacters: '"()$\'', // Exclude characters that might interact with command shells.
         excludePunctuation: true,

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as crypto from 'crypto';
 import * as path from 'path';
 
 import {
@@ -166,7 +165,7 @@ export class MountableBlockVolume implements IMountableLinuxFilesystem {
     // See: https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazonec2.html
     // Accessed July 2020
     // ec2:DescribeVolumes does not support resource or condition constraints.
-    target.grantPrincipal.addToPolicy(new PolicyStatement({
+    target.grantPrincipal.addToPrincipalPolicy(new PolicyStatement({
       effect: Effect.ALLOW,
       actions: [
         'ec2:DescribeVolumes',
@@ -174,16 +173,7 @@ export class MountableBlockVolume implements IMountableLinuxFilesystem {
       resources: ['*'],
     }));
 
-    // Work-around a bug in v1.49.1 of CDK.
-    // To be able to mount the *same* volume to multiple instances we must provide a tag suffix to the permission grant
-    // that is unique to this particular combination of volume + mount target.
-    // We can remove this, if desired, once it is fixed in upstream CDK.
-    function hashUniqueIds(resources: IConstruct[]): string {
-      const md5 = crypto.createHash('md5');
-      resources.forEach(res => md5.update(res.node.uniqueId));
-      return md5.digest('hex');
-    }
-    this.props.blockVolume.grantAttachVolumeByResourceTag(target.grantPrincipal, [target], hashUniqueIds([target, this.props.blockVolume]));
+    this.props.blockVolume.grantAttachVolumeByResourceTag(target.grantPrincipal, [target]);
   }
 
   /**

@@ -87,13 +87,11 @@ export class StorageStruct extends Construct {
 
       // Create a DocDB database cluster on the VPC
       database = new DatabaseCluster(this, 'DocumentDatabase', {
-        instanceProps: {
-          instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
-          vpc,
-          vpcSubnets: {
-            onePerAz: true,
-            subnetType: SubnetType.PRIVATE,
-          },
+        instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
+        vpc,
+        vpcSubnets: {
+          onePerAz: true,
+          subnetType: SubnetType.PRIVATE,
         },
         masterUser: {
           username: 'DocDBUser',

@@ -39,6 +39,7 @@ import {
   App,
   CfnElement,
   Duration,
+  Names,
   RemovalPolicy,
   Stack,
 } from '@aws-cdk/core';
@@ -150,10 +151,8 @@ test('repository installer instance is created correctly', () => {
       ],
     },
     CreationPolicy: {
-      AutoScalingCreationPolicy: {
-        MinSuccessfulInstancesPercent: 100,
-      },
       ResourceSignal: {
+        Count: 1,
         Timeout: 'PT15M',
       },
     },
@@ -309,28 +308,16 @@ test('repository installer iam permissions: db secret access', () => {
   // THEN
   expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
     PolicyDocument: {
-      Statement: [
-        {},
-        {},
-        {},
-        {},
-        {},
-        {
-          Action: [
-            'secretsmanager:GetSecretValue',
-            'secretsmanager:DescribeSecret',
-          ],
-          Effect: 'Allow',
-          Resource: {
-            Ref: 'repositoryInstallerDocumentDatabaseSecretAttachment29753B7C',
-          },
+      Statement: arrayWith({
+        Action: [
+          'secretsmanager:GetSecretValue',
+          'secretsmanager:DescribeSecret',
+        ],
+        Effect: 'Allow',
+        Resource: {
+          Ref: 'repositoryInstallerDocumentDatabaseSecretAttachment29753B7C',
         },
-        {},
-        {},
-        {},
-        {},
-        {},
-      ],
+      }),
     },
   }));
 });
@@ -528,16 +515,14 @@ test('repository warns if removal policy for database when database provided', (
     masterUser: {
       username: 'master',
     },
-    instanceProps: {
-      instanceType: InstanceType.of(
-        InstanceClass.R4,
-        InstanceSize.LARGE,
-      ),
-      vpc,
-      vpcSubnets: {
-        onePerAz: true,
-        subnetType: SubnetType.PRIVATE,
-      },
+    instanceType: InstanceType.of(
+      InstanceClass.R4,
+      InstanceSize.LARGE,
+    ),
+    vpc,
+    vpcSubnets: {
+      onePerAz: true,
+      subnetType: SubnetType.PRIVATE,
     },
   });
 
@@ -635,16 +620,14 @@ test('repository warns if databaseAuditLogging defined and database is specified
     masterUser: {
       username: 'master',
     },
-    instanceProps: {
-      instanceType: InstanceType.of(
-        InstanceClass.R4,
-        InstanceSize.LARGE,
-      ),
-      vpc,
-      vpcSubnets: {
-        onePerAz: true,
-        subnetType: SubnetType.PRIVATE,
-      },
+    instanceType: InstanceType.of(
+      InstanceClass.R4,
+      InstanceSize.LARGE,
+    ),
+    vpc,
+    vpcSubnets: {
+      onePerAz: true,
+      subnetType: SubnetType.PRIVATE,
     },
   });
 
@@ -752,16 +735,14 @@ test('warns if both retention period and database provided', () => {
     masterUser: {
       username: 'master',
     },
-    instanceProps: {
-      instanceType: InstanceType.of(
-        InstanceClass.R4,
-        InstanceSize.LARGE,
-      ),
-      vpc,
-      vpcSubnets: {
-        onePerAz: true,
-        subnetType: SubnetType.PRIVATE,
-      },
+    instanceType: InstanceType.of(
+      InstanceClass.R4,
+      InstanceSize.LARGE,
+    ),
+    vpc,
+    vpcSubnets: {
+      onePerAz: true,
+      subnetType: SubnetType.PRIVATE,
     },
   });
 
@@ -792,16 +773,14 @@ test('repository creates filesystem if none provided', () => {
     masterUser: {
       username: 'master',
     },
-    instanceProps: {
-      instanceType: InstanceType.of(
-        InstanceClass.R4,
-        InstanceSize.LARGE,
-      ),
-      vpc,
-      vpcSubnets: {
-        onePerAz: true,
-        subnetType: SubnetType.PRIVATE,
-      },
+    instanceType: InstanceType.of(
+      InstanceClass.R4,
+      InstanceSize.LARGE,
+    ),
+    vpc,
+    vpcSubnets: {
+      onePerAz: true,
+      subnetType: SubnetType.PRIVATE,
     },
     backup: {
       retention: Duration.days(15),
@@ -860,10 +839,8 @@ test('repository instance is created with user defined timeout', () => {
   // THEN
   expectCDK(stack).to(haveResource('AWS::AutoScaling::AutoScalingGroup', {
     CreationPolicy: {
-      AutoScalingCreationPolicy: {
-        MinSuccessfulInstancesPercent: 100,
-      },
       ResourceSignal: {
+        Count: 1,
         Timeout: 'PT30M',
       },
     },
@@ -924,7 +901,7 @@ test('validate instance self-termination', () => {
           Action: 'autoscaling:UpdateAutoScalingGroup',
           Condition: {
             StringEquals: {
-              'autoscaling:ResourceTag/resourceLogicalId': repo.node.uniqueId,
+              'autoscaling:ResourceTag/resourceLogicalId': Names.uniqueId(repo),
             },
           },
           Effect: 'Allow',
