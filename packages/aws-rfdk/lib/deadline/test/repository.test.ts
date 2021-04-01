@@ -528,16 +528,14 @@ test('repository warns if removal policy for database when database provided', (
     masterUser: {
       username: 'master',
     },
-    instanceProps: {
-      instanceType: InstanceType.of(
-        InstanceClass.R4,
-        InstanceSize.LARGE,
-      ),
-      vpc,
-      vpcSubnets: {
-        onePerAz: true,
-        subnetType: SubnetType.PRIVATE,
-      },
+    instanceType: InstanceType.of(
+      InstanceClass.R4,
+      InstanceSize.LARGE,
+    ),
+    vpc,
+    vpcSubnets: {
+      onePerAz: true,
+      subnetType: SubnetType.PRIVATE,
     },
   });
 
@@ -635,16 +633,14 @@ test('repository warns if databaseAuditLogging defined and database is specified
     masterUser: {
       username: 'master',
     },
-    instanceProps: {
-      instanceType: InstanceType.of(
-        InstanceClass.R4,
-        InstanceSize.LARGE,
-      ),
-      vpc,
-      vpcSubnets: {
-        onePerAz: true,
-        subnetType: SubnetType.PRIVATE,
-      },
+    instanceType: InstanceType.of(
+      InstanceClass.R4,
+      InstanceSize.LARGE,
+    ),
+    vpc,
+    vpcSubnets: {
+      onePerAz: true,
+      subnetType: SubnetType.PRIVATE,
     },
   });
 
@@ -752,16 +748,14 @@ test('warns if both retention period and database provided', () => {
     masterUser: {
       username: 'master',
     },
-    instanceProps: {
-      instanceType: InstanceType.of(
-        InstanceClass.R4,
-        InstanceSize.LARGE,
-      ),
-      vpc,
-      vpcSubnets: {
-        onePerAz: true,
-        subnetType: SubnetType.PRIVATE,
-      },
+    instanceType: InstanceType.of(
+      InstanceClass.R4,
+      InstanceSize.LARGE,
+    ),
+    vpc,
+    vpcSubnets: {
+      onePerAz: true,
+      subnetType: SubnetType.PRIVATE,
     },
   });
 
@@ -792,16 +786,14 @@ test('repository creates filesystem if none provided', () => {
     masterUser: {
       username: 'master',
     },
-    instanceProps: {
-      instanceType: InstanceType.of(
-        InstanceClass.R4,
-        InstanceSize.LARGE,
-      ),
-      vpc,
-      vpcSubnets: {
-        onePerAz: true,
-        subnetType: SubnetType.PRIVATE,
-      },
+    instanceType: InstanceType.of(
+      InstanceClass.R4,
+      InstanceSize.LARGE,
+    ),
+    vpc,
+    vpcSubnets: {
+      onePerAz: true,
+      subnetType: SubnetType.PRIVATE,
     },
     backup: {
       retention: Duration.days(15),

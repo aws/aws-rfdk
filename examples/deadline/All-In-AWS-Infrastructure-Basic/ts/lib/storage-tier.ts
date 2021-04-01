@@ -305,11 +305,9 @@ export class StorageTierDocDB extends StorageTier {
     super(scope, id, props);
 
     const docDb = new DatabaseCluster(this, 'DocDBCluster', {
-      instanceProps: {
-        vpc: props.vpc,
-        vpcSubnets: { subnetType: SubnetType.PRIVATE },
-        instanceType: props.databaseInstanceType,
-      },
+      vpc: props.vpc,
+      vpcSubnets: { subnetType: SubnetType.PRIVATE },
+      instanceType: props.databaseInstanceType,
       // TODO - For cost considerations this example only uses 1 Database instance. 
       // It is recommended that when creating your render farm you use at least 2 instances for redundancy.
       instances: 1,

@@ -572,12 +572,10 @@ export class Repository extends Construct implements IRepository {
       const dbCluster = new DatabaseCluster(this, 'DocumentDatabase', {
         masterUser: {username: 'DocDBUser'},
         engineVersion: '3.6.0',
-        instanceProps: {
-          instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
-          vpc: props.vpc,
-          vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
-          securityGroup: props.securityGroupsOptions?.database,
-        },
+        instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
+        vpc: props.vpc,
+        vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
+        securityGroup: props.securityGroupsOptions?.database,
         instances,
         backup: {
           retention: props.backupOptions?.databaseRetention ?? Repository.DEFAULT_DATABASE_RETENTION_PERIOD,
