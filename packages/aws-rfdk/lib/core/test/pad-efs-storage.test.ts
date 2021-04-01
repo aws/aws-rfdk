@@ -7,6 +7,7 @@ import {
   arrayWith,
   expect as cdkExpect,
   haveResourceLike,
+  ResourcePart,
 } from '@aws-cdk/assert';
 import {
   SecurityGroup,
@@ -21,6 +22,7 @@ import {
 } from '@aws-cdk/aws-lambda';
 import {
   App,
+  CfnElement,
   Size,
   Stack,
 } from '@aws-cdk/core';
@@ -69,49 +71,55 @@ describe('Test PadEfsStorage', () => {
 
     // THEN
     cdkExpect(stack).to(haveResourceLike('AWS::Lambda::Function', {
-      FileSystemConfigs: [
-        {
-          Arn: stack.resolve(accessPoint.accessPointArn),
-          LocalMountPath: '/mnt/efs',
-        },
-      ],
-      Handler: 'pad-efs-storage.getDiskUsage',
-      Runtime: 'nodejs14.x',
-      Timeout: 300,
-      VpcConfig: {
-        SecurityGroupIds: [ stack.resolve(sg.securityGroupId) ],
-        SubnetIds: [
+      Properties: {
+        FileSystemConfigs: [
           {
-            Ref: 'VpcPrivateSubnet1Subnet536B997A',
-          },
-          {
-            Ref: 'VpcPrivateSubnet2Subnet3788AAA1',
+            Arn: stack.resolve(accessPoint.accessPointArn),
+            LocalMountPath: '/mnt/efs',
           },
         ],
+        Handler: 'pad-efs-storage.getDiskUsage',
+        Runtime: 'nodejs14.x',
+        Timeout: 300,
+        VpcConfig: {
+          SecurityGroupIds: [ stack.resolve(sg.securityGroupId) ],
+          SubnetIds: [
+            {
+              Ref: 'VpcPrivateSubnet1Subnet536B997A',
+            },
+            {
+              Ref: 'VpcPrivateSubnet2Subnet3788AAA1',
+            },
+          ],
+        },
       },
-    }));
+      DependsOn: arrayWith(stack.getLogicalId(accessPoint.node.defaultChild as CfnElement)),
+    }, ResourcePart.CompleteDefinition));
     cdkExpect(stack).to(haveResourceLike('AWS::Lambda::Function', {
-      FileSystemConfigs: [
-        {
-          Arn: stack.resolve(accessPoint.accessPointArn),
-          LocalMountPath: '/mnt/efs',
-        },
-      ],
-      Handler: 'pad-efs-storage.padFilesystem',
-      Runtime: 'nodejs14.x',
-      Timeout: 900,
-      VpcConfig: {
-        SecurityGroupIds: [ stack.resolve(sg.securityGroupId) ],
-        SubnetIds: [
+      Properties: {
+        FileSystemConfigs: [
           {
-            Ref: 'VpcPrivateSubnet1Subnet536B997A',
-          },
-          {
-            Ref: 'VpcPrivateSubnet2Subnet3788AAA1',
+            Arn: stack.resolve(accessPoint.accessPointArn),
+            LocalMountPath: '/mnt/efs',
           },
         ],
+        Handler: 'pad-efs-storage.padFilesystem',
+        Runtime: 'nodejs14.x',
+        Timeout: 900,
+        VpcConfig: {
+          SecurityGroupIds: [ stack.resolve(sg.securityGroupId) ],
+          SubnetIds: [
+            {
+              Ref: 'VpcPrivateSubnet1Subnet536B997A',
+            },
+            {
+              Ref: 'VpcPrivateSubnet2Subnet3788AAA1',
+            },
+          ],
+        },
       },
-    }));
+      DependsOn: arrayWith(stack.getLogicalId(accessPoint.node.defaultChild as CfnElement)),
+    }, ResourcePart.CompleteDefinition));
 
     const lambdaRetryCatch = {
       Retry: [
