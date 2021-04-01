@@ -34,6 +34,7 @@ import {
   PolicyStatement,
 } from '@aws-cdk/aws-iam';
 import {
+  Annotations,
   Construct,
   Duration,
   IResource,
@@ -574,7 +575,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
 
   private validateBlockDevices(blockDevices: BlockDevice[] | undefined) {
     if (blockDevices === undefined) {
-      this.node.addWarning(`The worker-fleet ${this.node.id} is being created without being provided any block devices so the Source AMI's devices will be used. ` +
+      Annotations.of(this).addWarning(`The worker-fleet ${this.node.id} is being created without being provided any block devices so the Source AMI's devices will be used. ` +
         'Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
     } else {
       blockDevices.forEach(device => {
@@ -586,7 +587,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
         // encrypted is not exposed as part of ebsDeviceProps so we need to confirm it exists then access it via [].
         // eslint-disable-next-line dot-notation
         if ( ('encrypted' in device.volume.ebsDevice === false) || ('encrypted' in device.volume.ebsDevice && !device.volume.ebsDevice['encrypted'] ) ) {
-          this.node.addWarning(`The BlockDevice "${device.deviceName}" on the worker-fleet ${this.node.id} is not encrypted. ` +
+          Annotations.of(this).addWarning(`The BlockDevice "${device.deviceName}" on the worker-fleet ${this.node.id} is not encrypted. ` +
               'Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.');
         }
       });
@@ -619,7 +620,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
         port: healthCheckPort,
       });
     } else {
-      this.node.addWarning(`The worker-fleet ${this.node.id} is being created without a health monitor attached to it. This means that the fleet will not automatically scale-in to 0 if the workers are unhealthy.`);
+      Annotations.of(this).addWarning(`The worker-fleet ${this.node.id} is being created without a health monitor attached to it. This means that the fleet will not automatically scale-in to 0 if the workers are unhealthy.`);
     }
   }
 }

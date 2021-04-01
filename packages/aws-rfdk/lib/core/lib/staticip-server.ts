@@ -256,7 +256,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
     const eni = new CfnNetworkInterface(this, 'Eni', {
       subnetId: subnet.subnetId,
       description: `Static ENI for ${scopePath.join('/')}`,
-      groupSet: Lazy.listValue({ produce: () => this.connections.securityGroups.map(sg => sg.securityGroupId) }),
+      groupSet: Lazy.list({ produce: () => this.connections.securityGroups.map(sg => sg.securityGroupId) }),
       privateIpAddress: props.privateIpAddress,
     });
     this.privateIpAddress = eni.attrPrimaryPrivateIpAddress;
@@ -355,7 +355,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
         'ForAnyValue:StringEquals': grantCondition,
       },
     });
-    eventHandler.role!.addToPolicy(iamCompleteLifecycle);
+    eventHandler.role!.addToPrincipalPolicy(iamCompleteLifecycle);
 
     if (!singletonPreExists) {
       // Allow the lambda to attach the ENI to the instance that was created.
@@ -372,7 +372,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
         ],
         resources: ['*'],
       });
-      eventHandler.role!.addToPolicy(iamEniAttach);
+      eventHandler.role!.addToPrincipalPolicy(iamEniAttach);
     }
 
     return eventHandler;

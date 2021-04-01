@@ -138,7 +138,7 @@ describe('Test MongoDbInstance', () => {
       Encrypted: true,
       Tags: arrayWith(
         objectLike({
-          Key: 'VolumeGrantAttach-dff922f1fb3c0287b3759d461a48c4b8',
+          Key: 'VolumeGrantAttach-6238D22B12',
           Value: '6238d22b121db8094cb816e2a49d2b61',
         }),
       ),

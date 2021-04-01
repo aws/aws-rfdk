@@ -42,6 +42,7 @@ import {
   PolicyStatement,
 } from '@aws-cdk/aws-iam';
 import {
+  Annotations,
   Construct,
   Duration,
   IConstruct,
@@ -491,13 +492,13 @@ export class Repository extends Construct implements IRepository {
     super(scope, id);
 
     if (props.database && props.backupOptions?.databaseRetention) {
-      this.node.addWarning('Backup retention for database will not be applied since a database is not being created by this construct');
+      Annotations.of(this).addWarning('Backup retention for database will not be applied since a database is not being created by this construct');
     }
     if (props.fileSystem && props.removalPolicy?.filesystem) {
-      this.node.addWarning('RemovalPolicy for filesystem will not be applied since a filesystem is not being created by this construct');
+      Annotations.of(this).addWarning('RemovalPolicy for filesystem will not be applied since a filesystem is not being created by this construct');
     }
     if (props.database && props.removalPolicy?.database) {
-      this.node.addWarning('RemovalPolicy for database will not be applied since a database is not being created by this construct');
+      Annotations.of(this).addWarning('RemovalPolicy for database will not be applied since a database is not being created by this construct');
     }
     if (props.fileSystem instanceof MountableEfs && !props.fileSystem.accessPoint) {
       throw new Error('When using EFS with the Repository, you must provide an EFS Access Point');
@@ -550,7 +551,7 @@ export class Repository extends Construct implements IRepository {
       if (props.databaseAuditLogging !== undefined){
         const warningMsg = 'The parameter databaseAuditLogging only has an effect when the Repository is creating its own database.\n' +
           'Please ensure that the Database provided is configured correctly.';
-        this.node.addWarning(warningMsg);
+        Annotations.of(this).addWarning(warningMsg);
       }
     } else {
       const databaseAuditLogging = props.databaseAuditLogging ?? true;
