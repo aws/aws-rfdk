@@ -47,6 +47,7 @@ import {
   Duration,
   IConstruct,
   RemovalPolicy,
+  Names,
   Size,
   Stack,
   Tags,
@@ -848,9 +849,9 @@ export class Repository extends Construct implements IRepository {
     as it will cause cyclic dependency. Hence, using Condition Keys
     */
     const tagCondition: { [key: string]: any } = {};
-    tagCondition[`autoscaling:ResourceTag/${tagKey}`] = this.node.uniqueId;
+    tagCondition[`autoscaling:ResourceTag/${tagKey}`] = Names.uniqueId(this);
 
-    Tags.of(this.installerGroup).add(tagKey, this.node.uniqueId);
+    Tags.of(this.installerGroup).add(tagKey, Names.uniqueId(this));
 
     this.installerGroup.addToRolePolicy(new PolicyStatement({
       actions: [

@@ -31,6 +31,7 @@ import {
   CustomResource,
   Duration,
   IConstruct,
+  Names,
   RemovalPolicy,
   Stack,
   Tag,
@@ -169,7 +170,7 @@ abstract class X509CertificateBase extends Construct {
     });
 
     this.passphrase = new Secret(this, 'Passphrase', {
-      description: `Passphrase for the private key of the X509Certificate ${this.node.uniqueId}`,
+      description: `Passphrase for the private key of the X509Certificate ${Names.uniqueId(this)}`,
       encryptionKey: props.encryptionKey,
       generateSecretString: {
         excludeCharacters: '"()$\'', // Exclude characters that might interact with command shells.
@@ -191,7 +192,7 @@ abstract class X509CertificateBase extends Construct {
      * a cert we need a cert that this lambda generated).
      */
     this.lambdaFunc = new LambdaFunction(this, 'Generator', {
-      description: `Used by a X509Certificate ${this.node.uniqueId} to generate certificates.`,
+      description: `Used by a X509Certificate ${Names.uniqueId(this)} to generate certificates.`,
       code: props.lambdaCode,
       environment: {
         DATABASE: this.database.tableName,
@@ -208,7 +209,7 @@ abstract class X509CertificateBase extends Construct {
     props.encryptionKey?.grantEncrypt(this.lambdaFunc);
     this.passphrase.grantRead(this.lambdaFunc);
 
-    const uniqueValue = crypto.createHash('md5').update(this.node.uniqueId).digest('hex');
+    const uniqueValue = crypto.createHash('md5').update(Names.uniqueId(this)).digest('hex');
     this.uniqueTag = new Tag(
       `X509SecretGrant-${uniqueValue.slice(0, 8).toUpperCase()}`,
       uniqueValue,

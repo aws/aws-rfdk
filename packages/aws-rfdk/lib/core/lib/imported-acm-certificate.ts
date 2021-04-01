@@ -25,6 +25,7 @@ import {
   Construct,
   CustomResource,
   Duration,
+  Names,
   RemovalPolicy,
   ResourceEnvironment,
   Stack,
@@ -149,7 +150,7 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
     props.certChain?.grantRead(lambda);
     props.encryptionKey?.grantDecrypt(lambda);
 
-    const uniqueValue = crypto.createHash('md5').update(this.node.uniqueId).digest('hex');
+    const uniqueValue = crypto.createHash('md5').update(Names.uniqueId(this)).digest('hex');
     this.uniqueTag = new Tag(
       `AcmCertImport-${uniqueValue.slice(0, 8).toUpperCase()}`,
       uniqueValue,

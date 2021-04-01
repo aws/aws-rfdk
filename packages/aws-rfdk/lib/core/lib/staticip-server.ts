@@ -51,6 +51,7 @@ import {
   Construct,
   Duration,
   Lazy,
+  Names,
   Stack,
   Tags,
 } from '@aws-cdk/core';
@@ -337,7 +338,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
     //  -> back to the start of the cycle.
     // Instead we use resourcetags condition to limit the scope of the lambda.
     const tagKey = 'RfdkStaticPrivateIpServerGrantConditionKey';
-    const tagValue = eventHandler.node.uniqueId;
+    const tagValue = Names.uniqueId(eventHandler);
     const grantCondition: { [key: string]: string } = {};
     grantCondition[`autoscaling:ResourceTag/${tagKey}`] = tagValue;
     Tags.of(this.autoscalingGroup).add(tagKey, tagValue);

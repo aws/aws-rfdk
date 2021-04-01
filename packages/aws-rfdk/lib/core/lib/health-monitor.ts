@@ -32,6 +32,7 @@ import {
   Construct,
   Duration,
   IResource,
+  Names,
   RemovalPolicy,
   ResourceEnvironment,
   Stack,
@@ -390,7 +391,7 @@ export class HealthMonitor extends HealthMonitorBase {
     this.lbFactory = new LoadBalancerFactory(this, props.vpc);
 
     const topicEncryptKey = props.encryptionKey || new Key(this, 'SNSEncryptionKey', {
-      description: `This key is used to encrypt SNS messages for ${this.node.uniqueId}.`,
+      description: `This key is used to encrypt SNS messages for ${Names.uniqueId(this)}.`,
       enableKeyRotation: true,
       removalPolicy: RemovalPolicy.DESTROY,
       trustAccountIdentities: true,

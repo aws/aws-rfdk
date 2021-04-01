@@ -36,6 +36,7 @@ import {
 } from '@aws-cdk/aws-secretsmanager';
 import {
   App,
+  Names,
   Size,
   Stack,
 } from '@aws-cdk/core';
@@ -122,7 +123,7 @@ describe('Test MongoDbInstance', () => {
     }));
 
     cdkExpect(stack).to(haveResourceLike('AWS::SecretsManager::Secret', {
-      Description: `Admin credentials for the MongoDB database ${instance.node.uniqueId}`,
+      Description: `Admin credentials for the MongoDB database ${Names.uniqueId(instance)}`,
       GenerateSecretString: {
         ExcludeCharacters: '\"()$\'',
         ExcludePunctuation: true,

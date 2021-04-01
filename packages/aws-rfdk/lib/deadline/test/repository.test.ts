@@ -39,6 +39,7 @@ import {
   App,
   CfnElement,
   Duration,
+  Names,
   RemovalPolicy,
   Stack,
 } from '@aws-cdk/core';
@@ -916,7 +917,7 @@ test('validate instance self-termination', () => {
           Action: 'autoscaling:UpdateAutoScalingGroup',
           Condition: {
             StringEquals: {
-              'autoscaling:ResourceTag/resourceLogicalId': repo.node.uniqueId,
+              'autoscaling:ResourceTag/resourceLogicalId': Names.uniqueId(repo),
             },
           },
           Effect: 'Allow',
