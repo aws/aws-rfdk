@@ -108,6 +108,11 @@
     "ts-jest": "^26.5.4",
     "typescript": "~4.2.3"
   },
+  "resolutions-netmask-comment": "transitive dep from proxy-agent 4.0.1 & pac-resolver 4.1.0, which are transitive deps from CDK. Remove the forced resolution when able.",
+  "resolutions": {
+    "netmask": "^2.0.1",
+    "pac-resolver": "^4.2.0"
+  },
   "workspaces": {
     "packages": [
       "examples/**",
