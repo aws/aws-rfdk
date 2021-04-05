@@ -114,7 +114,12 @@ These instructions assume that your working directory is `examples/deadline/All-
     // To accept the MongoDB SSPL, change from USER_REJECTS_SSPL to USER_ACCEPTS_SSPL
     public readonly acceptSsplLicense: MongoDbSsplLicenseAcceptance = MongoDbSsplLicenseAcceptance.USER_REJECTS_SSPL;
     ```
-13. Build the `aws-rfdk` package, and then build the sample app. There is some magic in the way yarn workspaces and lerna packages work that will link the built `aws-rfdk` from the base directory as the dependency to be used in the example's directory:
+13. Optionally configure alarm notifications. If you choose to configure alarms, change the value of the `alarmEmailAddress` variable in `bin/config.ts` to the desired email address to receive alarm notifications:
+
+    ```ts
+    public readonly alarmEmailAddress?: string = 'username@yourdomain.com';
+    ```
+14. Build the `aws-rfdk` package, and then build the sample app. There is some magic in the way yarn workspaces and lerna packages work that will link the built `aws-rfdk` from the base directory as the dependency to be used in the example's directory:
     ```bash
     # Navigate to the root directory of the RFDK repository (assumes you started in the example's directory)
     pushd ../../../..
@@ -127,12 +132,12 @@ These instructions assume that your working directory is `examples/deadline/All-
     # Run the example's build
     yarn build
     ```
-14. Deploy all the stacks in the sample app:
+15. Deploy all the stacks in the sample app:
 
     ```
     cdk deploy "*"
     ```
-15. Once you are finished with the sample app, you can tear it down by running:
+16. Once you are finished with the sample app, you can tear it down by running:
 
     ```
     cdk destroy "*"

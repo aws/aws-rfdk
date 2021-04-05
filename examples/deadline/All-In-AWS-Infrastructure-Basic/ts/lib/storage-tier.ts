@@ -62,8 +62,10 @@ export interface StorageTierProps extends cdk.StackProps {
 
   /**
    * Email address to send alerts to when CloudWatch Alarms breach.
+   *
+   * @default No alarms or alerts will be deployed
    */
-  readonly alarmEmail: string;
+  readonly alarmEmail?: string;
 }
 
 /**

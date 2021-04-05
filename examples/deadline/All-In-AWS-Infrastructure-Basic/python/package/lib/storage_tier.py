@@ -82,7 +82,8 @@ class StorageTierProps(StackProps):
     # The VPC to deploy resources into.
     vpc: IVpc
 
-    # Email address to send alerts to when CloudWatch Alarms breach.
+    # Email address to send alerts to when CloudWatch Alarms breach. If not specified, no alarms or alerts will be
+    # deployed.
     alarm_email: Optional[str]
 
 
