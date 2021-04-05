@@ -118,12 +118,17 @@ These instructions assume that your working directory is `examples/deadline/All-
     # To accept the MongoDB SSPL, change from USER_REJECTS_SSPL to USER_ACCEPTS_SSPL
     self.accept_sspl_license: MongoDbSsplLicenseAcceptance = MongoDbSsplLicenseAcceptance.USER_REJECTS_SSPL
     ```
-14. Deploy all the stacks in the sample app:
+14. Optionally configure alarm notifications. If you choose to configure alarms, change the value of the `alarm_email_address` variable in `package/config.py` to the desired email address to receive alarm notifications:
+
+    ```python
+    self.alarm_email_address: Optional[str] = 'username@yourdomain.com'
+    ```
+15. Deploy all the stacks in the sample app:
 
     ```bash
     cdk deploy "*"
     ```
-15. Once you are finished with the sample app, you can tear it down by running:
+16. Once you are finished with the sample app, you can tear it down by running:
 
     ```bash
     cdk destroy "*"
