@@ -20,9 +20,12 @@ All notable changes to this project will be documented in this file. See [standa
 * **deps:** CDK v1.96.0 modifies the API for DocumentDB DatabaseCluster. See
 our examples for an illustration of the code update required.
 * **core:** Stacks set up like our examples will see an error regarding being unable to
- delete an export in use when deploying a stack update. To bypass, use cdk deploy's -e option
- to deploy each stack upstream of the Mountable's stack before updating the Mountable's stack. e.g.
-- cdk deploy -e ComputeTier; cdk deploy -e ServiceTier; cdk deploy -e StorageTier
+ delete an export in use when deploying a stack update. To bypass, use the `-e` option of `cdk deploy`
+ to deploy each stack downstream of the Mountable's stack before updating the Mountable's stack. E.g:
+
+      cdk deploy -e ComputeTier
+      cdk deploy -e ServiceTier
+      cdk deploy -e StorageTier
 
 ### Features
 
@@ -34,13 +37,8 @@ our examples for an illustration of the code update required.
 ### Bug Fixes
 
 * **core:** Move mountable's asset to scope of target ([#369](https://github.com/aws/aws-rfdk/issues/369)) ([cb16918](https://github.com/aws/aws-rfdk/commit/cb16918dafd0d3caf93fed2a01b791e9281b602d))
-* **core:** PadEfsStorage lambdas need to depend on filesystem ([#376](https://github.com/aws/aws-rfdk/issues/376)) ([8890643](https://github.com/aws/aws-rfdk/commit/8890643f8100453a037ab35e4d9078c11c74924d))
 * **deadline:** Relax UsageBasedLicensing.grantPortAccess() to IConnectable ([#352](https://github.com/aws/aws-rfdk/issues/352)) ([9f05768](https://github.com/aws/aws-rfdk/commit/9f0576856f949090658c7a14e79e02f081516b80))
-* **examples:** make alarm email optional and add README instructions ([#381](https://github.com/aws/aws-rfdk/issues/381)) ([94abd59](https://github.com/aws/aws-rfdk/commit/94abd597f48c170d8e2ec14672ab4fb5fad78c65))
 * **integ:** capture exit codes of parallel tests ([#371](https://github.com/aws/aws-rfdk/issues/371)) ([276f76f](https://github.com/aws/aws-rfdk/commit/276f76f3fc1b9422a052642a1e11b1afe400af91))
-
-
-* **deps:** bumping cdk from 1.94.1 to 1.96.0 ([#374](https://github.com/aws/aws-rfdk/issues/374)) ([4a216b1](https://github.com/aws/aws-rfdk/commit/4a216b1a9e2d9e30c5448c59ab5d204c611c422f))
 
 ## [0.28.0](https://github.com/aws/aws-rfdk/compare/v0.27.0...v0.28.0) (2021-03-25)
 
