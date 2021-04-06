@@ -10,7 +10,8 @@ import {
 
 import {
   AutoScalingGroup,
-  UpdateType,
+  Signals,
+  UpdatePolicy,
 } from '@aws-cdk/aws-autoscaling';
 import {
   CfnDBInstance,
@@ -42,10 +43,13 @@ import {
   PolicyStatement,
 } from '@aws-cdk/aws-iam';
 import {
+  Annotations,
   Construct,
   Duration,
   IConstruct,
   RemovalPolicy,
+  Names,
+  Size,
   Stack,
   Tags,
   Token,
@@ -57,6 +61,7 @@ import {
   LogGroupFactory,
   LogGroupFactoryProps,
   MountableEfs,
+  PadEfsStorage,
   ScriptAsset,
 } from '../../core';
 import {
@@ -298,7 +303,13 @@ export interface RepositoryProps {
   /**
    * Specify the file system where the deadline repository needs to be initialized.
    *
-   * @default An Encrypted EFS File System and Access Point will be created
+   * If not providing a filesystem, then we will provision an Amazon EFS filesystem for you.
+   * This filesystem will contain files for the Deadline Repository filesystem. It will also
+   * contain 40GB of additional padding files (see RFDK's PadEfsStorage for details) to increase
+   * the baseline throughput of the filesystem; these files will be added to the /RFDK_PaddingFiles directory
+   * in the filesystem.
+   *
+   * @default An Encrypted EFS File System and Access Point will be created.
    */
   readonly fileSystem?: IMountableLinuxFilesystem;
 
@@ -383,11 +394,12 @@ export interface RepositoryProps {
  * Resources Deployed
  * ------------------------
  * - Encrypted Amazon Elastic File System (EFS) - If no file system is provided.
- * - An Amazon EFS Point - If no filesystem is provided
+ * - An Amazon EFS Point - If no filesystem is provided.
  * - An Amazon DocumentDB - If no database connection is provided.
  * - Auto Scaling Group (ASG) with min & max capacity of 1 instance.
  * - Instance Role and corresponding IAM Policy.
  * - An Amazon CloudWatch log group that contains the Deadline Repository installation logs.
+ * - An RFDK PadEfsStorage - If no filesystem is provided.
  *
  * Security Considerations
  * ------------------------
@@ -482,13 +494,13 @@ export class Repository extends Construct implements IRepository {
     super(scope, id);
 
     if (props.database && props.backupOptions?.databaseRetention) {
-      this.node.addWarning('Backup retention for database will not be applied since a database is not being created by this construct');
+      Annotations.of(this).addWarning('Backup retention for database will not be applied since a database is not being created by this construct');
     }
     if (props.fileSystem && props.removalPolicy?.filesystem) {
-      this.node.addWarning('RemovalPolicy for filesystem will not be applied since a filesystem is not being created by this construct');
+      Annotations.of(this).addWarning('RemovalPolicy for filesystem will not be applied since a filesystem is not being created by this construct');
     }
     if (props.database && props.removalPolicy?.database) {
-      this.node.addWarning('RemovalPolicy for database will not be applied since a database is not being created by this construct');
+      Annotations.of(this).addWarning('RemovalPolicy for database will not be applied since a database is not being created by this construct');
     }
     if (props.fileSystem instanceof MountableEfs && !props.fileSystem.accessPoint) {
       throw new Error('When using EFS with the Repository, you must provide an EFS Access Point');
@@ -504,6 +516,22 @@ export class Repository extends Construct implements IRepository {
         lifecyclePolicy: EfsLifecyclePolicy.AFTER_14_DAYS,
         removalPolicy: props.removalPolicy?.filesystem ?? RemovalPolicy.RETAIN,
         securityGroup: props.securityGroupsOptions?.fileSystem,
+      });
+
+      const paddingAccess = fs.addAccessPoint('PaddingAccessPoint', {
+        createAcl: {
+          ownerGid: '0',
+          ownerUid: '0',
+          permissions: '744',
+        },
+        path: '/RFDK_PaddingFiles',
+      });
+
+      new PadEfsStorage(this, 'PadEfsStorage', {
+        vpc: props.vpc,
+        vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
+        accessPoint: paddingAccess,
+        desiredPadding: Size.gibibytes(40),
       });
 
       const accessPoint = fs.addAccessPoint('AccessPoint', {
@@ -525,7 +553,7 @@ export class Repository extends Construct implements IRepository {
       if (props.databaseAuditLogging !== undefined){
         const warningMsg = 'The parameter databaseAuditLogging only has an effect when the Repository is creating its own database.\n' +
           'Please ensure that the Database provided is configured correctly.';
-        this.node.addWarning(warningMsg);
+        Annotations.of(this).addWarning(warningMsg);
       }
     } else {
       const databaseAuditLogging = props.databaseAuditLogging ?? true;
@@ -547,12 +575,10 @@ export class Repository extends Construct implements IRepository {
       const dbCluster = new DatabaseCluster(this, 'DocumentDatabase', {
         masterUser: {username: 'DocDBUser'},
         engineVersion: '3.6.0',
-        instanceProps: {
-          instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
-          vpc: props.vpc,
-          vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
-          securityGroup: props.securityGroupsOptions?.database,
-        },
+        instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
+        vpc: props.vpc,
+        vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
+        securityGroup: props.securityGroupsOptions?.database,
         instances,
         backup: {
           retention: props.backupOptions?.databaseRetention ?? Repository.DEFAULT_DATABASE_RETENTION_PERIOD,
@@ -601,9 +627,10 @@ export class Repository extends Construct implements IRepository {
       },
       minCapacity: 1,
       maxCapacity: 1,
-      resourceSignalTimeout: (props.repositoryInstallationTimeout || Duration.minutes(15)),
-      updateType: UpdateType.REPLACING_UPDATE,
-      replacingUpdateMinSuccessfulInstancesPercent: 100,
+      updatePolicy: UpdatePolicy.replacingUpdate(),
+      signals: Signals.waitForAll({
+        timeout: (props.repositoryInstallationTimeout || Duration.minutes(15)),
+      }),
       securityGroup: props.securityGroupsOptions?.installer,
     });
     this.node.defaultChild = this.installerGroup;
@@ -824,9 +851,9 @@ export class Repository extends Construct implements IRepository {
     as it will cause cyclic dependency. Hence, using Condition Keys
     */
     const tagCondition: { [key: string]: any } = {};
-    tagCondition[`autoscaling:ResourceTag/${tagKey}`] = this.node.uniqueId;
+    tagCondition[`autoscaling:ResourceTag/${tagKey}`] = Names.uniqueId(this);
 
-    Tags.of(this.installerGroup).add(tagKey, this.node.uniqueId);
+    Tags.of(this.installerGroup).add(tagKey, Names.uniqueId(this));
 
     this.installerGroup.addToRolePolicy(new PolicyStatement({
       actions: [

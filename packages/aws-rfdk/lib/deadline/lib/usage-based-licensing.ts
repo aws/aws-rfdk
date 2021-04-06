@@ -8,6 +8,7 @@ import {
   BlockDeviceVolume,
 } from '@aws-cdk/aws-autoscaling';
 import {
+  IConnectable,
   InstanceClass,
   InstanceSize,
   InstanceType,
@@ -44,7 +45,6 @@ import {
   tagConstruct,
 } from '../../core/lib/runtime-info';
 import {IRenderQueue} from './render-queue';
-import {IWorkerFleet} from './worker-fleet';
 
 /**
  * Properties for constructing a {@link UsageBasedLicense} instance.
@@ -590,7 +590,7 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
    * @param workerFleet - worker fleet
    * @param licenses - UBL licenses
    */
-  public grantPortAccess(workerFleet: IWorkerFleet, licenses: UsageBasedLicense[]) {
+  public grantPortAccess(workerFleet: IConnectable, licenses: UsageBasedLicense[]) {
     licenses.forEach(license => {
       license.ports.forEach(port => {
         workerFleet.connections.allowTo(this, port);

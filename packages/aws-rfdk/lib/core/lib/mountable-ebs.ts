@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as crypto from 'crypto';
 import * as path from 'path';
 
 import {
@@ -126,7 +125,7 @@ export class MountableBlockVolume implements IMountableLinuxFilesystem {
 
     this.grantRequiredPermissions(target);
 
-    const mountScriptAsset = this.mountAssetSingleton();
+    const mountScriptAsset = this.mountAssetSingleton(target);
     mountScriptAsset.grantRead(target.grantPrincipal);
     const mountScriptZip: string = target.userData.addS3DownloadCommand({
       bucket: mountScriptAsset.bucket,
@@ -166,7 +165,7 @@ export class MountableBlockVolume implements IMountableLinuxFilesystem {
     // See: https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazonec2.html
     // Accessed July 2020
     // ec2:DescribeVolumes does not support resource or condition constraints.
-    target.grantPrincipal.addToPolicy(new PolicyStatement({
+    target.grantPrincipal.addToPrincipalPolicy(new PolicyStatement({
       effect: Effect.ALLOW,
       actions: [
         'ec2:DescribeVolumes',
@@ -174,23 +173,14 @@ export class MountableBlockVolume implements IMountableLinuxFilesystem {
       resources: ['*'],
     }));
 
-    // Work-around a bug in v1.49.1 of CDK.
-    // To be able to mount the *same* volume to multiple instances we must provide a tag suffix to the permission grant
-    // that is unique to this particular combination of volume + mount target.
-    // We can remove this, if desired, once it is fixed in upstream CDK.
-    function hashUniqueIds(resources: IConstruct[]): string {
-      const md5 = crypto.createHash('md5');
-      resources.forEach(res => md5.update(res.node.uniqueId));
-      return md5.digest('hex');
-    }
-    this.props.blockVolume.grantAttachVolumeByResourceTag(target.grantPrincipal, [target], hashUniqueIds([target, this.props.blockVolume]));
+    this.props.blockVolume.grantAttachVolumeByResourceTag(target.grantPrincipal, [target]);
   }
 
   /**
    * Fetch the Asset singleton for the Volume mounting scripts, or generate it if needed.
    */
-  protected mountAssetSingleton(): Asset {
-    const stack = Stack.of(this.scope);
+  protected mountAssetSingleton(scope: IConstruct): Asset {
+    const stack = Stack.of(scope);
     const uuid = '01ca4aa6-d440-4f83-84d8-80a5a21fd0e3';
     const uniqueId = 'MountableBlockVolumeAsset' + uuid.replace(/[-]/g, '');
     return (stack.node.tryFindChild(uniqueId) as Asset) ?? new Asset(stack, uniqueId, {

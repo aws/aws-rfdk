@@ -193,6 +193,10 @@ export class ServiceTier extends cdk.Stack {
       // cleanly remove everything when this stack is destroyed. If you would like to ensure
       // that this resource is not accidentally deleted, you should set this to true.
       deletionProtection: false,
+      // Enable a local transparent filesystem cache of the Repository filesystem to reduce
+      // data traffic from the Repository's filesystem.
+      // For an EFS and NFS filesystem, this requires the 'fsc' mount option.
+      enableLocalFileCaching: true,
     });
     this.renderQueue.connections.allowDefaultPortFrom(this.bastion);
 

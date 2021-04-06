@@ -83,6 +83,7 @@ def main():
         storage_props = storage_tier.StorageTierMongoDBProps(
             vpc=network.vpc,
             database_instance_type=InstanceType.of(InstanceClass.MEMORY5, InstanceSize.LARGE),
+            alarm_email=config.alarm_email_address,
             root_ca=security.root_ca,
             dns_zone=network.dns_zone,
             accept_sspl_license=config.accept_sspl_license,
@@ -93,6 +94,7 @@ def main():
         storage_props = storage_tier.StorageTierDocDBProps(
             vpc=network.vpc,
             database_instance_type=InstanceType.of(InstanceClass.MEMORY5, InstanceSize.LARGE),
+            alarm_email=config.alarm_email_address
         )
         storage = storage_tier.StorageTierDocDB(app, 'StorageTier', props=storage_props, env=env)
 

@@ -39,6 +39,7 @@ import {
   App,
   CfnElement,
   Duration,
+  Names,
   RemovalPolicy,
   Stack,
 } from '@aws-cdk/core';
@@ -78,7 +79,22 @@ function escapeTokenRegex(s: string): string {
 beforeEach(() => {
   app = new App();
   stack = new Stack(app, 'Stack');
-  vpc = new Vpc(stack, 'VPC');
+  vpc = new Vpc(stack, 'VPC', {
+    subnetConfiguration: [
+      {
+        name: 'Public',
+        subnetType: SubnetType.PUBLIC,
+      },
+      {
+        name: 'Private',
+        subnetType: SubnetType.PRIVATE,
+      },
+      {
+        name: 'Isolated',
+        subnetType: SubnetType.ISOLATED,
+      },
+    ],
+  });
 
   class MockVersion extends Version implements IVersion {
     readonly linuxInstallers = {
@@ -135,10 +151,8 @@ test('repository installer instance is created correctly', () => {
       ],
     },
     CreationPolicy: {
-      AutoScalingCreationPolicy: {
-        MinSuccessfulInstancesPercent: 100,
-      },
       ResourceSignal: {
+        Count: 1,
         Timeout: 'PT15M',
       },
     },
@@ -182,21 +196,21 @@ test('repository installer honors vpcSubnet', () => {
   // private subnets.
 
   // WHEN
-  const publicSubnetIds = [ 'PublicSubnet1', 'PublicSubnet2' ];
+  const isolatedSubnetIds = [ 'IsolatedSubnet1', 'IsolatedSubnet2' ];
   const attrVpc = Vpc.fromVpcAttributes(stack, 'TestVpc', {
     availabilityZones: ['us-east-1a', 'us-east-1b'],
     vpcId: 'vpcid',
-    publicSubnetIds,
+    isolatedSubnetIds,
   });
   new Repository(stack, 'repositoryInstaller', {
     vpc: attrVpc,
     version,
-    vpcSubnets: { subnetType: SubnetType.PUBLIC },
+    vpcSubnets: { subnetType: SubnetType.ISOLATED },
   });
 
   // THEN
   expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
-    VPCZoneIdentifier: publicSubnetIds,
+    VPCZoneIdentifier: isolatedSubnetIds,
   }));
 });
 
@@ -294,28 +308,16 @@ test('repository installer iam permissions: db secret access', () => {
   // THEN
   expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
     PolicyDocument: {
-      Statement: [
-        {},
-        {},
-        {},
-        {},
-        {},
-        {
-          Action: [
-            'secretsmanager:GetSecretValue',
-            'secretsmanager:DescribeSecret',
-          ],
-          Effect: 'Allow',
-          Resource: {
-            Ref: 'repositoryInstallerDocumentDatabaseSecretAttachment29753B7C',
-          },
+      Statement: arrayWith({
+        Action: [
+          'secretsmanager:GetSecretValue',
+          'secretsmanager:DescribeSecret',
+        ],
+        Effect: 'Allow',
+        Resource: {
+          Ref: 'repositoryInstallerDocumentDatabaseSecretAttachment29753B7C',
         },
-        {},
-        {},
-        {},
-        {},
-        {},
-      ],
+      }),
     },
   }));
 });
@@ -513,16 +515,14 @@ test('repository warns if removal policy for database when database provided', (
     masterUser: {
       username: 'master',
     },
-    instanceProps: {
-      instanceType: InstanceType.of(
-        InstanceClass.R4,
-        InstanceSize.LARGE,
-      ),
-      vpc,
-      vpcSubnets: {
-        onePerAz: true,
-        subnetType: SubnetType.PRIVATE,
-      },
+    instanceType: InstanceType.of(
+      InstanceClass.R4,
+      InstanceSize.LARGE,
+    ),
+    vpc,
+    vpcSubnets: {
+      onePerAz: true,
+      subnetType: SubnetType.PRIVATE,
     },
   });
 
@@ -620,16 +620,14 @@ test('repository warns if databaseAuditLogging defined and database is specified
     masterUser: {
       username: 'master',
     },
-    instanceProps: {
-      instanceType: InstanceType.of(
-        InstanceClass.R4,
-        InstanceSize.LARGE,
-      ),
-      vpc,
-      vpcSubnets: {
-        onePerAz: true,
-        subnetType: SubnetType.PRIVATE,
-      },
+    instanceType: InstanceType.of(
+      InstanceClass.R4,
+      InstanceSize.LARGE,
+    ),
+    vpc,
+    vpcSubnets: {
+      onePerAz: true,
+      subnetType: SubnetType.PRIVATE,
     },
   });
 
@@ -737,16 +735,14 @@ test('warns if both retention period and database provided', () => {
     masterUser: {
       username: 'master',
     },
-    instanceProps: {
-      instanceType: InstanceType.of(
-        InstanceClass.R4,
-        InstanceSize.LARGE,
-      ),
-      vpc,
-      vpcSubnets: {
-        onePerAz: true,
-        subnetType: SubnetType.PRIVATE,
-      },
+    instanceType: InstanceType.of(
+      InstanceClass.R4,
+      InstanceSize.LARGE,
+    ),
+    vpc,
+    vpcSubnets: {
+      onePerAz: true,
+      subnetType: SubnetType.PRIVATE,
     },
   });
 
@@ -777,16 +773,14 @@ test('repository creates filesystem if none provided', () => {
     masterUser: {
       username: 'master',
     },
-    instanceProps: {
-      instanceType: InstanceType.of(
-        InstanceClass.R4,
-        InstanceSize.LARGE,
-      ),
-      vpc,
-      vpcSubnets: {
-        onePerAz: true,
-        subnetType: SubnetType.PRIVATE,
-      },
+    instanceType: InstanceType.of(
+      InstanceClass.R4,
+      InstanceSize.LARGE,
+    ),
+    vpc,
+    vpcSubnets: {
+      onePerAz: true,
+      subnetType: SubnetType.PRIVATE,
     },
     backup: {
       retention: Duration.days(15),
@@ -798,7 +792,7 @@ test('repository creates filesystem if none provided', () => {
   }
 
   // WHEN
-  new Repository(stack, 'repositoryInstaller', {
+  const repo = new Repository(stack, 'repositoryInstaller', {
     vpc,
     database: DatabaseConnection.forDocDB({ database: fsDatabase, login: fsDatabase.secret }),
     version,
@@ -807,6 +801,8 @@ test('repository creates filesystem if none provided', () => {
   // THEN
   expectCDK(stack).to(haveResource('AWS::EFS::FileSystem'));
   expectCDK(stack).to(haveResource('AWS::EFS::MountTarget'));
+  expect(repo.node.tryFindChild('PadEfsStorage')).toBeDefined();
+  expect(repo.node.findChild('FileSystem').node.tryFindChild('PaddingAccessPoint')).toBeDefined();
 });
 
 test('default repository instance is created using user defined installation path prefix', () => {
@@ -843,10 +839,8 @@ test('repository instance is created with user defined timeout', () => {
   // THEN
   expectCDK(stack).to(haveResource('AWS::AutoScaling::AutoScalingGroup', {
     CreationPolicy: {
-      AutoScalingCreationPolicy: {
-        MinSuccessfulInstancesPercent: 100,
-      },
       ResourceSignal: {
+        Count: 1,
         Timeout: 'PT30M',
       },
     },
@@ -907,7 +901,7 @@ test('validate instance self-termination', () => {
           Action: 'autoscaling:UpdateAutoScalingGroup',
           Condition: {
             StringEquals: {
-              'autoscaling:ResourceTag/resourceLogicalId': repo.node.uniqueId,
+              'autoscaling:ResourceTag/resourceLogicalId': Names.uniqueId(repo),
             },
           },
           Effect: 'Allow',

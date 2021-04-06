@@ -9,13 +9,21 @@ from aws_cdk.core import (
     Construct,
     Duration,
     RemovalPolicy,
+    Size,
     Stack,
     StackProps
+)
+from aws_cdk.aws_cloudwatch import (
+    ComparisonOperator,
+    Metric,
+    TreatMissingData
+)
+from aws_cdk.aws_cloudwatch_actions import (
+    SnsAction
 )
 from aws_cdk.aws_docdb import (
     BackupProps,
     DatabaseCluster,
-    InstanceProps,
     Login
 )
 from aws_cdk.aws_ec2 import (
@@ -30,8 +38,20 @@ from aws_cdk.aws_efs import (
     FileSystem,
     PosixUser
 )
+from aws_cdk.aws_iam import (
+    ServicePrincipal
+)
+from aws_cdk.aws_kms import (
+    Key
+)
 from aws_cdk.aws_route53 import (
     IPrivateHostedZone
+)
+from aws_cdk.aws_sns import (
+    Topic
+)
+from aws_cdk.aws_sns_subscriptions import (
+    EmailSubscription
 )
 
 from aws_rfdk import (
@@ -44,6 +64,7 @@ from aws_rfdk import (
     MongoDbSsplLicenseAcceptance,
     MongoDbVersion,
     MountableEfs,
+    PadEfsStorage,
     X509CertificatePem,
     X509CertificatePkcs12
 )
@@ -60,6 +81,10 @@ class StorageTierProps(StackProps):
     """
     # The VPC to deploy resources into.
     vpc: IVpc
+
+    # Email address to send alerts to when CloudWatch Alarms breach. If not specified, no alarms or alerts will be
+    # deployed.
+    alarm_email: Optional[str]
 
 
 class StorageTier(Stack):
@@ -123,11 +148,159 @@ class StorageTier(Stack):
         self.mountable_file_system = MountableEfs(
             self,
             filesystem=file_system,
-            access_point=access_point
+            access_point=access_point,
+            # We have enable_local_file_caching set to True on the RenderQueue in the
+            # Service Tier. EFS requires the 'fsc' mount option to take advantage of
+            # that.
+            extra_mount_options=['fsc']
         )
 
         # The database to connect Deadline to.
         self.database: Optional[DatabaseConnection] = None
+
+        # The Amazon EFS filesystem deployed above has been deployed in bursting throughput
+        # mode. This means that it can burst throughput up to 100 MiB/s (with reads counting as
+        # 1/3 of their actual throughput for this purpose). However, the baseline throughput of the EFS
+        # is 50 KiB/s per 1 GiB stored in the filesystem and exceeding this throughput consumes burst credits.
+        # An EFS starts with a large amount of burst credits, and regains credits when throughput is below
+        # the baseline throughput threshold.
+        #
+        # The Deadline Repository is approximately 1 GiB in size; resulting in 50 KiB/s baseline throughput, which is
+        # not sufficient for the operation of Deadline.
+        #
+        # The following:
+        # 1) Sets up a series of AWS CloudWatch Alarms that will send you an email to alert you to take action
+        # to increase the data stored in the filesystem when the burst credits have decreased below certain thresholds.
+        # If you run out of burst credits on the filesystem, then Deadline will start timing-out on requests and your
+        # render farm may become unstable.
+        # 2) Uses RFDK's PadEfsStorage construct to add data to the EFS for the purpose of increasing the amount
+        # of stored data to increase the baseline throughput.
+        # 
+        # See: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html
+        # for more information on AWS CloudWatch Alarms.
+        # See: https://docs.aws.amazon.com/efs/latest/ug/performance.html#throughput-modes
+        # for more information on Amazon EFS throughput modes.
+
+        if props.alarm_email:
+            self.add_low_efs_burst_credit_alarms(file_system, props.alarm_email)
+
+        # Add padding files to the filesystem to increase baseline throughput. We add files to the filesystem to
+        # increase this baseline throughput, while retaining the ability to burst throughput. See RFDK's PadEfsStorage
+        # documentation for additional details.
+        pad_access_point = AccessPoint(
+            self,
+            'PaddingAccessPoint',
+            file_system=file_system,
+            path='/RFDK_PaddingFiles',
+            # TODO - We set the padding files to be owned by root (uid/gid = 0) by default. You may wish to change this.
+            create_acl=Acl(
+                owner_gid='0',
+                owner_uid='0',
+                permissions='700',
+            ),
+            posix_user=PosixUser(
+                uid='0',
+                gid='0',
+            ),
+        )
+        PadEfsStorage(
+            self,
+            'PadEfsStorage',
+            vpc=props.vpc,
+            access_point=pad_access_point,
+            desired_padding=Size.gibibytes(40), # Provides 2 MiB/s of baseline throughput. Costs $12/month.
+        )
+
+    def add_low_efs_burst_credit_alarms(self, filesystem: FileSystem, email_address: str) -> None:
+        '''
+        Set up CloudWatch Alarms that will warn when the given filesystem's burst credits are below
+        four different thresholds. We send an email to the given address when an Alarm breaches.
+        '''
+        # Set up the SNS Topic that will send the emails.
+        # ====================
+        # 1) KMS key to use to encrypt events within the SNS Topic. The Key is optional
+        key = Key(
+            self, 
+            'SNSEncryptionKey',
+            description='Used to encrypt the SNS Topic for sending EFS Burst Credit alerts',
+            enable_key_rotation=True,
+            removal_policy=RemovalPolicy.DESTROY,
+            trust_account_identities=True
+        )
+        key.grant(ServicePrincipal('cloudwatch.amazonaws.com'), 'kms:Decrypt', 'kms:GenerateDataKey')
+
+        # 2) SNS Topic that will be alerted by CloudWatch and will send the email in response.
+        sns_topic = Topic(
+            self,
+            'BurstAlertEmailTopic',
+            master_key=key
+        )
+        sns_topic.grant_publish(ServicePrincipal('cloudwatch.amazonaws.com'))
+        sns_topic.add_subscription(EmailSubscription(email_address))
+        alarm_action = SnsAction(sns_topic)
+
+        # Set up the CloudWatch Alarm(s) and have them trigger SNS events when breached.
+        # ======================
+        # 1) CDK helper to define the CloudWatch Metric that we're interested in.
+        burst_credits_metric = Metric(
+            metric_name='BurstCreditBalance',
+            namespace='AWS/EFS',
+            dimensions={
+                "FileSystemId": filesystem.file_system_id
+            },
+            # One 99-th percentile data point sample every hour
+            period=Duration.hours(1),
+            statistic='p99'
+        )
+        
+        # 2) Create the alarms
+        thresholds = [
+            {
+                "id": 'CAUTION-EfsBurstCredits',
+                "name": f"CAUTION Burst Credits - {filesystem.file_system_id}",
+                "threshold": int(2.00 * 2**40),
+                "message": f"CAUTION. 2 TiB Threshold Breached: EFS {filesystem.file_system_id} is depleting burst credits. Add data to the EFS to increase baseline throughput.",
+                # Alarm after 6 datapoints below threshold. We have 1 datapoint every hour. So, we alarm if below threshold for 6hrs
+                "datapoints": 6
+            },
+            {
+                "id": 'WARNING-EfsBurstCredits',
+                "name": f"WARNING Burst Credits - {filesystem.file_system_id}",
+                "threshold": int(1.25 * 2**40),
+                "message": f"WARNING. 1.25 TiB Threshold Breached: EFS {filesystem.file_system_id} is depleting burst credits. Add data to the EFS to increase baseline throughput.",
+                # Alarm after 6 datapoints below threshold. We have 1 datapoint every hour. So, we alarm if below threshold for 6hrs
+                "datapoints": 6
+            },
+            {
+                "id": 'ALERT-EfsBurstCredits',
+                "name": f"ALERT Burst Credits - {filesystem.file_system_id}",
+                "threshold": int(0.50 * 2**40),
+                "message": f"ALERT! 500 GiB Threshold Breached: EFS {filesystem.file_system_id} is running out of burst credits. Add data to the EFS to increase baseline throughput or else the Render Farm may cease operation.",
+                # Alarm after 6 datapoints below threshold. We have 1 datapoint every hour. So, we alarm if below threshold for 6hrs
+                "datapoints": 6
+            },
+            {
+                "id": 'EMERGENCY-EfsBurstCredits',
+                "name": f"EMERGENCY Burst Credits - {filesystem.file_system_id}",
+                "threshold": int(0.10 * 2**40),
+                "message": f"EMERGENCY! 100 GiB Threshold Breached: EFS {filesystem.file_system_id} is running out of burst credits. Add data to the EFS to increase baseline throughput or else the Render Farm will cease operation.",
+                # Alarm after 2 datapoints below threshold. We have 1 datapoint every hour. So, we alarm if below threshold for 2hrs
+                "datapoints": 2
+            },
+        ]
+        for config in thresholds:
+            alarm = burst_credits_metric.create_alarm(
+                self,
+                config['id'],
+                alarm_name=config['name'],
+                actions_enabled=True,
+                alarm_description=config['message'],
+                treat_missing_data=TreatMissingData.NOT_BREACHING,
+                threshold=config['threshold'],
+                comparison_operator=ComparisonOperator.LESS_THAN_THRESHOLD,
+                evaluation_periods=config['datapoints']
+            )
+            alarm.add_alarm_action(alarm_action)
 
 
 @dataclass
@@ -153,16 +326,13 @@ class StorageTierDocDB(StorageTier):
         :param kwargs: Any kwargs that need to be passed on to the parent class.
         """
         super().__init__(scope, stack_id, props=props, **kwargs)
-        instance_props = InstanceProps(
-            vpc=props.vpc,
-            vpc_subnets=SubnetSelection(subnet_type=SubnetType.PRIVATE),
-            instance_type=props.database_instance_type
-        )
 
         doc_db = DatabaseCluster(
             self,
             'DocDBCluster',
-            instance_props=instance_props,
+            vpc=props.vpc,
+            vpc_subnets=SubnetSelection(subnet_type=SubnetType.PRIVATE),
+            instance_type=props.database_instance_type,
             # TODO - For cost considerations this example only uses 1 Database instance. 
             # It is recommended that when creating your render farm you use at least 2 instances for redundancy.
             instances=1,
