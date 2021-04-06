@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.29.0](https://github.com/aws/aws-rfdk/compare/v0.28.0...v0.29.0) (2021-04-06)
+
+
+### Supported CDK Version
+
+* [1.96.0](https://github.com/aws/aws-cdk/releases/tag/v1.96.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.14.5](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** CDK v1.96.0 modifies the API for DocumentDB DatabaseCluster. See
+our examples for an illustration of the code update required.
+* **core:** Stacks set up like our examples will see an error regarding being unable to
+ delete an export in use when deploying a stack update. To bypass, use the `-e` option of `cdk deploy`
+ to deploy each stack downstream of the Mountable's stack before updating the Mountable's stack. E.g:
+
+      cdk deploy -e ComputeTier
+      cdk deploy -e ServiceTier
+      cdk deploy -e StorageTier
+
+### Features
+
+* **core:** add PadEfsStorage construct ([#365](https://github.com/aws/aws-rfdk/issues/365)) ([c6334b6](https://github.com/aws/aws-rfdk/commit/c6334b6659f6892a1ba8e08f63db7334fcd6d690))
+* **deadline:** add option to the RenderQueue to use cachefilesd ([#367](https://github.com/aws/aws-rfdk/issues/367)) ([901b749](https://github.com/aws/aws-rfdk/commit/901b749b11a8de51797fc822c35447591f4bbe44))
+* **examples:** Demonstrate how to send an email alarm when EFS burst credits below a threshold ([#373](https://github.com/aws/aws-rfdk/issues/373)) ([cc5d372](https://github.com/aws/aws-rfdk/commit/cc5d372026a5b6c72d6285867af762e6200b5431))
+
+
+### Bug Fixes
+
+* **core:** Move mountable's asset to scope of target ([#369](https://github.com/aws/aws-rfdk/issues/369)) ([cb16918](https://github.com/aws/aws-rfdk/commit/cb16918dafd0d3caf93fed2a01b791e9281b602d))
+* **deadline:** Relax UsageBasedLicensing.grantPortAccess() to IConnectable ([#352](https://github.com/aws/aws-rfdk/issues/352)) ([9f05768](https://github.com/aws/aws-rfdk/commit/9f0576856f949090658c7a14e79e02f081516b80))
+* **integ:** capture exit codes of parallel tests ([#371](https://github.com/aws/aws-rfdk/issues/371)) ([276f76f](https://github.com/aws/aws-rfdk/commit/276f76f3fc1b9422a052642a1e11b1afe400af91))
+
 ## [0.28.0](https://github.com/aws/aws-rfdk/compare/v0.27.0...v0.28.0) (2021-03-25)
 
 
