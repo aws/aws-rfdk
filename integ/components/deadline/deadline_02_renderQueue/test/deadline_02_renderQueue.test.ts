@@ -230,5 +230,32 @@ describe.each(testCases)('Deadline RenderQueue tests (%s)', (_, id) => {
         expect(responseCode).toEqual(0);
       });
     });
+
+    test(`RQ-${id}-5: RCS not running as root`, async () => {
+      /**********************************************************************************************************
+       * TestID:          RQ-5
+       * Description:     Confirm that RCS process is not running as the root user
+       * Input:           The user owning the RCS process as reported by deadlinecommand
+       * Expected result: Response code 0, i.e. the script execution was successful and Deadline accepted the job
+      **********************************************************************************************************/
+      var params = {
+        DocumentName: 'AWS-RunShellScript',
+        Comment: 'Execute Test Script RQ-query-rcs-user.sh',
+        InstanceIds: [bastionId],
+        Parameters: {
+          commands: [
+            'sudo -i',
+            'su - ec2-user >/dev/null',
+            'cd ~ec2-user',
+            './testScripts/RQ-query-rcs-user.sh',
+          ],
+        },
+      };
+      return awaitSsmCommand(bastionId, params).then( response => {
+        const user = response.output;
+        expect(user).not.toHaveLength(0);
+        expect(user).not.toEqual('root');
+      });
+    });
   });
 });
