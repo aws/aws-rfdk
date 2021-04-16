@@ -286,4 +286,60 @@ describe('Test MountableEFS', () => {
     expect(matches).toHaveLength(2);
     expect(matches[0]).toBe(matches[1]);
   });
+
+  describe('resolves mount target using API', () => {
+    describe.each<[string, () => efs.AccessPoint | undefined]>([
+      ['with access point', () => {
+
+        return new efs.AccessPoint(stack, 'AccessPoint', {
+          fileSystem: efsFS,
+          posixUser: {
+            gid: '1',
+            uid: '1',
+          },
+        });
+      }],
+      ['without access point', () => undefined],
+    ])('%s', (_, getAccessPoint) => {
+      let accessPoint: efs.AccessPoint | undefined;
+
+      beforeEach(() => {
+        // GIVEN
+        accessPoint = getAccessPoint();
+        const mountable = new MountableEfs(efsFS, {
+          filesystem: efsFS,
+          accessPoint,
+          resolveMountTargetDnsWithApi: true,
+        });
+
+        // WHEN
+        mountable.mountToLinuxInstance(instance, {
+          location: '/mnt/efs',
+        });
+      });
+
+      test('grants DescribeMountTargets permission', () => {
+        const expectedResources = [
+          stack.resolve((efsFS.node.defaultChild as efs.CfnFileSystem).attrArn),
+        ];
+        if (accessPoint) {
+          expectedResources.push(stack.resolve(accessPoint?.accessPointArn));
+        }
+        cdkExpect(stack).to(haveResourceLike('AWS::IAM::Policy', {
+          PolicyDocument: objectLike({
+            Statement: arrayWith(
+              {
+                Action: 'elasticfilesystem:DescribeMountTargets',
+                Effect: 'Allow',
+                Resource: expectedResources.length == 1 ? expectedResources[0] : expectedResources,
+              },
+            ),
+          }),
+          Roles: arrayWith(
+            stack.resolve((instance.role.node.defaultChild as CfnResource).ref),
+          ),
+        }));
+      });
+    });
+  });
 });

@@ -66,6 +66,18 @@ export interface MountableEfsProps {
    * @default No extra options.
    */
   readonly extraMountOptions?: string[];
+
+  /**
+   * If enabled, RFDK will add user-data to the instances mounting this EFS file-system that obtains the mount target
+   * IP address using AWS APIs and writes them to the system's `/etc/hosts` file to not require DNS lookups.
+   *
+   * If mounting EFS from instances in a VPC configured to not use the Amazon-provided DNS Route 53 Resolver server,
+   * then the EFS mount targets will not be resolvable using DNS (see
+   * https://docs.aws.amazon.com/vpc/latest/userguide/vpc-dns.html) and enabling this will work around that issue.
+   *
+   * @default false
+   */
+  readonly resolveMountTargetDnsWithApi?: boolean;
 }
 
 /**
@@ -157,11 +169,26 @@ export class MountableEfs implements IMountableLinuxFilesystem {
     }
     const mountOptionsStr: string = mountOptions.join(',');
 
+    const resolveMountTargetDnsWithApi = this.props.resolveMountTargetDnsWithApi ?? false;
+    if (resolveMountTargetDnsWithApi) {
+      const describeMountTargetResources = [
+        (this.props.filesystem.node.defaultChild as efs.CfnFileSystem).attrArn,
+      ];
+      if (this.props.accessPoint) {
+        describeMountTargetResources.push(this.props.accessPoint.accessPointArn);
+      }
+
+      target.grantPrincipal.addToPrincipalPolicy(new PolicyStatement({
+        resources: describeMountTargetResources,
+        actions: ['elasticfilesystem:DescribeMountTargets'],
+      }));
+    }
+
     target.userData.addCommands(
       'TMPDIR=$(mktemp -d)',
       'pushd "$TMPDIR"',
       `unzip ${mountScript}`,
-      `bash ./mountEfs.sh ${this.props.filesystem.fileSystemId} ${mountDir} ${mountOptionsStr}`,
+      `bash ./mountEfs.sh ${this.props.filesystem.fileSystemId} ${mountDir} ${mountOptionsStr} ${resolveMountTargetDnsWithApi}`,
       'popd',
       `rm -f ${mountScript}`,
     );
