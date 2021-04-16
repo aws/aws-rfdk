@@ -92,7 +92,7 @@ describe('Test MountableEFS', () => {
     expect(userData).toMatch(new RegExp(escapeTokenRegex(s3Copy)));
     expect(userData).toMatch(new RegExp(escapeTokenRegex('unzip /tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}')));
     // Make sure we execute the script with the correct args
-    expect(userData).toMatch(new RegExp(escapeTokenRegex('bash ./mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 rw')));
+    expect(userData).toMatch(new RegExp(escapeTokenRegex('bash ./mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 false rw')));
   });
 
   test('assert Linux-only', () => {
@@ -129,7 +129,7 @@ describe('Test MountableEFS', () => {
     const userData = instance.userData.render();
 
     // THEN
-    expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 r')));
+    expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 false r')));
   });
 
   describe.each<[MountPermissions | undefined]>([
@@ -206,7 +206,7 @@ describe('Test MountableEFS', () => {
             expect.arrayContaining([
               expect.stringMatching(new RegExp('(\\n|^)bash \\./mountEfs.sh $')),
               stack.resolve(efsFS.fileSystemId),
-              ` ${mountPath} ${expectedMountMode},iam,accesspoint=`,
+              ` ${mountPath} false ${expectedMountMode},iam,accesspoint=`,
               stack.resolve(accessPoint.accessPointId),
               expect.stringMatching(/^\n/),
             ]),
@@ -257,7 +257,7 @@ describe('Test MountableEFS', () => {
     const userData = instance.userData.render();
 
     // THEN
-    expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 rw,option1,option2')));
+    expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 false rw,option1,option2')));
   });
 
   test('asset is singleton', () => {

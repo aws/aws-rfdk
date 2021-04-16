@@ -432,7 +432,7 @@ test('repository mounts repository filesystem', () => {
   const userData = (repo.node.defaultChild as AutoScalingGroup).userData.render();
 
   // THEN
-  expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 rw')));
+  expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 false rw')));
 });
 
 test.each([
@@ -939,7 +939,7 @@ test('repository configure client instance', () => {
 
   // THEN
   // white-box testing. If we mount the filesystem, then we've called: setupDirectConnect()
-  expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/repository rw')));
+  expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/repository false rw')));
 
   // Make sure we added the DB connection args
   expect(userData).toMatch(/.*export -f configure_deadline_database.*/);

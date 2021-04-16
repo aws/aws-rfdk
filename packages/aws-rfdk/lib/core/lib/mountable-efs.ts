@@ -188,7 +188,7 @@ export class MountableEfs implements IMountableLinuxFilesystem {
       'TMPDIR=$(mktemp -d)',
       'pushd "$TMPDIR"',
       `unzip ${mountScript}`,
-      `bash ./mountEfs.sh ${this.props.filesystem.fileSystemId} ${mountDir} ${mountOptionsStr} ${resolveMountTargetDnsWithApi}`,
+      `bash ./mountEfs.sh ${this.props.filesystem.fileSystemId} ${mountDir} ${resolveMountTargetDnsWithApi} ${mountOptionsStr}`,
       'popd',
       `rm -f ${mountScript}`,
     );

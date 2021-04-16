@@ -12,16 +12,17 @@
 # Script arguments:
 #  $1 -- EFS Identifier (ex: efs-00000000000)
 #  $2 -- Mount path; directory that we mount the EFS to.
-#  $3 -- (optional) NFSv4 mount options for the EFS. 
-#  $4 -- (optional) whether to obtain the EFS mount target's IP address using the EFS API and persist this to
+#  $3 -- whether to obtain the EFS mount target's IP address using the EFS API and persist this to
 #        the /etc/hosts file on the system. This allows the script to work when the mounting instance cannot resolve the
-#        mount target using DNS. This defaults to being disabled, specify "true" to enable this feature.
+#        mount target using DNS. A value of "true" (case sensitive) will  enable this feature. Any other value will
+#        is treated as being disabled.
+#  $4 -- (optional) NFSv4 mount options for the EFS. 
 
 set -xeu
 
 if test $# -lt 2
 then
-  echo "Usage: $0 FILE_SYSTEM_ID MOUNT_PATH [MOUNT_OPTIONS] [RESOLVE_MOUNT_POINT_USING_API]"
+  echo "Usage: $0 FILE_SYSTEM_ID MOUNT_PATH RESOLVE_MOUNT_POINT_USING_API [MOUNT_OPTIONS]"
   exit 1
 fi
 
@@ -38,8 +39,8 @@ AVAILABILITY_ZONE_NAME=$(get_availability_zone "${METADATA_TOKEN}")
 
 FILESYSTEM_ID=$1
 MOUNT_PATH=$2
-MOUNT_OPTIONS="${3:-}"
-RESOLVE_MOUNTPOINT_IP_VIA_API="${4:-false}"
+RESOLVE_MOUNTPOINT_IP_VIA_API=$3
+MOUNT_OPTIONS="${4:-}"
 
 sudo mkdir -p "${MOUNT_PATH}"
 
@@ -70,14 +71,16 @@ function resolve_mount_target_ip_via_api() {
   local AWS_REGION=$4
   local MOUNT_POINT_IP=""
 
-  if [[ $MNT_TARGET_RESOURCE_ID == fs-* ]]; then
+  if [[ $MNT_TARGET_RESOURCE_ID == fs-* ]]
+  then
     # Mounting without an access point
     MOUNT_POINT_IP=$(aws efs describe-mount-targets \
       --region "${AWS_REGION}"                      \
       --file-system-id ${MNT_TARGET_RESOURCE_ID}    \
       | jq -r ".MountTargets[] | select( .AvailabilityZoneName == \"${AVAILABILITY_ZONE_NAME}\" ) | .IpAddress" \
     )
-  elif [[ $MNT_TARGET_RESOURCE_ID == fsap-* ]]; then
+  elif [[ $MNT_TARGET_RESOURCE_ID == fsap-* ]]
+  then
     # Mounting via an access point
     MOUNT_POINT_IP=$(aws efs describe-mount-targets \
       --region "${AWS_REGION}"                      \
@@ -86,6 +89,12 @@ function resolve_mount_target_ip_via_api() {
     )
   else
     echo "Unsupported mount target resource: ${MNT_TARGET_RESOURCE_ID}"
+    return 1
+  fi
+
+  if [[ -z "${MOUNT_POINT_IP}" ]]
+  then
+    echo "Could not find mount target matching the current availability zone (${AVAILABILITY_ZONE_NAME}) using EFS API"
     return 1
   fi
 
@@ -106,7 +115,10 @@ EOF
 if [[ $RESOLVE_MOUNTPOINT_IP_VIA_API == "true"  ]]
 then
   # jq is used to query the JSON API response
-  sudo "${PACKAGE_MANAGER}" install -y jq
+  if ! where jq > /dev/null 2>&1
+  then
+    sudo "${PACKAGE_MANAGER}" install -y jq
+  fi
 
   # Get access point ID if available, otherwise file system ID
   MNT_TARGET_RESOURCE_ID=$FILESYSTEM_ID
