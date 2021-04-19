@@ -8,6 +8,7 @@
 # $1: s3 path for the deadline repository installer.
 # $2: Path where deadline repository needs to be installed.
 # $3: Deadline Repository Version being installed.
+# $4: (Optional) Deadline Repository settings file to import.
 
 # exit when any command fails
 set -xeuo pipefail
@@ -15,6 +16,7 @@ set -xeuo pipefail
 S3PATH=$1
 PREFIX=$2
 DEADLINE_REPOSITORY_VERSION=$3
+DEADLINE_REPOSITORY_SETTINGS_FILE=${4:-}
 shift;shift;
 
 # check if repository is already installed at the given path
@@ -69,7 +71,17 @@ set +x
 
 INSTALLER_DB_ARGS_STRING=''
 for key in "${!INSTALLER_DB_ARGS[@]}"; do INSTALLER_DB_ARGS_STRING=$INSTALLER_DB_ARGS_STRING"${key} ${INSTALLER_DB_ARGS[$key]} "; done
-$REPO_INSTALLER --mode unattended --setpermissions false --prefix "$PREFIX" --installmongodb false --backuprepo false ${INSTALLER_DB_ARGS_STRING}
+
+REPOSITORY_SETTINGS_ARG_STRING=''
+if [ ! -z "$DEADLINE_REPOSITORY_SETTINGS_FILE" ]; then
+  if [ ! -f "$DEADLINE_REPOSITORY_SETTINGS_FILE" ]; then
+    echo "WARNING: Repository settings file was specified but is not a file: $DEADLINE_REPOSITORY_SETTINGS_FILE. Repository settings will not be imported."
+  else
+    REPOSITORY_SETTINGS_ARG_STRING="--importrepositorysettings true --repositorysettingsimportoperation append --repositorysettingsimportfile \"$DEADLINE_REPOSITORY_SETTINGS_FILE\""
+  fi
+fi
+
+$REPO_INSTALLER --mode unattended --setpermissions false --prefix "$PREFIX" --installmongodb false --backuprepo false ${INSTALLER_DB_ARGS_STRING} $REPOSITORY_SETTINGS_ARG_STRING
 
 set -x
 

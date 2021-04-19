@@ -43,6 +43,9 @@ import {
   PolicyStatement,
 } from '@aws-cdk/aws-iam';
 import {
+  Asset,
+} from '@aws-cdk/aws-s3-assets';
+import {
   Annotations,
   Construct,
   Duration,
@@ -376,6 +379,12 @@ export interface RepositoryProps {
    * Options to add additional security groups to the Repository.
    */
   readonly securityGroupsOptions?: RepositorySecurityGroupsOptions;
+
+  /**
+   * The Deadline Repository settings file to import.
+   * @see https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/repository-settings-importer-exporter.html
+   */
+  readonly repositorySettings?: Asset;
 }
 
 /**
@@ -657,6 +666,7 @@ export class Repository extends Construct implements IRepository {
       this.installerGroup,
       repositoryInstallationPath,
       props.version,
+      props.repositorySettings,
     );
 
     this.configureSelfTermination();
@@ -887,7 +897,8 @@ export class Repository extends Construct implements IRepository {
   private configureRepositoryInstallerScript(
     installerGroup: AutoScalingGroup,
     installPath: string,
-    version: IVersion) {
+    version: IVersion,
+    settings?: Asset) {
     const installerScriptAsset = ScriptAsset.fromPathConvention(this, 'DeadlineRepositoryInstallerScript', {
       osType: installerGroup.osType,
       baseName: 'installDeadlineRepository',
@@ -902,13 +913,23 @@ export class Repository extends Construct implements IRepository {
 
     version.linuxInstallers.repository.s3Bucket.grantRead(installerGroup, version.linuxInstallers.repository.objectKey);
 
+    const installerArgs = [
+      `"s3://${version.linuxInstallers.repository.s3Bucket.bucketName}/${version.linuxInstallers.repository.objectKey}"`,
+      `"${installPath}"`,
+      version.linuxFullVersionString(),
+    ];
+
+    if (settings) {
+      const repositorySettingsFilePath = installerGroup.userData.addS3DownloadCommand({
+        bucket: settings.bucket,
+        bucketKey: settings.s3ObjectKey,
+      });
+      installerArgs.push(repositorySettingsFilePath);
+    }
+
     installerScriptAsset.executeOn({
       host: installerGroup,
-      args: [
-        `"s3://${version.linuxInstallers.repository.s3Bucket.bucketName}/${version.linuxInstallers.repository.objectKey}"`,
-        `"${installPath}"`,
-        version.linuxFullVersionString(),
-      ],
+      args: installerArgs,
     });
   }
 }
