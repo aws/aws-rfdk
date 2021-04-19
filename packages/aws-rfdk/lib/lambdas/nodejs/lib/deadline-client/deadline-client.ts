@@ -185,7 +185,7 @@ export class DeadlineClient {
     } catch(exception) {
       const { statusCode, statusMessage } = exception;
       if (statusCode !== undefined && statusMessage !== undefined) {
-        if (statusCode === 503 && retriesLeft > 0) {
+        if (statusCode >= 500 && retriesLeft > 0) {
           console.log(`Request failed with ${statusCode}: ${statusMessage}. Will retry after ${retryDelayMs} ms.`);
           console.log(`Retries left: ${retriesLeft}`);
           const delay = (ms: number) => new Promise(res => setTimeout(res, ms));

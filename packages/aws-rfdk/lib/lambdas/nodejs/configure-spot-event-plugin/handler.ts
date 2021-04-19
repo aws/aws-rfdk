@@ -101,12 +101,11 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
   }
 
   private async spotEventPluginClient(connection: ConnectionOptions): Promise<SpotEventPluginClient> {
-    // The maximum Lambda execution time is 15 mins.
-    // There will be less retries, because we quit Lambda earlier before the timeout (see simple-resource implementation).
-    // Otherwise, it will hang up.
-    const EXECUTION_TIME_MINUTES = 15;
+    // The calculation of retries is approximate. The real number of retries will be smaller,
+    // because we quit Lambda before the timeout (see SimpleCustomResource implementation).
+    const lambdaTimeoutMins = parseInt(process.env.LAMBDA_TIMEOUT_MINS || '15'); // The maximum Lambda execution time is 15 mins.
     const MS_IN_A_MINUTE = 60000;
-    const timeRemaining = EXECUTION_TIME_MINUTES * MS_IN_A_MINUTE;
+    const timeRemaining = lambdaTimeoutMins * MS_IN_A_MINUTE;
     const retryWaitMs = 10000;
     const retries = Math.floor(timeRemaining / retryWaitMs);
 

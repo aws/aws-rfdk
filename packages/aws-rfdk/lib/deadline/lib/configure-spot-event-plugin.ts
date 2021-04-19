@@ -424,6 +424,7 @@ export class ConfigureSpotEventPlugin extends Construct {
 
     const region = Construct.isConstruct(props.renderQueue) ? Stack.of(props.renderQueue).region : Stack.of(this).region;
 
+    const timeoutMins = 15;
     const configurator = new LambdaFunction(this, 'Configurator', {
       vpc: props.vpc,
       vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
@@ -432,10 +433,11 @@ export class ConfigureSpotEventPlugin extends Construct {
       }),
       environment: {
         DEBUG: 'false',
+        LAMBDA_TIMEOUT_MINS: timeoutMins.toString(),
       },
       runtime: Runtime.NODEJS_12_X,
       handler: 'configure-spot-event-plugin.configureSEP',
-      timeout: Duration.minutes(15),
+      timeout: Duration.minutes(timeoutMins),
       logRetention: RetentionDays.ONE_WEEK,
     });
 
