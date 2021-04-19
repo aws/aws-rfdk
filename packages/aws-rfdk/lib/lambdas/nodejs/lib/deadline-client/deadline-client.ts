@@ -6,6 +6,8 @@
 import * as http from 'http';
 import * as https from 'https';
 
+/* eslint-disable no-console */
+
 /**
  * Properties for setting up an {@link TLSProps}.
  */
@@ -50,6 +52,18 @@ export interface DeadlineClientProps {
    * The certificate, private key, and root CA certificate if SSL/TLS is used.
    */
   readonly tls?: TLSProps;
+
+  /**
+   * The number of retries if received status code 503 Service Temporarily unavailable.
+   * @default 3
+   */
+  readonly retries?: number;
+
+  /**
+   * The amount of time in milliseconds to wait between the retries.
+   * @default 10000 milliseconds
+   */
+  readonly retryWaitMs?: number;
 }
 
 /**
@@ -91,8 +105,20 @@ export interface Response {
  * It is intended to be used within Custom Resources that need to send the requests to the Render Queue.
  */
 export class DeadlineClient {
+  /**
+   * The default number of retry attempts.
+   */
+  private static readonly DEFAULT_RETRY_COUNT = 3;
+
+  /**
+   * Specifies the default waiting period between two requests.
+   */
+  private static readonly DEFAULT_RETRY_PERIOD_MS = 10000;
+
   public readonly requestOptions: RequestOptions;
   private protocol: typeof http | typeof https;
+  private readonly retries: number;
+  private readonly retryWaitMs: number;
 
   public constructor(props: DeadlineClientProps) {
     this.requestOptions = {
@@ -112,6 +138,9 @@ export class DeadlineClient {
     else {
       this.protocol = http;
     }
+
+    this.retries = props.retries ?? DeadlineClient.DEFAULT_RETRY_COUNT;
+    this.retryWaitMs = props.retryWaitMs ?? DeadlineClient.DEFAULT_RETRY_PERIOD_MS;
   }
 
   /**
@@ -122,7 +151,7 @@ export class DeadlineClient {
    */
   public async GetRequest(path: string, requestOptions?: https.RequestOptions): Promise<Response> {
     const options = this.FillRequestOptions(path, 'GET', requestOptions);
-    return this.performRequest(options);
+    return this.performRequestWithRetry(options, this.retries, this.retryWaitMs);
   }
 
   /**
@@ -134,7 +163,7 @@ export class DeadlineClient {
    */
   public async PostRequest(path: string, data?: any, requestOptions?: https.RequestOptions): Promise<Response> {
     const options = this.FillRequestOptions(path, 'POST', requestOptions);
-    return this.performRequest(options, data ? JSON.stringify(data) : undefined);
+    return this.performRequestWithRetry(options, this.retries, this.retryWaitMs, data ? JSON.stringify(data) : undefined);
   }
 
   private FillRequestOptions(path: string, method: string, requestOptions?: https.RequestOptions): https.RequestOptions {
@@ -150,38 +179,51 @@ export class DeadlineClient {
     return options;
   }
 
+  private async performRequestWithRetry(options: https.RequestOptions, retriesLeft: number, retryDelayMs: number, data?: string): Promise<Response> {
+    return this.performRequest(options, data)
+      .catch(async (rejection) => {
+        const { statusCode } = rejection;
+        if (statusCode === 503 && retriesLeft > 0) {
+          console.log(`Request failed with ${rejection.statusCode}: ${rejection.statusMessage}. Will retry after ${retryDelayMs} ms.`);
+          console.log(`Retries left: ${retriesLeft}`);
+          const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+          await delay(retryDelayMs);
+          return await this.performRequestWithRetry(options, retriesLeft - 1, retryDelayMs, data);
+        }
+        else {
+          return await Promise.reject(rejection.statusMessage);
+        }
+      });
+  }
+
   private async performRequest(options: https.RequestOptions, data?: string): Promise<Response> {
     return new Promise<Response>((resolve, reject) => {
-      try {
-        const req = this.protocol.request(options, response => {
-          const { statusCode } = response;
-          if (!statusCode || statusCode >= 300) {
-            return reject(response.statusMessage);
-          }
-          else {
-            const chunks: any = [];
-            response.on('data', (chunk) => {
-              chunks.push(chunk);
-            });
-            response.on('end', () => {
-              const stringData = Buffer.concat(chunks).toString();
-              const result: Response = {
-                data: JSON.parse(stringData),
-                fullResponse: response,
-              };
-              return resolve(result);
-            });
-          }
-        });
-
-        req.on('error', reject);
-        if (data) {
-          req.write(data);
+      const req = this.protocol.request(options, response => {
+        const { statusCode } = response;
+        if (!statusCode || statusCode >= 300) {
+          return reject(response);
         }
-        req.end();
-      } catch (e) {
-        reject(e);
+        else {
+          const chunks: any = [];
+          response.on('data', (chunk) => {
+            chunks.push(chunk);
+          });
+          response.on('end', () => {
+            const stringData = Buffer.concat(chunks).toString();
+            const result: Response = {
+              data: JSON.parse(stringData),
+              fullResponse: response,
+            };
+            return resolve(result);
+          });
+        }
+      });
+
+      req.on('error', reject);
+      if (data) {
+        req.write(data);
       }
+      req.end();
     });
   }
 }

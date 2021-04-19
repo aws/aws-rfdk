@@ -78,32 +78,25 @@ export abstract class SimpleCustomResource {
     let cfnData: object | undefined;
 
     console.log(`Handling event: ${JSON.stringify(event)}`);
-    const requestType: string = event.RequestType;
     const resourceProperties: object = event.ResourceProperties ?? {};
     const physicalId: string = calculateSha256Hash(resourceProperties);
 
     try {
-      if (requestType === 'Create') {
-        if (!this.validateInput(resourceProperties)) {
-          throw Error(`Input did not pass validation check. Check log group "${context.logGroupName}" ` +
-            `for log stream ${context.logStreamName} for additional information.`);
-        }
-        cfnData = await this.doCreate(physicalId, resourceProperties);
-        console.debug(`Create data: ${JSON.stringify(cfnData)}`);
-      } else if (requestType === 'Update') {
-        if (!this.validateInput(resourceProperties)) {
-          throw Error('Input did not pass validation check');
-        }
-        const oldResourceProperties: object = event.OldResourceProperties ?? {};
-        const oldPhysicalId: string = calculateSha256Hash(oldResourceProperties);
-        if (oldPhysicalId !== physicalId) {
-          console.log('Doing Create -- ResourceProperties differ.');
-          cfnData = await this.doCreate(physicalId, resourceProperties);
-          console.debug(`Update data: ${JSON.stringify(cfnData)}`);
-        }
-      } else {
-        await this.doDelete(physicalId, resourceProperties);
-      }
+      const timeout = (prom: any, time: number, exception: any) => {
+        let timer: any;
+        return Promise.race([
+          prom,
+          new Promise((_r, rej) => timer = setTimeout(rej, time, exception)),
+        ]).finally(() => clearTimeout(timer));
+      };
+
+      // getRemainingTimeInMillis() should always be available. It is optional only in our code for backwards compatibility.
+      const remainingTime = context.getRemainingTimeInMillis?.() ?? 1000;
+      cfnData = await timeout(
+        this.handleEvent(event, context, resourceProperties, physicalId),
+        remainingTime - 1000,
+        new Error('Timeout error'),
+      );
     } catch (e) {
       // We want to always catch the exception for a CfnCustomResource CloudFormation
       // must be notified about the success/failure of the lambda at all times;
@@ -127,5 +120,34 @@ export abstract class SimpleCustomResource {
     const response: string = `${status}` + (failReason ?? '');
     console.log(`Result: ${response}`);
     return response;
+  }
+
+  private async handleEvent(event: CfnRequestEvent, context: LambdaContext, props: object, physicalId: string): Promise<object | undefined> {
+    const requestType: string = event.RequestType;
+    let cfnData: object | undefined;
+
+    if (requestType === 'Create') {
+      if (!this.validateInput(props)) {
+        throw Error(`Input did not pass validation check. Check log group "${context.logGroupName}" ` +
+          `for log stream ${context.logStreamName} for additional information.`);
+      }
+      cfnData = await this.doCreate(physicalId, props);
+      console.debug(`Create data: ${JSON.stringify(cfnData)}`);
+    } else if (requestType === 'Update') {
+      if (!this.validateInput(props)) {
+        throw Error('Input did not pass validation check');
+      }
+      const oldResourceProperties: object = event.OldResourceProperties ?? {};
+      const oldPhysicalId: string = calculateSha256Hash(oldResourceProperties);
+      if (oldPhysicalId !== physicalId) {
+        console.log('Doing Create -- ResourceProperties differ.');
+        cfnData = await this.doCreate(physicalId, props);
+        console.debug(`Update data: ${JSON.stringify(cfnData)}`);
+      }
+    } else {
+      await this.doDelete(physicalId, props);
+    }
+
+    return cfnData;
   }
 }
