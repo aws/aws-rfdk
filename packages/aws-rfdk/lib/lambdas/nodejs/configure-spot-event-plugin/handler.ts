@@ -101,6 +101,14 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
   }
 
   private async spotEventPluginClient(connection: ConnectionOptions): Promise<SpotEventPluginClient> {
+    // The calculation of retries is approximate. The real number of retries will be smaller,
+    // because we quit Lambda before the timeout (see SimpleCustomResource implementation).
+    const lambdaTimeoutMins = parseInt(process.env.LAMBDA_TIMEOUT_MINS || '15'); // The maximum Lambda execution time is 15 mins.
+    const MS_IN_A_MINUTE = 60000;
+    const timeRemaining = lambdaTimeoutMins * MS_IN_A_MINUTE;
+    const retryWaitMs = 10000;
+    const retries = Math.floor(timeRemaining / retryWaitMs);
+
     return new SpotEventPluginClient(new DeadlineClient({
       host: connection.hostname,
       port: Number.parseInt(connection.port, 10),
@@ -108,6 +116,8 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
       tls: {
         ca: connection.caCertificateArn ? await readCertificateData(connection.caCertificateArn, this.secretsManagerClient) : undefined,
       },
+      retries,
+      retryWaitMs,
     }));
   }
 
