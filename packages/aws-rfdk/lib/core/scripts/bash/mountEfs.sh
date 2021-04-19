@@ -71,31 +71,47 @@ function resolve_mount_target_ip_via_api() {
   local AWS_REGION=$4
   local MOUNT_POINT_IP=""
 
+  local FILTER_ARGUMENT=""
   if [[ $MNT_TARGET_RESOURCE_ID == fs-* ]]
   then
     # Mounting without an access point
-    MOUNT_POINT_IP=$(aws efs describe-mount-targets \
-      --region "${AWS_REGION}"                      \
-      --file-system-id ${MNT_TARGET_RESOURCE_ID}    \
-      | jq -r ".MountTargets[] | select( .AvailabilityZoneName == \"${AVAILABILITY_ZONE_NAME}\" ) | .IpAddress" \
-    )
+    FILTER_ARGUMENT="--file-system-id ${MNT_TARGET_RESOURCE_ID}"
   elif [[ $MNT_TARGET_RESOURCE_ID == fsap-* ]]
   then
-    # Mounting via an access point
-    MOUNT_POINT_IP=$(aws efs describe-mount-targets \
-      --region "${AWS_REGION}"                      \
-      --access-point-id ${MNT_TARGET_RESOURCE_ID}   \
-      | jq -r ".MountTargets[] | select( .AvailabilityZoneName == \"${AVAILABILITY_ZONE_NAME}\" ) | .IpAddress" \
-    )
+    # Mounting with an access point
+    FILTER_ARGUMENT="--access-point-id ${MNT_TARGET_RESOURCE_ID}"
   else
     echo "Unsupported mount target resource: ${MNT_TARGET_RESOURCE_ID}"
     return 1
   fi
 
-  if [[ -z "${MOUNT_POINT_IP}" ]]
+  # We prioritize the mount target in the same availability zone as the mounting instance
+  # jq sorts with false first then true (https://stedolan.github.io/jq/manual/#sort,sort_by(path_expression), so we
+  # negate the condition in the sort_by(...) expression
+  MOUNT_POINT_JSON=$(aws efs describe-mount-targets \
+    --region "${AWS_REGION}"                      \
+    ${FILTER_ARGUMENT}                            \
+    | jq ".MountTargets | sort_by( .AvailabilityZoneName != \"${AVAILABILITY_ZONE_NAME}\" ) | .[0]"
+  )
+
+  if [[ -z "${MOUNT_POINT_JSON}" ]]
   then
-    echo "Could not find mount target matching the current availability zone (${AVAILABILITY_ZONE_NAME}) using EFS API"
+    echo "Could not find mount target for ${MNT_TARGET_RESOURCE_ID}"
     return 1
+  fi
+
+  MOUNT_POINT_IP=$(echo "${MOUNT_POINT_JSON}" | jq -r .IpAddress)
+  MOUNT_POINT_AZ=$(echo "${MOUNT_POINT_JSON}" | jq -r .AvailabilityZoneName )
+
+  if [[ "${MOUNT_POINT_AZ}" != "${AVAILABILITY_ZONE_NAME}" ]]
+  then
+    set +x
+    echo "------------------------------------------ WARNING ------------------------------------------"
+    echo "Could not find mount target for ${MNT_TARGET_RESOURCE_ID} matching the current availability"
+    echo "zone (${AVAILABILITY_ZONE_NAME}). Cross-AZ data charges will be applied. To reduce costs,"
+    echo "add a mount target for ${MNT_TARGET_RESOURCE_ID} in ${AVAILABILITY_ZONE_NAME}."
+    echo "------------------------------------------ WARNING ------------------------------------------"
+    set -x
   fi
 
   DNS_NAME="${EFS_FS_ID}.efs.${AWS_REGION}.amazonaws.com"
@@ -122,6 +138,14 @@ then
 
   # Get access point ID if available, otherwise file system ID
   MNT_TARGET_RESOURCE_ID=$FILESYSTEM_ID
+  # The access point is supplied as in the MOUNT_OPTIONS argument, which is a list of comma-separated fstab options.
+  # Here is a sample opts string containing an access point:
+  #
+  #   rw,iam,accesspoint=fsap-1234567890,fsc
+  #
+  # See https://docs.aws.amazon.com/efs/latest/ug/efs-mount-helper.html#mounting-access-points
+  #
+  # We extract that value from MOUNT_OPTIONS here:
   ACCESS_POINT_MOUNT_OPT=$(echo "${MOUNT_OPTIONS}" | sed -e 's#,#\n#g' | grep 'accesspoint=') || true
   if [[ ! -z "${ACCESS_POINT_MOUNT_OPT}" ]]; then
     ACCESS_POINT_ID=$(echo "${ACCESS_POINT_MOUNT_OPT}" | cut -d= -f2)
