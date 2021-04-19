@@ -75,7 +75,8 @@ for key in "${!INSTALLER_DB_ARGS[@]}"; do INSTALLER_DB_ARGS_STRING=$INSTALLER_DB
 REPOSITORY_SETTINGS_ARG_STRING=''
 if [ ! -z "$DEADLINE_REPOSITORY_SETTINGS_FILE" ]; then
   if [ ! -f "$DEADLINE_REPOSITORY_SETTINGS_FILE" ]; then
-    echo "WARNING: Repository settings file was specified but is not a file: $DEADLINE_REPOSITORY_SETTINGS_FILE. Repository settings will not be imported."
+    echo "ERROR: Repository settings file was specified but is not a file: $DEADLINE_REPOSITORY_SETTINGS_FILE."
+    exit 1
   else
     REPOSITORY_SETTINGS_ARG_STRING="--importrepositorysettings true --repositorysettingsimportoperation append --repositorysettingsimportfile \"$DEADLINE_REPOSITORY_SETTINGS_FILE\""
   fi

@@ -383,6 +383,8 @@ export interface RepositoryProps {
   /**
    * The Deadline Repository settings file to import.
    * @see https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/repository-settings-importer-exporter.html
+   *
+   * @default Repository settings are not imported.
    */
   readonly repositorySettings?: Asset;
 }
@@ -898,7 +900,8 @@ export class Repository extends Construct implements IRepository {
     installerGroup: AutoScalingGroup,
     installPath: string,
     version: IVersion,
-    settings?: Asset) {
+    settings?: Asset,
+  ) {
     const installerScriptAsset = ScriptAsset.fromPathConvention(this, 'DeadlineRepositoryInstallerScript', {
       osType: installerGroup.osType,
       baseName: 'installDeadlineRepository',
