@@ -192,6 +192,25 @@ describe('UsageBasedLicensing', () => {
         ),
       }));
     });
+
+    test('uses the supplied security group', () => {
+      const securityGroup = new SecurityGroup(stack, 'UblSecurityGroup', {
+        vpc,
+      });
+      // WHEN
+      new UsageBasedLicensing(stack, 'UBL', {
+        certificateSecret,
+        images,
+        licenses,
+        renderQueue,
+        vpc,
+        securityGroup,
+      });
+      // THEN
+      expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+        SecurityGroups: arrayWith(stack.resolve(securityGroup.securityGroupId)),
+      }));
+    });
   });
 
   describe('creates an ECS service', () => {
