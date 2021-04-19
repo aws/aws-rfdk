@@ -329,6 +329,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       }],
       updateType: undefined, // Workaround -- See: https://github.com/aws/aws-cdk/issues/11581
       updatePolicy: UpdatePolicy.rollingUpdate(),
+      // addCapacity doesn't specifically take a securityGroup, but it passes on its properties to the ASG it creates,
+      // so this security group will get applied there
       // @ts-ignore
       securityGroup: props.securityGroups?.backend,
     });

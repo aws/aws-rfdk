@@ -12,6 +12,7 @@ import {
   InstanceClass,
   InstanceSize,
   InstanceType,
+  ISecurityGroup,
   IVpc,
   Port,
   SubnetSelection,
@@ -418,6 +419,12 @@ export interface UsageBasedLicensingProps {
    * @default - LogGroup will be created with all properties' default values to the LogGroup: /renderfarm/<construct id>
    */
   readonly logGroupProps?: LogGroupFactoryProps;
+
+  /**
+   * The security group to use for the License Forwarder
+   * @default - A new security group will be created
+   */
+  readonly securityGroup?: ISecurityGroup;
 }
 
 /**
@@ -511,6 +518,10 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
         deviceName: '/dev/xvda',
         volume: BlockDeviceVolume.ebs( 30, {encrypted: true}),
       }],
+      // addCapacity doesn't specifically take a securityGroup, but it passes on its properties to the ASG it creates,
+      // so this security group will get applied there
+      // @ts-ignore
+      securityGroup: props.securityGroup,
     });
 
     const taskDefinition = new TaskDefinition(this, 'TaskDefinition', {
