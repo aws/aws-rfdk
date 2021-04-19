@@ -128,6 +128,7 @@ describe('Testing getDiskUsage behavior', () => {
     {
       logGroupName: '',
       logStreamName: '',
+      getRemainingTimeInMillis: () => 1000,
     })).rejects.toThrow();
   });
 
@@ -138,6 +139,7 @@ describe('Testing getDiskUsage behavior', () => {
     {
       logGroupName: '',
       logStreamName: '',
+      getRemainingTimeInMillis: () => 1000,
     })).rejects.toThrow();
   });
 
@@ -153,6 +155,7 @@ describe('Testing getDiskUsage behavior', () => {
     {
       logGroupName: '',
       logStreamName: '',
+      getRemainingTimeInMillis: () => 1000,
     })).rejects.toThrow();
   });
 
@@ -176,6 +179,7 @@ describe('Testing getDiskUsage behavior', () => {
     {
       logGroupName: '',
       logStreamName: '',
+      getRemainingTimeInMillis: () => 1000,
     });
 
     // THEN
@@ -203,6 +207,7 @@ describe('Testing padFilesystem macro behavior', () => {
     }, {
       logGroupName: '',
       logStreamName: '',
+      getRemainingTimeInMillis: () => 1000,
     })).rejects.toThrow();
   });
 
@@ -213,6 +218,7 @@ describe('Testing padFilesystem macro behavior', () => {
     }, {
       logGroupName: '',
       logStreamName: '',
+      getRemainingTimeInMillis: () => 1000,
     })).rejects.toThrow();
   });
 
@@ -222,6 +228,7 @@ describe('Testing padFilesystem macro behavior', () => {
     }, {
       logGroupName: '',
       logStreamName: '',
+      getRemainingTimeInMillis: () => 1000,
     })).rejects.toThrow();
   });
 
@@ -232,6 +239,7 @@ describe('Testing padFilesystem macro behavior', () => {
     }, {
       logGroupName: '',
       logStreamName: '',
+      getRemainingTimeInMillis: () => 1000,
     })).rejects.toThrow();
   });
 
@@ -247,6 +255,7 @@ describe('Testing padFilesystem macro behavior', () => {
     }, {
       logGroupName: '',
       logStreamName: '',
+      getRemainingTimeInMillis: () => 1000,
     })).rejects.toThrow();
   });
 
@@ -266,6 +275,7 @@ describe('Testing padFilesystem macro behavior', () => {
     }, {
       logGroupName: '',
       logStreamName: '',
+      getRemainingTimeInMillis: () => 1000,
     });
 
     // THEN
@@ -291,6 +301,7 @@ describe('Testing padFilesystem macro behavior', () => {
     }, {
       logGroupName: '',
       logStreamName: '',
+      getRemainingTimeInMillis: () => 1000,
     });
 
     // WHEN
@@ -302,6 +313,7 @@ describe('Testing padFilesystem macro behavior', () => {
     }, {
       logGroupName: '',
       logStreamName: '',
+      getRemainingTimeInMillis: () => 1000,
     });
 
     // THEN
@@ -328,6 +340,7 @@ describe('Testing padFilesystem macro behavior', () => {
     }, {
       logGroupName: '',
       logStreamName: '',
+      getRemainingTimeInMillis: () => 1000,
     });
 
     // WHEN
@@ -339,6 +352,7 @@ describe('Testing padFilesystem macro behavior', () => {
     }, {
       logGroupName: '',
       logStreamName: '',
+      getRemainingTimeInMillis: () => 1000,
     });
 
     // THEN

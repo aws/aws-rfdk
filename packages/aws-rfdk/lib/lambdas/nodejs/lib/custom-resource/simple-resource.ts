@@ -90,11 +90,18 @@ export abstract class SimpleCustomResource {
         ]).finally(() => clearTimeout(timer));
       };
 
-      // getRemainingTimeInMillis() should always be available. It is optional only in our code for backwards compatibility.
-      const remainingTime = context.getRemainingTimeInMillis?.() ?? 1000;
+      const defaultReserveTimeMs = 3000;
+      const remainingTimeMs = context.getRemainingTimeInMillis();
+      let reserveTimeMs = Math.min(0.2 * remainingTimeMs, defaultReserveTimeMs);
+      if (reserveTimeMs < defaultReserveTimeMs) {
+        console.debug(`The remaining Lambda execution time of ${reserveTimeMs} ` +
+        `ms might not be sufficient to send a CloudFormation response. At least ${defaultReserveTimeMs} ms is required. ` +
+        'Please increase the Lambda timeout.');
+      }
+
       cfnData = await timeout(
         this.handleEvent(event, context, resourceProperties, physicalId),
-        remainingTime - 1000,
+        remainingTimeMs - reserveTimeMs,
         new Error('Timeout error'),
       );
     } catch (e) {

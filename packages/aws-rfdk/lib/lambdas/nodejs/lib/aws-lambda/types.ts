@@ -13,5 +13,5 @@
 export interface LambdaContext {
   readonly logGroupName: string;
   readonly logStreamName: string;
-  getRemainingTimeInMillis?(): number;
+  getRemainingTimeInMillis(): number;
 }

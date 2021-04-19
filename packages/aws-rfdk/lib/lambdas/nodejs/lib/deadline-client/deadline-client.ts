@@ -180,20 +180,26 @@ export class DeadlineClient {
   }
 
   private async performRequestWithRetry(options: https.RequestOptions, retriesLeft: number, retryDelayMs: number, data?: string): Promise<Response> {
-    return this.performRequest(options, data)
-      .catch(async (rejection) => {
-        const { statusCode } = rejection;
+    try {
+      return await this.performRequest(options, data);
+    } catch(exception) {
+      const { statusCode, statusMessage } = exception;
+      if (statusCode !== undefined && statusMessage !== undefined) {
         if (statusCode === 503 && retriesLeft > 0) {
-          console.log(`Request failed with ${rejection.statusCode}: ${rejection.statusMessage}. Will retry after ${retryDelayMs} ms.`);
+          console.log(`Request failed with ${statusCode}: ${statusMessage}. Will retry after ${retryDelayMs} ms.`);
           console.log(`Retries left: ${retriesLeft}`);
           const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
           await delay(retryDelayMs);
           return await this.performRequestWithRetry(options, retriesLeft - 1, retryDelayMs, data);
         }
         else {
-          return await Promise.reject(rejection.statusMessage);
+          return await Promise.reject(statusMessage);
         }
-      });
+      }
+      else {
+        throw(exception);
+      }
+    }
   }
 
   private async performRequest(options: https.RequestOptions, data?: string): Promise<Response> {
