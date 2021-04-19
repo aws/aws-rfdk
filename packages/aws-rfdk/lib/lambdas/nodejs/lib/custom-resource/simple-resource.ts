@@ -90,6 +90,14 @@ export abstract class SimpleCustomResource {
         ]).finally(() => clearTimeout(timer));
       };
 
+      // We want to always notify CloudFormation about the success/failure of the Lambda at all times.
+      // If function execution time is longer than Lambda's timeout, then the function is just stopped
+      // and CloudFormation is not notified at all. This would result in a hang-up during deployment.
+      // Thus, we want to stop the execution by ourselves before the Lambda timeout and reserve some time
+      // for notifying a CloudFormation about a failed deployment because of the timeout.
+      // 3 seconds should be enough to resolve the request that signals success/failure of the custom resource,
+      // but if Lambda timeout is too small, we would reserve 20% of the remaining time and still try to notify the CF.
+      // Check the logs during the development to see if you allocated enough time for your Lambda.
       const defaultReserveTimeMs = 3000;
       const remainingTimeMs = context.getRemainingTimeInMillis();
       let reserveTimeMs = Math.min(0.2 * remainingTimeMs, defaultReserveTimeMs);

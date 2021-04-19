@@ -54,7 +54,7 @@ export interface DeadlineClientProps {
   readonly tls?: TLSProps;
 
   /**
-   * The number of retries if received status code 503 Service Temporarily unavailable.
+   * The number of retries if received status code 500 or higher.
    * @default 3
    */
   readonly retries?: number;
