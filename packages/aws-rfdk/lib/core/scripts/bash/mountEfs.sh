@@ -42,7 +42,7 @@ MOUNT_PATH=$2
 RESOLVE_MOUNTPOINT_IP_VIA_API=$3
 MOUNT_OPTIONS="${4:-}"
 
-sudo mkdir -p "${MOUNT_PATH}"
+mkdir -p "${MOUNT_PATH}"
 
 AMAZON_EFS_PACKAGE="amazon-efs-utils"
 if which yum
@@ -55,12 +55,12 @@ else
 fi
 
 function use_amazon_efs_mount() {
-  test -f "/sbin/mount.efs" || sudo "${PACKAGE_MANAGER}" install -y "${AMAZON_EFS_PACKAGE}"
+  test -f "/sbin/mount.efs" || "${PACKAGE_MANAGER}" install -y "${AMAZON_EFS_PACKAGE}"
   return $?
 }
 
 function use_nfs_mount() {
-  test -f "/sbin/mount.nfs4" || sudo "${PACKAGE_MANAGER}" install -y "${NFS_UTILS_PACKAGE}"
+  test -f "/sbin/mount.nfs4" || "${PACKAGE_MANAGER}" install -y "${NFS_UTILS_PACKAGE}"
   return $?
 }
 
@@ -117,7 +117,7 @@ then
   # jq is used to query the JSON API response
   if ! where jq > /dev/null 2>&1
   then
-    sudo "${PACKAGE_MANAGER}" install -y jq
+    "${PACKAGE_MANAGER}" install -y jq
   fi
 
   # Get access point ID if available, otherwise file system ID
@@ -143,16 +143,16 @@ fi
 if test $(tail -c 1 /etc/fstab | wc -l) -eq 0
 then
   # Newline was missing, so add one.
-  echo "" | sudo tee -a /etc/fstab
+  echo "" | tee -a /etc/fstab
 fi
 
 if use_amazon_efs_mount
 then
-  echo "${FILESYSTEM_ID}:/ ${MOUNT_PATH} efs defaults,tls,_netdev,${MOUNT_OPTIONS}" | sudo tee -a /etc/fstab
+  echo "${FILESYSTEM_ID}:/ ${MOUNT_PATH} efs defaults,tls,_netdev,${MOUNT_OPTIONS}" | tee -a /etc/fstab
   MOUNT_TYPE=efs
 elif use_nfs_mount
 then
-  echo "${FILESYSTEM_ID}.efs.${AWS_REGION}.amazonaws.com:/ ${MOUNT_PATH} nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev,${MOUNT_OPTIONS} 0 0" | sudo tee -a /etc/fstab
+  echo "${FILESYSTEM_ID}.efs.${AWS_REGION}.amazonaws.com:/ ${MOUNT_PATH} nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,_netdev,${MOUNT_OPTIONS} 0 0" | tee -a /etc/fstab
   MOUNT_TYPE=nfs4
 else
   echo "Could not find suitable mount helper to mount the Elastic File System: ${FILESYSTEM_ID}"
@@ -164,7 +164,7 @@ fi
 # only if unable to mount it after that.
 TRIES=0
 MAX_TRIES=20
-while test ${TRIES} -lt ${MAX_TRIES} && ! sudo mount -a -t ${MOUNT_TYPE}
+while test ${TRIES} -lt ${MAX_TRIES} && ! mount -a -t ${MOUNT_TYPE}
 do
   let TRIES=TRIES+1
   sleep 2
