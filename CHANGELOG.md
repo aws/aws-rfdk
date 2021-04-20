@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.30.0](https://github.com/aws/aws-rfdk/compare/v0.29.0...v0.30.0) (2021-04-21)
+
+
+### Supported CDK Version
+
+* [1.99.0](https://github.com/aws/aws-cdk/releases/tag/v1.99.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.14.5](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **core:** add ability to resolve mount targets using EFS API ([#392](https://github.com/aws/aws-rfdk/issues/392)) ([726fa84](https://github.com/aws/aws-rfdk/commit/726fa848b6362b226e78aff9eec2c2544bc2aa74))
+* **deadline:** add ability to import repository settings ([#395](https://github.com/aws/aws-rfdk/issues/395)) ([c55c078](https://github.com/aws/aws-rfdk/commit/c55c078f02b4b43c115abc09b77b8cd469ac9ccd))
+* **deadline:** add security group property to ubl ([#396](https://github.com/aws/aws-rfdk/issues/396)) ([cf44a13](https://github.com/aws/aws-rfdk/commit/cf44a1364e8c732700b4d24e322b34a3c6444b7c))
+
 ## [0.29.0](https://github.com/aws/aws-rfdk/compare/v0.28.0...v0.29.0) (2021-04-06)
 
 
