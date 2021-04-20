@@ -20,7 +20,7 @@
 
 set -xeu
 
-if test $# -lt 2
+if test $# -lt 3
 then
   echo "Usage: $0 FILE_SYSTEM_ID MOUNT_PATH RESOLVE_MOUNT_POINT_USING_API [MOUNT_OPTIONS]"
   exit 1
