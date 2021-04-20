@@ -68,3 +68,10 @@ function get_region() {
     #  into: us-west-2
     echo $IDENTITY_DOC | tr ',' '\n' | tr -d '[",{}]' | grep 'region' | awk '{print $3}'
 }
+
+function get_availability_zone() {
+    # Get the availability zone that this instance is running within (ex: us-west-2b)
+    # Usage: $0 <token>
+    TOKEN=$1
+    curl -H "X-aws-ec2-metadata-token: $TOKEN" -v 'http://169.254.169.254/latest/meta-data/placement/availability-zone' 2> /dev/null
+}

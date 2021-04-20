@@ -92,7 +92,7 @@ describe('Test MountableEFS', () => {
     expect(userData).toMatch(new RegExp(escapeTokenRegex(s3Copy)));
     expect(userData).toMatch(new RegExp(escapeTokenRegex('unzip /tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}')));
     // Make sure we execute the script with the correct args
-    expect(userData).toMatch(new RegExp(escapeTokenRegex('bash ./mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 rw')));
+    expect(userData).toMatch(new RegExp(escapeTokenRegex('bash ./mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 false rw')));
   });
 
   test('assert Linux-only', () => {
@@ -129,7 +129,7 @@ describe('Test MountableEFS', () => {
     const userData = instance.userData.render();
 
     // THEN
-    expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 r')));
+    expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 false r')));
   });
 
   describe.each<[MountPermissions | undefined]>([
@@ -206,7 +206,7 @@ describe('Test MountableEFS', () => {
             expect.arrayContaining([
               expect.stringMatching(new RegExp('(\\n|^)bash \\./mountEfs.sh $')),
               stack.resolve(efsFS.fileSystemId),
-              ` ${mountPath} ${expectedMountMode},iam,accesspoint=`,
+              ` ${mountPath} false ${expectedMountMode},iam,accesspoint=`,
               stack.resolve(accessPoint.accessPointId),
               expect.stringMatching(/^\n/),
             ]),
@@ -257,7 +257,7 @@ describe('Test MountableEFS', () => {
     const userData = instance.userData.render();
 
     // THEN
-    expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 rw,option1,option2')));
+    expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 false rw,option1,option2')));
   });
 
   test('asset is singleton', () => {
@@ -285,5 +285,61 @@ describe('Test MountableEFS', () => {
     // The source of the asset copy should be identical from mount1 & mount2
     expect(matches).toHaveLength(2);
     expect(matches[0]).toBe(matches[1]);
+  });
+
+  describe('resolves mount target using API', () => {
+    describe.each<[string, () => efs.AccessPoint | undefined]>([
+      ['with access point', () => {
+
+        return new efs.AccessPoint(stack, 'AccessPoint', {
+          fileSystem: efsFS,
+          posixUser: {
+            gid: '1',
+            uid: '1',
+          },
+        });
+      }],
+      ['without access point', () => undefined],
+    ])('%s', (_, getAccessPoint) => {
+      let accessPoint: efs.AccessPoint | undefined;
+
+      beforeEach(() => {
+        // GIVEN
+        accessPoint = getAccessPoint();
+        const mountable = new MountableEfs(efsFS, {
+          filesystem: efsFS,
+          accessPoint,
+          resolveMountTargetDnsWithApi: true,
+        });
+
+        // WHEN
+        mountable.mountToLinuxInstance(instance, {
+          location: '/mnt/efs',
+        });
+      });
+
+      test('grants DescribeMountTargets permission', () => {
+        const expectedResources = [
+          stack.resolve((efsFS.node.defaultChild as efs.CfnFileSystem).attrArn),
+        ];
+        if (accessPoint) {
+          expectedResources.push(stack.resolve(accessPoint?.accessPointArn));
+        }
+        cdkExpect(stack).to(haveResourceLike('AWS::IAM::Policy', {
+          PolicyDocument: objectLike({
+            Statement: arrayWith(
+              {
+                Action: 'elasticfilesystem:DescribeMountTargets',
+                Effect: 'Allow',
+                Resource: expectedResources.length == 1 ? expectedResources[0] : expectedResources,
+              },
+            ),
+          }),
+          Roles: arrayWith(
+            stack.resolve((instance.role.node.defaultChild as CfnResource).ref),
+          ),
+        }));
+      });
+    });
   });
 });
