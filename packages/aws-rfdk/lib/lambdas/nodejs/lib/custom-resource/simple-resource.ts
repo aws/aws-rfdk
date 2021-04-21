@@ -78,32 +78,40 @@ export abstract class SimpleCustomResource {
     let cfnData: object | undefined;
 
     console.log(`Handling event: ${JSON.stringify(event)}`);
-    const requestType: string = event.RequestType;
     const resourceProperties: object = event.ResourceProperties ?? {};
     const physicalId: string = calculateSha256Hash(resourceProperties);
 
     try {
-      if (requestType === 'Create') {
-        if (!this.validateInput(resourceProperties)) {
-          throw Error(`Input did not pass validation check. Check log group "${context.logGroupName}" ` +
-            `for log stream ${context.logStreamName} for additional information.`);
-        }
-        cfnData = await this.doCreate(physicalId, resourceProperties);
-        console.debug(`Create data: ${JSON.stringify(cfnData)}`);
-      } else if (requestType === 'Update') {
-        if (!this.validateInput(resourceProperties)) {
-          throw Error('Input did not pass validation check');
-        }
-        const oldResourceProperties: object = event.OldResourceProperties ?? {};
-        const oldPhysicalId: string = calculateSha256Hash(oldResourceProperties);
-        if (oldPhysicalId !== physicalId) {
-          console.log('Doing Create -- ResourceProperties differ.');
-          cfnData = await this.doCreate(physicalId, resourceProperties);
-          console.debug(`Update data: ${JSON.stringify(cfnData)}`);
-        }
-      } else {
-        await this.doDelete(physicalId, resourceProperties);
+      const timeout = (prom: any, time: number, exception: any) => {
+        let timer: any;
+        return Promise.race([
+          prom,
+          new Promise((_r, rej) => timer = setTimeout(rej, time, exception)),
+        ]).finally(() => clearTimeout(timer));
+      };
+
+      // We want to always notify CloudFormation about the success/failure of the Lambda at all times.
+      // If function execution time is longer than Lambda's timeout, then the function is just stopped
+      // and CloudFormation is not notified at all. This would result in a hang-up during deployment.
+      // Thus, we want to stop the execution by ourselves before the Lambda timeout and reserve some time
+      // for notifying a CloudFormation about a failed deployment because of the timeout.
+      // 3 seconds should be enough to resolve the request that signals success/failure of the custom resource,
+      // but if Lambda timeout is too small, we would reserve 20% of the remaining time and still try to notify the CF.
+      // Check the logs during the development to see if you allocated enough time for your Lambda.
+      const defaultReserveTimeMs = 3000;
+      const remainingTimeMs = context.getRemainingTimeInMillis();
+      let reserveTimeMs = Math.min(0.2 * remainingTimeMs, defaultReserveTimeMs);
+      if (reserveTimeMs < defaultReserveTimeMs) {
+        console.debug(`The remaining Lambda execution time of ${reserveTimeMs} ` +
+        `ms might not be sufficient to send a CloudFormation response. At least ${defaultReserveTimeMs} ms is required. ` +
+        'Please increase the Lambda timeout.');
       }
+
+      cfnData = await timeout(
+        this.handleEvent(event, context, resourceProperties, physicalId),
+        remainingTimeMs - reserveTimeMs,
+        new Error('Timeout error'),
+      );
     } catch (e) {
       // We want to always catch the exception for a CfnCustomResource CloudFormation
       // must be notified about the success/failure of the lambda at all times;
@@ -127,5 +135,34 @@ export abstract class SimpleCustomResource {
     const response: string = `${status}` + (failReason ?? '');
     console.log(`Result: ${response}`);
     return response;
+  }
+
+  private async handleEvent(event: CfnRequestEvent, context: LambdaContext, props: object, physicalId: string): Promise<object | undefined> {
+    const requestType: string = event.RequestType;
+    let cfnData: object | undefined;
+
+    if (requestType === 'Create') {
+      if (!this.validateInput(props)) {
+        throw Error(`Input did not pass validation check. Check log group "${context.logGroupName}" ` +
+          `for log stream ${context.logStreamName} for additional information.`);
+      }
+      cfnData = await this.doCreate(physicalId, props);
+      console.debug(`Create data: ${JSON.stringify(cfnData)}`);
+    } else if (requestType === 'Update') {
+      if (!this.validateInput(props)) {
+        throw Error('Input did not pass validation check');
+      }
+      const oldResourceProperties: object = event.OldResourceProperties ?? {};
+      const oldPhysicalId: string = calculateSha256Hash(oldResourceProperties);
+      if (oldPhysicalId !== physicalId) {
+        console.log('Doing Create -- ResourceProperties differ.');
+        cfnData = await this.doCreate(physicalId, props);
+        console.debug(`Update data: ${JSON.stringify(cfnData)}`);
+      }
+    } else {
+      await this.doDelete(physicalId, props);
+    }
+
+    return cfnData;
   }
 }

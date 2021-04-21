@@ -35,6 +35,7 @@ import {
   FileSystem as EfsFileSystem,
 } from '@aws-cdk/aws-efs';
 import { Bucket } from '@aws-cdk/aws-s3';
+import { Asset } from '@aws-cdk/aws-s3-assets';
 import {
   App,
   CfnElement,
@@ -432,7 +433,7 @@ test('repository mounts repository filesystem', () => {
   const userData = (repo.node.defaultChild as AutoScalingGroup).userData.render();
 
   // THEN
-  expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 rw')));
+  expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 false rw')));
 });
 
 test.each([
@@ -939,7 +940,7 @@ test('repository configure client instance', () => {
 
   // THEN
   // white-box testing. If we mount the filesystem, then we've called: setupDirectConnect()
-  expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/repository rw')));
+  expect(userData).toMatch(new RegExp(escapeTokenRegex('mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/repository false rw')));
 
   // Make sure we added the DB connection args
   expect(userData).toMatch(/.*export -f configure_deadline_database.*/);
@@ -1204,4 +1205,22 @@ test('throws an error if supplied a MountableEfs with no Access Point', () => {
 
   // THEN
   expect(when).toThrow('When using EFS with the Repository, you must provide an EFS Access Point');
+});
+
+test('imports repository settings', () => {
+  // GIVEN
+  const repositorySettings = new Asset(stack, 'RepositorySettingsAsset', {
+    path: __filename,
+  });
+
+  // WHEN
+  const repository = new Repository(stack, 'Repository', {
+    vpc,
+    version,
+    repositorySettings,
+  });
+
+  // THEN
+  const installerGroup = repository.node.tryFindChild('Installer') as AutoScalingGroup;
+  expect(installerGroup.userData.render()).toContain(`aws s3 cp '${repositorySettings.s3ObjectUrl}'`);
 });

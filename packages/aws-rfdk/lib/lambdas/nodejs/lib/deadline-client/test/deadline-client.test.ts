@@ -28,6 +28,8 @@ describe('DeadlineClient', () => {
     public end() {}
     public write(_data: string) {}
   }
+
+  let consoleLogMock: jest.SpyInstance<any, any>;
   let request: MockRequest;
   let response: MockResponse;
 
@@ -46,6 +48,7 @@ describe('DeadlineClient', () => {
 
   describe('successful responses', () => {
     beforeEach(() => {
+      consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
       request = new MockRequest();
       jest.requireMock('http').request.mockReset();
       jest.requireMock('https').request.mockReset();
@@ -363,14 +366,14 @@ describe('DeadlineClient', () => {
 
   describe('failed responses', () => {
     beforeEach(() => {
+      consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
       request = new MockRequest();
       jest.requireMock('http').request.mockImplementation(httpRequestMock);
       jest.requireMock('https').request.mockImplementation(httpRequestMock);
-
-      response = new MockResponse(400);
     });
 
     afterEach(() => {
+      jest.clearAllMocks();
       jest.requireMock('http').request.mockReset();
       jest.requireMock('https').request.mockReset();
     });
@@ -382,6 +385,7 @@ describe('DeadlineClient', () => {
       ['HTTPS', 'POST'],
     ])('with %p %p', async (protocol: string, requestType: string) => {
       // GIVEN
+      response = new MockResponse(400);
       deadlineClient = new DeadlineClient({
         host: 'hostname',
         port: 0,
@@ -399,6 +403,42 @@ describe('DeadlineClient', () => {
       await expect(promise)
         .rejects
         .toEqual(response.statusMessage);
+
+      expect(consoleLogMock.mock.calls.length).toBe(0);
+    });
+
+    test.each([
+      ['HTTP', 'GET'],
+      ['HTTP', 'POST'],
+      ['HTTPS', 'GET'],
+      ['HTTPS', 'POST'],
+    ])('with %p %p', async (protocol: string, requestType: string) => {
+      // GIVEN
+      response = new MockResponse(503);
+      const retries = 3;
+      deadlineClient = new DeadlineClient({
+        host: 'hostname',
+        port: 0,
+        protocol: protocol,
+        retries,
+        retryWaitMs: 0,
+      });
+
+      // WHEN
+      function performRequest() {
+        if (requestType === 'GET') { return deadlineClient.GetRequest('anypath'); }
+        return deadlineClient.PostRequest('anypath', 'anydata');
+      }
+      const promise = performRequest();
+
+      // THEN
+      await expect(promise)
+        .rejects
+        .toEqual(response.statusMessage);
+
+      expect(consoleLogMock.mock.calls.length).toBe(retries * 2);
+      expect(consoleLogMock.mock.calls[0][0]).toMatch(/Request failed with/);
+      expect(consoleLogMock.mock.calls[1][0]).toMatch(/Retries left:/);
     });
   });
 });
