@@ -13,6 +13,6 @@ via AWS CloudFormation by the CDK toolkit. The parameters of an object’s creat
 Please see the following sources for additional information:
 * The [RFDK Developer Guide](https://docs.aws.amazon.com/rfdk/latest/guide/what-is-rfdk.html)
 * The [RFDK API Documentation](https://docs.aws.amazon.com/rfdk/api/latest/docs/aws-rfdk-construct-library.html)
-* The [README for the main module](https://github.com/aws/aws-rfdk/blob/mainline/packages/aws-rfdk/lib/core/README.md)
-* The [README for the Deadline module](https://github.com/aws/aws-rfdk/blob/mainline/packages/aws-rfdk/lib/deadline/README.md)
-* The [RFDK Upgrade Documentation](https://github.com/aws/aws-rfdk/blob/mainline/packages/aws-rfdk/docs/upgrade/index.md)
+* The [README for the main module](https://github.com/aws/aws-rfdk/blob/release/packages/aws-rfdk/lib/core/README.md)
+* The [README for the Deadline module](https://github.com/aws/aws-rfdk/blob/release/packages/aws-rfdk/lib/deadline/README.md)
+* The [RFDK Upgrade Documentation](https://github.com/aws/aws-rfdk/blob/release/packages/aws-rfdk/docs/upgrade/index.md)
