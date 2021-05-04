@@ -14,6 +14,7 @@ import {
 import {SnsAction} from '@aws-cdk/aws-cloudwatch-actions';
 import {
   IConnectable,
+  ISecurityGroup,
   IVpc,
   Port,
   SubnetSelection,
@@ -211,6 +212,13 @@ export interface HealthMonitorProps {
    * @default: The VPC default strategy
    */
   readonly vpcSubnets?: SubnetSelection;
+
+  /**
+   * Security group for the health monitor. This is security group is associated with the health monitor's load balancer.
+   *
+   * @default: A security group is created
+   */
+  readonly securityGroup?: ISecurityGroup;
 }
 
 /**
