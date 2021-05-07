@@ -6,4 +6,5 @@ dist
 *.snk
 !license-header.js
 !.eslintrc.js
+!config/*.js
 junit.xml
