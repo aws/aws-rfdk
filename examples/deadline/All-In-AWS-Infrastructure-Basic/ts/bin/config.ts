@@ -41,11 +41,11 @@ class AppConfig {
   public readonly deadlineVersion?: string;
 
   /**
-   * A map of regions to Deadline Client Linux AMIs. As an example, the Linux Deadline 10.1.13.2 AMI ID from us-west-2
+   * A map of regions to Deadline Client Linux AMIs. As an example, the Linux Deadline 10.1.15.2 AMI ID from us-west-2
    * is filled in. It can be used as-is, added to, or replaced. Ideally the version here should match the version of
    * Deadline used in any connected Deadline constructs.
    */
-  public readonly deadlineClientLinuxAmiMap: Record<string, string> = {['us-west-2']: 'ami-0237f13ce87af168e'};
+  public readonly deadlineClientLinuxAmiMap: Record<string, string> = {['us-west-2']: 'ami-0c8431fc72742c110'};
 
   /**
    * (Optional) A secret (in binary form) in SecretsManager that stores the UBL certificates in a .zip file.

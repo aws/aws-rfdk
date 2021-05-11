@@ -168,21 +168,27 @@ describe('Tests using dynalite', () => {
     expect(table.tableName).toBeUndefined();
   });
 
-  test.each([
-    [GOOD_TABLE_NAME, false],
-    [BAD_TABLE1_NAME, true],
-    [BAD_TABLE2_NAME, true],
-    [BAD_TABLE3_NAME, true],
-  ])('fromExisting table %p', async (tableName: string, expectedToThrow: boolean) => {
+  describe('fromExisting fails on bad table name', () => {
+    test.each([
+      [BAD_TABLE1_NAME],
+      [BAD_TABLE2_NAME],
+      [BAD_TABLE3_NAME],
+    ])('tableName = %p', async (tableName: string) => {
+      // WHEN
+      await expect(CompositeStringIndexTable.fromExisting(dynamoClient, tableName))
+        // THEN
+        .rejects
+        .toThrow();
+    });
+  });
 
-    if (expectedToThrow) {
-      await expect(CompositeStringIndexTable.fromExisting(dynamoClient, tableName)).rejects.toThrow();
-    } else {
-      await expect(CompositeStringIndexTable.fromExisting(dynamoClient, tableName)).resolves.not.toThrow();
-      const table = await CompositeStringIndexTable.fromExisting(dynamoClient, tableName);
-      expect(table.primaryKey).toBe('PrimKey');
-      expect(table.sortKey).toBe('SortKey');
-    }
+  test('fromExising succeeds on good table name', async () => {
+    // WHEN
+    const table = await CompositeStringIndexTable.fromExisting(dynamoClient, GOOD_TABLE_NAME);
+
+    // THEN
+    expect(table.primaryKey).toBe('PrimKey');
+    expect(table.sortKey).toBe('SortKey');
   });
 
   test('putItem/getItem success', async () => {
