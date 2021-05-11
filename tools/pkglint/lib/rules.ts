@@ -12,6 +12,8 @@ import {
   monoRepoRoot,
 } from './util';
 
+const PKGLINT_VERSION = require('../package.json').version; // eslint-disable-line @typescript-eslint/no-require-imports
+
 const AWS_SERVICE_NAMES = require('./aws-service-official-names.json'); // eslint-disable-line @typescript-eslint/no-require-imports
 
 /**
@@ -433,10 +435,13 @@ export class MustDependOnBuildTools extends ValidationRule {
   public validate(pkg: PackageJson): void {
     if (!shouldUseCDKBuildTools(pkg)) { return; }
 
+    // We can't ACTUALLY require cdk-build-tools/package.json here,
+    // because WE don't depend on cdk-build-tools and we don't know if
+    // the package does.
     expectDevDependency(this.name,
       pkg,
       'cdk-build-tools',
-      `${require('../../cdk-build-tools/package.json').version}`); // eslint-disable-line @typescript-eslint/no-require-imports
+      `${PKGLINT_VERSION}`);
   }
 }
 
@@ -640,10 +645,14 @@ export class MustHaveIntegCommand extends ValidationRule {
     if (!hasIntegTests(pkg)) { return; }
 
     expectJSON(this.name, pkg, 'scripts.integ', 'cdk-integ');
+
+    // We can't ACTUALLY require cdk-build-tools/package.json here,
+    // because WE don't depend on cdk-build-tools and we don't know if
+    // the package does.
     expectDevDependency(this.name,
       pkg,
       'cdk-integ-tools',
-      `${require('../../cdk-integ-tools/package.json').version}`); // eslint-disable-line @typescript-eslint/no-require-imports
+      `${PKGLINT_VERSION}`);
   }
 }
 
@@ -666,7 +675,7 @@ export class PkgLintAsScript extends ValidationRule {
   public validate(pkg: PackageJson): void {
     const script = 'pkglint -f';
 
-    expectDevDependency(this.name, pkg, 'pkglint', `${require('../package.json').version}`); // eslint-disable-line @typescript-eslint/no-require-imports
+    expectDevDependency(this.name, pkg, 'pkglint', `${PKGLINT_VERSION}`);
 
     if (!pkg.npmScript('pkglint')) {
       pkg.report({

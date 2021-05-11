@@ -421,9 +421,26 @@ describe('createUser', () => {
 describe('createPasswordAuthUser', () => {
   let consoleLogMock: jest.SpyInstance<any, any>;
 
+  // GIVEN
+  const username = 'testuser';
+  const password = 'testpassword';
+  const roles = [ { role: 'readwrite', db: 'somedb' } ];
+  const userData = {
+    username,
+    password,
+    roles,
+  };
+  const secretContents = {
+    SecretString: JSON.stringify(userData),
+  };
+
   beforeEach(() => {
+    // GIVEN
     setSDKInstance(AWS);
     consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
+
+    const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
+    mock('SecretsManager', 'getSecretValue', mockGetSecret);
   });
 
   afterEach(() => {
@@ -431,34 +448,10 @@ describe('createPasswordAuthUser', () => {
     jest.clearAllMocks();
   });
 
-  test.each([
-    [
-      [], true,
-    ],
-    [
-      [
-        {
-          _id: 'admin.test',
-          user: 'test',
-          db: 'admin',
-        },
-      ],
-      false,
-    ],
-  ])('userExists %p gives %p', async (userExists: any, expected: boolean) => {
+  test('existing user', async () => {
     // GIVEN
-    const userData = {
-      username: 'testuser',
-      password: 'testpassword',
-      roles: [ { role: 'readWrite', db: 'somedb' } ],
-    };
-    const secretContents = {
-      SecretString: JSON.stringify(userData),
-    };
-    const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
-    mock('SecretsManager', 'getSecretValue', mockGetSecret);
     const userExistsResponse = {
-      users: userExists,
+      users: [],
       ok: 1,
     };
     const addUserResponse = {
@@ -479,57 +472,33 @@ describe('createPasswordAuthUser', () => {
     // tslint:disable-next-line: no-string-literal
     const result = await handler['createPasswordAuthUser'](mockDb, secretArn);
 
-    // THEN
-    expect(result).toStrictEqual(expected);
-    expect(mockDb.command.mock.calls.length).toBe(expected ? 2 : 1);
+    expect(result).toStrictEqual(true);
+    expect(mockDb.command.mock.calls.length).toBe(2);
     // Check args of userExits DB query.
     expect(mockDb.command.mock.calls[0][0]).toStrictEqual({
-      usersInfo: userData.username,
+      usersInfo: username,
     });
-    if (expected) {
-      // Check args of createUser DB query.
-      expect(mockDb.command.mock.calls[1][0]).toStrictEqual({
-        createUser: userData.username,
-        pwd: userData.password,
-        roles: userData.roles,
-      });
-      expect(consoleLogMock.mock.calls.length).toBe(1);
-      expect(consoleLogMock.mock.calls[0][0]).toStrictEqual(`Creating user: ${userData.username}`);
-    }
-  });
-});
 
-describe('createX509AuthUser', () => {
-  let consoleLogMock: jest.SpyInstance<any, any>;
-
-  beforeEach(() => {
-    setSDKInstance(AWS);
-    consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
+    // Check args of createUser DB query.
+    expect(mockDb.command.mock.calls[1][0]).toStrictEqual({
+      createUser: username,
+      pwd: password,
+      roles,
+    });
+    expect(consoleLogMock.mock.calls.length).toBe(1);
+    expect(consoleLogMock.mock.calls[0][0]).toStrictEqual(`Creating user: ${username}`);
   });
 
-  afterEach(() => {
-    restore('SecretsManager');
-  });
-
-  test.each([
-    [
-      [], true,
-    ],
-    [
-      [
+  test('non-existing user', async () => {
+    // GIVEN
+    const userExistsResponse = {
+      users: [
         {
-          _id: '$external.CN=myName,OU=myOrgUnit,O=myOrg',
-          user: 'CN=myName,OU=myOrgUnit,O=myOrg',
-          db: '$external',
+          _id: 'admin.test',
+          user: 'test',
+          db: 'admin',
         },
       ],
-      false,
-    ],
-  ])('userExists %p gives %p', async (userExists: any, expected: boolean) => {
-    // GIVEN
-    const username = 'CN=TestUser,O=TestOrg,OU=TestOrgUnit';
-    const userExistsResponse = {
-      users: userExists,
       ok: 1,
     };
     const addUserResponse = {
@@ -544,47 +513,130 @@ describe('createX509AuthUser', () => {
     const mockDb = {
       command: jest.fn( (request) => commandMock(request) ),
     };
-    async function stringSuccessRequestMock(value: string): Promise<string> {
-      return value;
-    }
-    async function rfc2253(_arg: string): Promise<string> {
-      return username;
-    }
-    const mockReadCert = jest.fn( (request) => stringSuccessRequestMock(request) );
-    const mockRfc2253 = jest.fn( (arg) => rfc2253(arg) );
     const handler = new MongoDbConfigure(new AWS.SecretsManager());
-    // tslint:disable-next-line: no-string-literal
-    handler['readCertificateData'] = mockReadCert;
-    // tslint:disable-next-line: no-string-literal
-    handler['retrieveRfc2253Subject'] = mockRfc2253;
-    const userData = {
-      certificate: secretArn,
-      roles: [ { role: 'readWrite', db: 'somedb' } ],
-    };
-    const userToCreate = {
-      Certificate: userData.certificate,
-      Roles: JSON.stringify(userData.roles),
-    };
 
     // WHEN
     // tslint:disable-next-line: no-string-literal
-    const result = await handler['createX509AuthUser'](mockDb, userToCreate);
+    const result = await handler['createPasswordAuthUser'](mockDb, secretArn);
 
-    // THEN
-    expect(result).toStrictEqual(expected);
-    expect(mockDb.command.mock.calls.length).toBe(expected ? 2 : 1);
+    expect(result).toStrictEqual(false);
+    expect(mockDb.command.mock.calls.length).toBe(1);
     // Check args of userExits DB query.
     expect(mockDb.command.mock.calls[0][0]).toStrictEqual({
       usersInfo: username,
     });
-    if (expected) {
-      // Check args of createUser DB query.
-      expect(mockDb.command.mock.calls[1][0]).toStrictEqual({
-        createUser: username,
-        roles: userData.roles,
+  });
+});
+
+describe('createX509AuthUser', () => {
+  let consoleLogMock: jest.SpyInstance<any, any>;
+  const username = 'CN=TestUser,O=TestOrg,OU=TestOrgUnit';
+
+  beforeEach(() => {
+    setSDKInstance(AWS);
+    consoleLogMock = jest.spyOn(console, 'log')
+      .mockReset()
+      .mockReturnValue(undefined);
+  });
+
+  afterEach(() => {
+    restore('SecretsManager');
+  });
+
+  describe.each([
+    [
+      [], true,
+    ],
+    [
+      [
+        {
+          _id: '$external.CN=myName,OU=myOrgUnit,O=myOrg',
+          user: 'CN=myName,OU=myOrgUnit,O=myOrg',
+          db: '$external',
+        },
+      ],
+      false,
+    ],
+  ])('userExists %p gives %p', (userExists: any, expected: boolean) => {
+    let mockDb: any;
+    let result: boolean;
+
+    // GIVEN
+    const dbCommandExpectedCallCount = expected ? 2 : 1;
+    const userExistsResponse = {
+      users: userExists,
+      ok: 1,
+    };
+    const addUserResponse = {
+      ok: 1,
+    };
+    const roles = [ { role: 'readWrite', db: 'somedb' } ];
+
+    beforeEach(async () => {
+      // GIVEN
+      async function commandMock(request: { [key: string]: string}): Promise<{ [key: string]: any }> {
+        if ('createUser' in request) {
+          return addUserResponse;
+        }
+        return userExistsResponse;
+      }
+      mockDb = {
+        command: jest.fn( (request) => commandMock(request) ),
+      };
+      async function stringSuccessRequestMock(value: string): Promise<string> {
+        return value;
+      }
+      async function rfc2253(_arg: string): Promise<string> {
+        return username;
+      }
+      const mockReadCert = jest.fn( (request) => stringSuccessRequestMock(request) );
+      const mockRfc2253 = jest.fn( (arg) => rfc2253(arg) );
+      const handler = new MongoDbConfigure(new AWS.SecretsManager());
+      // tslint:disable-next-line: no-string-literal
+      handler['readCertificateData'] = mockReadCert;
+      // tslint:disable-next-line: no-string-literal
+      handler['retrieveRfc2253Subject'] = mockRfc2253;
+      const userData = {
+        certificate: secretArn,
+        roles,
+      };
+      const userToCreate = {
+        Certificate: userData.certificate,
+        Roles: JSON.stringify(userData.roles),
+      };
+
+      // WHEN
+      // tslint:disable-next-line: no-string-literal
+      result = await handler['createX509AuthUser'](mockDb, userToCreate);
+    });
+
+    // THEN
+    test('returns expected result', () => {
+      expect(result).toStrictEqual(expected);
+    });
+
+    test(`db.command called ${dbCommandExpectedCallCount} times`, () => {
+      expect(mockDb.command.mock.calls.length).toBe(dbCommandExpectedCallCount);
+    });
+
+    test('correct arguments passed to userExits DB query', () => {
+      expect(mockDb.command.mock.calls[0][0]).toStrictEqual({
+        usersInfo: username,
       });
-      expect(consoleLogMock.mock.calls.length).toBe(1);
-      expect(consoleLogMock.mock.calls[0][0]).toStrictEqual(`Creating user: ${username}`);
+    });
+
+    if (expected) {
+      test('correct arguments passed to createUser DB query', () => {
+        expect(mockDb.command.mock.calls[1][0]).toStrictEqual({
+          createUser: username,
+          roles,
+        });
+      });
+
+      test('user creation logged to output', () => {
+        expect(consoleLogMock.mock.calls.length).toBe(1);
+        expect(consoleLogMock.mock.calls[0][0]).toStrictEqual(`Creating user: ${username}`);
+      });
     }
   });
 });

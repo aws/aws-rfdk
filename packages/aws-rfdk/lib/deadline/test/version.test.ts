@@ -143,8 +143,8 @@ describe('Version', () => {
     expect(result).toEqual(true);
   });
 
-  describe('constructor validation', () => {
-    test.each<[string, { version: number[], expectedException?: RegExp }]>([
+  describe('throws exception for invalid components', () => {
+    test.each<[string, { version: number[], expectedException: RegExp }]>([
       [
         'incorrect component count',
         {
@@ -163,25 +163,40 @@ describe('Version', () => {
           version: [10, 1, 9.2, 2],
           expectedException: /Invalid version format. None of the version components can contain decimal values./,
         },
-      ], [
-        'correct value',
-        {
-          version: [10, 1, 9, 2],
-        },
       ],
     ])('%s', (_name, testcase) => {
       const { version, expectedException } = testcase;
 
       // WHEN
-      if (expectedException) {
-        expect(() => new Version(version)).toThrow(expectedException);
-      } else {
-        const versionObj = new Version(version);
-        expect(versionObj.majorVersion).toEqual(version[0]);
-        expect(versionObj.minorVersion).toEqual(version[1]);
-        expect(versionObj.releaseVersion).toEqual(version[2]);
-        expect(versionObj.patchVersion).toEqual(version[3]);
-      }
+      expect(() => new Version(version)).toThrow(expectedException);
+    });
+  });
+
+  describe('components are mapped to correct properties', () => {
+    // GIVEN
+    const versionComponents = [10, 1, 9, 2];
+    let version: Version;
+
+    // WHEN
+    beforeEach(() => {
+      version = new Version(versionComponents);
+    });
+
+    // THEN
+    test('majorVersion', () => {
+      expect(version.majorVersion).toEqual(versionComponents[0]);
+    });
+
+    test('minorVersion', () => {
+      expect(version.minorVersion).toEqual(versionComponents[1]);
+    });
+
+    test('releaseVersion', () => {
+      expect(version.releaseVersion).toEqual(versionComponents[2]);
+    });
+
+    test('patchVersion', () => {
+      expect(version.patchVersion).toEqual(versionComponents[3]);
     });
   });
 
@@ -205,21 +220,26 @@ describe('Version', () => {
           version: '10.-1.9.2',
           expectedException: /Invalid version format/,
         },
-      ], [
-        'correct version',
-        {
-          version: '10.1.9.2',
-        },
       ],
     ])('%s', (_name, testcase) => {
       const { version, expectedException } = testcase;
 
       // WHEN
-      if(expectedException) {
-        expect(() => Version.parse(version)).toThrow(expectedException);
-      } else {
-        expect(() => Version.parse(version)).not.toThrow();
-      }
+      expect(() => Version.parse(version)).toThrow(expectedException);
     });
+  });
+
+  test('.parse() works', () => {
+    // GIVEN
+    const versionString = '10.1.9.2';
+
+    // WHEN
+    const version = Version.parse(versionString);
+
+    // THEN
+    expect(version.majorVersion).toBe(10);
+    expect(version.minorVersion).toBe(1);
+    expect(version.releaseVersion).toBe(9);
+    expect(version.patchVersion).toBe(2);
   });
 });

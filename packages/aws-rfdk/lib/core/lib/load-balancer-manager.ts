@@ -200,6 +200,7 @@ export class LoadBalancerFactory {
       internetFacing: false,
       vpcSubnets: healthMonitorProps.vpcSubnets,
       deletionProtection: healthMonitorProps.deletionProtection ?? true,
+      securityGroup: healthMonitorProps.securityGroup,
     });
     // Enabling dropping of invalid HTTP header fields on the load balancer to prevent http smuggling attacks.
     loadBalancer.setAttribute('routing.http.drop_invalid_header_fields.enabled', 'true');

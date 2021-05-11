@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { App, Stack } from '@aws-cdk/core';
+import { App, Stack, Aspects } from '@aws-cdk/core';
 import {
   Stage,
   ThinkboxDockerRecipes,
 } from 'aws-rfdk/deadline';
 
 import { RenderStruct } from '../../../../lib/render-struct';
+import { SSMInstancePolicyAspect } from '../../../../lib/ssm-policy-aspect';
 import { DatabaseType, StorageStruct } from '../../../../lib/storage-struct';
 import { RenderQueueTestingTier } from '../lib/renderQueue-testing-tier';
 
@@ -57,3 +58,6 @@ const structs: Array<RenderStruct> = [
 ];
 
 new RenderQueueTestingTier(app, 'RFDKInteg-RQ-TestingTier' + integStackTag, { env, integStackTag, structs });
+
+// Adds IAM Policy to Instance and ASG Roles
+Aspects.of(app).add(new SSMInstancePolicyAspect());
