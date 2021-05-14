@@ -26,7 +26,7 @@ report_results () {
     echo
 
     # Read the test run exit code from the file
-    if [[ ! -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/exitcode" ]]
+    if [[ -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/exitcode" ]]
     then
         COMPONENT_EXIT_CODE=$(cat "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/exitcode")
         echo "Exit code: ${COMPONENT_EXIT_CODE}"
