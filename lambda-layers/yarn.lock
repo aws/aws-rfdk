@@ -2,15 +2,15 @@
 # yarn lockfile v1
 
 
-"@types/node@^14.14.35":
-  version "14.14.37"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-14.14.37.tgz#a3dd8da4eb84a996c36e331df98d82abd76b516e"
-  integrity sha512-XYmBiy+ohOR4Lh5jE379fV2IU+6Jn4g5qASinhitfyO71b/sCo6MKsMLF5tc7Zf2CE8hViVQyYSobJNke8OvUw==
+"@types/node@^15.3.0":
+  version "15.3.0"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-15.3.0.tgz#d6fed7d6bc6854306da3dea1af9f874b00783e26"
+  integrity sha512-8/bnjSZD86ZfpBsDlCIkNXIvm+h6wi9g7IqL+kmFkQ+Wvu3JrasgLElfiPgoo8V8vVfnEi0QVS12gbl94h9YsQ==
 
-aws-sdk@^2.869.0:
-  version "2.880.0"
-  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.880.0.tgz#2198818f3b42bdd387e1898c8aab5fcca2409a36"
-  integrity sha512-/dBk3ejw22ED2edzGfmJB83KXDA4wLIw5Hb+2YMhly+gOWecvevy0tML2+YN/cmxyTy+wT0E0sM7fm1v7kmHtw==
+aws-sdk@^2.908.0:
+  version "2.908.0"
+  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.908.0.tgz#7c1772919f2840d322a678b27625ef16a0047949"
+  integrity sha512-+UtrKOlwjFhGRRrtf3zl5iwFcAnvuh9m63gBnFj9aA+scbP4K2qOukJxPqXCBDeFPqLGH+ojmMJE/54oSlOfmQ==
   dependencies:
     buffer "4.9.2"
     events "1.1.1"
@@ -76,10 +76,10 @@ sax@>=0.6.0:
   resolved "https://registry.yarnpkg.com/sax/-/sax-1.2.4.tgz#2816234e2378bddc4e5354fab5caa895df7100d9"
   integrity sha512-NqVDv9TpANUjFm0N8uM5GxL36UgKi9/atZw+x7YFnQ8ckwFGKrl4xX4yWtrey3UJm5nP1kUbnYgLopqWNSRhWw==
 
-typescript@~4.2.3:
-  version "4.2.3"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.2.3.tgz#39062d8019912d43726298f09493d598048c1ce3"
-  integrity sha512-qOcYwxaByStAWrBf4x0fibwZvMRG+r4cQoTjbPtUlrWjBHbmCAww1i448U0GJ+3cNNEtebDteo/cHOR3xJ4wEw==
+typescript@~4.2.4:
+  version "4.2.4"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.2.4.tgz#8610b59747de028fda898a8aef0e103f156d0961"
+  integrity sha512-V+evlYHZnQkaz8TRBuxTA92yZBPotr5H+WhQ7bD3hZUndx5tGOa1fuCgeSjxAzM1RiN5IzvadIXTVefuuwZCRg==
 
 url@0.10.3:
   version "0.10.3"
