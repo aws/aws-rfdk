@@ -108,9 +108,14 @@
     "typescript": "~4.2.4"
   },
   "resolutions-netmask-comment": "transitive dep from proxy-agent 4.0.1 & pac-resolver 4.1.0, which are transitive deps from CDK. Remove the forced resolution when able.",
+  "resolutions-hosted-git-info": "transitive dep from conventional-changelog-cli@2.1.1 and lerna@4.0.0. hosted-git-info v3.0.0 - v3.0.7 contain a security vulnerability. It is safe to remove/update overrides as long as we stay out of the vulnerable window",
   "resolutions": {
     "netmask": "^2.0.1",
-    "pac-resolver": "^4.2.0"
+    "pac-resolver": "^4.2.0",
+    "**/get-pkg-repo/**/hosted-git-info": "^2.1.4",
+    "**/git-raw-commits/**/hosted-git-info": "^2.1.4",
+    "**/read-pkg-up/**/hosted-git-info": "^2.1.4",
+    "hosted-git-info": "^3.0.8"
   },
   "workspaces": {
     "packages": [
