@@ -65,14 +65,16 @@ function execute_component_test () {
 
   run_aws_interaction_hook
 
+  test_report_path="${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-report.json"
+  test_output_path="${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-output.txt"
+
   echo "[${COMPONENT_NAME}] running test suite started"
   ensure_component_artifact_dir "${COMPONENT_NAME}"
-  yarn run test "$COMPONENT_NAME.test" --json --outputFile="${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-report.json" > "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-output.txt" 2>&1
+  yarn run test "$COMPONENT_NAME.test" --json --outputFile="${test_report_path}" &> "${test_output_path}"
   echo "[${COMPONENT_NAME}] running test suite complete"
 
-  test_report_path="${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-report.json"
 
-  if [[ -f "${test_report_path}" && $(node -pe "require('integ/.e2etemp/deadline_01_repository/test-report.json').numFailedTests") -eq 0 ]]
+  if [[ -f "${test_report_path}" && $(node -pe "require('${test_report_path}').numFailedTests") -eq 0 ]]
   then
     echo "[${COMPONENT_NAME}] test suite passed"
   else

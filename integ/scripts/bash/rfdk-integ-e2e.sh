@@ -78,17 +78,14 @@ cleanup_on_failure () {
 
 get_component_dirs () {
   # Find all "cdk.json" files (indicates parent dir is a CDK app)
-  find .                    \
-    -path "*/node_modules"  \
-    -prune                  \
-    -o                      \
-    -name "cdk.json"   |    \
+  find . -name "cdk.json"           | \
   # Filter out node_modules
-  grep -v node_modules |    \
-  # Filter out infrastructure app
-  egrep -v "/_"        |    \
+  grep -v node_modules              | \
   # Extract the directory name
-  xargs -n1 dirname    |    \
+  xargs -n1 dirname                 | \
+  # Filter out apps whose driectories begin with an underscore (_) as this
+  # convention indicates the app is not a test
+  egrep -v "^_"                     | \
   # Sort
   sort
 }
@@ -102,7 +99,7 @@ export INFRASTRUCTURE_DEPLOY_FINISH_TIME=$SECONDS
 XARGS_ARGS="-n 1"
 if [[ "${RUN_TESTS_IN_PARALLEL-}" = true ]]
 then
-  # Unbounded parallelism
+  # Instruct xargs to run all the commands in parallel and block until they complete execution
   XARGS_ARGS="${XARGS_ARGS} -P 0"
 fi
 

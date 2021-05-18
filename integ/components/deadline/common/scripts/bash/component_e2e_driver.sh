@@ -8,10 +8,14 @@ set +e
 # Fail on unset variables
 set -u
 
-# COMPONENT_NAME=$1
 COMPONENT_ROOT="$1"
 COMPONENT_NAME=$(basename "$COMPONENT_ROOT")
 START_TIME=$SECONDS
+
+# Before changing directories, we determine the
+# asbolute path of INTEG_TEMP_DIR, since it is a relative
+# path
+export INTEG_TEMP_DIR=$(readlink -fm "${INTEG_TEMP_DIR}")
 
 cd "$INTEG_ROOT/$COMPONENT_ROOT"
 

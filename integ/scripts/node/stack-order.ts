@@ -232,8 +232,8 @@ function sortStacks(stacks: Stack[], orderType: OrderType): Stack[] {
 /**
  * The entrypoint of the program.
  *
- * This process and validates the cmomand line arguments. It exits and displays
- * an error/usage output if the arguments are invalid.
+ * This processes and validates the command line arguments. It exits and
+ * displays an error/usage output if the arguments are invalid.
  *
  * If the arguments are valid, it reads the specified CDK manifest file, sorts
  * the stacks in their correct deploy/destroy order, and outputs their names
