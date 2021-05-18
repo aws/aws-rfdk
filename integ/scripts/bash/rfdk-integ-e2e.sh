@@ -12,6 +12,8 @@ shopt -s globstar
 
 SCRIPT_EXIT_CODE=0
 
+echo "RFDK end-to-end integration tests started $(date)"
+
 # Mark test start time
 export TEST_START_TIME="$(date +%s)"
 SECONDS=$TEST_START_TIME
@@ -43,7 +45,10 @@ rm -rf $INTEG_TEMP_DIR
 mkdir -p $INTEG_TEMP_DIR
 
 # Stage deadline from script
-$BASH_SCRIPTS/stage-deadline.sh
+if [ ! -d "${DEADLINE_STAGING_PATH}" ]
+then
+  $BASH_SCRIPTS/stage-deadline.sh
+fi
 
 # Extract the Deadline version to use for Deadline installations on the farm.
 # Tests allow not specifying or specifying a partial version string such as "10.1.12". After staging, we
@@ -64,12 +69,25 @@ fi
 # Mark pretest finish time
 export PRETEST_FINISH_TIME=$SECONDS
 
-echo "Starting RFDK-integ end-to-end tests"
-
 # Define cleanup function for deployment failure
 cleanup_on_failure () {
+    echo "Testing failed. Performing failure cleanup..."
     yarn run tear-down
     exit 1
+}
+
+get_component_dirs () {
+  # Find all "cdk.json" files (indicates parent dir is a CDK app)
+  find . -name "cdk.json"           | \
+  # Filter out node_modules
+  grep -v node_modules              | \
+  # Extract the directory name
+  xargs -n1 dirname                 | \
+  # Filter out apps whose driectories begin with an underscore (_) as this
+  # convention indicates the app is not a test
+  egrep -v "^_"                     | \
+  # Sort
+  sort
 }
 
 # Deploy the infrastructure app, a cdk app containing only a VPC to be supplied to the following tests
@@ -78,81 +96,21 @@ $BASH_SCRIPTS/deploy-infrastructure.sh || cleanup_on_failure
 # Mark infrastructure deploy finish time
 export INFRASTRUCTURE_DEPLOY_FINISH_TIME=$SECONDS
 
-# Pull the top level directory for each cdk app in the components directory
-COMPONENTS=()
-for COMPONENT in **/cdk.json; do
-    # In case the yarn install was done inside this integ package, there are some example cdk.json files in the aws-cdk
-    # package we want to avoid.
-    if [[ $COMPONENT == *"node_modules"* ]]; then
-        continue
-    fi
-
-    COMPONENT_ROOT="$(dirname "$COMPONENT")"
-    COMPONENT_NAME=$(basename "$COMPONENT_ROOT")
-
-    # Use a pattern match to exclude the infrastructure app from the results
-    export ${COMPONENT_NAME}_START_TIME=$SECONDS
-    if [[ "$COMPONENT_NAME" != _* ]]; then
-        # Excecute the e2e test in the component's scripts directory
-        cd "$INTEG_ROOT/$COMPONENT_ROOT"
-        if [ "${RUN_TESTS_IN_PARALLEL-}" = true ]; then
-            ( (../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME"; exit_code=$?; echo $exit_code > "$INTEG_TEMP_DIR/${COMPONENT_NAME}_exitcode"; exit $exit_code) \
-            || ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" --destroy-only) &
-            export ${COMPONENT_NAME}_PID=$!
-            COMPONENTS+=(${COMPONENT_NAME})
-        else
-            ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" || cleanup_on_failure
-        fi
-    fi
-    export ${COMPONENT_NAME}_FINISH_TIME=$SECONDS
-done
-
-if [ "${RUN_TESTS_IN_PARALLEL-}" = true ]; then
-    while [ "${#COMPONENTS[@]}" -ne 0 ]; do
-        ACTIVE_COMPONENTS=()
-        for COMPONENT_NAME in ${COMPONENTS[@]}; do
-            PID=$(eval echo \"\$${COMPONENT_NAME}_PID\")
-            if ps -p "$PID" > /dev/null; then
-              ACTIVE_COMPONENTS+=(${COMPONENT_NAME})
-            else
-              COMPONENT_EXIT_CODE=$(cat "$INTEG_TEMP_DIR/${COMPONENT_NAME}_exitcode" || echo 1)
-              if [ $COMPONENT_EXIT_CODE -ne 0 ]; then
-                SCRIPT_EXIT_CODE=1
-              fi
-
-              echo "Test app $COMPONENT_NAME finished with exit code $COMPONENT_EXIT_CODE"
-              if [ -f "$INTEG_TEMP_DIR/${COMPONENT_NAME}_deploy.txt" ]; then
-                cat "$INTEG_TEMP_DIR/${COMPONENT_NAME}_deploy.txt"
-              fi
-              if [ -f "$INTEG_TEMP_DIR/${COMPONENT_NAME}.txt" ]; then
-                cat "$INTEG_TEMP_DIR/${COMPONENT_NAME}.txt"
-              fi
-              if [ -f "$INTEG_TEMP_DIR/${COMPONENT_NAME}_destroy.txt" ]; then
-                cat "$INTEG_TEMP_DIR/${COMPONENT_NAME}_destroy.txt"
-              fi
-            fi
-            export ${COMPONENT_NAME}_FINISH_TIME=$SECONDS
-        done
-        if [ "${#ACTIVE_COMPONENTS[@]}" -ne 0 ]; then
-          COMPONENTS=(${ACTIVE_COMPONENTS[@]})
-        else
-          COMPONENTS=()
-        fi
-        sleep 1
-    done
-
-    wait
+XARGS_ARGS="-n 1"
+if [[ "${RUN_TESTS_IN_PARALLEL-}" = true ]]
+then
+  # Instruct xargs to run all the commands in parallel and block until they complete execution
+  XARGS_ARGS="${XARGS_ARGS} -P 0"
 fi
 
-# Mark infrastructure destroy start time
-export INFRASTRUCTURE_DESTROY_START_TIME=$SECONDS
+# Run the component tests (potentially in parallel)
+get_component_dirs | xargs ${XARGS_ARGS} components/deadline/common/scripts/bash/component_e2e_driver.sh || cleanup_on_failure
 
 # Destroy the infrastructure stack on completion
 cd $INTEG_ROOT
+export INFRASTRUCTURE_DESTROY_START_TIME=$SECONDS     # Mark infrastructure destroy start time
 $BASH_SCRIPTS/teardown-infrastructure.sh || cleanup_on_failure
-
-# Mark infrastructure destroy finish time
-export INFRASTRUCTURE_DESTROY_FINISH_TIME=$SECONDS
+export INFRASTRUCTURE_DESTROY_FINISH_TIME=$SECONDS    # Mark infrastructure destroy finish time
 
 cd "$INTEG_ROOT"
 

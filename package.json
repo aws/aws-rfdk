@@ -124,7 +124,7 @@
       "packages/*",
       "packages/aws-rfdk/*",
       "tools/*",
-      "integ/"
+      "integ"
     ]
   }
 }
