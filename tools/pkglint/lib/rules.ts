@@ -866,7 +866,7 @@ export class PackageInJsiiPackageNoRuntimeDeps extends ValidationRule {
       if (Object.keys(innerPkg.dependencies).length > 0) {
         pkg.report({
           ruleName: `${this.name}:1`,
-          message: `NPM Package '${innerPkg.packageName}' inside jsii package can only have devDepencencies`,
+          message: `NPM Package '${innerPkg.packageName}' inside jsii package '${pkg.packageName}', can only have devDepencencies`,
         });
       }
 
@@ -1039,6 +1039,13 @@ export class JestSetup extends ValidationRule {
     }
     fileShouldContain(this.name, pkg, '.gitignore', '!jest.config.js');
     fileShouldContain(this.name, pkg, '.npmignore', 'jest.config.js');
+
+    if (!(pkg.json.devDependencies ?? {})['@types/jest']) {
+      pkg.report({
+        ruleName: `${this.name}.types`,
+        message: 'There must be a devDependency on \'@types/jest\' if you use jest testing',
+      });
+    }
   }
 }
 
@@ -1048,7 +1055,7 @@ export class JestSetup extends ValidationRule {
  * A package is a JSII package if there is 'jsii' section in the package.json
  */
 function isJSII(pkg: PackageJson): boolean {
-  return pkg.json.jsii;
+  return (pkg.json.jsii !== undefined);
 }
 
 /**
