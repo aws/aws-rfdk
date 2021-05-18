@@ -41,8 +41,6 @@ EOF
 # Clean-up if test failed
 if [[ $test_exit_code -ne 0 ]]
 then
-    # A failed cleanup should propagate to the calling process
-    set -e
     ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" --destroy-only
 fi
 

@@ -71,9 +71,8 @@ export PRETEST_FINISH_TIME=$SECONDS
 
 # Define cleanup function for deployment failure
 cleanup_on_failure () {
-    echo "Testing failed. Performing failure cleanup..."
+    echo "Performing best-effort full cleanup..."
     yarn run tear-down
-    exit 1
 }
 
 get_component_dirs () {
@@ -85,13 +84,17 @@ get_component_dirs () {
   xargs -n1 dirname                 | \
   # Filter out apps whose driectories begin with an underscore (_) as this
   # convention indicates the app is not a test
-  egrep -v "^_"                     | \
+  grep -v "/_"                      | \
   # Sort
   sort
 }
 
 # Deploy the infrastructure app, a cdk app containing only a VPC to be supplied to the following tests
-$BASH_SCRIPTS/deploy-infrastructure.sh || cleanup_on_failure
+$BASH_SCRIPTS/deploy-infrastructure.sh || (
+  echo "[infrastructure] Error deploying infrastructure"
+  cleanup_on_failure
+  false
+)
 
 # Mark infrastructure deploy finish time
 export INFRASTRUCTURE_DEPLOY_FINISH_TIME=$SECONDS
@@ -104,15 +107,15 @@ then
 fi
 
 # Run the component tests (potentially in parallel)
-get_component_dirs | xargs ${XARGS_ARGS} components/deadline/common/scripts/bash/component_e2e_driver.sh || cleanup_on_failure
+get_component_dirs | xargs ${XARGS_ARGS} components/deadline/common/scripts/bash/component_e2e_driver.sh
 
 # Destroy the infrastructure stack on completion
-cd $INTEG_ROOT
 export INFRASTRUCTURE_DESTROY_START_TIME=$SECONDS     # Mark infrastructure destroy start time
-$BASH_SCRIPTS/teardown-infrastructure.sh || cleanup_on_failure
+$BASH_SCRIPTS/teardown-infrastructure.sh || (
+  echo '[infrastructure] Error destroying infrastructure'
+  cleanup_on_failure || true
+)
 export INFRASTRUCTURE_DESTROY_FINISH_TIME=$SECONDS    # Mark infrastructure destroy finish time
-
-cd "$INTEG_ROOT"
 
 echo "Complete!"
 
