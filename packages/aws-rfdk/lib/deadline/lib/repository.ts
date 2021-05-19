@@ -891,7 +891,8 @@ export class Repository extends Construct implements IRepository {
     this.installerGroup.userData.addOnExitCommands(`sleep ${terminationDelay}m`);
 
     // fetching the instance id and asg name and then setting all the capacity to 0 to terminate the installer.
-    this.installerGroup.userData.addOnExitCommands('INSTANCE="$(curl http://169.254.169.254/latest/meta-data/instance-id)"');
+    this.installerGroup.userData.addOnExitCommands('TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 30" 2> /dev/null)');
+    this.installerGroup.userData.addOnExitCommands('INSTANCE="$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id  2> /dev/null)"');
     this.installerGroup.userData.addOnExitCommands('ASG="$(aws --region ' + Stack.of(this).region + ' ec2 describe-tags --filters "Name=resource-id,Values=${INSTANCE}" "Name=key,Values=aws:autoscaling:groupName" --query "Tags[0].Value" --output text)"');
     this.installerGroup.userData.addOnExitCommands('aws --region ' + Stack.of(this).region + ' autoscaling update-auto-scaling-group --auto-scaling-group-name ${ASG} --min-size 0 --max-size 0 --desired-capacity 0');
   }
