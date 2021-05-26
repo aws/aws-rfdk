@@ -10,6 +10,7 @@ import * as crypto from 'crypto';
 import { ACM, DynamoDB, SecretsManager } from 'aws-sdk';
 
 import { LambdaContext } from '../lib/aws-lambda';
+import { BackoffGenerator } from '../lib/backoff-generator';
 import { CfnRequestEvent, DynamoBackedCustomResource } from '../lib/custom-resource';
 import { CompositeStringIndexTable } from '../lib/dynamodb';
 import { Certificate } from '../lib/x509-certs';
@@ -18,10 +19,6 @@ import {
   IAcmImportCertProps,
   implementsIAcmImportCertProps,
 } from './types';
-
-const defaultSleep = function(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-};
 
 const ACM_VERSION = '2015-12-08';
 const DYNAMODB_VERSION = '2012-08-10';
@@ -84,9 +81,14 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
     const maxAttempts = 10;
     for (const [key, resource] of Object.entries(resources)) {
       const arn: string = resource.ARN;
-
       let inUseByResources = [];
-      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const backoffGenerator = new BackoffGenerator({
+        base: 200,
+        jitterDivisor: 4,
+        maxAttempts,
+      });
+
+      do {
         const { Certificate: cert } = await this.acmClient.describeCertificate({
           CertificateArn: arn,
         }).promise();
@@ -94,15 +96,11 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
         inUseByResources = cert!.InUseBy || [];
 
         if (inUseByResources.length) {
-          // Exponential backoff with jitter based on 200ms base
-          // component of backoff fixed to ensure minimum total wait time on
-          // slow targets.
-          const base = Math.pow(2, attempt);
-          await defaultSleep(Math.random() * base * 50 + base * 150);
+          await backoffGenerator.backoffJitter();
         } else {
           break;
         }
-      }
+      } while (backoffGenerator.shouldContinue());
 
       if (inUseByResources.length) {
         throw new Error(`Response from describeCertificate did not contain an empty InUseBy list after ${maxAttempts} attempts.`);
@@ -156,7 +154,7 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
           PrivateKey: args.key,
           Tags: args.tags,
         };
-        await this.acmClient.importCertificate(importCertRequest).promise();
+        await this.importCertificate(importCertRequest);
       } else {
         throw Error(`Database entry ${existingItem.ARN} could not be found in ACM.`);
       }
@@ -168,7 +166,7 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
         Tags: args.tags,
       };
 
-      const resp = await this.acmClient.importCertificate(importCertRequest).promise();
+      const resp = await this.importCertificate(importCertRequest);
 
       if (!resp.CertificateArn) {
         throw new Error(`CertificateArn was not properly populated after attempt to import ${args.cert}`);
@@ -186,6 +184,31 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
     }
 
     return certificateArn;
+  }
+
+  private async importCertificate(importCertRequest: ACM.ImportCertificateRequest) {
+    // ACM cert imports are limited to 1 per second (see https://docs.aws.amazon.com/acm/latest/userguide/acm-limits.html#api-rate-limits)
+    // We need to backoff & retry in the event that two imports happen in the same second
+    const maxAttempts = 10;
+    const backoffGenerator = new BackoffGenerator({
+      base: 200,
+      jitterDivisor: 4,
+      maxAttempts,
+    });
+
+    do {
+      try {
+        return await this.acmClient.importCertificate(importCertRequest).promise();
+      } catch (e) {
+        console.warn(`Could not import certificate: ${e}`);
+        await backoffGenerator.backoffJitter();
+        if (backoffGenerator.shouldContinue()) {
+          console.log('Retrying...');
+        }
+      }
+    } while (backoffGenerator.shouldContinue());
+
+    throw new Error(`Failed to import certificate ${importCertRequest.CertificateArn ?? ''} after ${maxAttempts} attempts.`);
   }
 
   private async getSecretString(SecretId: string): Promise<string> {
