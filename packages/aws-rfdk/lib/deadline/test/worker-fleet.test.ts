@@ -7,7 +7,6 @@
 
 import {
   ABSENT,
-  arrayWith,
   expect as expectCDK,
   haveResource,
   haveResourceLike,
@@ -1890,7 +1889,7 @@ describe('tagging', () => {
 
 test('worker fleet signals when non-zero minCapacity', () => {
   // WHEN
-  new WorkerInstanceFleet(wfstack, 'workerFleet', {
+  const fleet = new WorkerInstanceFleet(wfstack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericWindowsImage({
       'us-east-1': 'ami-any',
@@ -1899,18 +1898,11 @@ test('worker fleet signals when non-zero minCapacity', () => {
     minCapacity: 1,
   });
 
+  // WHEN
+  const userData = fleet.fleet.userData.render();
+
   // THEN
-  // Make sure the `cfn-signal` is present
-  expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
-    UserData: {
-      'Fn::Base64': {
-        'Fn::Join': [
-          '',
-          arrayWith('<powershell>trap {\n$success=($PSItem.Exception.Message -eq "Success")\ncfn-signal --stack workerFleetStack --resource workerFleetASG25520D69 --region us-east-1 --success ($success.ToString().ToLower())\nbreak\n}\nmkdir (Split-Path -Path \'C:/temp/'),
-        ],
-      },
-    },
-  }));
+  expect(userData).toContain('cfn-signal');
   expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
     CreationPolicy: {
       ResourceSignal: {
@@ -1918,11 +1910,13 @@ test('worker fleet signals when non-zero minCapacity', () => {
       },
     },
   }, ResourcePart.CompleteDefinition));
+  // [0] = warning about block devices. [1] = warning about no health monitor
+  expect(fleet.node.metadataEntry).toHaveLength(2);
 });
 
 test('worker fleet does not signal when zero minCapacity', () => {
   // WHEN
-  new WorkerInstanceFleet(wfstack, 'workerFleet', {
+  const fleet = new WorkerInstanceFleet(wfstack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericWindowsImage({
       'us-east-1': 'ami-any',
@@ -1931,19 +1925,19 @@ test('worker fleet does not signal when zero minCapacity', () => {
     minCapacity: 0,
   });
 
+  // WHEN
+  const userData = fleet.fleet.userData.render();
+
   // THEN
-  // Make sure there is no `cfn-signal` present (it would be the first command in the powershell)
-  expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
-    UserData: {
-      'Fn::Base64': {
-        'Fn::Join': [
-          '',
-          arrayWith('<powershell>mkdir (Split-Path -Path \'C:/temp/'),
-        ],
-      },
-    },
-  }));
+  // There should be no cfn-signal call in the UserData.
+  expect(userData).not.toContain('cfn-signal');
+  // Make sure we don't have a CreationPolicy
   expectCDK(wfstack).notTo(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
     CreationPolicy: objectLike({}),
   }, ResourcePart.CompleteDefinition));
+  // There should be a warning in the construct's metadata about deploying with no capacity.
+  expect(fleet.node.metadataEntry).toHaveLength(3);
+  // [0] = warning about block devices. [2] = warning about no health monitor
+  expect(fleet.node.metadataEntry[1].type).toMatch(ArtifactMetadataEntryType.WARN);
+  expect(fleet.node.metadataEntry[1].data).toMatch(/Deploying with 0 minimum capacity./);
 });
