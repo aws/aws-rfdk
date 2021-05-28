@@ -1,6 +1,6 @@
 {
   "name": "all-in-farm-image-builder",
-  "version": "0.32.0",
+  "version": "0.33.0",
   "bin": {
     "app": "bin/app.js"
   },
@@ -25,6 +25,6 @@
     "@aws-cdk/aws-imagebuilder": "1.106.1",
     "@aws-cdk/aws-s3-assets": "1.106.1",
     "@aws-cdk/core": "1.106.1",
-    "aws-rfdk": "0.32.0"
+    "aws-rfdk": "0.33.0"
   }
 }
