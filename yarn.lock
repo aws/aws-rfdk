@@ -507,13 +507,6 @@
     "@aws-cdk/region-info" "1.106.1"
     constructs "^3.3.69"
 
-"@aws-cdk/aws-imagebuilder@1.106.1":
-  version "1.106.1"
-  resolved "https://registry.yarnpkg.com/@aws-cdk/aws-imagebuilder/-/aws-imagebuilder-1.106.1.tgz#9edfe273fef70d3492bcb531060dfb2e0f5791ab"
-  integrity sha512-CbLmphLfOtpKACiKEEXtXHU/aEB69mMUp5nOe+AbgEB8HbELfFrybHNdzXqF9YYauZJ3rLutDWDupOAX0oaQDw==
-  dependencies:
-    "@aws-cdk/core" "1.106.1"
-
 "@aws-cdk/aws-kinesis@1.106.1":
   version "1.106.1"
   resolved "https://registry.yarnpkg.com/@aws-cdk/aws-kinesis/-/aws-kinesis-1.106.1.tgz#52989ea05c0477c1fdbfce0ca0f0c15b48a7d8dd"
@@ -4035,11 +4028,6 @@ crc32-stream@^4.0.1:
   dependencies:
     crc-32 "^1.2.0"
     readable-stream "^3.4.0"
-
-create-require@^1.1.0:
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/create-require/-/create-require-1.1.1.tgz#c1d7e8f1e5f6cfc9ff65f9cd352d37348756c333"
-  integrity sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==
 
 cross-spawn@^4:
   version "4.0.2"
@@ -10510,18 +10498,6 @@ ts-node@^8.0.2:
     source-map-support "^0.5.17"
     yn "3.1.1"
 
-ts-node@^9.1.1:
-  version "9.1.1"
-  resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-9.1.1.tgz#51a9a450a3e959401bda5f004a72d54b936d376d"
-  integrity sha512-hPlt7ZACERQGf03M253ytLY3dHbGNGrAq9qIHWUY9XHYl1z7wYngSr3OQ5xmui8o2AaxsONxIzjafLUiWBo1Fg==
-  dependencies:
-    arg "^4.1.0"
-    create-require "^1.1.0"
-    diff "^4.0.1"
-    make-error "^1.1.1"
-    source-map-support "^0.5.17"
-    yn "3.1.1"
-
 tsame@^2.0.1:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/tsame/-/tsame-2.0.1.tgz#70410ddbefcd29c61e2d68549b3347b0444d613f"
@@ -11060,9 +11036,9 @@ write-pkg@^4.0.0:
     write-json-file "^3.2.0"
 
 ws@^7.2.3:
-  version "7.3.1"
-  resolved "https://registry.yarnpkg.com/ws/-/ws-7.3.1.tgz#d0547bf67f7ce4f12a72dfe31262c68d7dc551c8"
-  integrity sha512-D3RuNkynyHmEJIpD2qrgVkc9DQ23OrN/moAwZX4L8DfvszsJxpjQuUq3LMx6HoYji9fbIOBY18XWBsAux1ZZUA==
+  version "7.4.6"
+  resolved "https://registry.yarnpkg.com/ws/-/ws-7.4.6.tgz#5654ca8ecdeee47c33a9a4bf6d28e2be2980377c"
+  integrity sha512-YmhHDO4MzaDLB+M9ym/mDA5z0naX8j7SIlT8f8z+I0VtzsRbekxEutHSme7NPS2qE8StCYQNUnfWdXta/Yu85A==
 
 xml-name-validator@^3.0.0:
   version "3.0.0"
