@@ -91,7 +91,7 @@ get_component_dirs () {
 
 # Deploy the infrastructure app, a cdk app containing only a VPC to be supplied to the following tests
 $BASH_SCRIPTS/deploy-infrastructure.sh || (
-  echo "[infrastructure] Error deploying infrastructure"
+  echo "$(date "+%Y-%m-%dT%H:%M:%S") [infrastructure] Error deploying infrastructure"
   cleanup_on_failure
   false
 )
@@ -106,13 +106,20 @@ then
   XARGS_ARGS="${XARGS_ARGS} -P 0"
 fi
 
-# Run the component tests (potentially in parallel)
-get_component_dirs | xargs ${XARGS_ARGS} components/deadline/common/scripts/bash/component_e2e_driver.sh
+# At this point in processing, we don't want failures to abort the script
+# All statements below this must execute
+set +e
 
-# Destroy the infrastructure stack on completion
+# Run the component tests (potentially in parallel).
+get_component_dirs | xargs ${XARGS_ARGS} components/deadline/common/scripts/bash/component_e2e_driver.sh
+# Capture the exit code for returning later from this process
+SCRIPT_EXIT_CODE=$?
+
+# Destroy the infrastructure stack on completion. 
 export INFRASTRUCTURE_DESTROY_START_TIME=$SECONDS     # Mark infrastructure destroy start time
 $BASH_SCRIPTS/teardown-infrastructure.sh || (
-  echo '[infrastructure] Error destroying infrastructure'
+  echo '$(date "+%Y-%m-%dT%H:%M:%S") [infrastructure] Error destroying infrastructure'
+  # This is a best-effort since we always want to report the test results if possible.
   cleanup_on_failure || true
 )
 export INFRASTRUCTURE_DESTROY_FINISH_TIME=$SECONDS    # Mark infrastructure destroy finish time

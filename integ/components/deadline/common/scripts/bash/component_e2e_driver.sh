@@ -38,10 +38,4 @@ ${COMPONENT_NAME}_START_TIME=${START_TIME}
 ${COMPONENT_NAME}_FINISH_TIME=${FINISH_TIME}
 EOF
 
-# Clean-up if test failed
-if [[ $test_exit_code -ne 0 ]]
-then
-    ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" --destroy-only
-fi
-
-exit 0
+exit $test_exit_code

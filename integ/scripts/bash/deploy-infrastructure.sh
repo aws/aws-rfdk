@@ -10,7 +10,7 @@ shopt -s globstar
 INFRASTRUCTURE_APP="$INTEG_ROOT/components/_infrastructure"
 cd "$INFRASTRUCTURE_APP"
 mkdir -p "${INTEG_TEMP_DIR}/infrastructure"
-echo "[infrastructure] deployment started"
+echo "$(date "+%Y-%m-%dT%H:%M:%S") [infrastructure] deployment started"
 
 # Handle errors manually
 set +e
@@ -22,10 +22,10 @@ deploy_exit_code=$?
 # If an exit code was returned from the deployment, output the deploy log
 if [[ $deploy_exit_code -ne 0 ]]
 then
-    echo "[infrastructure] deployment failed"
+    echo "$(date "+%Y-%m-%dT%H:%M:%S") [infrastructure] deployment failed"
     cat "${INTEG_TEMP_DIR}/infrastructure/deploy.txt"
 else
-    echo "[infrastructure] deployment complete"
+    echo "$(date "+%Y-%m-%dT%H:%M:%S") [infrastructure] deployment complete"
 fi
 
 cd "$INTEG_ROOT"
