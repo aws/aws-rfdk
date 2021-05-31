@@ -110,12 +110,12 @@ function destroy_component_stacks () {
 
     echo "$(timestamp) [${COMPONENT_NAME}] -> [${stack}] stack destroy started"
     npx cdk destroy --app cdk.out -e -f "${stack}" &>> "${destroy_log_path}"
-    STACK_DEPLOY_EXIT_CODE=$?
-    if [[ $STACK_DEPLOY_EXIT_CODE -ne 0 ]]
+    STACK_DESTROY_EXIT_CODE=$?
+    if [[ $STACK_DESTROY_EXIT_CODE -ne 0 ]]
     then
       echo "$(timestamp) [${COMPONENT_NAME}] -> [${stack}] stack destroy failed"
       echo "$(timestamp) [${COMPONENT_NAME}] app destroy failed"
-      return $STACK_DEPLOY_EXIT_CODE
+      return $STACK_DESTROY_EXIT_CODE
     fi
     echo "$(timestamp) [${COMPONENT_NAME}] -> [${stack}] stack destroy complete"
   done
