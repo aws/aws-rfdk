@@ -15,6 +15,19 @@ echo "Infrastructure stack deploy runtime: $((($INFRASTRUCTURE_DEPLOY_TIME / 60)
 INFRASTRUCTURE_DESTROY_TIME=$(( $INFRASTRUCTURE_DESTROY_FINISH_TIME - $INFRASTRUCTURE_DESTROY_START_TIME ))
 echo "Infrastructure stack cleanup runtime: $((($INFRASTRUCTURE_DESTROY_TIME / 60) % 60))m $(($INFRASTRUCTURE_DESTROY_TIME % 60))s"
 
+read_exit_code() {
+    EXIT_CODE_FILENAME=$1
+
+    # Read the test run exit code from the file
+    if [[ -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/${EXIT_CODE_FILENAME}" ]]
+    then
+        COMPONENT_EXIT_CODE=$(cat "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/${EXIT_CODE_FILENAME}")
+        echo $COMPONENT_EXIT_CODE
+    else
+        echo -1
+    fi
+}
+
 # Function pulls test results from test output file and calculates time spent on each stage of the test
 report_results () {
     COMPONENT_NAME=$1
@@ -26,25 +39,44 @@ report_results () {
     echo
 
     # Read the test run exit code from the file
-    if [[ -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/exitcode" ]]
+    COMPONENT_EXIT_CODE=$(read_exit_code exitcode)
+    if [[ $COMPONENT_EXIT_CODE -ge 0 ]]
     then
-        COMPONENT_EXIT_CODE=$(cat "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/exitcode")
         echo "Exit code: ${COMPONENT_EXIT_CODE}"
     else
         echo "Exit code: (unknown)"
-        COMPONENT_EXIT_CODE=1
     fi
+    echo
 
     # If the component failed, output the deploy and destroy logs for debugging
     if [[ $COMPONENT_EXIT_CODE -ne 0 ]]
     then
-        if [[ -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/deploy.txt" ]]
+        SYNTH_EXIT_CODE=$(read_exit_code synth-exit-code)
+        echo
+
+        if [[ $SYNTH_EXIT_CODE -ne 0 && -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/synth.log" ]]
+        then
+            echo "----------------------------------------------"
+            echo "[${COMPONENT_NAME}]: Synth Log"
+            echo "----------------------------------------------"
+            echo
+
+            cat "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/synth.log"
+
+            echo
+        fi
+
+        DEPLOY_EXIT_CODE=$(read_exit_code deploy-exit-code)
+        if [[ $DEPLOY_EXIT_CODE -ne 0 && -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/deploy.txt" ]]
         then
             echo "----------------------------------------------"
             echo "[${COMPONENT_NAME}]: Deployment Log"
             echo "----------------------------------------------"
+            echo
 
             cat "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/deploy.txt"
+
+            echo
         fi
 
         if [[ -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/destroy.txt" ]]
@@ -52,8 +84,11 @@ report_results () {
             echo "----------------------------------------------"
             echo "[${COMPONENT_NAME}]: Destroy log"
             echo "----------------------------------------------"
+            echo
 
             cat "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/destroy.txt"
+
+            echo
         fi
     fi
 
@@ -62,8 +97,11 @@ report_results () {
         echo "----------------------------------------------"
         echo "[${COMPONENT_NAME}]: Test output"
         echo "----------------------------------------------"
+        echo
 
         cat "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-output.txt"
+
+        echo
     fi
     
 

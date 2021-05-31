@@ -30,6 +30,10 @@ fi
 # Set variables from script
 source $BASH_SCRIPTS/set-test-variables.sh
 
+# This is a best-effort. If any component fails to destroy, we proceed and try
+# the others. Disable the exit on error option
+set +e
+
 for COMPONENT in **/cdk.json; do
     # In case the yarn install was done inside this integ package, there are some example cdk.json files in the aws-cdk
     # package we want to avoid.

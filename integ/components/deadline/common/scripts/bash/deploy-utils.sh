@@ -21,17 +21,30 @@ function ensure_component_artifact_dir () {
 function deploy_component_stacks () {
   COMPONENT_NAME=$1
 
-  echo "[${COMPONENT_NAME}] started"
+  echo "$(timestamp) [${COMPONENT_NAME}] app deployment started"
 
   ensure_component_artifact_dir "${COMPONENT_NAME}"
 
   # Generate the cdk.out directory which includes a manifest.json file
   # this can be used to determine the deployment ordering
-  echo "[${COMPONENT_NAME}] synthesizing started"
-  npx cdk synth &> "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/synth.log"
-  echo "[${COMPONENT_NAME}] synthesizing complete"
+  echo "$(timestamp) [${COMPONENT_NAME}] synthesizing started"
+  # Synthesis requires AWS API calls for the context methods
+  # (https://docs.aws.amazon.com/cdk/latest/guide/context.html#context_methods)
+  # in our case this is for stack.availabilityZones
+  run_aws_interaction_hook
 
-  echo "[${COMPONENT_NAME}] app deployment started"
+  npx cdk synth &> "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/synth.log"
+  SYNTH_EXIT_CODE=$?
+  echo $SYNTH_EXIT_CODE > "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/synth-exit-code"
+  if [[ $SYNTH_EXIT_CODE -ne 0 ]]
+  then
+    echo "$(timestamp) [${COMPONENT_NAME}] synthesizing failed"
+    echo "$(timestamp) [${COMPONENT_NAME}] app deployment failed"
+    return $SYNTH_EXIT_CODE
+  fi
+  echo "$(timestamp) [${COMPONENT_NAME}] synthesizing complete"
+
+  echo "$(timestamp) [${COMPONENT_NAME}] app deployment started"
 
   # Empty the deploy log file in case it was non-empty
   deploy_log_path="${INTEG_TEMP_DIR}/${COMPONENT_NAME}/deploy.txt"
@@ -40,14 +53,24 @@ function deploy_component_stacks () {
   for stack in $(cdk_stack_deploy_order); do
     run_aws_interaction_hook
 
-    echo "[${COMPONENT_NAME}] -> [${stack}] stack deployment started"
+    echo "$(timestamp) [${COMPONENT_NAME}] -> [${stack}] stack deployment started"
     npx cdk deploy --app cdk.out --require-approval=never -e "${stack}" &>> "${deploy_log_path}"
-    echo "[${COMPONENT_NAME}] -> [${stack}] stack deployment complete"
+    STACK_DEPLOY_EXIT_CODE=$?
+    if [[ $STACK_DEPLOY_EXIT_CODE -ne 0 ]]
+    then
+      # Save exit code
+      echo $STACK_DEPLOY_EXIT_CODE > "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/deploy-exit-code"
+
+      echo "$(timestamp) [${COMPONENT_NAME}] -> [${stack}] stack deployment failed"
+      echo "$(timestamp) [${COMPONENT_NAME}] app deployment failed"
+      return $STACK_DEPLOY_EXIT_CODE
+    fi
+    echo "$(timestamp) [${COMPONENT_NAME}] -> [${stack}] stack deployment complete"
   done
 
-  echo "[${COMPONENT_NAME}] app deployment complete"
-  
-  return 0
+  echo 0 > "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/deploy-exit-code"
+
+  echo "$(timestamp) [${COMPONENT_NAME}] app deployment complete"
 }
 
 function cdk_stack_deploy_order () {
@@ -68,20 +91,8 @@ function execute_component_test () {
   test_report_path="${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-report.json"
   test_output_path="${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-output.txt"
 
-  echo "[${COMPONENT_NAME}] running test suite started"
   ensure_component_artifact_dir "${COMPONENT_NAME}"
   yarn run test "$COMPONENT_NAME.test" --json --outputFile="${test_report_path}" &> "${test_output_path}"
-  echo "[${COMPONENT_NAME}] running test suite complete"
-
-
-  if [[ -f "${test_report_path}" && $(node -pe "require('${test_report_path}').numFailedTests") -eq 0 ]]
-  then
-    echo "[${COMPONENT_NAME}] test suite passed"
-  else
-    echo "[${COMPONENT_NAME}] test suite failed"
-  fi
-
-  return 0
 }
 
 function destroy_component_stacks () {
@@ -89,7 +100,7 @@ function destroy_component_stacks () {
 
   ensure_component_artifact_dir "${COMPONENT_NAME}"
 
-  echo "[${COMPONENT_NAME}] app destroy started"
+  echo "$(timestamp) [${COMPONENT_NAME}] app destroy started"
 
   destroy_log_path="${INTEG_TEMP_DIR}/${COMPONENT_NAME}/destroy.txt"
   # Empty the destroy log file in case it was non-empty
@@ -97,16 +108,21 @@ function destroy_component_stacks () {
   for stack in $(cdk_stack_destroy_order); do
     run_aws_interaction_hook
 
-    echo "[${COMPONENT_NAME}] -> [${stack}] stack destroy started"
+    echo "$(timestamp) [${COMPONENT_NAME}] -> [${stack}] stack destroy started"
     npx cdk destroy --app cdk.out -e -f "${stack}" &>> "${destroy_log_path}"
-    echo "[${COMPONENT_NAME}] -> [${stack}] stack destroy complete"
+    STACK_DESTROY_EXIT_CODE=$?
+    if [[ $STACK_DESTROY_EXIT_CODE -ne 0 ]]
+    then
+      echo "$(timestamp) [${COMPONENT_NAME}] -> [${stack}] stack destroy failed"
+      echo "$(timestamp) [${COMPONENT_NAME}] app destroy failed"
+      return $STACK_DESTROY_EXIT_CODE
+    fi
+    echo "$(timestamp) [${COMPONENT_NAME}] -> [${stack}] stack destroy complete"
   done
 
-  # Clean up artifacts
-  rm -f "./cdk.context.json"
-  rm -rf "./cdk.out"
+  echo "$(timestamp) [${COMPONENT_NAME}] app destroy complete"
+}
 
-  echo "[${COMPONENT_NAME}] app destroy complete"
-
-  return 0
+function timestamp() {
+  date "+%Y-%m-%dT%H:%M:%S"
 }
