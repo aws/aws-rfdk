@@ -10,6 +10,8 @@ import {
   expect as expectCDK,
   haveResource,
   haveResourceLike,
+  objectLike,
+  ResourcePart,
 } from '@aws-cdk/assert';
 import {
   BlockDeviceVolume,
@@ -130,10 +132,10 @@ test('default worker fleet is created correctly', () => {
     RetentionInDays: 3,
     LogGroupName: '/renderfarm/workerFleet',
   }));
-  expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-  expect(fleet.node.metadata[0].data).toMatch('being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
-  expect(fleet.node.metadata[1].type).toMatch(ArtifactMetadataEntryType.WARN);
-  expect(fleet.node.metadata[1].data).toContain('being created without a health monitor attached to it. This means that the fleet will not automatically scale-in to 0 if the workers are unhealthy');
+  expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+  expect(fleet.node.metadataEntry[0].data).toMatch('being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
+  expect(fleet.node.metadataEntry[1].type).toMatch(ArtifactMetadataEntryType.WARN);
+  expect(fleet.node.metadataEntry[1].data).toContain('being created without a health monitor attached to it. This means that the fleet will not automatically scale-in to 0 if the workers are unhealthy');
 });
 
 test('security group is added to fleet after its creation', () => {
@@ -1580,8 +1582,8 @@ describe('Block Device Tests', () => {
       renderQueue,
       healthMonitor,
     });
-    expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-    expect(fleet.node.metadata[0].data).toMatch('being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
+    expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+    expect(fleet.node.metadataEntry[0].data).toMatch('being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
   });
 
   test('No Warnings if Encrypted BlockDevices Provided', () => {
@@ -1613,7 +1615,7 @@ describe('Block Device Tests', () => {
       ],
     }));
 
-    expect(fleet.node.metadata).toHaveLength(0);
+    expect(fleet.node.metadataEntry).toHaveLength(0);
   });
 
   test('Warnings if non-Encrypted BlockDevices Provided', () => {
@@ -1646,8 +1648,8 @@ describe('Block Device Tests', () => {
       ],
     }));
 
-    expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-    expect(fleet.node.metadata[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the worker-fleet workerFleet is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
+    expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+    expect(fleet.node.metadataEntry[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the worker-fleet workerFleet is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
   });
 
   test('Warnings for BlockDevices without encryption specified', () => {
@@ -1679,8 +1681,8 @@ describe('Block Device Tests', () => {
       ],
     }));
 
-    expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-    expect(fleet.node.metadata[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the worker-fleet workerFleet is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
+    expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+    expect(fleet.node.metadataEntry[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the worker-fleet workerFleet is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
   });
 
   test('No warnings for Ephemeral blockDeviceVolumes', () => {
@@ -1710,7 +1712,7 @@ describe('Block Device Tests', () => {
       ],
     }));
 
-    expect(fleet.node.metadata).toHaveLength(0);
+    expect(fleet.node.metadataEntry).toHaveLength(0);
   });
 
   test('No warnings for Suppressed blockDeviceVolumes', () => {
@@ -1739,7 +1741,7 @@ describe('Block Device Tests', () => {
       ],
     }));
 
-    expect(fleet.node.metadata).toHaveLength(0);
+    expect(fleet.node.metadataEntry).toHaveLength(0);
   });
 });
 
@@ -1883,4 +1885,59 @@ describe('tagging', () => {
       'AWS::SSM::Parameter': 1,
     },
   });
+});
+
+test('worker fleet signals when non-zero minCapacity', () => {
+  // WHEN
+  const fleet = new WorkerInstanceFleet(wfstack, 'workerFleet', {
+    vpc,
+    workerMachineImage: new GenericWindowsImage({
+      'us-east-1': 'ami-any',
+    }),
+    renderQueue,
+    minCapacity: 1,
+  });
+
+  // WHEN
+  const userData = fleet.fleet.userData.render();
+
+  // THEN
+  expect(userData).toContain('cfn-signal');
+  expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+    CreationPolicy: {
+      ResourceSignal: {
+        Count: 1,
+      },
+    },
+  }, ResourcePart.CompleteDefinition));
+  // [0] = warning about block devices. [1] = warning about no health monitor
+  expect(fleet.node.metadataEntry).toHaveLength(2);
+});
+
+test('worker fleet does not signal when zero minCapacity', () => {
+  // WHEN
+  const fleet = new WorkerInstanceFleet(wfstack, 'workerFleet', {
+    vpc,
+    workerMachineImage: new GenericWindowsImage({
+      'us-east-1': 'ami-any',
+    }),
+    renderQueue,
+    minCapacity: 0,
+  });
+
+  // WHEN
+  const userData = fleet.fleet.userData.render();
+
+  // THEN
+  // There should be no cfn-signal call in the UserData.
+  expect(userData).not.toContain('cfn-signal');
+  // Make sure we don't have a CreationPolicy
+  expectCDK(wfstack).notTo(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+    CreationPolicy: objectLike({}),
+  }, ResourcePart.CompleteDefinition));
+  // There should be a warning in the construct's metadata about deploying with no capacity.
+  expect(fleet.node.metadataEntry).toHaveLength(3);
+  // [0] = warning about block devices. [2] = warning about no health monitor
+  expect(fleet.node.metadataEntry[1].type).toMatch(ArtifactMetadataEntryType.WARN);
+  expect(fleet.node.metadataEntry[1].data).toMatch(/Deploying with 0 minimum capacity./);
 });

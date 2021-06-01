@@ -76,7 +76,7 @@ def main():
     if not os.path.isdir(storage_path):
         raise Exception("ERROR -- {storage_path} is not a directory.".format(storage_path=storage_path))
 
-    mongod_conf = yaml.load(sys.stdin)
+    mongod_conf = yaml.safe_load(sys.stdin)
     modify_storage_path(mongod_conf, storage_path)
     print(yaml.dump(mongod_conf, default_flow_style=False))
 

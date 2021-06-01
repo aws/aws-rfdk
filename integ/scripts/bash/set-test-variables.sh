@@ -3,8 +3,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-set -euo pipefail
-
 echo "Setting test variables..."
 
 # Get region from CDK_DEFAULT_REGION; assume us-west-2 if it's not set

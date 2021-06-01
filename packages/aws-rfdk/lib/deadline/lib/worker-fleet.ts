@@ -9,6 +9,7 @@ import {
   BlockDevice,
   CfnAutoScalingGroup,
   HealthCheck,
+  Signals,
 } from '@aws-cdk/aws-autoscaling';
 import {IMetric, Metric} from '@aws-cdk/aws-cloudwatch';
 import {
@@ -445,6 +446,14 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
 
     this.validateProps(props);
 
+    const minCapacity = props.minCapacity ?? 1;
+    const signals = minCapacity > 0 ? Signals.waitForMinCapacity({
+      timeout: WorkerInstanceFleet.RESOURCE_SIGNAL_TIMEOUT,
+    }) : undefined;
+    if (signals === undefined) {
+      Annotations.of(this).addWarning('Deploying with 0 minimum capacity. If there is an error in the EC2 UserData for this fleet, then your stack deployment will not fail. Watch for errors in your CloudWatch logs.');
+    }
+
     // Launching the fleet with deadline workers.
     this.fleet = new AutoScalingGroup(this, 'Default', {
       vpc: props.vpc,
@@ -455,10 +464,10 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
         subnetType: SubnetType.PRIVATE,
       },
       securityGroup: props.securityGroup,
-      minCapacity: props.minCapacity,
+      minCapacity,
       maxCapacity: props.maxCapacity,
       desiredCapacity: props.desiredCapacity,
-      resourceSignalTimeout: WorkerInstanceFleet.RESOURCE_SIGNAL_TIMEOUT,
+      signals,
       healthCheck: HealthCheck.elb({
         grace: WorkerInstanceFleet.DEFAULT_HEALTH_CHECK_INTERVAL,
       }),
@@ -514,7 +523,9 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
     );
 
     // Updating the user data with successful cfn-signal commands.
-    this.fleet.userData.addSignalOnExitCommand(this.fleet);
+    if (signals) {
+      this.fleet.userData.addSignalOnExitCommand(this.fleet);
+    }
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);

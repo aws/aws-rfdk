@@ -15,38 +15,133 @@ echo "Infrastructure stack deploy runtime: $((($INFRASTRUCTURE_DEPLOY_TIME / 60)
 INFRASTRUCTURE_DESTROY_TIME=$(( $INFRASTRUCTURE_DESTROY_FINISH_TIME - $INFRASTRUCTURE_DESTROY_START_TIME ))
 echo "Infrastructure stack cleanup runtime: $((($INFRASTRUCTURE_DESTROY_TIME / 60) % 60))m $(($INFRASTRUCTURE_DESTROY_TIME % 60))s"
 
+read_exit_code() {
+    EXIT_CODE_FILENAME=$1
+
+    # Read the test run exit code from the file
+    if [[ -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/${EXIT_CODE_FILENAME}" ]]
+    then
+        COMPONENT_EXIT_CODE=$(cat "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/${EXIT_CODE_FILENAME}")
+        echo $COMPONENT_EXIT_CODE
+    else
+        echo -1
+    fi
+}
+
 # Function pulls test results from test output file and calculates time spent on each stage of the test
 report_results () {
     COMPONENT_NAME=$1
 
-    if [ $(ls "$INTEG_TEMP_DIR/$COMPONENT_NAME.json" 2> /dev/null) ]; then
+    echo
+    echo "============================================================"
+    echo "[${COMPONENT_NAME}]: TEST REPORT"
+    echo "============================================================"
+    echo
+
+    # Read the test run exit code from the file
+    COMPONENT_EXIT_CODE=$(read_exit_code exitcode)
+    if [[ $COMPONENT_EXIT_CODE -ge 0 ]]
+    then
+        echo "Exit code: ${COMPONENT_EXIT_CODE}"
+    else
+        echo "Exit code: (unknown)"
+    fi
+    echo
+
+    # If the component failed, output the deploy and destroy logs for debugging
+    if [[ $COMPONENT_EXIT_CODE -ne 0 ]]
+    then
+        SYNTH_EXIT_CODE=$(read_exit_code synth-exit-code)
+        echo
+
+        if [[ $SYNTH_EXIT_CODE -ne 0 && -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/synth.log" ]]
+        then
+            echo "----------------------------------------------"
+            echo "[${COMPONENT_NAME}]: Synth Log"
+            echo "----------------------------------------------"
+            echo
+
+            cat "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/synth.log"
+
+            echo
+        fi
+
+        DEPLOY_EXIT_CODE=$(read_exit_code deploy-exit-code)
+        if [[ $DEPLOY_EXIT_CODE -ne 0 && -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/deploy.txt" ]]
+        then
+            echo "----------------------------------------------"
+            echo "[${COMPONENT_NAME}]: Deployment Log"
+            echo "----------------------------------------------"
+            echo
+
+            cat "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/deploy.txt"
+
+            echo
+        fi
+
+        if [[ -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/destroy.txt" ]]
+        then
+            echo "----------------------------------------------"
+            echo "[${COMPONENT_NAME}]: Destroy log"
+            echo "----------------------------------------------"
+            echo
+
+            cat "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/destroy.txt"
+
+            echo
+        fi
+    fi
+
+    if [[ -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-output.txt" ]]
+    then
+        echo "----------------------------------------------"
+        echo "[${COMPONENT_NAME}]: Test output"
+        echo "----------------------------------------------"
+        echo
+
+        cat "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-output.txt"
+
+        echo
+    fi
+    
+
+    if [[ -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-report.json" ]]
+    then
         # Get test numbers from jest output
-        TESTS_RAN=$(node -e $'const json = require(process.argv[1]); console.log(json.numTotalTests)' "$INTEG_TEMP_DIR/$COMPONENT_NAME.json")
-        TESTS_PASSED=$(node -e $'const json = require(process.argv[1]); console.log(json.numPassedTests)' "$INTEG_TEMP_DIR/$COMPONENT_NAME.json")
-        TESTS_FAILED=$(node -e $'const json = require(process.argv[1]); console.log(json.numFailedTests)' "$INTEG_TEMP_DIR/$COMPONENT_NAME.json")
+        TESTS_RAN=$(node -e $'const json = require(process.argv[1]); console.log(json.numTotalTests)' "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-report.json")
+        TESTS_PASSED=$(node -e $'const json = require(process.argv[1]); console.log(json.numPassedTests)' "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-report.json")
+        TESTS_FAILED=$(node -e $'const json = require(process.argv[1]); console.log(json.numFailedTests)' "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-report.json")
 
-        DEPLOY_START_TIME=${COMPONENT_NAME}_START_TIME
-        DEPLOY_FINISH_TIME=$(node -e $'const json = require(process.argv[1]); console.log(json.startTime)' "$INTEG_TEMP_DIR/$COMPONENT_NAME.json")
-        DEPLOY_FINISH_TIME="${DEPLOY_FINISH_TIME:0:10}"
-        DESTROY_START_TIME=$(node -e $'const json = require(process.argv[1]); console.log(json.testResults[0].endTime)' "$INTEG_TEMP_DIR/$COMPONENT_NAME.json")
-        DESTROY_START_TIME="${DESTROY_START_TIME:0:10}"
-        DESTROY_FINISH_TIME=${COMPONENT_NAME}_FINISH_TIME
+        echo "Results for test component ${COMPONENT_NAME}: "
+        echo "  -Tests ran:     ${TESTS_RAN}"
+        echo "  -Tests passed:  ${TESTS_PASSED}"
+        echo "  -Tests failed:  ${TESTS_FAILED}"
 
-        # Calculate seconds from when deploy began to when test began
-        DEPLOY_TIME=$(( $DEPLOY_FINISH_TIME - $DEPLOY_START_TIME ))
-        # Calculate seconds from when deploy ended to when teardown began
-        TEST_TIME=$(( $DESTROY_START_TIME - $DEPLOY_FINISH_TIME ))
-        # Calculate seconds from when test ended to when teardown finished
-        DESTROY_TIME=$(( $DESTROY_FINISH_TIME - $DESTROY_START_TIME ))
+        if [[ -f "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/timings.sh" ]]
+        then
+            # File contains bash variable declaration syntax for:
+            #     ${COMPONENT_NAME}_START_TIME
+            #     ${COMPONENT_NAME}_FINISH_TIME
+            source "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/timings.sh"
 
-        echo "Results for test component $COMPONENT_NAME: "
-        echo "  -Tests ran:"    $TESTS_RAN
-        echo "  -Tests passed:" $TESTS_PASSED
-        echo "  -Tests failed:" $TESTS_FAILED
-        echo "  -Deploy runtime:     $((($DEPLOY_TIME / 60) % 60))m $(($DEPLOY_TIME % 60))s"
-        echo "  -Test suite runtime: $((($TEST_TIME / 60) % 60))m $(($TEST_TIME % 60))s"
-        echo "  -Cleanup runtime:    $((($DESTROY_TIME / 60) % 60))m $(($DESTROY_TIME % 60))s"
+            DEPLOY_START_TIME=${COMPONENT_NAME}_START_TIME
+            DEPLOY_FINISH_TIME=$(node -e $'const json = require(process.argv[1]); console.log(json.startTime)' "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-report.json")
+            DEPLOY_FINISH_TIME="${DEPLOY_FINISH_TIME:0:10}"
+            DESTROY_START_TIME=$(node -e $'const json = require(process.argv[1]); console.log(json.testResults[0].endTime)' "$INTEG_TEMP_DIR/${COMPONENT_NAME}/test-report.json")
+            DESTROY_START_TIME="${DESTROY_START_TIME:0:10}"
+            DESTROY_FINISH_TIME=${COMPONENT_NAME}_FINISH_TIME
 
+            # Calculate seconds from when deploy began to when test began
+            DEPLOY_TIME=$(( $DEPLOY_FINISH_TIME - $DEPLOY_START_TIME ))
+            # Calculate seconds from when deploy ended to when teardown began
+            TEST_TIME=$(( $DESTROY_START_TIME - $DEPLOY_FINISH_TIME ))
+            # Calculate seconds from when test ended to when teardown finished
+            DESTROY_TIME=$(( $DESTROY_FINISH_TIME - $DESTROY_START_TIME ))
+
+            echo "  -Deploy runtime:     $((($DEPLOY_TIME / 60) % 60))m $(($DEPLOY_TIME % 60))s"
+            echo "  -Test suite runtime: $((($TEST_TIME / 60) % 60))m $(($TEST_TIME % 60))s"
+            echo "  -Cleanup runtime:    $((($DESTROY_TIME / 60) % 60))m $(($DESTROY_TIME % 60))s"
+        fi
     fi
 }
 
@@ -57,7 +152,6 @@ for COMPONENT in **/cdk.json; do
     # Use a pattern match to exclude the infrastructure app from the results
     if [[ "$COMPONENT_NAME" != _* ]]; then
         report_results $COMPONENT_NAME
-        
     fi
     export ${COMPONENT_NAME}_FINISH_TIME=$SECONDS
 done
