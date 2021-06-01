@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.33.0](https://github.com/aws/aws-rfdk/compare/v0.32.0...v0.33.0) (2021-06-01)
+
+
+### Supported CDK Version
+
+* [1.106.1](https://github.com/aws/aws-cdk/releases/tag/v1.106.1)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.15.2](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Bug Fixes
+
+* **core:** improve security of mongodb setup script ([#445](https://github.com/aws/aws-rfdk/issues/445)) ([9148f25](https://github.com/aws/aws-rfdk/commit/9148f25c9864b6f09d53065b4ff4be74299f40f1))
+* **deadline:** allow zero-sized WorkerInstanceFleet ([#451](https://github.com/aws/aws-rfdk/issues/451)) ([0cc6723](https://github.com/aws/aws-rfdk/commit/0cc67238645e24805590412776d262c8e6b9ec49))
+* **deadline:** use IMDSv2 endpoint in Repository scripting ([#436](https://github.com/aws/aws-rfdk/issues/436)) ([e7eddea](https://github.com/aws/aws-rfdk/commit/e7eddea0c37b143b2eed7db7ed62a42960cac95e))
+
 ## [0.32.0](https://github.com/aws/aws-rfdk/compare/v0.31.0...v0.32.0) (2021-05-17)
 
 

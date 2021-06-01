@@ -1,6 +1,6 @@
 {
   "name": "aws-rfdk",
-  "version": "0.32.0",
+  "version": "0.33.0",
   "private": false,
   "description": "Package for core render farm constructs",
   "main": "lib/index.js",
@@ -71,9 +71,9 @@
     "@types/sinon": "^10.0.1",
     "aws-sdk": "^2.917.0",
     "aws-sdk-mock": "^5.1.0",
-    "cdk-build-tools": "0.32.0",
+    "cdk-build-tools": "0.33.0",
     "dynalite": "^3.2.1",
-    "pkglint": "0.32.0",
+    "pkglint": "0.33.0",
     "sinon": "^10.0.0"
   },
   "dependencies": {
