@@ -78,7 +78,7 @@ export class NetworkTier extends cdk.Stack {
     // We're creating a SubnetSelection with only the standard availability zones to be
     // used to put the NAT gateway in and the VPC endpoints, because the local zones do no
     // have these available.
-    const subnets: SubnetSelection = {
+    const standardZoneSubnets: SubnetSelection = {
       availabilityZones: config.availabilityZonesStandard,
       subnetType: SubnetType.PUBLIC,
     };
@@ -99,19 +99,19 @@ export class NetworkTier extends cdk.Stack {
           cidrMask: 18,
         },
       ],
-      natGatewaySubnets: subnets,
+      natGatewaySubnets: standardZoneSubnets,
     });
 
-    NetworkTier.INTERFACE_ENDPOINT_SERVICES.forEach((serviceInfo, idx) => {
-      this.vpc.addInterfaceEndpoint(`${serviceInfo.name}${idx}`, {
+    NetworkTier.INTERFACE_ENDPOINT_SERVICES.forEach(serviceInfo => {
+      this.vpc.addInterfaceEndpoint(serviceInfo.name, {
         service: serviceInfo.service,
-        subnets,
+        subnets: standardZoneSubnets,
       });
     });
     NetworkTier.GATEWAY_ENDPOINT_SERVICES.forEach(serviceInfo => {
       this.vpc.addGatewayEndpoint(serviceInfo.name, {
         service: serviceInfo.service,
-        subnets: [ subnets ],
+        subnets: [ standardZoneSubnets ],
       });
     });
 

@@ -64,10 +64,10 @@ class NetworkTier(Stack):
         """
         super().__init__(scope, stack_id, **kwargs)
 
-        # We're creating a SubnetSelection with only the standard availability zones
-        # to be used to put the NAT gateway in and the VPC endpoints, because the local zones do no have
+        # We're creating a SubnetSelection with only the standard availability zones to be used to put
+        # the NAT gateway in and the VPC interface endpoints, because the local zones do no have
         # these available.
-        subnets = SubnetSelection(
+        standard_zone_subnets = SubnetSelection(
             availability_zones=config.availability_zones_standard,
             subnet_type=SubnetType.PUBLIC
         )
@@ -90,7 +90,7 @@ class NetworkTier(Stack):
                     cidr_mask=18
                 )
             ],
-            nat_gateway_subnets=subnets
+            nat_gateway_subnets=standard_zone_subnets
         )
 
         # Add interface endpoints
@@ -98,9 +98,9 @@ class NetworkTier(Stack):
             service_name = service_info['name']
             service = service_info['service']
             self.vpc.add_interface_endpoint(
-                f'{service_name}{idx}',
+                service_name,
                 service=service,
-                subnets=subnets
+                subnets=standard_zone_subnets
             )
 
         # Add gateway endpoints
@@ -110,7 +110,7 @@ class NetworkTier(Stack):
             self.vpc.add_gateway_endpoint(
                 service_name,
                 service=service,
-                subnets=[subnets]
+                subnets=[standard_zone_subnets]
             )
 
         # Internal DNS zone for the VPC.

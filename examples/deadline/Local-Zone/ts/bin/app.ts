@@ -54,5 +54,5 @@ new ComputeTier(app, 'ComputeTier', {
   availabilityZones: config.availabilityZonesLocal,
   renderQueue: service.renderQueue,
   workerMachineImage: MachineImage.genericLinux(config.deadlineClientLinuxAmiMap),
-  keyPairName: config.keyPairName ? config.keyPairName : undefined,
+  keyPairName: config.keyPairName,
 });

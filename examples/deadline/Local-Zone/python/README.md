@@ -41,11 +41,19 @@ These instructions assume that your working directory is `examples/deadline/Loca
     self.accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA
     ```
 
-5. Change the value of the `deadline_version` variable in `package/lib/config.py` to specify the desired version of Deadline to be deployed to your render farm. RFDK is compatible with Deadline versions 10.1.9.x and later. To see the available versions of Deadline, consult the [Deadline release notes](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html). It is recommended to use the latest version of Deadline available when building your farm, but to pin this version when the farm is ready for production use. For example, to pin to the `10.1.13` release of Deadline, use `10.1.13.2`.
+5. Change the value of the `deadline_version` variable in `package/config.py` to specify the desired version of Deadline to be deployed to your render farm. RFDK is compatible with Deadline versions 10.1.9.x and later. To see the available versions of Deadline, consult the [Deadline release notes](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html). It is recommended to use the latest version of Deadline available when building your farm, but to pin this version when the farm is ready for production use. For example, to pin to the latest `10.1.15.x` release of Deadline, use:
 
-6. Change the value of the `deadline_client_linux_ami_map` variable in `package/config.py` to include the region + AMI ID mapping of your EC2 AMI(s) with Deadline Worker.
+    ```python
+    self.deadline_version: str = '10.1.15'
+    ```
 
-7. Also in `package/lib/config.py`, you can set the `availability_zones_standard` and `availability_zones_local` values to the availability zones you want to use. These values must all be from the same region. It's recommended you use at least two standard zones, but you can use more if you'd like. For the local zones, you can use as many as you'd like.
+6. Change the value of the `deadline_client_linux_ami_map` variable in `package/config.py` to include the region + AMI ID mapping of your EC2 AMI(s) with Deadline Worker. You can use the following AWS CLI command to look up AMIs, replacing the `<region>` and `<version>` to match the AWS region and Deadline version you're looking for:
+
+    ```bash
+    aws --region <region> ec2 describe-images --owners 357466774442 --filters "Name=name,Values=*Worker*" "Name=name,Values=*<version>*" --query 'Images[*].[ImageId, Name]' --output text
+    ```
+
+7. Also in `package/lib/config.py`, you can set the `availability_zones_standard` and `availability_zones_local` values to the availability zones you want to use. These values must all be from the same region. It's required that you use at least two standard zones, but you can use more if you'd like. For the local zones, you can use one or more.
 
 8. Deploy all the stacks in the sample app:
 
