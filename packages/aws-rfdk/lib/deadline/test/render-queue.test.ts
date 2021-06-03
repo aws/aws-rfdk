@@ -241,12 +241,8 @@ describe('RenderQueue', () => {
       });
     });
 
-    // Asserts that only one RCS container and ASG instance can be created.
-    // Deadline currently requires that successive API requests are serviced by a single RCS.
-    test.each([
-      [0],
-      [2],
-    ])('clamps to 1 - using %d', (min: number) => {
+    // Asserts that at least one RCS container and ASG instance must be created.
+    test('throws error when minimum size is 0', () => {
       // GIVEN
       const props: RenderQueueProps = {
         images,
@@ -254,7 +250,7 @@ describe('RenderQueue', () => {
         version: renderQueueVersion,
         vpc,
         renderQueueSize: {
-          min,
+          min: 0,
         },
       };
 
@@ -263,13 +259,40 @@ describe('RenderQueue', () => {
         new RenderQueue(stack, 'RenderQueue', props);
       })
         // THEN
-        .toThrow('renderQueueSize.min');
+        .toThrow('renderQueueSize.min capacity must be at least 1: got 0');
+    });
+
+    // Deadline before 10.1.10 requires that successive API requests are serviced by a single RCS.
+    test('validates Deadline pre 10.1.10 has min value of at most 1', () => {
+      // GIVEN
+      const min = 2;
+      const newStack = new Stack(app, 'NewStack');
+      const versionOld = new VersionQuery(newStack, 'VersionOld', {version: '10.1.9'});
+      const props: RenderQueueProps = {
+        images,
+        repository,
+        version: versionOld,
+        vpc,
+        renderQueueSize: {
+          min,
+        },
+      };
+
+      // WHEN
+      expect(() => {
+        new RenderQueue(newStack, 'RenderQueue', props);
+      })
+      // THEN
+        .toThrow(`renderQueueSize.min for Deadline version less than 10.1.10.0 cannot be greater than 1 - got ${min}`);
     });
 
     // Asserts that when the renderQueueSize.min prop is specified, the underlying ASG's min property is set accordingly.
-    test('configures minimum number of ASG instances', () => {
+    test.each([
+      [1],
+      [2],
+      [10],
+    ])('configures minimum number of ASG instances to %d', (min: number) => {
       // GIVEN
-      const min = 1;
       const isolatedStack = new Stack(app, 'IsolatedStack');
       const props: RenderQueueProps = {
         images,
@@ -291,68 +314,152 @@ describe('RenderQueue', () => {
     });
   });
 
+  describe('renderQueueSize.max', () => {
+    describe('defaults to 1', () => {
+      function assertSpecifiesMaxSize(stackToAssert: Stack) {
+        expectCDK(stackToAssert).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+          MaxSize: '1',
+        }));
+      }
+
+      test('renderQueueSize unspecified', () => {
+        // THEN
+        assertSpecifiesMaxSize(stack);
+      });
+
+      test('renderQueueSize.max unspecified', () => {
+        // GIVEN
+        const isolatedStack = new Stack(app, 'IsolatedStack');
+
+        // WHEN
+        new RenderQueue(isolatedStack, 'RenderQueue', {
+          images,
+          repository,
+          version: new VersionQuery(isolatedStack, 'Version'),
+          vpc,
+          renderQueueSize: {},
+        });
+
+        // THEN
+        assertSpecifiesMaxSize(isolatedStack);
+      });
+    });
+
+    // Deadline before 10.1.10 requires that successive API requests are serviced by a single RCS.
+    test('validates Deadline pre 10.1.10 has max value of at most 1', () => {
+      // GIVEN
+      const max = 2;
+      const newStack = new Stack(app, 'NewStack');
+      const versionOld = new VersionQuery(newStack, 'VersionOld', {version: '10.1.9'});
+      const props: RenderQueueProps = {
+        images,
+        repository,
+        version: versionOld,
+        vpc,
+        renderQueueSize: {
+          max,
+        },
+      };
+
+      // WHEN
+      expect(() => {
+        new RenderQueue(newStack, 'RenderQueue', props);
+      })
+      // THEN
+        .toThrow(`renderQueueSize.max for Deadline version less than 10.1.10.0 cannot be greater than 1 - got ${max}`);
+    });
+
+    // Asserts that when the renderQueueSize.max prop is specified, the underlying ASG's max property is set accordingly.
+    test.each([
+      [1],
+      [2],
+      [10],
+    ])('configures maximum number of ASG instances to %d', (max: number) => {
+      // GIVEN
+      const isolatedStack = new Stack(app, 'IsolatedStack');
+      const props: RenderQueueProps = {
+        images,
+        repository,
+        version: new VersionQuery(isolatedStack, 'Version'),
+        vpc,
+        renderQueueSize: {
+          max,
+        },
+      };
+
+      // WHEN
+      new RenderQueue(isolatedStack, 'RenderQueue', props);
+
+      // THEN
+      expectCDK(isolatedStack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+        MaxSize: max.toString(),
+      }));
+    });
+  });
+
   describe('renderQueueSize.desired', () => {
     describe('defaults', () => {
       test('unset ASG desired', () => {
         expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
           DesiredCapacity: ABSENT,
         }));
+        expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
+          DesiredCount: 1,
+        }));
       });
     });
 
-    test('caps at 1', () => {
+    test('validates Deadline pre 10.1.10 has desired value of at most 1', () => {
       // GIVEN
+      const desired = 2;
+      const newStack = new Stack(app, 'NewStack');
+      const versionOld = new VersionQuery(newStack, 'VersionOld', {version: '10.1.9'});
       const props: RenderQueueProps = {
         images,
         repository,
-        version: renderQueueVersion,
+        version: versionOld,
         vpc,
         renderQueueSize: {
-          desired: 2,
+          desired,
         },
       };
 
       // WHEN
       expect(() => {
-        new RenderQueue(stack, 'RenderQueue', props);
+        new RenderQueue(newStack, 'RenderQueue', props);
       })
         // THEN
-        .toThrow('renderQueueSize.desired cannot be greater than 1');
+        .toThrow(`renderQueueSize.desired for Deadline version less than 10.1.10.0 cannot be greater than 1 - got ${desired}`);
     });
 
-    describe('is specified', () => {
-      const desired = 1;
-      let isolatedStack: Stack;
+    test.each([
+      [1],
+      [2],
+      [10],
+    ])('is specified to %d', (desired: number) => {
+      // GIVEN
+      const isolatedStack = new Stack(app, 'IsolatedStack');
+      const props: RenderQueueProps = {
+        images,
+        repository,
+        version: new VersionQuery(isolatedStack, 'Version'),
+        vpc,
+        renderQueueSize: {
+          desired,
+        },
+      };
 
-      beforeEach(() => {
-        // GIVEN
-        isolatedStack = new Stack(app, 'IsolatedStack');
-        const props: RenderQueueProps = {
-          images,
-          repository,
-          version: new VersionQuery(isolatedStack, 'Version'),
-          vpc,
-          renderQueueSize: {
-            desired,
-          },
-        };
-
-        // WHEN
-        new RenderQueue(isolatedStack, 'RenderQueue', props);
-      });
+      // WHEN
+      new RenderQueue(isolatedStack, 'RenderQueue', props);
 
       // THEN
-      test('configures desired number of ASG instances', () => {
-        expectCDK(isolatedStack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
-          DesiredCapacity: desired.toString(),
-        }));
-      });
+      expectCDK(isolatedStack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+        DesiredCapacity: desired.toString(),
+      }));
       // THEN
-      test('configures desired number of ECS tasks in the service', () => {
-        expectCDK(isolatedStack).to(haveResourceLike('AWS::ECS::Service', {
-          DesiredCount: desired,
-        }));
-      });
+      expectCDK(isolatedStack).to(haveResourceLike('AWS::ECS::Service', {
+        DesiredCount: desired,
+      }));
     });
   });
 
