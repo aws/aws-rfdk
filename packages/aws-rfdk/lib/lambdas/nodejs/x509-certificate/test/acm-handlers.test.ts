@@ -51,7 +51,7 @@ describe('AcmCertificateImporter', () => {
     };
 
     beforeEach(() => {
-      sinon.stub(Certificate, 'decryptKey').returns(new Promise((res, _rej) => res('key')));
+      sinon.stub(Certificate, 'decryptKey').returns(Promise.resolve('key'));
 
       // Mock out the API call in getSecretString
       AWSMock.mock('SecretsManager', 'getSecretValue', sinon.fake.resolves({ SecretString: 'secret' }));
@@ -70,16 +70,10 @@ describe('AcmCertificateImporter', () => {
       });
 
       // WHEN
-      let error = undefined;
-      try {
-        await importer.doCreate(physicalId, doCreateProps);
-      } catch(e) {
-        error = e;
-      }
+      await expect(importer.doCreate(physicalId, doCreateProps))
 
       // THEN
-      expect(error).toBeDefined();
-      expect(error.message).toMatch(/Secret .* did not contain a SecretString as expected/);
+        .rejects.toThrow(/Secret .* did not contain a SecretString as expected/);
       expect(getSecretValueFake.calledOnce).toBe(true);
     });
 
@@ -95,7 +89,7 @@ describe('AcmCertificateImporter', () => {
         .onThirdCall().resolves({ CertificateArn: certArn });
       AWSMock.mock('ACM', 'importCertificate', importCertificateStub);
 
-      const backoffJitterStub = sinon.stub(BackoffGenerator.prototype, 'backoffJitter').resolves();
+      const backoffJitterStub = sinon.stub(BackoffGenerator.prototype, 'backoff').resolves();
       const shouldContinueStub = sinon.stub(BackoffGenerator.prototype, 'shouldContinue').returns(true);
 
       const importer = new TestAcmCertificateImporter({
@@ -144,7 +138,7 @@ describe('AcmCertificateImporter', () => {
         const resourceTable = new MockCompositeStringIndexTable();
         const getItemStub = sinon.stub(resourceTable, 'getItem').resolves({ ARN: certArn });
 
-        const getCertificateFake = sinon.fake.resolves({});
+        const getCertificateFake = sinon.fake.rejects({});
         AWSMock.mock('ACM', 'getCertificate', getCertificateFake);
 
         const importer = new TestAcmCertificateImporter({
@@ -158,7 +152,7 @@ describe('AcmCertificateImporter', () => {
         await expect(importer.doCreate(physicalId, doCreateProps))
 
         // THEN
-          .rejects.toEqual(new Error(`Database entry ${certArn} could not be found in ACM.`));
+          .rejects.toThrow(new RegExp(`Database entry ${certArn} could not be found in ACM:`));
         expect(getItemStub.calledOnce).toBe(true);
         expect(getCertificateFake.calledOnce).toBe(true);
       });
@@ -209,16 +203,10 @@ describe('AcmCertificateImporter', () => {
         });
 
         // WHEN
-        let error = undefined;
-        try {
-          await importer.doCreate(physicalId, doCreateProps);
-        } catch (e) {
-          error = e;
-        }
+        await expect(importer.doCreate(physicalId, doCreateProps))
 
         // THEN
-        expect(error).toBeDefined();
-        expect(error.message).toMatch(/CertificateArn was not properly populated after attempt to import .*$/);
+          .rejects.toThrow(/CertificateArn was not properly populated after attempt to import .*$/);
         expect(getItemStub.calledOnce).toBe(true);
         expect(importCertificateFake.calledOnce).toBe(true);
       });
@@ -265,7 +253,7 @@ describe('AcmCertificateImporter', () => {
 
       // This is hardcoded in the code being tested
       const maxAttempts = 10;
-      const backoffJitterStub = sinon.stub(BackoffGenerator.prototype, 'backoffJitter').resolves();
+      const backoffJitterStub = sinon.stub(BackoffGenerator.prototype, 'backoff').resolves();
       const shouldContinueStub = sinon.stub(BackoffGenerator.prototype, 'shouldContinue')
         .returns(true)
         .onCall(maxAttempts - 1).returns(false);

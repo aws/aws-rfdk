@@ -96,7 +96,7 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
         inUseByResources = cert!.InUseBy || [];
 
         if (inUseByResources.length) {
-          await backoffGenerator.backoffJitter();
+          await backoffGenerator.backoff();
         } else {
           break;
         }
@@ -143,21 +143,24 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
       if (!existingItem.ARN) {
         throw Error("Database Item missing 'ARN' attribute");
       }
+
+      // Verify that the cert is in ACM
       certificateArn = existingItem.ARN as string;
-      const certificate = await this.acmClient.getCertificate({ CertificateArn: certificateArn }).promise();
-      // If the cert already existed, we will updating it by performing an import again, with the new values.
-      if (certificate.Certificate) {
-        const importCertRequest = {
-          CertificateArn: certificateArn,
-          Certificate: args.cert,
-          CertificateChain: args.certChain,
-          PrivateKey: args.key,
-          Tags: args.tags,
-        };
-        await this.importCertificate(importCertRequest);
-      } else {
-        throw Error(`Database entry ${existingItem.ARN} could not be found in ACM.`);
+      try {
+        await this.acmClient.getCertificate({ CertificateArn: certificateArn }).promise();
+      } catch(e) {
+        throw Error(`Database entry ${existingItem.ARN} could not be found in ACM: ${JSON.stringify(e)}`);
       }
+
+      // Update the cert by performing an import again, with the new values.
+      const importCertRequest = {
+        CertificateArn: certificateArn,
+        Certificate: args.cert,
+        CertificateChain: args.certChain,
+        PrivateKey: args.key,
+        Tags: args.tags,
+      };
+      await this.importCertificate(importCertRequest);
     } else {
       const importCertRequest = {
         Certificate: args.cert,
@@ -201,7 +204,7 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
         return await this.acmClient.importCertificate(importCertRequest).promise();
       } catch (e) {
         console.warn(`Could not import certificate: ${e}`);
-        await backoffGenerator.backoffJitter();
+        await backoffGenerator.backoff();
         if (backoffGenerator.shouldContinue()) {
           console.log('Retrying...');
         }

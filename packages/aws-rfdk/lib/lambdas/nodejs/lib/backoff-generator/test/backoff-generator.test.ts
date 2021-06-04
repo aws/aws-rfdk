@@ -27,7 +27,7 @@ describe('BackoffGenerator', () => {
     }))
 
     // THEN
-      .toThrow(`jitterDivisor must be a postive integer, got: ${jitterDivisor}`);
+      .toThrow(`jitterDivisor must be greater than or equal to 1, got: ${jitterDivisor}`);
   });
 
   test('stops when max attempts is reached', async () => {
@@ -49,11 +49,11 @@ describe('BackoffGenerator', () => {
     expect(backoffGenerator.shouldContinue()).toBe(false);
   });
 
-  test('stops when timeout is reached', async () => {
+  test('stops when max cumulative backoff time is reached', async () => {
     // GIVEN
     const backoffGenerator = new BackoffGenerator({
       base,
-      maxBackoffTimeMs: base,
+      maxCumulativeBackoffTimeMs: base,
     });
 
     // WHEN
@@ -84,22 +84,84 @@ describe('BackoffGenerator', () => {
     expect(setTimeout).toHaveBeenLastCalledWith(expect.any(Function), maxIntervalMs);
   });
 
-  test('restarts', async () => {
-    // GIVEN
-    const backoffGenerator = new BackoffGenerator({
-      base,
-      maxAttempts: 1,
+  describe('restarts', () => {
+    test('when attempts are reset', async () => {
+      // GIVEN
+      const backoffGenerator = new BackoffGenerator({
+        base,
+        maxAttempts: 1,
+      });
+      // This reaches maxAttempts, shouldContinue() will return false
+      const promise = backoffGenerator.backoff();
+      jest.advanceTimersByTime(base);
+      await promise;
+      if (backoffGenerator.shouldContinue() !== false) {
+        throw new Error('BackoffGenerator.shouldContinue did not return false when it was expected to. Please fix this unit test.');
+      }
+
+      // WHEN
+      backoffGenerator.restart();
+
+      // THEN
+      expect(backoffGenerator.shouldContinue()).toBe(true);
     });
-    // This reaches maxAttempts, shouldContinue() will return false
-    const promise = backoffGenerator.backoff();
-    jest.advanceTimersByTime(base);
-    await promise;
 
-    // WHEN
-    backoffGenerator.restart();
+    test('when cumulative backoff time is reset', async () => {
+      // GIVEN
+      const backoffGenerator = new BackoffGenerator({
+        base,
+        maxCumulativeBackoffTimeMs: base,
+      });
+      // This reaches maxCumulativeBackoffTimeMs, shouldContinue() will return false
+      const promise = backoffGenerator.backoff();
+      jest.advanceTimersByTime(base);
+      await promise;
+      if (backoffGenerator.shouldContinue() !== false) {
+        throw new Error('BackoffGenerator.shouldContinue did not return false when it was expected to. Please fix this unit test.');
+      }
 
-    // THEN
-    expect(backoffGenerator.shouldContinue()).toBe(true);
+      // WHEN
+      backoffGenerator.restart();
+
+      // THEN
+      expect(backoffGenerator.shouldContinue()).toBe(true);
+    });
+  });
+
+  describe('backs off and continues', () => {
+    test('when there are remaining attempts', async () => {
+      // GIVEN
+      const backoffGenerator = new BackoffGenerator({
+        base,
+        maxAttempts: 2,
+      });
+
+      // WHEN
+      const promise = backoffGenerator.backoff();
+      jest.advanceTimersByTime(base);
+      await promise;
+
+      // THEN
+      // We have one more attempt left, it should continue
+      expect(backoffGenerator.shouldContinue()).toBe(true);
+    });
+
+    test('when there is remaining cumulative backoff time', async () => {
+      // GIVEN
+      const backoffGenerator = new BackoffGenerator({
+        base,
+        maxCumulativeBackoffTimeMs: base + 1,
+      });
+
+      // WHEN
+      const promise = backoffGenerator.backoff();
+      jest.advanceTimersByTime(base);
+      await promise;
+
+      // THEN
+      // We haven't reached max cumulative backoff time yet, it should continue
+      expect(backoffGenerator.shouldContinue()).toBe(true);
+    });
   });
 
   describe.each([
@@ -127,7 +189,7 @@ describe('BackoffGenerator', () => {
       const interval = base * factor;
 
       // WHEN
-      const promise = backoffGenerator.backoffJitter();
+      const promise = backoffGenerator.backoff();
       jest.advanceTimersByTime(interval);
       await promise;
 
@@ -146,7 +208,7 @@ describe('BackoffGenerator', () => {
       const interval = (base - base / jitterDivisor) + Math.floor(base / jitterDivisor * factor);
 
       // WHEN
-      const promise = backoffGenerator.backoffJitter();
+      const promise = backoffGenerator.backoff();
       jest.advanceTimersByTime(interval);
       await promise;
 

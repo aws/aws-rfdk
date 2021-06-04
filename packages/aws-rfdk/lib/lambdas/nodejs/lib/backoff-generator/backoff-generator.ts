@@ -21,6 +21,7 @@ export interface BackoffGeneratorProps {
 
   /**
    * The maximum amount of time, in milliseconds, allowed between backoffs.
+   * Each backoff will have its length clamped to a maximum of this value.
    * @default Number.MAX_SAFE_INTEGER
    */
   readonly maxIntervalMs?: number;
@@ -33,15 +34,15 @@ export interface BackoffGeneratorProps {
    * ```
    * backoffJitter = (backoff - backoff / jitterDivisor) + jitter(backoff / jitterDivisor)
    * ```
-   * @default 1 - The entire backoff time is subject to jitter (i.e. "full jitter")
+   * @default No jitter
    */
   readonly jitterDivisor?: number;
 
   /**
-   * The maximum amount of time, in milliseconds, to backoff before quitting.
+   * The maximum cumulative time, in milliseconds, to backoff before quitting.
    * @default No limit on how long this object can backoff for
    */
-  readonly maxBackoffTimeMs?: number;
+  readonly maxCumulativeBackoffTimeMs?: number;
 
   /**
    * The maximum number of times to backoff before quitting.
@@ -70,23 +71,23 @@ export class BackoffGenerator
 
   private readonly base: number;
   private readonly maxIntervalMs: number;
-  private readonly jitterDivisor: number;
-  private readonly maxBackoffTimeMs: number | undefined;
+  private readonly jitterDivisor: number | undefined;
+  private readonly maxCumulativeBackoffTimeMs: number | undefined;
   private readonly maxAttempts: number | undefined;
 
-  private sleepTime: number = 0;
+  private cumulativeBackoffTimeMs: number = 0;
   private attempt: number = 0;
 
   constructor(props?: BackoffGeneratorProps)
   {
-    this.maxBackoffTimeMs = props?.maxBackoffTimeMs;
+    this.maxCumulativeBackoffTimeMs = props?.maxCumulativeBackoffTimeMs;
     this.maxAttempts = props?.maxAttempts;
     this.base = props?.base ?? 200;
     this.maxIntervalMs = props?.maxIntervalMs ?? Number.MAX_SAFE_INTEGER;
 
-    this.jitterDivisor = props?.jitterDivisor ?? 1;
-    if (this.jitterDivisor <= 0) {
-      throw new Error(`jitterDivisor must be a postive integer, got: ${this.jitterDivisor}`);
+    this.jitterDivisor = props?.jitterDivisor;
+    if (this.jitterDivisor !== undefined && this.jitterDivisor < 1) {
+      throw new Error(`jitterDivisor must be greater than or equal to 1, got: ${this.jitterDivisor}`);
     }
 
     // Initialize internal counters
@@ -97,40 +98,42 @@ export class BackoffGenerator
    * Restarts the internal counters used by this class.
    */
   public restart(): void {
-    this.sleepTime = 0;
+    this.cumulativeBackoffTimeMs = 0;
     this.attempt = 0;
   }
 
   /**
    * Sleeps for an exponentially increasing time depending on how many times this class has backed off.
+   * If `jitterDivisor` was provided, jitter will be applied to the backoff time.
+   *
+   * If any of the conditions to stop backing off are met, this method will not sleep and return false.
+   * Otherwise, it sleeps and returns true.
+   * @param force Force sleeping, regardless of the conditions that indicate when to stop backing off.
    */
-  public async backoff(): Promise<void> {
-    const interval = BackoffGenerator.calculateSleepMs(this.base, this.attempt, this.maxIntervalMs);
+  public async backoff(force?: boolean): Promise<boolean> {
+    let interval = BackoffGenerator.calculateSleepMs(this.base, this.attempt, this.maxIntervalMs);
 
-    await sleep(interval);
-    this.sleepTime += interval;
-    this.attempt++;
+    if (this.jitterDivisor !== undefined) {
+      interval = (interval - interval / this.jitterDivisor) + (Math.floor(interval / this.jitterDivisor * Math.random()));
+    }
+
+    const shouldContinue = this.shouldContinue();
+    if (force || shouldContinue) {
+      await sleep(interval);
+      this.cumulativeBackoffTimeMs += interval;
+      this.attempt++;
+    }
+
+    return shouldContinue;
   }
 
   /**
-   * Sleeps for an exponentially increasing time (with jitter) depending on how many times this class has backed off.
-   */
-  public async backoffJitter(): Promise<void> {
-    const interval = BackoffGenerator.calculateSleepMs(this.base, this.attempt, this.maxIntervalMs);
-    const intervalJitter = (interval - interval / this.jitterDivisor) + (Math.floor(interval / this.jitterDivisor * Math.random()));
-
-    await sleep(intervalJitter);
-    this.sleepTime += intervalJitter;
-    this.attempt++;
-  }
-
-  /**
-   * Returns true if either the maximum number of attempts or maximum time span has been reached.
+   * Returns true if either the maximum number of attempts or maximum cumulative backoff time has been reached.
    * If neither are specified, this will always return true.
    */
   public shouldContinue(): boolean {
     return ( this.maxAttempts === undefined || this.attempt < this.maxAttempts ) &&
-           ( this.maxBackoffTimeMs === undefined || this.sleepTime < this.maxBackoffTimeMs );
+           ( this.maxCumulativeBackoffTimeMs === undefined || this.cumulativeBackoffTimeMs < this.maxCumulativeBackoffTimeMs );
   }
 }
 
