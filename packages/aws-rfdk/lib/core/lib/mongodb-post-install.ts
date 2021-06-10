@@ -14,7 +14,6 @@ import {
 import {
   Code,
   Function as LambdaFunction,
-  LayerVersion,
   Runtime,
 } from '@aws-cdk/aws-lambda';
 import {
@@ -28,15 +27,15 @@ import {
   CustomResource,
   Duration,
   Names,
-  Stack,
 } from '@aws-cdk/core';
 
 import {
   IMongoDb,
 } from '.';
 import {
-  ARNS,
-} from '../../lambdas/lambdaLayerVersionArns';
+  LambdaLayer,
+  LambdaLayerVersionArnMapping,
+} from '../../lambdas/lambda-layer-version-arn-mapping';
 import {
   IMongoDbConfigureResource,
 } from '../../lambdas/nodejs/mongodb';
@@ -171,11 +170,8 @@ export class MongoDbPostInstallSetup extends Construct {
       }
     });
 
-    const region = Stack.of(this).region;
-    const openSslLayerName = 'openssl-al2';
-    const openSslLayerArns: any = ARNS[openSslLayerName];
-    const openSslLayerArn = openSslLayerArns[region];
-    const openSslLayer = LayerVersion.fromLayerVersionArn(this, 'OpenSslLayer', openSslLayerArn);
+    const lambdaLayerMappings = LambdaLayerVersionArnMapping.getSingletonInstance(this);
+    const openSslLayer = lambdaLayerMappings.getLambdaLayerVersion(this, 'OpenSslLayer', LambdaLayer.OPEN_SSL_AL2);
 
     const lamdbaFunc = new LambdaFunction(this, 'Lambda', {
       vpc: props.vpc,

@@ -20,7 +20,6 @@ import { IKey } from '@aws-cdk/aws-kms';
 import {
   Code,
   Function as LambdaFunction,
-  LayerVersion,
   Runtime,
 } from '@aws-cdk/aws-lambda';
 import { RetentionDays } from '@aws-cdk/aws-logs';
@@ -33,12 +32,14 @@ import {
   IConstruct,
   Names,
   RemovalPolicy,
-  Stack,
   Tag,
   Token,
 } from '@aws-cdk/core';
 
-import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
+import {
+  LambdaLayer,
+  LambdaLayerVersionArnMapping,
+} from '../../lambdas/lambda-layer-version-arn-mapping';
 import { IX509CertificateEncodePkcs12, IX509CertificateGenerate } from '../../lambdas/nodejs/x509-certificate';
 
 /**
@@ -181,11 +182,8 @@ abstract class X509CertificateBase extends Construct {
       },
     });
 
-    const region = Stack.of(this).region;
-    const openSslLayerName = 'openssl-al2';
-    const openSslLayerArns: any = ARNS[openSslLayerName];
-    const openSslLayerArn = openSslLayerArns[region];
-    const openSslLayer = LayerVersion.fromLayerVersionArn(this, 'OpenSslLayer', openSslLayerArn);
+    const lambdaLayerMappings = LambdaLayerVersionArnMapping.getSingletonInstance(this);
+    const openSslLayer = lambdaLayerMappings.getLambdaLayerVersion(this, 'OpenSslLayer', LambdaLayer.OPEN_SSL_AL2);
 
     /*
      * We cannot make this a singleton function; doing so would create circular references in the lambda role (to sign

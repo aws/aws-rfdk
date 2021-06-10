@@ -8,7 +8,6 @@ import {
   expect as expectCDK,
   haveResourceLike,
   objectLike,
-  stringLike,
 } from '@aws-cdk/assert';
 import {
   Metric,
@@ -17,6 +16,7 @@ import {
 import { Table } from '@aws-cdk/aws-dynamodb';
 import { CfnSecret } from '@aws-cdk/aws-secretsmanager';
 import { Stack } from '@aws-cdk/core';
+import { LambdaLayer, LambdaLayerVersionArnMapping } from '../../lambdas/lambda-layer-version-arn-mapping';
 
 import { ImportedAcmCertificate } from '../lib/imported-acm-certificate';
 import { X509CertificatePem } from '../lib/x509-certificate';
@@ -207,10 +207,11 @@ describe('ImportedAcmCertificate', () => {
     });
 
     test('uses RFDK lambda layer', () => {
+      const openSslLayer = LambdaLayerVersionArnMapping.getSingletonInstance(stack).getLambdaLayerVersion(stack, 'OpenSslLayer', LambdaLayer.OPEN_SSL_AL2);
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function', {
         Layers: arrayWith(
-          stringLike('arn:aws:lambda:us-west-2:224375009292:layer:openssl-al2:*'),
+          stack.resolve(openSslLayer.layerVersionArn),
         ),
       }));
     });

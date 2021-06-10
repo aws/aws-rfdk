@@ -19,13 +19,18 @@ import { CfnSecret } from '@aws-cdk/aws-secretsmanager';
 import { Stack } from '@aws-cdk/core';
 
 import {
+  LambdaLayer,
+  LambdaLayerVersionArnMapping,
+} from '../../lambdas/lambda-layer-version-arn-mapping';
+import {
   X509CertificatePem,
   X509CertificatePkcs12,
 } from '../lib/x509-certificate';
 
 
 test('Generate cert', () => {
-  const stack = new Stack(undefined, 'Stack', { env: { region: 'us-west-2' } });
+  const region = 'us-west-2';
+  const stack = new Stack(undefined, 'Stack', { env: { region } });
   const subject = { cn: 'testCN' };
 
   const cert = new X509CertificatePem(stack, 'Cert', {
@@ -109,14 +114,12 @@ test('Generate cert', () => {
       error.resource = props.Handler;
       return false;
     }
-    // Our test for the correct openssl lambda layer does not include the version, so we use a filter
-    // function to do a partial match
-    const filterOpensslArn = (value: string) => {
-      return value.toString().includes('arn:aws:lambda:us-west-2:224375009292:layer:openssl-al2:');
-    };
+    const openSslLayer = LambdaLayerVersionArnMapping.getSingletonInstance(stack).findInMap(region, LambdaLayer.OPEN_SSL_AL2);
     if (!props.Layers
       || !Array.isArray(props.Layers)
-      || Array.of(props.Layers).filter(filterOpensslArn).length === 0) {
+      || Array.of(props.Layers)
+        .map(layer => JSON.stringify(layer))
+        .filter(l => l.includes(JSON.stringify(stack.resolve(openSslLayer)))).length !== 1) {
       error.failureReason = 'openssl Lambda Layer missing';
       error.resource = props.Layers;
       return false;
