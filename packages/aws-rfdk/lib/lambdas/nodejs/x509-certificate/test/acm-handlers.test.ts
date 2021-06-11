@@ -89,8 +89,7 @@ describe('AcmCertificateImporter', () => {
         .onThirdCall().resolves({ CertificateArn: certArn });
       AWSMock.mock('ACM', 'importCertificate', importCertificateStub);
 
-      const backoffJitterStub = sinon.stub(BackoffGenerator.prototype, 'backoff').resolves();
-      const shouldContinueStub = sinon.stub(BackoffGenerator.prototype, 'shouldContinue').returns(true);
+      const backoffStub = sinon.stub(BackoffGenerator.prototype, 'backoff').resolves(true);
 
       const importer = new TestAcmCertificateImporter({
         acm: new AWS.ACM(),
@@ -107,9 +106,38 @@ describe('AcmCertificateImporter', () => {
       expect(getItemStub.calledOnce).toBe(true);
       expect(putItemStub.calledOnce).toBe(true);
       expect(importCertificateStub.calledThrice).toBe(true);
-      expect(backoffJitterStub.callCount).toEqual(2);
-      // An additional check is made before logging "Retrying..."
-      expect(shouldContinueStub.callCount).toEqual(4);
+      expect(backoffStub.callCount).toEqual(2);
+    });
+
+    test('throws after max import retries', async () => {
+      // GIVEN
+      const resourceTable = new MockCompositeStringIndexTable();
+      const getItemStub = sinon.stub(resourceTable, 'getItem').resolves(undefined);
+
+      const attempts = 10;
+      const importCertificateStub = sinon.stub();
+      const backoffStub = sinon.stub(BackoffGenerator.prototype, 'backoff');
+      for (let i = 0; i < attempts; i++) {
+        importCertificateStub.onCall(i).rejects('Rate exceeded');
+        backoffStub.onCall(i).resolves(i < attempts - 1);
+      }
+      AWSMock.mock('ACM', 'importCertificate', importCertificateStub);
+
+      const importer = new TestAcmCertificateImporter({
+        acm: new AWS.ACM(),
+        dynamoDb: new AWS.DynamoDB(),
+        secretsManager: new AWS.SecretsManager(),
+        resourceTableOverride: resourceTable,
+      });
+
+      // WHEN
+      await expect(importer.doCreate(physicalId, doCreateProps))
+
+      // THEN
+        .rejects.toThrow(/Failed to import certificate .* after [0-9]+ attempts\./);
+      expect(getItemStub.calledOnce).toBe(true);
+      expect(importCertificateStub.callCount).toBe(attempts);
+      expect(backoffStub.callCount).toEqual(attempts);
     });
 
     describe('existing', () => {
@@ -254,7 +282,7 @@ describe('AcmCertificateImporter', () => {
 
       // This is hardcoded in the code being tested
       const maxAttempts = 10;
-      const backoffJitterStub = sinon.stub(BackoffGenerator.prototype, 'backoff').resolves();
+      const backoffStub = sinon.stub(BackoffGenerator.prototype, 'backoff').resolves();
       const shouldContinueStub = sinon.stub(BackoffGenerator.prototype, 'shouldContinue')
         .returns(true)
         .onCall(maxAttempts - 1).returns(false);
@@ -273,7 +301,7 @@ describe('AcmCertificateImporter', () => {
         .rejects.toEqual(new Error(`Response from describeCertificate did not contain an empty InUseBy list after ${maxAttempts} attempts.`));
       expect(queryStub.calledOnce).toBe(true);
       expect(describeCertificateFake.callCount).toEqual(maxAttempts);
-      expect(backoffJitterStub.callCount).toEqual(maxAttempts);
+      expect(backoffStub.callCount).toEqual(maxAttempts);
       expect(shouldContinueStub.callCount).toEqual(maxAttempts);
     });
 

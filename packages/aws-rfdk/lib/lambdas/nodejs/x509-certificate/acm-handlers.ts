@@ -39,6 +39,7 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
     this.secretsManagerClient = secretsManagerClient;
   }
 
+  /* istanbul ignore next */
   public validateInput(data: object): boolean {
     return implementsIAcmImportCertProps(data);
   }
@@ -199,17 +200,18 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
       maxAttempts,
     });
 
+    let retry = false;
     do {
       try {
         return await this.acmClient.importCertificate(importCertRequest).promise();
       } catch (e) {
         console.warn(`Could not import certificate: ${e}`);
-        await backoffGenerator.backoff();
-        if (backoffGenerator.shouldContinue()) {
+        retry = await backoffGenerator.backoff();
+        if (retry) {
           console.log('Retrying...');
         }
       }
-    } while (backoffGenerator.shouldContinue());
+    } while (retry);
 
     throw new Error(`Failed to import certificate ${importCertRequest.CertificateArn ?? ''} after ${maxAttempts} attempts.`);
   }
@@ -227,6 +229,7 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
 /**
  * The handler used to import an X.509 certificate to ACM from a Secret
  */
+/* istanbul ignore next */
 export async function importCert(event: CfnRequestEvent, context: LambdaContext): Promise<string> {
   const handler = new AcmCertificateImporter(
     new ACM({ apiVersion: ACM_VERSION }),
