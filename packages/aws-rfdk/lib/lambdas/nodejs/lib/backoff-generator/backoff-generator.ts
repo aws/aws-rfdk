@@ -117,14 +117,13 @@ export class BackoffGenerator
       interval = (interval - interval / this.jitterDivisor) + (Math.floor(interval / this.jitterDivisor * Math.random()));
     }
 
-    const shouldContinue = this.shouldContinue();
-    if (force || shouldContinue) {
+    if (force || this.shouldContinue()) {
       await sleep(interval);
       this.cumulativeBackoffTimeMs += interval;
       this.attempt++;
     }
 
-    return shouldContinue;
+    return this.shouldContinue();
   }
 
   /**

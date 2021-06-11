@@ -182,6 +182,7 @@ describe('AcmCertificateImporter', () => {
           .resolves.toEqual({ CertificateArn: certArn });
         expect(getItemStub.calledOnce).toBe(true);
         expect(getCertificateFake.calledOnce).toBe(true);
+        // Verify that we import the existing certificate to support replacing/updating of it (e.g. to rotate certs)
         expect(importCertificateFake.calledOnce).toBe(true);
       });
     });
