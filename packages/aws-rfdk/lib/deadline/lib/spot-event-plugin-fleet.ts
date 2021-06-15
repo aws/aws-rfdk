@@ -388,6 +388,13 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   public readonly deadlineGroups: string[];
 
   /**
+   * Deadline pools the workers need to be assigned to.
+   *
+   * @default - Workers are not assigned to any pool
+   */
+  public readonly deadlinePools?: string[];
+
+  /**
    * Name of SSH keypair to grant access to instances.
    *
    * @default - No SSH access will be possible.
@@ -413,6 +420,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     super(scope, id);
 
     this.deadlineGroups = props.deadlineGroups.map(group => group.toLocaleLowerCase());
+    this.deadlinePools = props.deadlinePools?.map(pool => pool.toLocaleLowerCase());
     this.validateProps(props);
 
     this.securityGroups = props.securityGroups ?? [ new SecurityGroup(this, 'SpotFleetSecurityGroup', { vpc: props.vpc }) ];
@@ -463,7 +471,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
       renderQueue: props.renderQueue,
       workerSettings: {
         groups: this.deadlineGroups,
-        pools: props.deadlinePools?.map(pool => pool.toLocaleLowerCase()),
+        pools: this.deadlinePools,
         region: props.deadlineRegion,
       },
       userDataProvider: props.userDataProvider,

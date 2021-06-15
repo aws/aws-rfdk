@@ -47,6 +47,14 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
   public async doCreate(_physicalId: string, resourceProperties: SEPConfiguratorResourceProps): Promise<object|undefined> {
     const spotEventPluginClient = await this.spotEventPluginClient(resourceProperties.connection);
 
+    if (!await spotEventPluginClient.addGroups(resourceProperties.deadlineGroups)) {
+      throw new Error('Failed to add group collection.');
+    }
+
+    if (!await spotEventPluginClient.addPools(resourceProperties.deadlinePools)) {
+      throw new Error('Failed to add pool collection.');
+    }
+
     if (resourceProperties.spotFleetRequestConfigurations) {
       const convertedSpotFleetRequestConfigs = convertSpotFleetRequestConfiguration(resourceProperties.spotFleetRequestConfigurations);
       const stringConfigs = JSON.stringify(convertedSpotFleetRequestConfigs);

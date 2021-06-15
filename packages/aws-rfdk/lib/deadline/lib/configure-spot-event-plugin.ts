@@ -459,6 +459,8 @@ export class ConfigureSpotEventPlugin extends Construct {
     };
     const spotFleetRequestConfigs = this.mergeSpotFleetRequestConfigs(props.spotFleets);
 
+    const deadlineGroups = Array.from(new Set(props.spotFleets?.map(fleet => fleet.deadlineGroups).reduce((p, c) => p.concat(c), [])));
+    const deadlinePools = Array.from(new Set(props.spotFleets?.map(fleet => fleet.deadlinePools).reduce((p, c) => p?.concat(c ?? []), [])));
     const properties: SEPConfiguratorResourceProps = {
       connection: {
         hostname: props.renderQueue.endpoint.hostname,
@@ -468,6 +470,8 @@ export class ConfigureSpotEventPlugin extends Construct {
       },
       spotFleetRequestConfigurations: spotFleetRequestConfigs,
       spotPluginConfigurations: pluginConfig,
+      deadlineGroups,
+      deadlinePools,
     };
 
     const resource = new CustomResource(this, 'Default', {

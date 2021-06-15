@@ -6,9 +6,27 @@
 import { IncomingMessage } from 'http';
 import { Socket } from 'net';
 import { DeadlineClient, Response } from '../../deadline-client';
-import { SpotEventPluginClient } from '../spot-event-plugin-client';
+import { SpotEventPluginClient, CollectionType } from '../spot-event-plugin-client';
 
 describe('SpotEventPluginClient', () => {
+  const poolsColection = {
+    Pools: ['pool_name'],
+    ObsoletePools: [],
+  };
+  const groupsColection = {
+    Pools: ['group_name'],
+    ObsoletePools: [],
+  };
+  const successfulPoolResponse: Response = {
+    data: { ...poolsColection },
+    fullResponse: new IncomingMessage(new Socket()),
+  };
+
+  const successfulGroupResponse: Response = {
+    data: { ...groupsColection },
+    fullResponse: new IncomingMessage(new Socket()),
+  };
+
   let spotEventPluginClient: SpotEventPluginClient;
   let describeDataResponse: Response;
   let successfulResponse: Response;
@@ -237,5 +255,140 @@ describe('SpotEventPluginClient', () => {
 
     // THEN
     await expect(promise).rejects.toEqual(statusMessage);
+  });
+
+  test.each([
+    [CollectionType.Group, successfulGroupResponse, groupsColection],
+    [CollectionType.Pool, successfulPoolResponse, poolsColection],
+  ])('Successful getCollection for %s', async (type: CollectionType, response: Response, expectedResult: any) => {
+    // GIVEN
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].GetRequest = jest.fn().mockResolvedValue(response);
+
+    // WHEN
+    // eslint-disable-next-line dot-notation
+    const result = await spotEventPluginClient['getCollection'](type);
+
+    // THEN
+    expect(result).toEqual(expectedResult);
+    // eslint-disable-next-line dot-notation
+    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(1);
+    expect(consoleLogMock.mock.calls.length).toBe(1);
+    expect(consoleLogMock.mock.calls[0][0]).toMatch(`Getting ${type} collection:`);
+  });
+
+  test('failed getCollection', async () => {
+    // GIVEN
+    const statusMessage = 'error message';
+
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].GetRequest = jest.fn().mockRejectedValue(new Error(statusMessage));
+    // eslint-disable-next-line dot-notation
+    const result = await spotEventPluginClient['getCollection'](CollectionType.Group);
+
+    // THEN
+    expect(result).toBeUndefined();
+    expect(consoleErrorMock.mock.calls.length).toBe(1);
+    expect(consoleErrorMock.mock.calls[0][0]).toMatch(`Failed to get group collection. Reason: ${statusMessage}`);
+  });
+
+  test('failed getCollection with invalid response', async () => {
+    // GIVEN
+    const invalidGroupResponse = {
+      data: {
+        Pools: {},
+      },
+    };
+
+    // WHEN
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].GetRequest = jest.fn().mockResolvedValue(invalidGroupResponse);
+    // eslint-disable-next-line dot-notation
+    const result = await spotEventPluginClient['getCollection'](CollectionType.Group);
+
+    // THEN
+    expect(result).toBeUndefined();
+    expect(consoleErrorMock.mock.calls.length).toBe(1);
+    expect(consoleErrorMock.mock.calls[0][0]).toMatch(`Failed to receive a group collection. Invalid response: ${JSON.stringify(invalidGroupResponse.data)}.`);
+  });
+
+  test.each([
+    [CollectionType.Group, groupsColection],
+    [CollectionType.Pool, poolsColection],
+  ])('successful saveCollection for %s', async (type: CollectionType, expectedResult: any) => {
+    // GIVEN
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].PostRequest = jest.fn().mockResolvedValue({});
+
+    // WHEN
+    // eslint-disable-next-line dot-notation
+    const result = await spotEventPluginClient['saveCollection'](expectedResult, type);
+
+    // THEN
+    expect(result).toBeTruthy();
+    // eslint-disable-next-line dot-notation
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(1);
+    expect(consoleLogMock.mock.calls.length).toBe(2);
+    expect(consoleLogMock.mock.calls[0][0]).toMatch(`Saving ${type} collection:`);
+    expect(consoleLogMock.mock.calls[1][0]).toBe(expectedResult);
+  });
+
+  test('failed saveCollection', async () => {
+    // GIVEN
+    const statusMessage = 'error message';
+
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].PostRequest = jest.fn().mockRejectedValue(new Error(statusMessage));
+
+    // WHEN
+    // eslint-disable-next-line dot-notation
+    const result = await spotEventPluginClient['saveCollection'](groupsColection, CollectionType.Group);
+
+    // THEN
+    expect(result).toBeFalsy();
+    expect(consoleErrorMock.mock.calls.length).toBe(1);
+    expect(consoleErrorMock.mock.calls[0][0]).toMatch(`Failed to save group collection. Reason: ${statusMessage}`);
+  });
+
+  test.each([
+    [groupsColection.Pools,1],
+    [[], 0],
+  ])('successful call addGroup with %s', async (groupsCollection: string[], reuquestsCount: number) => {
+    // GIVEN
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].GetRequest = jest.fn().mockResolvedValue(successfulGroupResponse);
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].PostRequest = jest.fn().mockReturnValue(true);
+
+    // WHEN
+    await spotEventPluginClient.addGroups(groupsCollection);
+
+    // THEN
+    // eslint-disable-next-line dot-notation
+    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(reuquestsCount);
+
+    // eslint-disable-next-line dot-notation
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(reuquestsCount);
+  });
+
+  test.each([
+    [poolsColection.Pools,1],
+    [[], 0],
+  ])('successful call addPool with %s', async (poolsCollection: string[], reuquestsCount: number) => {
+    // GIVEN
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].GetRequest = jest.fn().mockResolvedValue(successfulPoolResponse);
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].PostRequest = jest.fn().mockReturnValue(true);
+
+    // WHEN
+    await spotEventPluginClient.addPools(poolsCollection);
+
+    // THEN
+    // eslint-disable-next-line dot-notation
+    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(reuquestsCount);
+
+    // eslint-disable-next-line dot-notation
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(reuquestsCount);
   });
 });
