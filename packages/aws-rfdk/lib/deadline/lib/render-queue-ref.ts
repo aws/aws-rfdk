@@ -77,8 +77,8 @@ export interface RenderQueueSizeConstraints {
    * If this is set to a number, every deployment will reset the number of RCS processes
    * to this number. It is recommended to leave this value undefined.
    *
-   * Currently, the Deadline RCS does not properly support being horizontally scaled behind a load-balancer. For this
-   * reason, the desired number of processes can only be set to 1 currently.
+   * Deadline versions earlier than 10.1.10 do not support being horizontally scaled behind a load-balancer.
+   * For these versions of Deadline, the desired number of processes can only be set to 1.
    *
    * @default The min size.
    */
@@ -87,14 +87,27 @@ export interface RenderQueueSizeConstraints {
   /**
    * Minimum number of Deadline RCS processes that will serve RenderQueue requests.
    *
-   * Currently, the Deadline RCS does not properly support being horizontally scaled behind a load-balancer. For this
-   * reason, the minimum can be at most one, otherwise an error is thrown.
+   * Deadline versions earlier than 10.1.10 do not support being horizontally scaled behind a load-balancer.
+   * For these versions of Deadline, the minimum number of processes can only be set to 1, otherwise an error is thrown.
    *
-   * The minimum that this can value be set to is 1.
+   * The minimum that this value can be set to is 1.
    *
    * @default 1
    */
   readonly min?: number;
+
+  /**
+   * Maximum number of Deadline RCS processes that will serve RenderQueue requests.
+   *
+   * Deadline versions earlier than 10.1.10 do not support being horizontally scaled behind a load-balancer.
+   * For these versions of Deadline, the maximum number of processes can only be set to 1, otherwise an error is thrown.
+   *
+   * The minimum that this value can be set to is 1.
+   * This value cannot be less than `min` or `desired`.
+   *
+   * @default 1
+   */
+  readonly max?: number;
 }
 
 /**
@@ -283,7 +296,7 @@ export interface RenderQueueProps {
    * Constraints on the number of Deadline RCS processes that can be run as part of this
    * RenderQueue.
    *
-   * @default Allow no more and no less than one Deadline RCS to be running.
+   * @default Allow no less than one Deadline RCS to be running.
    */
   readonly renderQueueSize?: RenderQueueSizeConstraints;
 
