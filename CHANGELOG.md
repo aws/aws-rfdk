@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.34.0](https://github.com/aws/aws-rfdk/compare/v0.33.0...v0.34.0) (2021-06-16)
+
+
+### Supported CDK Version
+
+* [1.108.1](https://github.com/aws/aws-cdk/releases/tag/v1.108.1)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.16.8](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **deadline:** add ability to horizontally scale the RenderQueue ([#301](https://github.com/aws/aws-rfdk/issues/301)) ([8a55f32](https://github.com/aws/aws-rfdk/commit/8a55f32124e2cfbadb33437d2d0494580a9eebac))
+
 ## [0.33.0](https://github.com/aws/aws-rfdk/compare/v0.32.0...v0.33.0) (2021-06-01)
 
 
