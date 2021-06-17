@@ -139,7 +139,7 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
       layers: [ openSslLayer ],
       retryAttempts: 0,
       runtime: Runtime.NODEJS_12_X,
-      timeout: Duration.seconds(30),
+      timeout: Duration.minutes(5),
     });
 
     this.database.grantReadWriteData(lambda);
