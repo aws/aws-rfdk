@@ -37,7 +37,7 @@
     "@types/fs-extra": "^9.0.11",
     "@types/jest": "^26.0.23",
     "@types/semver": "^7.3.6",
-    "@types/yargs": "^16.0.1",
+    "@types/yargs": "^17.0.0",
     "eslint-plugin-license-header": "^0.2.0",
     "pkglint": "0.35.0"
   },
