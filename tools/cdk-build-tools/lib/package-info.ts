@@ -74,6 +74,13 @@ export async function listFiles(dirName: string, predicate: (x: File) => boolean
   }
 }
 
+/**
+ * Return the nodeunit test files for this package
+ */
+export async function nodeunitTestFiles(): Promise<File[]> {
+  return listFiles('test', f => f.filename.startsWith('test.') && f.filename.endsWith('.js'));
+}
+
 export async function hasIntegTests(): Promise<boolean> {
   const files = await listFiles('test', f => f.filename.startsWith('integ.') && f.filename.endsWith('.js'));
   return files.length > 0;
@@ -138,8 +145,6 @@ export interface CDKBuildOptions {
 
   /**
    * Whether the package uses Jest for tests.
-   * The default is NodeUnit,
-   * but we want to eventually move all of them to Jest.
    * @deprecated Tests will always use Jest.
    */
   jest?: boolean;

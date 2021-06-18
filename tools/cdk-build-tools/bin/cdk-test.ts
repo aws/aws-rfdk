@@ -1,6 +1,6 @@
 import * as yargs from 'yargs';
 import { shell } from '../lib/os';
-import { cdkBuildOptions, hasIntegTests } from '../lib/package-info';
+import { cdkBuildOptions, hasIntegTests, nodeunitTestFiles } from '../lib/package-info';
 import { Timers } from '../lib/timer';
 
 async function main() {
@@ -28,7 +28,12 @@ async function main() {
   }
 
   if (options.jest !== true) {
-    process.stderr.write('Support for NodeUnit has been deprecated. Only Jest tests will run.\n');
+    process.stderr.write('Support for nodeunit has been deprecated. Only Jest tests will run.\n');
+  }
+
+  const nuTestFiles = await nodeunitTestFiles();
+  if (nuTestFiles.length > 0) {
+    throw new Error(`nodeunit tests are no longer supported but ${nuTestFiles.length} were found: ${nuTestFiles.map(f => f.filename)}`);
   }
 
   await shell([args.jest], defaultShellOptions);
