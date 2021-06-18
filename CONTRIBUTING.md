@@ -27,7 +27,7 @@ and let us know if it's not up-to-date (even better, submit a PR with your  corr
 The RFDK is written in Typescript and converted, using [jsii](https://github.com/aws/jsii), into Python. Thus, the
 minimal development environment must include:
 
-- Node.js >= 10.21.0
+- Node.js >= 12.18.3
 - docker >= 18
 
 We also recommend developing on a Linux system.

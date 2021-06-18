@@ -1,4 +1,4 @@
-FROM amazonlinux
+FROM public.ecr.aws/amazonlinux/amazonlinux:2
 
 RUN yum install -y openssl zip
 RUN mkdir -p /tmp/layer
@@ -13,4 +13,4 @@ CMD cd /tmp/layer && \
     rm -rf bin lib && \
     echo "OpenSSL $(openssl version | cut -d ' ' -f 2) for Amazon Linux 2" > description.txt && \
     echo "OpenSSL ( https://spdx.org/licenses/OpenSSL.html#licenseText )" > license.txt && \
-    echo "nodejs10.x nodejs12.x" > runtimes.txt
+    echo "nodejs12.x nodejs14.x" > runtimes.txt
