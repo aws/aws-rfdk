@@ -107,7 +107,6 @@
   },
   "resolutions-netmask-comment": "transitive dep from proxy-agent 4.0.1 & pac-resolver 4.1.0, which are transitive deps from CDK. Remove the forced resolution when able.",
   "resolutions-hosted-git-info": "transitive dep from conventional-changelog-cli@2.1.1 and lerna@4.0.0. hosted-git-info v3.0.0 - v3.0.7 contain a security vulnerability. It is safe to remove/update overrides as long as we stay out of the vulnerable window",
-  "resolutions-meow": "transitive dep from lerna@4.0.0 and standard-version@9.3.0. trim-newlines < 3.0.1 has security vulnerabilities and meow < 10.0.0 uses the vulnerable trim-newlines.",
   "resolutions-parse-url": "transitive dep from lerna@4.0.0. normalize-url < 4.5.1 have a security vulnerability.",
   "resolutions": {
     "netmask": "^2.0.1",
