@@ -75,9 +75,9 @@ export async function listFiles(dirName: string, predicate: (x: File) => boolean
 }
 
 /**
- * Return the unit test files for this package
+ * Return the nodeunit test files for this package
  */
-export async function unitTestFiles(): Promise<File[]> {
+export async function nodeunitTestFiles(): Promise<File[]> {
   return listFiles('test', f => f.filename.startsWith('test.') && f.filename.endsWith('.js'));
 }
 
@@ -145,8 +145,7 @@ export interface CDKBuildOptions {
 
   /**
    * Whether the package uses Jest for tests.
-   * The default is NodeUnit,
-   * but we want to eventually move all of them to Jest.
+   * @deprecated Tests will always use Jest.
    */
   jest?: boolean;
 }
