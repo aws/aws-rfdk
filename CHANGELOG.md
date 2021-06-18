@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.35.0](https://github.com/aws/aws-rfdk/compare/v0.34.0...v0.35.0) (2021-06-18)
+
+
+### Supported CDK Version
+
+* [1.108.1](https://github.com/aws/aws-cdk/releases/tag/v1.108.1)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.16.8](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Bug Fixes
+
+* **core:** increase lambda timeout for X509Certificate* constructs ([#476](https://github.com/aws/aws-rfdk/issues/476)) ([7b33b21](https://github.com/aws/aws-rfdk/commit/7b33b21b4ec92ddf3429ed777d9aea42a09fd79b))
+* **core:** increase timeout for AcmCertificateImporter ([#464](https://github.com/aws/aws-rfdk/issues/464)) ([18a8098](https://github.com/aws/aws-rfdk/commit/18a8098944f3599446c0f319eaf46b383724cfc3))
+
 ## [0.34.0](https://github.com/aws/aws-rfdk/compare/v0.33.0...v0.34.0) (2021-06-16)
 
 
