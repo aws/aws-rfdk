@@ -201,7 +201,7 @@ abstract class X509CertificateBase extends Construct {
       runtime: Runtime.NODEJS_12_X,
       layers: [ openSslLayer ],
       handler: props.lambdaHandler,
-      timeout: Duration.seconds(30),
+      timeout: Duration.seconds(90),
       logRetention: RetentionDays.ONE_WEEK,
     });
     this.database.grantReadWriteData(this.lambdaFunc);

@@ -84,9 +84,10 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
       const arn: string = resource.ARN;
       let inUseByResources = [];
       const backoffGenerator = new BackoffGenerator({
-        base: 200,
+        base: 1000,
         jitterDivisor: 4,
         maxAttempts,
+        maxIntervalMs: 30000,
       });
 
       do {
@@ -97,6 +98,7 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
         inUseByResources = cert!.InUseBy || [];
 
         if (inUseByResources.length) {
+          console.log(`Sleeping -- Resource ${arn} in use by ${inUseByResources.join(', ')}`);
           await backoffGenerator.backoff();
         } else {
           break;
