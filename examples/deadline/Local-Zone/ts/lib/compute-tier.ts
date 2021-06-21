@@ -20,6 +20,8 @@ import {
   SessionManagerHelper,
 } from 'aws-rfdk';
 import {
+  IHost,
+  InstanceUserDataProvider,
   IRenderQueue,
   IWorkerFleet,
   WorkerInstanceFleet,
@@ -60,6 +62,13 @@ export interface ComputeTierProps extends cdk.StackProps {
    * The bastion host to allow connection to Worker nodes.
    */
   readonly bastion?: BastionHostLinux;
+}
+
+class UserDataProvider extends InstanceUserDataProvider {
+  preWorkerConfiguration(host: IHost): void {
+    // Add code here for mounting your NFS to the workers
+    host.userData.addCommands('echo preWorkerConfiguration');
+  }
 }
 
 /**
@@ -107,8 +116,10 @@ export class ComputeTier extends cdk.Stack {
       // https://aws.amazon.com/about-aws/global-infrastructure/localzones/features/#AWS_Services
       // BURSTABLE3 is a T3; the third generation of burstable instances
       instanceType: InstanceType.of(InstanceClass.BURSTABLE3, InstanceSize.LARGE),
+      userDataProvider: new UserDataProvider(this, 'UserDataProvider'),
       vpcSubnets: subnets,
     });
+
     SessionManagerHelper.grantPermissionsTo(this.workerFleet);
   }
 }

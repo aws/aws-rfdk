@@ -27,6 +27,7 @@ from aws_rfdk import (
     SessionManagerHelper
 )
 from aws_rfdk.deadline import (
+    InstanceUserDataProvider,
     IRenderQueue,
     WorkerInstanceFleet
 )
@@ -49,6 +50,15 @@ class ComputeTierProps(StackProps):
     worker_machine_image: IMachineImage
     # The name of the EC2 keypair to associate with Worker nodes.
     key_pair_name: Optional[str]
+
+
+class UserDataProvider(InstanceUserDataProvider):
+    def __init__(self, scope: Construct, stack_id: str):
+        super().__init__(scope, stack_id)
+
+    def pre_worker_configuration(self, host) -> None:
+        # Add code here for mounting your NFS to the workers
+        host.user_data.add_commands("echo preWorkerConfiguration")
 
 
 class ComputeTier(Stack):
@@ -95,6 +105,7 @@ class ComputeTier(Stack):
             instance_type=InstanceType.of(InstanceClass.BURSTABLE3, InstanceSize.LARGE),
             worker_machine_image=props.worker_machine_image,
             health_monitor=self.health_monitor,
-            key_name=props.key_pair_name
+            key_name=props.key_pair_name,
+            user_data_provider=UserDataProvider(self, 'UserDataProvider')
         )
         SessionManagerHelper.grant_permissions_to(self.worker_fleet)
