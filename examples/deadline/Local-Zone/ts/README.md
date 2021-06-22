@@ -34,9 +34,9 @@ These instructions assume that your working directory is `examples/deadline/Loca
 5. Also in `bin/config.ts`, you can set the `availabilityZonesStandard` and `availabilityZonesLocal` values to the availability zones you want to use. These values must all be from the same region. It's required that you use at least two standard zones, but you can use more if you'd like. For the local zones, you can use one or more.
 
 6. To gain the benefits of putting your workers in a local zone close to your asset server, you are going to want to set up a connection from your local network to the one you're creating in AWS.
-   1. You should start by reading through the [Connecting to the Render Farm](https://docs.aws.amazon.com/rfdk/latest/guide/connecting-to-render-farm.html) documentation and implemening one of the methods for connecting your network to your AWS VPC described there.
+   1. You should start by reading through the [Connecting to the Render Farm](https://docs.aws.amazon.com/rfdk/latest/guide/connecting-to-render-farm.html) documentation and implementing one of the methods for connecting your network to your AWS VPC described there.
    2. With whichever option you choose, you'll want to make sure you are propagating the worker subnets to your local network. All the options in the document show how to propagate all the private subnets, which will include the ones used by the workers.
-   3. Ensure your worker fleet's security group allows traffic from your network on the correct ports that your NFS requires to be open. The documentation shows how to [allowing connections to the Render Queue](https://docs.aws.amazon.com/rfdk/latest/guide/connecting-to-render-farm.html#allowing-connection-to-the-render-queue), which you may also want to enable if you plan on connecting any of your local machines to your render farm, but you would also want to do something similar for the worker fleet, for example, ports `22` and `2049` are commonly required for NFS, so this code could be added to the `ComputeTier`:
+   3. Ensure your worker fleet's security group allows traffic from your network on the correct ports that your NFS requires to be open. The documentation shows how to [allow connections to the Render Queue](https://docs.aws.amazon.com/rfdk/latest/guide/connecting-to-render-farm.html#allowing-connection-to-the-render-queue), which you may also want to enable if you plan on connecting any of your local machines to your render farm, but you would also want to do something similar for the worker fleet, for example, ports `22` and `2049` are commonly required for NFS, so this code could be added to the `ComputeTier`:
 
     ```ts
     // The customer-prefix-cidr-range needs to be replaced by the CIDR range for your local network that you used when configuring the VPC connection
@@ -47,7 +47,7 @@ These instructions assume that your working directory is `examples/deadline/Loca
     ```
 
    4. Add user-data to mount the NFS on the compute tier. This can be provided in the `UserDataProvider` in the `ComputeTier`.
-   5. (optional) set up path mapping rules in Deadline
+   5. (optional) Set up [path mapping rules in Deadline](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/cross-platform.html).
 
 7. Build the `aws-rfdk` package, and then build the sample app. The `tsconfig.json` for this example app contains a reference to the local `aws-rfdk` package and will link your build artifacts:
 
