@@ -577,7 +577,7 @@ export class ConfigureSpotEventPlugin extends Construct {
 
     const spotFleetRequestConfigurations = fleet.deadlineGroups.map(group => {
       const spotFleetRequestConfiguration: SpotFleetRequestConfiguration = {
-        [group]: spotFleetRequestProps,
+        [group.toLowerCase()]: spotFleetRequestProps,
       };
       return spotFleetRequestConfiguration;
     });

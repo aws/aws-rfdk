@@ -70,7 +70,7 @@ let vpc: IVpc;
 let renderQueue: IRenderQueue;
 let rcsImage: AssetImage;
 
-const groupName = 'group_name';
+const groupName = 'Group_Name';
 const deadlineGroups = [
   groupName,
 ];
@@ -238,7 +238,7 @@ describe('SpotEventPluginFleet', () => {
 
       // THEN
       expect(fleet.userData).toBeDefined();
-      expect(renderedUserData).toMatch(groupName);
+      expect(renderedUserData).toMatch(groupName.toLocaleLowerCase());
     });
 
     test('adds RFDK tags', () => {
@@ -360,7 +360,7 @@ describe('SpotEventPluginFleet', () => {
       const imageConfig = workerMachineImage.getImage(fleet);
 
       // THEN
-      expect(fleet.deadlineGroups).toBe(deadlineGroups);
+      expect(fleet.deadlineGroups).toStrictEqual(deadlineGroups.map(group => group.toLocaleLowerCase()));
       expect(fleet.instanceTypes).toBe(instanceTypes);
       expect(fleet.imageId).toBe(imageConfig.imageId);
       expect(fleet.osType).toBe(imageConfig.osType);
@@ -642,7 +642,7 @@ describe('SpotEventPluginFleet', () => {
 
     test('adds deadline pools to user data', () => {
       // GIVEN
-      const pool1 = 'pool1';
+      const pool1 = 'Pool1';
       const pool2 = 'pool2';
 
       // WHEN
@@ -661,8 +661,8 @@ describe('SpotEventPluginFleet', () => {
       const renderedUserData = fleet.userData.render();
 
       // THEN
-      expect(renderedUserData).toMatch(pool1);
-      expect(renderedUserData).toMatch(pool2);
+      expect(renderedUserData).toMatch(pool1.toLocaleLowerCase());
+      expect(renderedUserData).toMatch(pool2.toLocaleLowerCase());
     });
 
     test('uses provided ssh key name', () => {

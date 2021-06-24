@@ -412,6 +412,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   constructor(scope: Construct, id: string, props: SpotEventPluginFleetProps) {
     super(scope, id);
 
+    this.deadlineGroups = props.deadlineGroups.map(group => group.toLocaleLowerCase());
     this.validateProps(props);
 
     this.securityGroups = props.securityGroups ?? [ new SecurityGroup(this, 'SpotFleetSecurityGroup', { vpc: props.vpc }) ];
@@ -447,7 +448,6 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     this.maxCapacity = props.maxCapacity;
     this.validUntil = props.validUntil;
     this.keyName = props.keyName;
-    this.deadlineGroups = props.deadlineGroups;
 
     const imageConfig = props.workerMachineImage.getImage(this);
     this.osType = imageConfig.osType;
@@ -462,8 +462,8 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
       },
       renderQueue: props.renderQueue,
       workerSettings: {
-        groups: props.deadlineGroups,
-        pools: props.deadlinePools,
+        groups: this.deadlineGroups,
+        pools: props.deadlinePools?.map(pool => pool.toLocaleLowerCase()),
         region: props.deadlineRegion,
       },
       userDataProvider: props.userDataProvider,
@@ -498,7 +498,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     this.validateFleetInstanceRole(props.fleetInstanceRole);
     this.validateInstanceTypes(props.instanceTypes);
     this.validateSubnets(props.vpc, props.vpcSubnets);
-    this.validateGroups('deadlineGroups', props.deadlineGroups);
+    this.validateGroups('deadlineGroups', this.deadlineGroups);
     this.validateRegion('deadlineRegion', props.deadlineRegion);
     this.validateBlockDevices(props.blockDevices);
   }
@@ -525,13 +525,13 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   }
 
   private validateGroups(property: string, array: string[]): void {
-    const regex: RegExp = /^(?!none$)[a-zA-Z0-9-_]+$/i;
+    const regex: RegExp = /^(?!none$)[a-z0-9-_]+$/g;
     if (array.length === 0) {
       throw new Error('At least one Deadline Group is required for a Spot Fleet Request Configuration');
     }
     array.forEach(value => {
       if (!regex.test(value)) {
-        throw new Error(`Invalid value: ${value} for property '${property}'. Valid characters are A-Z, a-z, 0-9, - and _. Also, group 'none' is reserved as the default group.`);
+        throw new Error(`Invalid value: ${value} for property '${property}'. Valid characters are a-z, 0-9, - and _. Also, group 'none' is reserved as the default group.`);
       }
     });
   }
