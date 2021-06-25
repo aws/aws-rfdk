@@ -329,6 +329,7 @@ describe('Test WorkerInstanceConfiguration connect to RenderQueue', () => {
         vpc,
         version,
       }),
+      trafficEncryption: { externalTLS: { enabled: false } },
     });
     const rqSecGrp = renderQueue.connections.securityGroups[0] as SecurityGroup;
     renderQueueSGId = stack.resolve(rqSecGrp.securityGroupId);

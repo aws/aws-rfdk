@@ -15,6 +15,8 @@ from aws_cdk.aws_ec2 import (
 from aws_rfdk.deadline import (
     AwsThinkboxEulaAcceptance,
     RenderQueue,
+    RenderQueueExternalTLSProps,
+    RenderQueueTrafficEncryptionProps,
     Repository,
     RepositoryRemovalPolicies,
     ThinkboxDockerImages,
@@ -81,4 +83,5 @@ class BaseFarmStack(Stack):
             images=images,
             repository=repository,
             deletion_protection=False,
+            traffic_encryption=RenderQueueTrafficEncryptionProps( external_tls=RenderQueueExternalTLSProps( enabled=False ) ),
         )

@@ -19,6 +19,7 @@ import {
   IConnectable,
   InstanceType,
   ISecurityGroup,
+  IVpc,
   Port,
   SubnetType,
 } from '@aws-cdk/aws-ec2';
@@ -50,6 +51,7 @@ import {
 import {
   ILogGroup,
 } from '@aws-cdk/aws-logs';
+import { IHostedZone, IPrivateHostedZone, PrivateHostedZone } from '@aws-cdk/aws-route53';
 import {
   ISecret,
 } from '@aws-cdk/aws-secretsmanager';
@@ -64,6 +66,8 @@ import {
   InstanceConnectOptions,
   IRepository,
   IVersion,
+  RenderQueueExternalTLSProps,
+  RenderQueueHostNameProps,
   RenderQueueProps,
   RenderQueueSizeConstraints,
   VersionQuery,
@@ -107,6 +111,42 @@ export interface IRenderQueue extends IConstruct, IConnectable {
    * Configure an Instance/Autoscaling group to connect to a RenderQueue
    */
   configureClientInstance(params: InstanceConnectOptions): void;
+}
+
+/**
+ * Interface for information about the render queue's domain.
+ */
+interface DomainInfo {
+  /**
+   * The private hosted zone that the render queue's load balancer will be placed in.
+   */
+  readonly domainZone: IPrivateHostedZone;
+
+  /**
+   * The fully qualified domain name that will be given to the load balancer in the private
+   * hosted zone.
+   */
+  readonly fullyQualifiedDomainName: string;
+}
+
+/**
+ * Interface for information about the render queue's TLS configuration
+ */
+interface TlsInfo {
+  /**
+   * The certificate to use for the TLS connection.
+   */
+  readonly clientCert: ICertificate;
+
+  /**
+   * The certificate chain clients can use to verify the certificate.
+   */
+  readonly certChain: ISecret;
+
+  /**
+   * The information about the domain for the render queue.
+   */
+  readonly domainInfo: DomainInfo;
 }
 
 /**
@@ -162,7 +202,7 @@ abstract class RenderQueueBase extends Construct implements IRenderQueue {
  *   should be governed carefully, as malicious software could use the API to remotely execute code across the entire render farm.
  * - The RenderQueue can be deployed with network encryption through Transport Layer Security (TLS) or without it. Unencrypted
  *   network communications can be eavesdropped upon or modified in transit. We strongly recommend deploying the RenderQueue
- *   with TLS enabled in production environments.
+ *   with TLS enabled in production environments and it is configured to be on by default.
  */
 export class RenderQueue extends RenderQueueBase implements IGrantable {
   /**
@@ -172,6 +212,10 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     [ApplicationProtocol.HTTP]: 8080,
     [ApplicationProtocol.HTTPS]: 4433,
   };
+
+  private static readonly DEFAULT_HOSTNAME = 'renderqueue';
+
+  private static readonly DEFAULT_DOMAIN_NAME = 'rfdk.internal';
 
   /**
   * The minimum Deadline version required for the Remote Connection Server to support load-balancing
@@ -295,37 +339,22 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
 
     this.version = props?.version;
 
-    let externalProtocol: ApplicationProtocol;
-    if ( props.trafficEncryption?.externalTLS ) {
-      externalProtocol = ApplicationProtocol.HTTPS;
+    const externalProtocol = props.trafficEncryption?.externalTLS?.enabled === false ? ApplicationProtocol.HTTP : ApplicationProtocol.HTTPS;
+    let loadBalancerFQDN: string | undefined;
+    let domainZone: IHostedZone | undefined;
 
-      if ( (props.trafficEncryption.externalTLS.acmCertificate === undefined ) ===
-      (props.trafficEncryption.externalTLS.rfdkCertificate === undefined) ) {
-        throw new Error('Exactly one of externalTLS.acmCertificate and externalTLS.rfdkCertificate must be provided when using externalTLS.');
-      } else if (props.trafficEncryption.externalTLS.rfdkCertificate ) {
-        if (props.trafficEncryption.externalTLS.rfdkCertificate.certChain === undefined) {
-          throw new Error('Provided rfdkCertificate does not contain a certificate chain.');
-        }
-        this.clientCert = new ImportedAcmCertificate(this, 'AcmCert', props.trafficEncryption.externalTLS.rfdkCertificate );
-        this.certChain = props.trafficEncryption.externalTLS.rfdkCertificate.certChain;
-      } else {
-        if (props.trafficEncryption.externalTLS.acmCertificateChain === undefined) {
-          throw new Error('externalTLS.acmCertificateChain must be provided when using externalTLS.acmCertificate.');
-        }
-        this.clientCert = props.trafficEncryption.externalTLS.acmCertificate;
-        this.certChain = props.trafficEncryption.externalTLS.acmCertificateChain;
-      }
-    } else {
-      externalProtocol = ApplicationProtocol.HTTP;
+    if ( externalProtocol ===  ApplicationProtocol.HTTPS ) {
+      const tlsInfo = this.getOrCreateTlsInfo(props);
+
+      this.certChain = tlsInfo.certChain;
+      this.clientCert = tlsInfo.clientCert;
+      loadBalancerFQDN = tlsInfo.domainInfo.fullyQualifiedDomainName;
+      domainZone = tlsInfo.domainInfo.domainZone;
     }
 
     this.version = props.version;
 
     const internalProtocol = props.trafficEncryption?.internalProtocol ?? ApplicationProtocol.HTTPS;
-
-    if (externalProtocol === ApplicationProtocol.HTTPS && !props.hostname) {
-      throw new Error('A hostname must be provided when the external protocol is HTTPS');
-    }
 
     this.cluster = new Cluster(this, 'Cluster', {
       vpc: props.vpc,
@@ -390,14 +419,6 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     this.taskDefinition = taskDefinition;
 
     // The fully-qualified domain name to use for the ALB
-    let loadBalancerFQDN: string | undefined;
-    if (props.hostname) {
-      const label = props.hostname.hostname ?? 'renderqueue';
-      if (props.hostname.hostname && !RenderQueue.RE_VALID_HOSTNAME.test(label)) {
-        throw new Error(`Invalid RenderQueue hostname: ${label}`);
-      }
-      loadBalancerFQDN = `${label}.${props.hostname.zone.zoneName}`;
-    }
 
     const loadBalancer = new ApplicationLoadBalancer(this, 'LB', {
       vpc: this.cluster.vpc,
@@ -411,7 +432,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       certificate: this.clientCert,
       cluster: this.cluster,
       desiredCount: this.renderQueueSize?.desired,
-      domainZone: props.hostname?.zone,
+      domainZone,
       domainName: loadBalancerFQDN,
       listenerPort: externalPortNumber,
       loadBalancer,
@@ -691,5 +712,121 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     });
 
     return taskDefinition;
+  }
+
+  /**
+   * Checks if the user supplied any certificate to use for TLS and uses them, or creates defaults to use.
+   * @param props
+   * @returns TlsInfo either based on input to the render queue, or the created defaults
+   */
+  private getOrCreateTlsInfo(props: RenderQueueProps): TlsInfo {
+    if ( (props.trafficEncryption?.externalTLS?.acmCertificate !== undefined ) ||
+        (props.trafficEncryption?.externalTLS?.rfdkCertificate !== undefined) ) {
+      if (props.hostname === undefined) {
+        throw new Error('The hostname for the render queue must be defined if supplying your own certificates.');
+      }
+      return this.getTlsInfoFromUserProps(
+        props.trafficEncryption.externalTLS,
+        props.hostname,
+      );
+    }
+
+    return this.createDefaultTlsInfo(props.vpc, props.hostname);
+  }
+
+  /**
+   * Creates a default certificate to use for TLS and a PrivateHostedZone to put the load balancer in.
+   * @param vpc
+   * @param hostname
+   * @returns default TlsInfo
+   */
+  private createDefaultTlsInfo(vpc: IVpc, hostname?: RenderQueueHostNameProps) {
+    const domainZone = hostname?.zone ?? new PrivateHostedZone(this, 'DnsZone', {
+      vpc: vpc,
+      zoneName: RenderQueue.DEFAULT_DOMAIN_NAME,
+    });
+    const label = hostname?.hostname ?? RenderQueue.DEFAULT_HOSTNAME;
+    const domainInfo = this.createDomainInfo(label, domainZone);
+
+    const rootCa = new X509CertificatePem(this, 'RootCA', {
+      subject: {
+        cn: 'RenderQueueRootCA',
+      },
+    });
+    const rfdkCert = new X509CertificatePem(this, 'RenderQueueCA', {
+      subject: {
+        cn: domainInfo.fullyQualifiedDomainName,
+      },
+      signingCertificate: rootCa,
+    });
+    const clientCert = new ImportedAcmCertificate(this, 'AcmCert', rfdkCert );
+    const certChain = rfdkCert.certChain!;
+
+    return {
+      domainInfo,
+      clientCert,
+      certChain,
+    };
+  }
+
+  /**
+   * Gets the certificate and PrivateHostedZone provided in the Render Queue's construct props.
+   * @param externalTLS
+   * @param hostname
+   * @returns The provided certificate and domain info
+   */
+  private getTlsInfoFromUserProps(externalTLS: RenderQueueExternalTLSProps, hostname: RenderQueueHostNameProps): TlsInfo {
+    let clientCert: ICertificate;
+    let certChain: ISecret;
+
+    if ( (externalTLS.acmCertificate !== undefined ) &&
+    (externalTLS.rfdkCertificate !== undefined) ) {
+      throw new Error('Exactly one of externalTLS.acmCertificate and externalTLS.rfdkCertificate must be provided when using externalTLS.');
+    }
+
+    if (!hostname.hostname) {
+      throw new Error('A hostname must be supplied if a certificate is supplied, '
+        + 'with the common name of the certificate matching the hostname + domain name.');
+    }
+
+    const domainInfo = this.createDomainInfo(hostname.hostname, hostname.zone);
+
+    if ( externalTLS.acmCertificate ) {
+      if ( externalTLS.acmCertificateChain === undefined ) {
+        throw new Error('externalTLS.acmCertificateChain must be provided when using externalTLS.acmCertificate.');
+      }
+      clientCert = externalTLS.acmCertificate;
+      certChain = externalTLS.acmCertificateChain;
+
+    } else { // Using externalTLS.rfdkCertificate
+      if ( externalTLS.rfdkCertificate!.certChain === undefined ) {
+        throw new Error('Provided rfdkCertificate does not contain a certificate chain.');
+      }
+      clientCert = new ImportedAcmCertificate(this, 'AcmCert', externalTLS.rfdkCertificate! );
+      certChain = externalTLS.rfdkCertificate!.certChain;
+    }
+
+    return {
+      domainInfo,
+      clientCert,
+      certChain,
+    };
+  }
+
+  /**
+   * Helper method to create the fully qualified domain name for the given hostname and PrivateHostedZone.
+   * @param hostname
+   * @param zone
+   * @returns DomainInfo containing the PrivateHostedZone and fully qualified domain name
+   */
+  private createDomainInfo(hostname: string, zone: IPrivateHostedZone): DomainInfo {
+    if (!RenderQueue.RE_VALID_HOSTNAME.test(hostname)) {
+      throw new Error(`Invalid RenderQueue hostname: ${hostname}`);
+    }
+
+    return {
+      domainZone: zone,
+      fullyQualifiedDomainName: `${hostname}.${zone.zoneName}`,
+    };
   }
 }
