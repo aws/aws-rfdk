@@ -90,9 +90,6 @@ export interface SpotEventPluginFleetProps {
   /**
    * Deadline groups these workers need to be assigned to.
    *
-   * Note that you will have to create the groups manually using Deadline before submitting jobs.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html
-   *
    * Also, note that the Spot Fleet configuration does not allow using wildcards as part of the Group name
    * as described here https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#wildcards
    */
@@ -100,9 +97,6 @@ export interface SpotEventPluginFleetProps {
 
   /**
    * Deadline pools these workers need to be assigned to.
-   *
-   * Note that you will have to create the pools manually using Deadline before submitting jobs.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html
    *
    * @default - Workers are not assigned to any pool.
    */

@@ -439,25 +439,4 @@ describe('SpotEventPluginClient', () => {
       );
     }
   });
-
-  test.each([
-    [poolsColection.Pools,1],
-    [[], 0],
-  ])('successful call addPool with %s', async (poolsCollection: string[], requestsCount: number) => {
-    // GIVEN
-    // eslint-disable-next-line dot-notation
-    spotEventPluginClient['deadlineClient'].GetRequest = jest.fn().mockResolvedValue(successfulPoolResponse);
-    // eslint-disable-next-line dot-notation
-    spotEventPluginClient['deadlineClient'].PostRequest = jest.fn().mockReturnValue(true);
-
-    // WHEN
-    await spotEventPluginClient.addPools(poolsCollection);
-
-    // THEN
-    // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(requestsCount);
-
-    // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(requestsCount);
-  });
 });

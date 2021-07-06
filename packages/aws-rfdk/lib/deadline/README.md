@@ -45,8 +45,6 @@ The `ConfigureSpotEventPlugin` construct has two main responsibilities:
 ---
 
 **Note:** This construct will configure the Spot Event Plugin, but the Spot Fleet Requests will not be created unless you:
-- Create the Deadline Group associated with the Spot Fleet Request Configuration. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html).
-- Create the Deadline Pools to which the fleet Workers are added. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html).
 - Submit the job with the assigned Deadline Group and Deadline Pool. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/job-submitting.html#submitting-jobs).
 
 ---
@@ -232,8 +230,6 @@ This construct represents a Spot Fleet launched by the [Deadline's Spot Event Pl
 
 This construct is expected to be used as an input to the [ConfigureSpotEventPlugin](#configure-spot-event-plugin) construct. `ConfigureSpotEventPlugin` construct will generate a Spot Fleet Request Configuration from each provided `SpotEventPluginFleet` and will set these configurations to the Spot Event Plugin.
 
-_**Note:** You will have to create the groups manually using Deadline before submitting jobs. See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html
-
 ```ts
 const vpc = new Vpc(/* ... */);
 const renderQueue = new RenderQueue(stack, 'RenderQueue', /* ... */);
@@ -276,8 +272,6 @@ const fleet = new SpotEventPluginFleet(this, 'SpotEventPluginFleet', {
 #### Adding Deadline Pools
 
 You can add the Workers to Deadline's Pools providing a list of pools as following:
-
-_**Note:** You will have to create the pools manually using Deadline before submitting jobs. See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html
 
 ```ts
 const fleet = new SpotEventPluginFleet(this, 'SpotEventPluginFleet', {
