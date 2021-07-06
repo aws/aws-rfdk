@@ -273,8 +273,8 @@ describe('SpotEventPluginClient', () => {
     expect(result).toEqual(expectedResult);
     // eslint-disable-next-line dot-notation
     expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(1);
-    expect(consoleLogMock.mock.calls.length).toBe(1);
-    expect(consoleLogMock.mock.calls[0][0]).toMatch(`Getting ${type} collection:`);
+    expect(consoleLogMock).toBeCalledTimes(1);
+    expect(consoleLogMock).toBeCalledWith(expect.stringMatching(`Getting ${type} collection:`));
   });
 
   test('failed getCollection', async () => {
@@ -288,8 +288,8 @@ describe('SpotEventPluginClient', () => {
 
     // THEN
     expect(result).toBeUndefined();
-    expect(consoleErrorMock.mock.calls.length).toBe(1);
-    expect(consoleErrorMock.mock.calls[0][0]).toMatch(`Failed to get group collection. Reason: ${statusMessage}`);
+    expect(consoleErrorMock).toBeCalledTimes(1);
+    expect(consoleErrorMock).toBeCalledWith(expect.stringMatching(`Failed to get group collection. Reason: ${statusMessage}`));
   });
 
   test('failed getCollection with invalid response', async () => {
@@ -308,8 +308,8 @@ describe('SpotEventPluginClient', () => {
 
     // THEN
     expect(result).toBeUndefined();
-    expect(consoleErrorMock.mock.calls.length).toBe(1);
-    expect(consoleErrorMock.mock.calls[0][0]).toMatch(`Failed to receive a group collection. Invalid response: ${JSON.stringify(invalidGroupResponse.data)}.`);
+    expect(consoleErrorMock).toBeCalledTimes(1);
+    expect(consoleErrorMock).toBeCalledWith(expect.stringMatching(`Failed to receive a group collection. Invalid response: ${JSON.stringify(invalidGroupResponse.data)}.`));
   });
 
   test.each([
@@ -328,9 +328,9 @@ describe('SpotEventPluginClient', () => {
     expect(result).toBeTruthy();
     // eslint-disable-next-line dot-notation
     expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(1);
-    expect(consoleLogMock.mock.calls.length).toBe(2);
-    expect(consoleLogMock.mock.calls[0][0]).toMatch(`Saving ${type} collection:`);
-    expect(consoleLogMock.mock.calls[1][0]).toBe(expectedResult);
+    expect(consoleLogMock).toBeCalledTimes(2);
+    expect(consoleLogMock).toBeCalledWith(expect.stringMatching(`Saving ${type} collection:`));
+    expect(consoleLogMock).toBeCalledWith(expectedResult);
   });
 
   test('failed saveCollection', async () => {
@@ -346,35 +346,104 @@ describe('SpotEventPluginClient', () => {
 
     // THEN
     expect(result).toBeFalsy();
-    expect(consoleErrorMock.mock.calls.length).toBe(1);
-    expect(consoleErrorMock.mock.calls[0][0]).toMatch(`Failed to save group collection. Reason: ${statusMessage}`);
+    expect(consoleErrorMock).toBeCalledTimes(1);
+    expect(consoleErrorMock).toBeCalledWith(expect.stringMatching(`Failed to save group collection. Reason: ${statusMessage}`));
   });
 
   test.each([
-    [groupsColection.Pools,1],
-    [[], 0],
-  ])('successful call addGroup with %s', async (groupsCollection: string[], reuquestsCount: number) => {
+    [ [], ['gr1', 'gr2'] ],
+    [['gr1', 'gr2'],['gr1', 'gr2']],
+    [['gr1', 'gr2'],['gr1', 'gr3']],
+    [['gr1', 'gr2'],[]],
+  ])('successful call addGroup with existing groups %s and added groups %s', async (currentGroupsCollection: string[], addedGroupsCollection: string[]) => {
     // GIVEN
+    const obsoletePools = ['obsolete_pool'];
+    const groupResponse: Response = {
+      data: {
+        Pools: currentGroupsCollection,
+        ObsoletePools: obsoletePools,
+      },
+      fullResponse: new IncomingMessage(new Socket()),
+    };
     // eslint-disable-next-line dot-notation
-    spotEventPluginClient['deadlineClient'].GetRequest = jest.fn().mockResolvedValue(successfulGroupResponse);
+    spotEventPluginClient['deadlineClient'].GetRequest = jest.fn().mockResolvedValue(groupResponse);
     // eslint-disable-next-line dot-notation
     spotEventPluginClient['deadlineClient'].PostRequest = jest.fn().mockReturnValue(true);
 
     // WHEN
-    await spotEventPluginClient.addGroups(groupsCollection);
+    await spotEventPluginClient.addGroups(addedGroupsCollection);
 
     // THEN
+    const requestsCount = addedGroupsCollection.length > 0 ? 1 : 0;
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(reuquestsCount);
+    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(requestsCount);
 
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(reuquestsCount);
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(requestsCount);
+    if (requestsCount>0) {
+      // eslint-disable-next-line dot-notation, jest/no-conditional-expect
+      expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledWith(
+        '/db/settings/collections/groups/save',
+        {
+          Pools: Array.from(new Set(currentGroupsCollection.concat(addedGroupsCollection))),
+          ObsoletePools: obsoletePools,
+        },
+        {
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        },
+      );
+    }
+  });
+
+  test.each([
+    [ [], ['pool1', 'pool2'] ],
+    [['pool1', 'pool2'],['pool1', 'pool2']],
+    [['pool1', 'pool2'],['pool1', 'pool3']],
+    [['pool1', 'pool2'],[]],
+  ])('successful call addPool with existing pools %s and added pools %s', async (currentPoolsCollection: string[], addedPoolsCollection: string[]) => {
+    // GIVEN
+    const obsoletePools = ['obsolete_pool'];
+    const poolResponse: Response = {
+      data: {
+        Pools: currentPoolsCollection,
+        ObsoletePools: obsoletePools,
+      },
+      fullResponse: new IncomingMessage(new Socket()),
+    };
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].GetRequest = jest.fn().mockResolvedValue(poolResponse);
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].PostRequest = jest.fn().mockReturnValue(true);
+
+    // WHEN
+    await spotEventPluginClient.addPools(addedPoolsCollection);
+
+    // THEN
+    const requestsCount = addedPoolsCollection.length > 0 ? 1 : 0;
+    // eslint-disable-next-line dot-notation
+    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(requestsCount);
+
+    // eslint-disable-next-line dot-notation
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(requestsCount);
+    if (requestsCount>0) {
+      // eslint-disable-next-line dot-notation, jest/no-conditional-expect
+      expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledWith(
+        '/db/settings/collections/pools/save',
+        {
+          Pools: Array.from(new Set(currentPoolsCollection.concat(addedPoolsCollection))),
+          ObsoletePools: obsoletePools,
+        },
+        {
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        },
+      );
+    }
   });
 
   test.each([
     [poolsColection.Pools,1],
     [[], 0],
-  ])('successful call addPool with %s', async (poolsCollection: string[], reuquestsCount: number) => {
+  ])('successful call addPool with %s', async (poolsCollection: string[], requestsCount: number) => {
     // GIVEN
     // eslint-disable-next-line dot-notation
     spotEventPluginClient['deadlineClient'].GetRequest = jest.fn().mockResolvedValue(successfulPoolResponse);
@@ -386,9 +455,9 @@ describe('SpotEventPluginClient', () => {
 
     // THEN
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(reuquestsCount);
+    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(requestsCount);
 
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(reuquestsCount);
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(requestsCount);
   });
 });

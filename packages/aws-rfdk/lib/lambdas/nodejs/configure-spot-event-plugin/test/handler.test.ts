@@ -487,12 +487,12 @@ describe('SEPConfiguratorResource', () => {
       mockSpotEventPluginClient.addGroups = jest.fn( (a) => returnFalse(a) );
 
       // WHEN
-      const promise = handler.doCreate('physicalId', noConfigs);
+      const promise = handler.doCreate('physicalId', allConfigs);
 
       // THEN
       await expect(promise)
         .rejects
-        .toThrowError(/Failed to add group collection./);
+        .toThrowError(`Failed to add Deadline group(s) ${allConfigs.deadlineGroups}`);
     });
 
     test('throw when cannot add pools', async () => {
@@ -500,12 +500,12 @@ describe('SEPConfiguratorResource', () => {
       mockSpotEventPluginClient.addPools = jest.fn( (a) => returnFalse(a) );
 
       // WHEN
-      const promise = handler.doCreate('physicalId', noConfigs);
+      const promise = handler.doCreate('physicalId', allConfigs);
 
       // THEN
       await expect(promise)
         .rejects
-        .toThrowError(/Failed to add pool collection./);
+        .toThrowError(`Failed to add Deadline pool(s) ${allConfigs.deadlinePools}`);
     });
 
     test('throw when cannot save spot fleet request configs', async () => {

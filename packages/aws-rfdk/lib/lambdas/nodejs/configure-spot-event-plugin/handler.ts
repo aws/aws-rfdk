@@ -48,11 +48,11 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
     const spotEventPluginClient = await this.spotEventPluginClient(resourceProperties.connection);
 
     if (!await spotEventPluginClient.addGroups(resourceProperties.deadlineGroups)) {
-      throw new Error('Failed to add group collection.');
+      throw new Error(`Failed to add Deadline group(s) ${resourceProperties.deadlineGroups}`);
     }
 
     if (!await spotEventPluginClient.addPools(resourceProperties.deadlinePools)) {
-      throw new Error('Failed to add pool collection.');
+      throw new Error(`Failed to add Deadline pool(s) ${resourceProperties.deadlinePools}`);
     }
 
     if (resourceProperties.spotFleetRequestConfigurations) {
