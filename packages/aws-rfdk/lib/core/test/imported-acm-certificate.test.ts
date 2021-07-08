@@ -207,7 +207,7 @@ describe('ImportedAcmCertificate', () => {
     });
 
     test('uses RFDK lambda layer', () => {
-      const openSslLayer = LambdaLayerVersionArnMapping.getSingletonInstance(stack).getLambdaLayerVersion(stack, 'OpenSslLayer', LambdaLayer.OPEN_SSL_AL2);
+      const openSslLayer = LambdaLayerVersionArnMapping.getLambdaLayerVersion(stack, 'OpenSslLayer', LambdaLayer.OPEN_SSL_AL2);
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function', {
         Layers: arrayWith(

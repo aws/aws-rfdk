@@ -134,8 +134,7 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
       billingMode: BillingMode.PAY_PER_REQUEST,
     });
 
-    const lambdaLayerMappings = LambdaLayerVersionArnMapping.getSingletonInstance(this);
-    const openSslLayer = lambdaLayerMappings.getLambdaLayerVersion(this, 'OpenSslLayer', LambdaLayer.OPEN_SSL_AL2);
+    const openSslLayer = LambdaLayerVersionArnMapping.getLambdaLayerVersion(this, 'OpenSslLayer', LambdaLayer.OPEN_SSL_AL2);
 
     const lambda = new SingletonFunction(this, 'AcmImporter', {
       uuid: ImportedAcmCertificate.IMPORTER_UUID,

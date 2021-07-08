@@ -182,8 +182,7 @@ abstract class X509CertificateBase extends Construct {
       },
     });
 
-    const lambdaLayerMappings = LambdaLayerVersionArnMapping.getSingletonInstance(this);
-    const openSslLayer = lambdaLayerMappings.getLambdaLayerVersion(this, 'OpenSslLayer', LambdaLayer.OPEN_SSL_AL2);
+    const openSslLayer = LambdaLayerVersionArnMapping.getLambdaLayerVersion(this, 'OpenSslLayer', LambdaLayer.OPEN_SSL_AL2);
 
     /*
      * We cannot make this a singleton function; doing so would create circular references in the lambda role (to sign

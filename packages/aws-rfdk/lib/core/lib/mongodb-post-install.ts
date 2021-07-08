@@ -170,8 +170,7 @@ export class MongoDbPostInstallSetup extends Construct {
       }
     });
 
-    const lambdaLayerMappings = LambdaLayerVersionArnMapping.getSingletonInstance(this);
-    const openSslLayer = lambdaLayerMappings.getLambdaLayerVersion(this, 'OpenSslLayer', LambdaLayer.OPEN_SSL_AL2);
+    const openSslLayer = LambdaLayerVersionArnMapping.getLambdaLayerVersion(this, 'OpenSslLayer', LambdaLayer.OPEN_SSL_AL2);
 
     const lamdbaFunc = new LambdaFunction(this, 'Lambda', {
       vpc: props.vpc,

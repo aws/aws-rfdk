@@ -114,12 +114,12 @@ test('Generate cert', () => {
       error.resource = props.Handler;
       return false;
     }
-    const openSslLayer = LambdaLayerVersionArnMapping.getSingletonInstance(stack).findInMap(region, LambdaLayer.OPEN_SSL_AL2);
+    const openSslLayer = LambdaLayerVersionArnMapping.getLambdaLayerVersion(stack, 'OpenSslLayer', LambdaLayer.OPEN_SSL_AL2);
     if (!props.Layers
       || !Array.isArray(props.Layers)
       || Array.of(props.Layers)
         .map(layer => JSON.stringify(layer))
-        .filter(l => l.includes(JSON.stringify(stack.resolve(openSslLayer)))).length !== 1) {
+        .filter(l => l.includes(JSON.stringify(stack.resolve(openSslLayer.layerVersionArn)))).length !== 1) {
       error.failureReason = 'openssl Lambda Layer missing';
       error.resource = props.Layers;
       return false;

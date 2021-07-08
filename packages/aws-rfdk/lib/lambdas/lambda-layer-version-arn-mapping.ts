@@ -34,10 +34,24 @@ type LambdaLayerVersionArnMap<T> = { [layer: string]: T };
  */
 export class LambdaLayerVersionArnMapping extends CfnMapping {
   /**
+   * Gets a Lambda LayerVersion for the specified layer.
+   *
+   * Note that this uses a `CfnMapping` that is unique within a stack. This method will create a `CfnMapping`
+   * if it does not already exist (i.e. this method has not been called yet).
+   * @param scope The scope to create the LayerVersion in.
+   * @param id The ID of the construct.
+   * @param layer The layer to get.
+   */
+  public static getLambdaLayerVersion(scope: Construct, id: string, layer: LambdaLayer): ILayerVersion {
+    const instance = this.getSingletonInstance(scope);
+    return LayerVersion.fromLayerVersionArn(scope, id, instance.findInMap(instance.stack.region, layer));
+  }
+
+  /**
    * Gets the singleton instance (per-stack) of this class.
    * @param scope The parent construct.
    */
-  public static getSingletonInstance(scope: Construct) {
+  protected static getSingletonInstance(scope: Construct) {
     const uuid = '7a9adb59-d5d0-42fb-bc5b-a55bcbf6a6b2';
     const uniqueId = 'LambdaLayerVersionArnMapping' + uuid.replace(/[-]/g, '');
     const stack = Stack.of(scope);
@@ -89,15 +103,5 @@ export class LambdaLayerVersionArnMapping extends CfnMapping {
     });
 
     super(scope, id, { mapping: transformedArns });
-  }
-
-  /**
-   * Gets a Lambda LayerVersion for the specified layer.
-   * @param scope The scope to create the LayerVersion in.
-   * @param id The ID of the construct.
-   * @param layer The layer to get.
-   */
-  public getLambdaLayerVersion(scope: Construct, id: string, layer: LambdaLayer): ILayerVersion {
-    return LayerVersion.fromLayerVersionArn(scope, id, this.findInMap(this.stack.region, layer));
   }
 }
