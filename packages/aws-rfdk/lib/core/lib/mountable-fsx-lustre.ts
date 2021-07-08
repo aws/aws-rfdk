@@ -8,7 +8,9 @@ import {
   OperatingSystemType,
   Port,
 } from '@aws-cdk/aws-ec2';
-import * as fsx from '@aws-cdk/aws-fsx';
+import {
+  LustreFileSystem,
+} from '@aws-cdk/aws-fsx';
 import {
   Asset,
 } from '@aws-cdk/aws-s3-assets';
@@ -34,7 +36,7 @@ export interface MountableFsxLustreProps {
    * The {@link https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-fsx.LustreFileSystem.html|FSx for Lustre}
    * filesystem that will be mounted by the object.
    */
-  readonly filesystem: fsx.LustreFileSystem;
+  readonly filesystem: LustreFileSystem;
 
   /**
    * The fileset to mount.
@@ -90,14 +92,10 @@ export class MountableFsxLustre implements IMountableLinuxFilesystem {
     const mountDir: string = path.posix.normalize(mount.location);
     const mountOptions: string[] = [ MountPermissionsHelper.toLinuxMountOption(mount.permissions) ];
     if (this.props.extraMountOptions) {
-      mountOptions.push( ...this.props.extraMountOptions);
+      mountOptions.push(...this.props.extraMountOptions);
     }
     const mountOptionsStr: string = mountOptions.join(',');
-
-    let mountName = this.props.filesystem.mountName;
-    if (this.props.fileset) {
-      mountName = path.posix.join(mountName, this.props.fileset);
-    }
+    const mountName = this.props.fileset ? path.posix.join(this.props.filesystem.mountName, this.props.fileset) : this.props.filesystem.mountName;
 
     target.userData.addCommands(
       'TMPDIR=$(mktemp -d)',

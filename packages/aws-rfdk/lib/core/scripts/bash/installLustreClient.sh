@@ -66,8 +66,12 @@ function install_on_al1() {
 }
 
 function install_on_rhel() {
-  # Create map of RHEL release to kernel version shell patterns
-  # See https://access.redhat.com/articles/3078
+  # Note: In addition to installing the lustre client packages, an additional "kmod-lustre-client" package also needs to be
+  # installed. This package contains kernel-specific modules used by the lustre client.
+
+  # Create map of RHEL release to kernel version shell patterns. See https://access.redhat.com/articles/3078
+  # This mapping is needed to determine which version of the Lustre client to install based on the instructions at
+  # https://docs.aws.amazon.com/fsx/latest/LustreGuide/install-lustre-client.html#lustre-client-rhel
   declare -A rhel_kernel_versions
   rhel_kernel_versions=(
     [7.5]='3.10.0-862.*'
@@ -77,6 +81,8 @@ function install_on_rhel() {
     [7.9]='3.10.0-1160.*'
     [8.1]='4.18.0-147.*'
     [8.2]='4.18.0-193.*'
+    [8.3]='4.18.0-240.*'
+    [8.4]='4.18.0-305.*'
   )
 
   rhel_version=$(grep ^VERSION_ID= /etc/os-release | awk -F "=" '{print $2}' | sed s/\"//g)
@@ -145,10 +151,10 @@ function install_on_rhel() {
 
     # RHEL 8.2 or newer
     # -----------------
-    8.2|8.[1-9]*([0-9]))
+    8.[2-9]|8.[1-9]+([0-9]))
       case $kernel_version in
         ${rhel_kernel_versions[8.2]}) replace_ver="8.2";;
-        ${rhel_kernel_versions[8.3]}  replace_ver="8.3";;
+        ${rhel_kernel_versions[8.3]}) replace_ver="8.3";;
         *)
           if is_kernel_version_lower "$kernel_version" "${rhel_kernel_versions[8.2]}"; then
             echo "ERROR: Kernel version ($kernel_version) is lower than the minimum required version: ${rhel_kernel_versions[8.2]}"
@@ -161,6 +167,7 @@ function install_on_rhel() {
       sudo rpm --import /tmp/fsx-rpm-public-key.asc
       sudo curl https://fsx-lustre-client-repo.s3.amazonaws.com/el/8/fsx-lustre-client.repo -o /etc/yum.repos.d/aws-fsx.repo
       if [[ -n "${replace_ver+x}" ]]; then
+        # Change the baseurl referenced in aws-fsx.repo to so we pull the correct version of the lustre client for this kernel
         sudo sed -i "s#8#${replace_ver}#" /etc/yum.repos.d/aws-fsx.repo
       fi
 

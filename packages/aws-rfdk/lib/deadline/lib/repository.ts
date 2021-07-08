@@ -938,6 +938,8 @@ export class Repository extends Construct implements IRepository {
       installerArgs.push('-s', repositorySettingsFilePath);
     }
 
+    // We can ignore this in test coverage because we always use Repository.REPOSITORY_OWNER
+    /* istanbul ignore next */
     if (owner) {
       installerArgs.push('-o', `${owner.uid}:${owner.gid}`);
     }

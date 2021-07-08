@@ -683,6 +683,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       environment.RCS_TLS_REQUIRE_CLIENT_CERT = 'no';
     }
 
+    // We can ignore this in test coverage because we always use RenderQueue.RCS_USER
+    /* istanbul ignore next */
     const user = props.runAsUser ? `${props.runAsUser.uid}:${props.runAsUser.gid}` : undefined;
     const containerDefinition = taskDefinition.addContainer('ContainerDefinition', {
       image,
