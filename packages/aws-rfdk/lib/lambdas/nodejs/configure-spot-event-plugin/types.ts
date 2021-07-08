@@ -23,6 +23,16 @@ export interface SEPConfiguratorResourceProps {
    * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
    */
   readonly spotPluginConfigurations?: PluginSettings;
+
+  /**
+   * Deadline groups that are used by these fleets.
+   */
+  readonly deadlineGroups?: string[];
+
+  /**
+   * Deadline pools that are used by these fleets.
+   */
+  readonly deadlinePools?: string[];
 }
 
 /**

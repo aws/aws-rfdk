@@ -317,8 +317,6 @@ export interface ConfigureSpotEventPluginProps {
  * Logs for all AWS Lambdas are automatically recorded in Amazon CloudWatch.
  *
  * This construct will configure the Spot Event Plugin, but the Spot Fleet Requests will not be created unless you:
- * - Create the Deadline Group associated with the Spot Fleet Request Configuration. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html).
- * - Create the Deadline Pools to which the fleet Workers are added. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html).
  * - Submit the job with the assigned Deadline Group and Deadline Pool. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/job-submitting.html#submitting-jobs).
  *
  * Important: Disable 'Allow Workers to Perform House Cleaning If Pulse is not Running' in the 'Configure Repository Options'
@@ -459,6 +457,8 @@ export class ConfigureSpotEventPlugin extends Construct {
     };
     const spotFleetRequestConfigs = this.mergeSpotFleetRequestConfigs(props.spotFleets);
 
+    const deadlineGroups = Array.from(new Set(props.spotFleets?.map(fleet => fleet.deadlineGroups).reduce((p, c) => p.concat(c), [])));
+    const deadlinePools = Array.from(new Set(props.spotFleets?.map(fleet => fleet.deadlinePools).reduce((p, c) => p?.concat(c ?? []), [])));
     const properties: SEPConfiguratorResourceProps = {
       connection: {
         hostname: props.renderQueue.endpoint.hostname,
@@ -468,6 +468,8 @@ export class ConfigureSpotEventPlugin extends Construct {
       },
       spotFleetRequestConfigurations: spotFleetRequestConfigs,
       spotPluginConfigurations: pluginConfig,
+      deadlineGroups,
+      deadlinePools,
     };
 
     const resource = new CustomResource(this, 'Default', {
