@@ -59,6 +59,7 @@
     "@aws-cdk/aws-elasticloadbalancingv2": "1.108.1",
     "@aws-cdk/aws-events": "1.108.1",
     "@aws-cdk/aws-events-targets": "1.108.1",
+    "@aws-cdk/aws-fsx": "1.108.1",
     "@aws-cdk/aws-globalaccelerator": "1.108.1",
     "@aws-cdk/aws-glue": "1.108.1",
     "@aws-cdk/aws-iam": "1.108.1",
