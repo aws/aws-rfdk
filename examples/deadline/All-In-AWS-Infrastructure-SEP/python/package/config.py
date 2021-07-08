@@ -19,5 +19,11 @@ class AppConfig:
         #  should match the one used for staging the render queue and usage based licensing recipes.
         self.deadline_client_linux_ami_map: Mapping[str, str] = {'us-west-2': 'ami-04ae356533dc07fb5'}
 
+        # Whether the DeadlineResourceTracker stack and supporting resources already exist in the account/region you are deploying to.
+        #
+        # If this is false, resources required by the Deadline Resource Tracker will be deployed into your account.
+        # If this is true, these resources will be skipped.
+        self.deadline_resource_tracker_exists: bool = False
+
 
 config: AppConfig = AppConfig()

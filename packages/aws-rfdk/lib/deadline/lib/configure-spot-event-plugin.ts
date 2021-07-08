@@ -6,11 +6,8 @@
 import * as path from 'path';
 
 import {
-  BlockDevice,
-  BlockDeviceVolume,
-} from '@aws-cdk/aws-autoscaling';
-import {
   IVpc,
+  LaunchTemplate,
   SubnetSelection,
   SubnetType,
 } from '@aws-cdk/aws-ec2';
@@ -27,25 +24,23 @@ import {
 import { RetentionDays } from '@aws-cdk/aws-logs';
 import {
   Annotations,
+  Aspects,
   Construct,
   CustomResource,
   Duration,
-  Fn,
   IResolvable,
   Lazy,
   Stack,
+  Tag,
+  Tags,
 } from '@aws-cdk/core';
 
 import {
   PluginSettings,
   SEPConfiguratorResourceProps,
-  LaunchSpecification,
   SpotFleetRequestConfiguration,
   SpotFleetRequestProps,
-  SpotFleetSecurityGroupId,
   SpotFleetTagSpecification,
-  BlockDeviceMappingProperty,
-  BlockDeviceProperty,
 } from '../../lambdas/nodejs/configure-spot-event-plugin';
 import {
   IRenderQueue,
@@ -344,6 +339,9 @@ export interface ConfigureSpotEventPluginProps {
  *  - A policy to pass a fleet and instance role
  *  - A policy to create tags for spot fleet requests
  *
+ * The Spot Fleet Requests that this construct configures Deadline to create will always use the latest version of the
+ * corresponding EC2 Launch Template that was created for them.
+ *
  * ![architecture diagram](/diagrams/deadline/ConfigureSpotEventPlugin.svg)
  *
  * Resources Deployed
@@ -352,6 +350,7 @@ export interface ConfigureSpotEventPluginProps {
  * - A CloudFormation Custom Resource that triggers execution of the Lambda on stack deployment, update, and deletion.
  * - An Amazon CloudWatch log group that records history of the AWS Lambda's execution.
  * - An IAM Policy attached to Render Queue's Role.
+ * - EC2 Launch Templates for each Spot Event Plugin fleet.
  *
  * Security Considerations
  * ------------------------
@@ -548,51 +547,52 @@ export class ConfigureSpotEventPlugin extends Construct {
    * Each congiguration is a mapping between one Deadline Group and one Spot Fleet Request Configuration.
    */
   private generateSpotFleetRequestConfig(fleet: SpotEventPluginFleet): SpotFleetRequestConfiguration[] {
-    const securityGroupsToken = Lazy.any({ produce: () => {
-      return fleet.securityGroups.map(sg => {
-        const securityGroupId: SpotFleetSecurityGroupId = {
-          GroupId: sg.securityGroupId,
-        };
-        return securityGroupId;
-      });
-    }});
-
-    const userDataToken = Lazy.string({ produce: () => Fn.base64(fleet.userData.render()) });
-
-    const blockDeviceMappings = (fleet.blockDevices !== undefined ?
-      this.synthesizeBlockDeviceMappings(fleet.blockDevices) : undefined);
-
     const { subnetIds } = fleet.subnets;
     const subnetId = subnetIds.join(',');
 
-    const instanceTagsToken = this.tagSpecifications(fleet, SpotFleetResourceType.INSTANCE);
     const spotFleetRequestTagsToken = this.tagSpecifications(fleet, SpotFleetResourceType.SPOT_FLEET_REQUEST);
 
-    const launchSpecifications: LaunchSpecification[] = [];
+    const launchTemplates: LaunchTemplate[] = fleet.instanceTypes.map((instanceType, idx) => {
+      const launchTemplate = new LaunchTemplate(this, `${fleet.node.id}${instanceType}LaunchTemplate${idx}`, {
+        blockDevices: fleet.blockDevices,
+        role: fleet.fleetInstanceRole,
+        machineImage: fleet.machineImage,
+        keyName: fleet.keyName,
+        securityGroup: fleet.securityGroups[0],
+        userData: fleet.userData,
+        instanceType,
+      });
+      if (fleet.securityGroups.length > 1) {
+        launchTemplate.connections.addSecurityGroup(...fleet.securityGroups.slice(1));
+      }
 
-    fleet.instanceTypes.map(instanceType => {
-      const launchSpecification: LaunchSpecification = {
-        BlockDeviceMappings: blockDeviceMappings,
-        IamInstanceProfile: {
-          Arn: fleet.instanceProfile.attrArn,
-        },
-        ImageId: fleet.imageId,
-        KeyName: fleet.keyName,
-        // Need to convert from IResolvable to bypass TypeScript
-        SecurityGroups: (securityGroupsToken  as unknown) as SpotFleetSecurityGroupId[],
-        SubnetId: subnetId,
-        // Need to convert from IResolvable to bypass TypeScript
-        TagSpecifications: (instanceTagsToken as unknown) as SpotFleetTagSpecification[],
-        UserData: userDataToken,
-        InstanceType: instanceType.toString(),
-      };
-      launchSpecifications.push(launchSpecification);
+      // Add tags that are added via the TagManager API
+      /* istanbul ignore if */
+      if (fleet.tags.hasTags()) {
+        const tags = fleet.tags.renderTags() as {[key: string]: string}[];
+        tags.forEach(tag => Tags.of(launchTemplate).add(tag.Key, tag.Value));
+      }
+
+      // Add tags that are added via the Tags API which uses Aspects and is a layer above the TagManager API
+      const tagAspects = Aspects.of(fleet).aspects.filter(aspect => aspect instanceof Tag) as Tag[];
+      tagAspects.forEach(tagAspect => Tags.of(launchTemplate).add(tagAspect.key, tagAspect.value));
+
+      return launchTemplate;
     });
 
     const spotFleetRequestProps: SpotFleetRequestProps = {
       AllocationStrategy: fleet.allocationStrategy,
       IamFleetRole: fleet.fleetRole.roleArn,
-      LaunchSpecifications: launchSpecifications,
+      LaunchTemplateConfigs: launchTemplates.map(launchTemplate => {
+        return {
+          LaunchTemplateSpecification: {
+            Version: '$Latest',
+            LaunchTemplateId: launchTemplate.launchTemplateId,
+            LaunchTemplateName: launchTemplate.launchTemplateName,
+          },
+          Overrides: [{ SubnetId: subnetId }],
+        };
+      }),
       ReplaceUnhealthyInstances: true,
       // In order to work with Deadline, the 'Target Capacity' of the Spot fleet Request is
       // the maximum number of Workers that Deadline will start.
@@ -613,49 +613,6 @@ export class ConfigureSpotEventPlugin extends Construct {
     });
 
     return spotFleetRequestConfigurations;
-  }
-
-  /**
-   * Synthesize an array of block device mappings from a list of block devices
-   *
-   * @param blockDevices list of block devices
-   */
-  private synthesizeBlockDeviceMappings(blockDevices: BlockDevice[]): BlockDeviceMappingProperty[] {
-    return blockDevices.map(({ deviceName, volume, mappingEnabled }) => {
-      const { virtualName, ebsDevice: ebs } = volume;
-
-      if (volume === BlockDeviceVolume._NO_DEVICE || mappingEnabled === false) {
-        return {
-          DeviceName: deviceName,
-          // To omit the device from the block device mapping, specify an empty string.
-          // See https://docs.aws.amazon.com/cli/latest/reference/ec2/request-spot-fleet.html
-          NoDevice: '',
-        };
-      }
-
-      let Ebs: BlockDeviceProperty | undefined;
-
-      if (ebs) {
-        const { iops, volumeType, volumeSize, snapshotId, deleteOnTermination } = ebs;
-
-        Ebs = {
-          DeleteOnTermination: deleteOnTermination,
-          Iops: iops,
-          SnapshotId: snapshotId,
-          VolumeSize: volumeSize,
-          VolumeType: volumeType,
-          // encrypted is not exposed as part of ebsDeviceProps so we need to access it via [].
-          // eslint-disable-next-line dot-notation
-          Encrypted: 'encrypted' in ebs ? ebs['encrypted'] : undefined,
-        };
-      }
-
-      return {
-        DeviceName: deviceName,
-        Ebs,
-        VirtualName: virtualName,
-      };
-    });
   }
 
   private mergeSpotFleetRequestConfigs(spotFleets?: SpotEventPluginFleet[]): SpotFleetRequestConfiguration | undefined {

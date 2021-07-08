@@ -36,4 +36,5 @@ new SEPStack(app, 'SEPStack', {
   env,
   dockerRecipesStagePath: path.join(__dirname, '..', pkg.config.stage_path), // Stage directory in config is relative, make it absolute
   workerMachineImage: MachineImage.genericLinux(config.deadlineClientLinuxAmiMap),
+  deadlineResourceTrackerExists: config.deadlineResourceTrackerExists,
 });

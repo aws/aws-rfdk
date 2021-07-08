@@ -4,11 +4,13 @@
  */
 
 import {
-  InstanceClass,
-  InstanceSize,
-  InstanceType,
+  LaunchTemplate,
 } from '@aws-cdk/aws-ec2';
-import { Expiration } from '@aws-cdk/core';
+import {
+  App,
+  Expiration,
+  Stack,
+} from '@aws-cdk/core';
 import * as AWS from 'aws-sdk';
 import {
   SpotEventPluginDisplayInstanceStatus,
@@ -24,209 +26,79 @@ import {
   ConnectionOptions,
   SEPConfiguratorResourceProps,
   PluginSettings,
-  SpotFleetRequestConfiguration,
-  LaunchSpecification,
-  SpotFleetRequestProps,
 } from '../types';
 
 jest.mock('../../lib/secrets-manager/read-certificate');
 
 const secretArn: string = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/Cert';
 
-// @ts-ignore
-async function successRequestMock(request: { [key: string]: string}, returnValue: any): Promise<{ [key: string]: any }> {
-  return returnValue;
-}
-
 describe('SEPConfiguratorResource', () => {
-  const validConnection: ConnectionOptions = {
-    hostname: 'internal-hostname.com',
-    protocol: 'HTTPS',
-    port: '4433',
-    caCertificateArn: secretArn,
-  };
+  const deadlineGroup = 'group_name';
+  const deadlinePool =  'pool_name';
 
-  const validLaunchSpecification: LaunchSpecification = {
-    IamInstanceProfile: {
-      Arn: 'iamInstanceProfileArn',
-    },
-    ImageId: 'any-ami',
-    InstanceType: InstanceType.of(InstanceClass.T2, InstanceSize.SMALL).toString(),
-    SecurityGroups: [{
-      GroupId: 'sg-id',
-    }],
-    TagSpecifications: [{
-      ResourceType: SpotFleetResourceType.INSTANCE,
-      Tags: [
-        {
-          Key: 'name',
-          Value: 'test',
-        },
-      ],
-    }],
-    UserData: 'userdata',
-    KeyName: 'keyname',
-    SubnetId: 'subnet-id',
-    BlockDeviceMappings: [{
-      DeviceName: 'device',
-      NoDevice: '',
-      VirtualName: 'virtualname',
-      Ebs: {
-        DeleteOnTermination: true,
-        Encrypted: true,
-        Iops: 10,
-        SnapshotId: 'snapshot-id',
-        VolumeSize: 10,
-        VolumeType: 'volume-type',
+  let app: App;
+  let stack: Stack;
+  let validSepConfiguration: SEPConfiguratorResourceProps;
+
+  beforeEach(() => {
+    app = new App();
+    stack = new Stack(app, 'Stack');
+    const launchTemplate = new LaunchTemplate(stack, 'LaunchTemplate');
+
+    validSepConfiguration = {
+      spotPluginConfigurations: {
+        AWSInstanceStatus: SpotEventPluginDisplayInstanceStatus.DISABLED,
+        DeleteInterruptedSlaves: true,
+        DeleteTerminatedSlaves: true,
+        IdleShutdown: 20,
+        Logging: SpotEventPluginLoggingLevel.STANDARD,
+        PreJobTaskMode: SpotEventPluginPreJobTaskMode.CONSERVATIVE,
+        Region: 'us-west-2',
+        ResourceTracker: true,
+        StaggerInstances: 50,
+        State: SpotEventPluginState.GLOBAL_ENABLED,
+        StrictHardCap: true,
       },
-    }],
-  };
-
-  const validSpotFleetRequestProps: SpotFleetRequestProps = {
-    AllocationStrategy: SpotFleetAllocationStrategy.CAPACITY_OPTIMIZED,
-    IamFleetRole: 'roleArn',
-    LaunchSpecifications: [validLaunchSpecification],
-    ReplaceUnhealthyInstances: true,
-    TargetCapacity: 1,
-    TerminateInstancesWithExpiration: true,
-    Type: SpotFleetRequestType.MAINTAIN,
-    TagSpecifications: [{
-      ResourceType: SpotFleetResourceType.SPOT_FLEET_REQUEST,
-      Tags: [
-        {
-          Key: 'name',
-          Value: 'test',
-        },
-      ],
-    }],
-    ValidUntil: Expiration.atDate(new Date(2022, 11, 17)).date.toISOString(),
-  };
-
-  const validConvertedLaunchSpecifications = {
-    BlockDeviceMappings: [{
-      DeviceName: 'device',
-      Ebs: {
-        DeleteOnTermination: true,
-        Encrypted: true,
-        Iops: 10,
-        SnapshotId: 'snapshot-id',
-        VolumeSize: 10,
-        VolumeType: 'volume-type',
+      connection: {
+        hostname: 'internal-hostname.com',
+        protocol: 'HTTPS',
+        port: '4433',
+        caCertificateArn: secretArn,
       },
-      NoDevice: '',
-      VirtualName: 'virtualname',
-    }],
-    IamInstanceProfile: {
-      Arn: 'iamInstanceProfileArn',
-    },
-    ImageId: 'any-ami',
-    KeyName: 'keyname',
-    SecurityGroups: [{
-      GroupId: 'sg-id',
-    }],
-    SubnetId: 'subnet-id',
-    TagSpecifications: [{
-      ResourceType: 'instance',
-      Tags: [
-        {
-          Key: 'name',
-          Value: 'test',
+      spotFleetRequestConfigurations: {
+        [deadlineGroup]: {
+          AllocationStrategy: SpotFleetAllocationStrategy.CAPACITY_OPTIMIZED,
+          IamFleetRole: 'roleArn',
+          // Explicitly provide empty array for testing comparisons since we inject this for compatibility with SEP
+          LaunchSpecifications: [],
+          LaunchTemplateConfigs: [{
+            LaunchTemplateSpecification: {
+              LaunchTemplateId: launchTemplate.launchTemplateId,
+              LaunchTemplateName: launchTemplate.launchTemplateName,
+              Version: launchTemplate.versionNumber,
+            },
+            Overrides: [],
+          }],
+          ReplaceUnhealthyInstances: true,
+          TargetCapacity: 1,
+          TerminateInstancesWithExpiration: true,
+          Type: SpotFleetRequestType.MAINTAIN,
+          ValidUntil: Expiration.atDate(new Date(2022, 11, 17)).date.toISOString(),
+          TagSpecifications: [{
+            ResourceType: SpotFleetResourceType.SPOT_FLEET_REQUEST,
+            Tags: [
+              {
+                Key: 'name',
+                Value: 'test',
+              },
+            ],
+          }],
         },
-      ],
-    }],
-    UserData: 'userdata',
-    InstanceType: 't2.small',
-  };
-
-  const validConvertedSpotFleetRequestProps = {
-    AllocationStrategy: 'capacityOptimized',
-    IamFleetRole: 'roleArn',
-    LaunchSpecifications: [validConvertedLaunchSpecifications],
-    ReplaceUnhealthyInstances: true,
-    TargetCapacity: 1,
-    TerminateInstancesWithExpiration: true,
-    Type: 'maintain',
-    ValidUntil: Expiration.atDate(new Date(2022, 11, 17)).date.toISOString(),
-    TagSpecifications: [{
-      ResourceType: 'spot-fleet-request',
-      Tags: [
-        {
-          Key: 'name',
-          Value: 'test',
-        },
-      ],
-    }],
-  };
-
-  const validSpotFleetRequestConfig: SpotFleetRequestConfiguration = {
-    group_name1: validSpotFleetRequestProps,
-  };
-
-  const validConvertedSpotFleetRequestConfig = {
-    group_name1: validConvertedSpotFleetRequestProps,
-  };
-
-  const validSpotEventPluginConfig: PluginSettings = {
-    AWSInstanceStatus: SpotEventPluginDisplayInstanceStatus.DISABLED,
-    DeleteInterruptedSlaves: true,
-    DeleteTerminatedSlaves: true,
-    IdleShutdown: 20,
-    Logging: SpotEventPluginLoggingLevel.STANDARD,
-    PreJobTaskMode: SpotEventPluginPreJobTaskMode.CONSERVATIVE,
-    Region: 'us-west-2',
-    ResourceTracker: true,
-    StaggerInstances: 50,
-    State: SpotEventPluginState.GLOBAL_ENABLED,
-    StrictHardCap: true,
-  };
-
-  const validConvertedPluginConfig = {
-    AWSInstanceStatus: 'Disabled',
-    DeleteInterruptedSlaves: true,
-    DeleteTerminatedSlaves: true,
-    IdleShutdown: 20,
-    Logging: 'Standard',
-    PreJobTaskMode: 'Conservative',
-    Region: 'us-west-2',
-    ResourceTracker: true,
-    StaggerInstances: 50,
-    State: 'Global Enabled',
-    StrictHardCap: true,
-  };
-
-  // Valid configurations
-  const noPluginConfigs: SEPConfiguratorResourceProps = {
-    connection: validConnection,
-    spotFleetRequestConfigurations: validSpotFleetRequestConfig,
-  };
-
-  const noFleetRequestConfigs: SEPConfiguratorResourceProps = {
-    spotPluginConfigurations: validSpotEventPluginConfig,
-    connection: validConnection,
-  };
-
-  const deadlineGroups =  ['group_name'];
-  const deadlinePools =  ['pool_name'];
-
-  const allConfigs: SEPConfiguratorResourceProps = {
-    spotPluginConfigurations: validSpotEventPluginConfig,
-    connection: validConnection,
-    spotFleetRequestConfigurations: validSpotFleetRequestConfig,
-    deadlineGroups,
-    deadlinePools,
-  };
-
-  const noConfigs: SEPConfiguratorResourceProps = {
-    connection: validConnection,
-  };
-
-  async function returnTrue(_v1: any): Promise<boolean> {
-    return true;
-  }
-
-  async function returnFalse(_v1: any): Promise<boolean> {
-    return false;
-  }
+      },
+      deadlineGroups: [deadlineGroup],
+      deadlinePools: [deadlinePool],
+    };
+  });
 
   describe('doCreate', () => {
     let handler: SEPConfiguratorResource;
@@ -239,10 +111,10 @@ describe('SEPConfiguratorResource', () => {
 
     beforeEach(() => {
       mockSpotEventPluginClient = {
-        saveServerData: jest.fn( (a) => returnTrue(a) ),
-        configureSpotEventPlugin: jest.fn( (a) => returnTrue(a) ),
-        addGroups: jest.fn( (a) => returnTrue(a) ),
-        addPools: jest.fn( (a) => returnTrue(a) ),
+        saveServerData: jest.fn( (_a) => Promise.resolve(true) ),
+        configureSpotEventPlugin: jest.fn( (_a) => Promise.resolve(true) ),
+        addGroups: jest.fn( (_a) => Promise.resolve(true) ),
+        addPools: jest.fn( (_a) => Promise.resolve(true) ),
       };
 
       handler = new SEPConfiguratorResource(new AWS.SecretsManager());
@@ -260,15 +132,17 @@ describe('SEPConfiguratorResource', () => {
       jest.clearAllMocks();
     });
 
-    test('with no configs', async () => {
+    test('saves server data with no configuration', async () => {
       // GIVEN
-      const mockSaveServerData = jest.fn( (a) => returnTrue(a) );
+      const mockSaveServerData = jest.fn( (_a) => Promise.resolve(true) );
       mockSpotEventPluginClient.saveServerData = mockSaveServerData;
-      const mockConfigureSpotEventPlugin = jest.fn( (a) => returnTrue(a) );
+      const mockConfigureSpotEventPlugin = jest.fn( (_a) => Promise.resolve(true) );
       mockSpotEventPluginClient.configureSpotEventPlugin = mockConfigureSpotEventPlugin;
 
       // WHEN
-      const result = await handler.doCreate('physicalId', noConfigs);
+      const result = await handler.doCreate('physicalId', {
+        connection: validSepConfiguration.connection,
+      });
 
       // THEN
       expect(result).toBeUndefined();
@@ -278,11 +152,14 @@ describe('SEPConfiguratorResource', () => {
 
     test('save spot fleet request configs', async () => {
       // GIVEN
-      const mockSaveServerData = jest.fn( (a) => returnTrue(a) );
+      const mockSaveServerData = jest.fn( (_a) => Promise.resolve(true) );
       mockSpotEventPluginClient.saveServerData = mockSaveServerData;
 
       // WHEN
-      const result = await handler.doCreate('physicalId', noPluginConfigs);
+      const result = await handler.doCreate('physicalId', {
+        ...validSepConfiguration,
+        spotPluginConfigurations: undefined,
+      });
 
       // THEN
       expect(result).toBeUndefined();
@@ -290,104 +167,16 @@ describe('SEPConfiguratorResource', () => {
       const calledWithString = mockSaveServerData.mock.calls[0][0];
       const calledWithObject = JSON.parse(calledWithString);
 
-      expect(calledWithObject).toEqual(validConvertedSpotFleetRequestConfig);
-    });
-
-    test('save spot fleet request configs without BlockDeviceMappings', async () => {
-      // GIVEN
-      const mockSaveServerData = jest.fn( (a) => returnTrue(a) );
-      mockSpotEventPluginClient.saveServerData = mockSaveServerData;
-
-      const noEbs = {
-        ...noPluginConfigs,
-        spotFleetRequestConfigurations: {
-          ...validSpotFleetRequestConfig,
-          group_name1: {
-            ...validSpotFleetRequestProps,
-            LaunchSpecifications: [
-              {
-                ...validLaunchSpecification,
-                BlockDeviceMappings: undefined,
-              },
-            ],
-          },
-        },
-      };
-      const convertedNoEbs = {
-        ...validConvertedSpotFleetRequestConfig,
-        group_name1: {
-          ...validConvertedSpotFleetRequestProps,
-          LaunchSpecifications: [
-            {
-              ...validConvertedLaunchSpecifications,
-              BlockDeviceMappings: undefined,
-            },
-          ],
-        },
-      };
-
-      // WHEN
-      await handler.doCreate('physicalId', noEbs);
-      const calledWithString = mockSaveServerData.mock.calls[0][0];
-      const calledWithObject = JSON.parse(calledWithString);
-
-      // THEN
-      expect(calledWithObject).toEqual(convertedNoEbs);
-    });
-
-    test('save spot fleet request configs without Ebs', async () => {
-      // GIVEN
-      const mockSaveServerData = jest.fn( (a) => returnTrue(a) );
-      mockSpotEventPluginClient.saveServerData = mockSaveServerData;
-
-      const blockDevicesNoEbs = [{
-        DeviceName: 'device',
-      }];
-
-      const noEbs = {
-        ...noPluginConfigs,
-        spotFleetRequestConfigurations: {
-          ...validSpotFleetRequestConfig,
-          group_name1: {
-            ...validSpotFleetRequestProps,
-            LaunchSpecifications: [
-              {
-                ...validLaunchSpecification,
-                BlockDeviceMappings: blockDevicesNoEbs,
-              },
-            ],
-          },
-        },
-      };
-      const convertedNoEbs = {
-        ...validConvertedSpotFleetRequestConfig,
-        group_name1: {
-          ...validConvertedSpotFleetRequestProps,
-          LaunchSpecifications: [
-            {
-              ...validConvertedLaunchSpecifications,
-              BlockDeviceMappings: blockDevicesNoEbs,
-            },
-          ],
-        },
-      };
-
-      // WHEN
-      await handler.doCreate('physicalId', noEbs);
-      const calledWithString = mockSaveServerData.mock.calls[0][0];
-      const calledWithObject = JSON.parse(calledWithString);
-
-      // THEN
-      expect(calledWithObject).toEqual(convertedNoEbs);
+      expect(JSON.stringify(calledWithObject)).toEqual(JSON.stringify(validSepConfiguration.spotFleetRequestConfigurations));
     });
 
     test('save spot event plugin configs', async () => {
       // GIVEN
-      const mockConfigureSpotEventPlugin = jest.fn( (a) => returnTrue(a) );
+      const mockConfigureSpotEventPlugin = jest.fn( (_a) => Promise.resolve(true) );
       mockSpotEventPluginClient.configureSpotEventPlugin = mockConfigureSpotEventPlugin;
 
       const configs: { Key: string, Value: any }[] = [];
-      for (const [key, value] of Object.entries(validConvertedPluginConfig)) {
+      for (const [key, value] of Object.entries(validSepConfiguration.spotPluginConfigurations as any)) {
         configs.push({
           Key: key,
           Value: value,
@@ -404,7 +193,10 @@ describe('SEPConfiguratorResource', () => {
       }];
 
       // WHEN
-      const result = await handler.doCreate('physicalId', noFleetRequestConfigs);
+      const result = await handler.doCreate('physicalId', {
+        ...validSepConfiguration,
+        spotFleetRequestConfigurations: undefined,
+      });
 
       // THEN
       expect(result).toBeUndefined();
@@ -414,25 +206,25 @@ describe('SEPConfiguratorResource', () => {
 
     test('save server data', async () => {
       // GIVEN
-      const mockSaveServerData = jest.fn( (a) => returnTrue(a) );
+      const mockSaveServerData = jest.fn( (_a) => Promise.resolve(true) );
       mockSpotEventPluginClient.saveServerData = mockSaveServerData;
 
       // WHEN
-      const result = await handler.doCreate('physicalId', allConfigs);
+      const result = await handler.doCreate('physicalId', validSepConfiguration);
 
       // THEN
       expect(result).toBeUndefined();
       expect(mockSaveServerData.mock.calls.length).toBe(1);
-      expect(mockSaveServerData.mock.calls[0][0]).toEqual(JSON.stringify(validConvertedSpotFleetRequestConfig));
+      expect(mockSaveServerData.mock.calls[0][0]).toEqual(JSON.stringify(validSepConfiguration.spotFleetRequestConfigurations));
     });
 
     test('configure spot event plugin', async () => {
       // GIVEN
-      const mockConfigureSpotEventPlugin = jest.fn( (a) => returnTrue(a) );
+      const mockConfigureSpotEventPlugin = jest.fn( (_a) => Promise.resolve(true) );
       mockSpotEventPluginClient.configureSpotEventPlugin = mockConfigureSpotEventPlugin;
 
       const configs: { Key: string, Value: any }[] = [];
-      for (const [key, value] of Object.entries(validConvertedPluginConfig)) {
+      for (const [key, value] of Object.entries(validSepConfiguration.spotPluginConfigurations as any)) {
         configs.push({
           Key: key,
           Value: value,
@@ -449,7 +241,7 @@ describe('SEPConfiguratorResource', () => {
       }];
 
       // WHEN
-      await handler.doCreate('physicalId', allConfigs);
+      await handler.doCreate('physicalId', validSepConfiguration);
 
       // THEN
       expect(mockConfigureSpotEventPlugin.mock.calls.length).toBe(1);
@@ -458,63 +250,66 @@ describe('SEPConfiguratorResource', () => {
 
     test('create groups', async () => {
       // GIVEN
-      const mockAddGroups = jest.fn( (a) => returnTrue(a) );
+      const mockAddGroups = jest.fn( (_a) => Promise.resolve(true) );
       mockSpotEventPluginClient.addGroups = mockAddGroups;
 
       // WHEN
-      await handler.doCreate('physicalId', allConfigs);
+      await handler.doCreate('physicalId', validSepConfiguration);
 
       // THEN
       expect(mockAddGroups.mock.calls.length).toBe(1);
-      expect(mockAddGroups).toHaveBeenCalledWith(deadlineGroups);
+      expect(mockAddGroups).toHaveBeenCalledWith([deadlineGroup]);
     });
 
     test('create pools', async () => {
       // GIVEN
-      const mockAddPools = jest.fn( (a) => returnTrue(a) );
+      const mockAddPools = jest.fn( (_a) => Promise.resolve(true) );
       mockSpotEventPluginClient.addPools = mockAddPools;
 
       // WHEN
-      await handler.doCreate('physicalId', allConfigs);
+      await handler.doCreate('physicalId', validSepConfiguration);
 
       // THEN
       expect(mockAddPools.mock.calls.length).toBe(1);
-      expect(mockAddPools).toHaveBeenCalledWith(deadlinePools);
+      expect(mockAddPools).toHaveBeenCalledWith([deadlinePool]);
     });
 
     test('throw when cannot add groups', async () => {
       // GIVEN
-      mockSpotEventPluginClient.addGroups = jest.fn( (a) => returnFalse(a) );
+      mockSpotEventPluginClient.addGroups = jest.fn( (_a) => Promise.resolve(false) );
 
       // WHEN
-      const promise = handler.doCreate('physicalId', allConfigs);
+      const promise = handler.doCreate('physicalId', validSepConfiguration);
 
       // THEN
       await expect(promise)
         .rejects
-        .toThrowError(`Failed to add Deadline group(s) ${allConfigs.deadlineGroups}`);
+        .toThrowError(`Failed to add Deadline group(s) ${validSepConfiguration.deadlineGroups}`);
     });
 
     test('throw when cannot add pools', async () => {
       // GIVEN
-      mockSpotEventPluginClient.addPools = jest.fn( (a) => returnFalse(a) );
+      mockSpotEventPluginClient.addPools = jest.fn( (_a) => Promise.resolve(false) );
 
       // WHEN
-      const promise = handler.doCreate('physicalId', allConfigs);
+      const promise = handler.doCreate('physicalId', validSepConfiguration);
 
       // THEN
       await expect(promise)
         .rejects
-        .toThrowError(`Failed to add Deadline pool(s) ${allConfigs.deadlinePools}`);
+        .toThrowError(`Failed to add Deadline pool(s) ${validSepConfiguration.deadlinePools}`);
     });
 
     test('throw when cannot save spot fleet request configs', async () => {
       // GIVEN
-      const mockSaveServerData = jest.fn( (a) => returnFalse(a) );
+      const mockSaveServerData = jest.fn( (_a) => Promise.resolve(false) );
       mockSpotEventPluginClient.saveServerData = mockSaveServerData;
 
       // WHEN
-      const promise = handler.doCreate('physicalId', noPluginConfigs);
+      const promise = handler.doCreate('physicalId', {
+        connection: validSepConfiguration.connection,
+        spotFleetRequestConfigurations: validSepConfiguration.spotFleetRequestConfigurations,
+      });
 
       // THEN
       await expect(promise)
@@ -524,11 +319,14 @@ describe('SEPConfiguratorResource', () => {
 
     test('throw when cannot save spot event plugin configs', async () => {
       // GIVEN
-      const mockConfigureSpotEventPlugin = jest.fn( (a) => returnFalse(a) );
+      const mockConfigureSpotEventPlugin = jest.fn( (_a) => Promise.resolve(false) );
       mockSpotEventPluginClient.configureSpotEventPlugin = mockConfigureSpotEventPlugin;
 
       // WHEN
-      const promise = handler.doCreate('physicalId', noFleetRequestConfigs);
+      const promise = handler.doCreate('physicalId', {
+        connection: validSepConfiguration.connection,
+        spotPluginConfigurations: validSepConfiguration.spotPluginConfigurations,
+      });
 
       // THEN
       await expect(promise)
@@ -542,7 +340,9 @@ describe('SEPConfiguratorResource', () => {
     const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
 
     // WHEN
-    const promise = await handler.doDelete('physicalId', noConfigs);
+    const promise = await handler.doDelete('physicalId', {
+      connection: validSepConfiguration.connection,
+    });
 
     // THEN
     await expect(promise).toBeUndefined();
@@ -550,12 +350,54 @@ describe('SEPConfiguratorResource', () => {
 
   describe('.validateInput()', () => {
     describe('should return true', () => {
-      test.each<any>([
-        allConfigs,
-        noPluginConfigs,
-        noFleetRequestConfigs,
-        noConfigs,
-      ])('with valid input', async (input: any) => {
+      test('with valid input', async () => {
+        // GIVEN
+        const input = validSepConfiguration;
+
+        // WHEN
+        const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+        const returnValue = handler.validateInput(input);
+
+        // THEN
+        expect(returnValue).toBeTruthy();
+      });
+
+      test('without spotPluginConfigurations', async () => {
+        // GIVEN
+        const input: SEPConfiguratorResourceProps = {
+          ...validSepConfiguration,
+          spotPluginConfigurations: undefined,
+        };
+
+        // WHEN
+        const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+        const returnValue = handler.validateInput(input);
+
+        // THEN
+        expect(returnValue).toBeTruthy();
+      });
+
+      test('without spotFleetRequestConfigurations', async () => {
+        // GIVEN
+        const input: SEPConfiguratorResourceProps = {
+          ...validSepConfiguration,
+          spotFleetRequestConfigurations: undefined,
+        };
+
+        // WHEN
+        const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+        const returnValue = handler.validateInput(input);
+
+        // THEN
+        expect(returnValue).toBeTruthy();
+      });
+
+      test('with only connection', async () => {
+        // GIVEN
+        const input: SEPConfiguratorResourceProps = {
+          connection: validSepConfiguration.connection,
+        };
+
         // WHEN
         const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
         const returnValue = handler.validateInput(input);
@@ -639,9 +481,9 @@ describe('SEPConfiguratorResource', () => {
       ])('invalid connection', (invalidConnection: any) => {
         // GIVEN
         const input = {
-          spotPluginConfigurations: validSpotEventPluginConfig,
+          spotPluginConfigurations: validSepConfiguration.spotPluginConfigurations,
           connection: invalidConnection,
-          spotFleetRequestConfigurations: validSpotFleetRequestConfig,
+          spotFleetRequestConfigurations: validSepConfiguration.spotFleetRequestConfigurations,
         };
 
         // WHEN

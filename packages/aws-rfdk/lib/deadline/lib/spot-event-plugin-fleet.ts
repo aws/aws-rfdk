@@ -356,6 +356,11 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   public readonly imageId: string;
 
   /**
+   * The Worker AMI.
+   */
+  public readonly machineImage: IMachineImage;
+
+  /**
    * The tags to apply during creation of instances and of the Spot Fleet Request.
    */
   public readonly tags: TagManager;
@@ -465,6 +470,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     this.osType = imageConfig.osType;
     this.userData = props.userData ?? imageConfig.userData;
     this.imageId = imageConfig.imageId;
+    this.machineImage = props.workerMachineImage;
 
     const workerConfig = new WorkerInstanceConfiguration(this, id, {
       worker: this,
