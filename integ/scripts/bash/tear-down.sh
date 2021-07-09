@@ -49,7 +49,7 @@ for COMPONENT in **/cdk.json; do
     fi
 done
 
-run_aws_interaction_hook "$(timestamp)"
+run_aws_interaction_hook "$(timestamp) [infrastructure]"
 
 cd "$INFRASTRUCTURE_APP" && npx cdk destroy "*" -f
 
