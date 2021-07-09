@@ -91,7 +91,7 @@
     "@types/jest": "^26.0.23",
     "@types/node": "^15.6.1",
     "aws-cdk": "1.108.1",
-    "aws-sdk": "^2.928.0",
+    "aws-sdk": "^2.942.0",
     "constructs": "^3.3.69",
     "fs-extra": "^9.1.0",
     "jest": "^26.6.3",

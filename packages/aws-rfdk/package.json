@@ -69,7 +69,7 @@
     "@types/aws-lambda": "^8.10.77",
     "@types/jest": "^26.0.23",
     "@types/sinon": "^10.0.2",
-    "aws-sdk": "^2.928.0",
+    "aws-sdk": "^2.942.0",
     "aws-sdk-mock": "^5.2.0",
     "cdk-build-tools": "0.35.0",
     "dynalite": "^3.2.1",
