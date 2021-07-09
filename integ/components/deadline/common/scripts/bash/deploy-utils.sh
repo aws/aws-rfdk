@@ -8,7 +8,7 @@ function run_aws_interaction_hook() {
     # Invoke hook function if it is exported and name is defined in PRE_AWS_INTERACTION_HOOK variable
     if [ ! -z "${PRE_AWS_INTERACTION_HOOK+x}" ] && [ "$(type -t $PRE_AWS_INTERACTION_HOOK)" == "function" ]
     then
-      $PRE_AWS_INTERACTION_HOOK
+      $PRE_AWS_INTERACTION_HOOK "${1:-}"
     fi
 }
 
@@ -31,7 +31,7 @@ function deploy_component_stacks () {
   # Synthesis requires AWS API calls for the context methods
   # (https://docs.aws.amazon.com/cdk/latest/guide/context.html#context_methods)
   # in our case this is for stack.availabilityZones
-  run_aws_interaction_hook
+  run_aws_interaction_hook "$(timestamp) [${COMPONENT_NAME}]"
 
   npx cdk synth &> "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/synth.log"
   SYNTH_EXIT_CODE=$?
@@ -51,7 +51,7 @@ function deploy_component_stacks () {
   cp /dev/null "${deploy_log_path}"
 
   for stack in $(cdk_stack_deploy_order); do
-    run_aws_interaction_hook
+    run_aws_interaction_hook "$(timestamp) [${COMPONENT_NAME}]"
 
     echo "$(timestamp) [${COMPONENT_NAME}] -> [${stack}] stack deployment started"
     npx cdk deploy --app cdk.out --require-approval=never -e "${stack}" &>> "${deploy_log_path}"
@@ -86,7 +86,7 @@ function cdk_stack_destroy_order () {
 function execute_component_test () {
   COMPONENT_NAME=$1
 
-  run_aws_interaction_hook
+  run_aws_interaction_hook "$(timestamp) [${COMPONENT_NAME}]"
 
   test_report_path="${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-report.json"
   test_output_path="${INTEG_TEMP_DIR}/${COMPONENT_NAME}/test-output.txt"
@@ -106,7 +106,7 @@ function destroy_component_stacks () {
   # Empty the destroy log file in case it was non-empty
   cp /dev/null "${destroy_log_path}"
   for stack in $(cdk_stack_destroy_order); do
-    run_aws_interaction_hook
+    run_aws_interaction_hook "$(timestamp) [${COMPONENT_NAME}]"
 
     echo "$(timestamp) [${COMPONENT_NAME}] -> [${stack}] stack destroy started"
     npx cdk destroy --app cdk.out -e -f "${stack}" &>> "${destroy_log_path}"
