@@ -16,7 +16,7 @@
 set -euo pipefail
 
 refreshcreds() {
-    echo "Refreshing credentials"
+    echo "${1:-} Refreshing credentials"
     unset AWS_ACCESS_KEY_ID
     unset AWS_SECRET_ACCESS_KEY
     unset AWS_SESSION_TOKEN

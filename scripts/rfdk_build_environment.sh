@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # This is a helper script for entering a docker build environment suitable for
-# building the RFDK. To use: Run this script from the root directory of the RFDK 
+# building the RFDK. To use: Run this script from the root directory of the RFDK
 # repository.
 
 # Make sure we're running from the root of the CDK repo
@@ -42,5 +42,5 @@ docker run --rm \
     ${USER_OPT} \
     --net=host -it \
     --env DOTNET_CLI_TELEMETRY_OPTOUT=1 \
-    jsii/superchain
+    jsii/superchain:node14
 

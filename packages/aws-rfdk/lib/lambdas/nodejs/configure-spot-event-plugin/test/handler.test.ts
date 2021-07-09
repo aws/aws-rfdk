@@ -205,24 +205,44 @@ describe('SEPConfiguratorResource', () => {
     connection: validConnection,
   };
 
+  const deadlineGroups =  ['group_name'];
+  const deadlinePools =  ['pool_name'];
+
   const allConfigs: SEPConfiguratorResourceProps = {
     spotPluginConfigurations: validSpotEventPluginConfig,
     connection: validConnection,
     spotFleetRequestConfigurations: validSpotFleetRequestConfig,
+    deadlineGroups,
+    deadlinePools,
   };
 
   const noConfigs: SEPConfiguratorResourceProps = {
     connection: validConnection,
   };
 
+  async function returnTrue(_v1: any): Promise<boolean> {
+    return true;
+  }
+
+  async function returnFalse(_v1: any): Promise<boolean> {
+    return false;
+  }
+
   describe('doCreate', () => {
     let handler: SEPConfiguratorResource;
-    let mockSpotEventPluginClient: { saveServerData: jest.Mock<any, any>; configureSpotEventPlugin: jest.Mock<any, any>; };
+    let mockSpotEventPluginClient: {
+      saveServerData: jest.Mock<any, any>;
+      configureSpotEventPlugin: jest.Mock<any, any>;
+      addGroups: jest.Mock<any, any>;
+      addPools: jest.Mock<any, any>;
+    };
 
     beforeEach(() => {
       mockSpotEventPluginClient = {
-        saveServerData: jest.fn(),
-        configureSpotEventPlugin: jest.fn(),
+        saveServerData: jest.fn( (a) => returnTrue(a) ),
+        configureSpotEventPlugin: jest.fn( (a) => returnTrue(a) ),
+        addGroups: jest.fn( (a) => returnTrue(a) ),
+        addPools: jest.fn( (a) => returnTrue(a) ),
       };
 
       handler = new SEPConfiguratorResource(new AWS.SecretsManager());
@@ -242,9 +262,6 @@ describe('SEPConfiguratorResource', () => {
 
     test('with no configs', async () => {
       // GIVEN
-      async function returnTrue(_v1: any): Promise<boolean> {
-        return true;
-      }
       const mockSaveServerData = jest.fn( (a) => returnTrue(a) );
       mockSpotEventPluginClient.saveServerData = mockSaveServerData;
       const mockConfigureSpotEventPlugin = jest.fn( (a) => returnTrue(a) );
@@ -261,9 +278,6 @@ describe('SEPConfiguratorResource', () => {
 
     test('save spot fleet request configs', async () => {
       // GIVEN
-      async function returnTrue(_v1: any): Promise<boolean> {
-        return true;
-      }
       const mockSaveServerData = jest.fn( (a) => returnTrue(a) );
       mockSpotEventPluginClient.saveServerData = mockSaveServerData;
 
@@ -281,9 +295,6 @@ describe('SEPConfiguratorResource', () => {
 
     test('save spot fleet request configs without BlockDeviceMappings', async () => {
       // GIVEN
-      async function returnTrue(_v1: any): Promise<boolean> {
-        return true;
-      }
       const mockSaveServerData = jest.fn( (a) => returnTrue(a) );
       mockSpotEventPluginClient.saveServerData = mockSaveServerData;
 
@@ -326,9 +337,6 @@ describe('SEPConfiguratorResource', () => {
 
     test('save spot fleet request configs without Ebs', async () => {
       // GIVEN
-      async function returnTrue(_v1: any): Promise<boolean> {
-        return true;
-      }
       const mockSaveServerData = jest.fn( (a) => returnTrue(a) );
       mockSpotEventPluginClient.saveServerData = mockSaveServerData;
 
@@ -375,9 +383,6 @@ describe('SEPConfiguratorResource', () => {
 
     test('save spot event plugin configs', async () => {
       // GIVEN
-      async function returnTrue(_v1: any): Promise<boolean> {
-        return true;
-      }
       const mockConfigureSpotEventPlugin = jest.fn( (a) => returnTrue(a) );
       mockSpotEventPluginClient.configureSpotEventPlugin = mockConfigureSpotEventPlugin;
 
@@ -407,14 +412,22 @@ describe('SEPConfiguratorResource', () => {
       expect(mockConfigureSpotEventPlugin.mock.calls[0][0]).toEqual([...configs, ...securitySettings]);
     });
 
-    test('save both configs', async () => {
+    test('save server data', async () => {
       // GIVEN
-      async function returnTrue(_v1: any): Promise<boolean> {
-        return true;
-      }
       const mockSaveServerData = jest.fn( (a) => returnTrue(a) );
       mockSpotEventPluginClient.saveServerData = mockSaveServerData;
 
+      // WHEN
+      const result = await handler.doCreate('physicalId', allConfigs);
+
+      // THEN
+      expect(result).toBeUndefined();
+      expect(mockSaveServerData.mock.calls.length).toBe(1);
+      expect(mockSaveServerData.mock.calls[0][0]).toEqual(JSON.stringify(validConvertedSpotFleetRequestConfig));
+    });
+
+    test('configure spot event plugin', async () => {
+      // GIVEN
       const mockConfigureSpotEventPlugin = jest.fn( (a) => returnTrue(a) );
       mockSpotEventPluginClient.configureSpotEventPlugin = mockConfigureSpotEventPlugin;
 
@@ -436,22 +449,67 @@ describe('SEPConfiguratorResource', () => {
       }];
 
       // WHEN
-      const result = await handler.doCreate('physicalId', allConfigs);
+      await handler.doCreate('physicalId', allConfigs);
 
       // THEN
-      expect(result).toBeUndefined();
-      expect(mockSaveServerData.mock.calls.length).toBe(1);
-      expect(mockSaveServerData.mock.calls[0][0]).toEqual(JSON.stringify(validConvertedSpotFleetRequestConfig));
-
       expect(mockConfigureSpotEventPlugin.mock.calls.length).toBe(1);
       expect(mockConfigureSpotEventPlugin.mock.calls[0][0]).toEqual([...configs, ...securitySettings]);
     });
 
+    test('create groups', async () => {
+      // GIVEN
+      const mockAddGroups = jest.fn( (a) => returnTrue(a) );
+      mockSpotEventPluginClient.addGroups = mockAddGroups;
+
+      // WHEN
+      await handler.doCreate('physicalId', allConfigs);
+
+      // THEN
+      expect(mockAddGroups.mock.calls.length).toBe(1);
+      expect(mockAddGroups).toHaveBeenCalledWith(deadlineGroups);
+    });
+
+    test('create pools', async () => {
+      // GIVEN
+      const mockAddPools = jest.fn( (a) => returnTrue(a) );
+      mockSpotEventPluginClient.addPools = mockAddPools;
+
+      // WHEN
+      await handler.doCreate('physicalId', allConfigs);
+
+      // THEN
+      expect(mockAddPools.mock.calls.length).toBe(1);
+      expect(mockAddPools).toHaveBeenCalledWith(deadlinePools);
+    });
+
+    test('throw when cannot add groups', async () => {
+      // GIVEN
+      mockSpotEventPluginClient.addGroups = jest.fn( (a) => returnFalse(a) );
+
+      // WHEN
+      const promise = handler.doCreate('physicalId', allConfigs);
+
+      // THEN
+      await expect(promise)
+        .rejects
+        .toThrowError(`Failed to add Deadline group(s) ${allConfigs.deadlineGroups}`);
+    });
+
+    test('throw when cannot add pools', async () => {
+      // GIVEN
+      mockSpotEventPluginClient.addPools = jest.fn( (a) => returnFalse(a) );
+
+      // WHEN
+      const promise = handler.doCreate('physicalId', allConfigs);
+
+      // THEN
+      await expect(promise)
+        .rejects
+        .toThrowError(`Failed to add Deadline pool(s) ${allConfigs.deadlinePools}`);
+    });
+
     test('throw when cannot save spot fleet request configs', async () => {
       // GIVEN
-      async function returnFalse(_v1: any): Promise<boolean> {
-        return false;
-      }
       const mockSaveServerData = jest.fn( (a) => returnFalse(a) );
       mockSpotEventPluginClient.saveServerData = mockSaveServerData;
 
@@ -466,9 +524,6 @@ describe('SEPConfiguratorResource', () => {
 
     test('throw when cannot save spot event plugin configs', async () => {
       // GIVEN
-      async function returnFalse(_v1: any): Promise<boolean> {
-        return false;
-      }
       const mockConfigureSpotEventPlugin = jest.fn( (a) => returnFalse(a) );
       mockSpotEventPluginClient.configureSpotEventPlugin = mockConfigureSpotEventPlugin;
 

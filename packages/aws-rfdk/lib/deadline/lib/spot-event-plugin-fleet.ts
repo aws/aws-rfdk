@@ -90,9 +90,6 @@ export interface SpotEventPluginFleetProps {
   /**
    * Deadline groups these workers need to be assigned to.
    *
-   * Note that you will have to create the groups manually using Deadline before submitting jobs.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html
-   *
    * Also, note that the Spot Fleet configuration does not allow using wildcards as part of the Group name
    * as described here https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#wildcards
    */
@@ -100,9 +97,6 @@ export interface SpotEventPluginFleetProps {
 
   /**
    * Deadline pools these workers need to be assigned to.
-   *
-   * Note that you will have to create the pools manually using Deadline before submitting jobs.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html
    *
    * @default - Workers are not assigned to any pool.
    */
@@ -388,6 +382,13 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   public readonly deadlineGroups: string[];
 
   /**
+   * Deadline pools the workers need to be assigned to.
+   *
+   * @default - Workers are not assigned to any pool
+   */
+  public readonly deadlinePools?: string[];
+
+  /**
    * Name of SSH keypair to grant access to instances.
    *
    * @default - No SSH access will be possible.
@@ -412,6 +413,8 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   constructor(scope: Construct, id: string, props: SpotEventPluginFleetProps) {
     super(scope, id);
 
+    this.deadlineGroups = props.deadlineGroups.map(group => group.toLocaleLowerCase());
+    this.deadlinePools = props.deadlinePools?.map(pool => pool.toLocaleLowerCase());
     this.validateProps(props);
 
     this.securityGroups = props.securityGroups ?? [ new SecurityGroup(this, 'SpotFleetSecurityGroup', { vpc: props.vpc }) ];
@@ -447,7 +450,6 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     this.maxCapacity = props.maxCapacity;
     this.validUntil = props.validUntil;
     this.keyName = props.keyName;
-    this.deadlineGroups = props.deadlineGroups;
 
     const imageConfig = props.workerMachineImage.getImage(this);
     this.osType = imageConfig.osType;
@@ -462,8 +464,8 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
       },
       renderQueue: props.renderQueue,
       workerSettings: {
-        groups: props.deadlineGroups,
-        pools: props.deadlinePools,
+        groups: this.deadlineGroups,
+        pools: this.deadlinePools,
         region: props.deadlineRegion,
       },
       userDataProvider: props.userDataProvider,
@@ -498,7 +500,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     this.validateFleetInstanceRole(props.fleetInstanceRole);
     this.validateInstanceTypes(props.instanceTypes);
     this.validateSubnets(props.vpc, props.vpcSubnets);
-    this.validateGroups('deadlineGroups', props.deadlineGroups);
+    this.validateGroups('deadlineGroups', this.deadlineGroups);
     this.validateRegion('deadlineRegion', props.deadlineRegion);
     this.validateBlockDevices(props.blockDevices);
   }
@@ -525,13 +527,13 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   }
 
   private validateGroups(property: string, array: string[]): void {
-    const regex: RegExp = /^(?!none$)[a-zA-Z0-9-_]+$/i;
+    const regex: RegExp = /^(?!none$)[a-z0-9-_]+$/g;
     if (array.length === 0) {
       throw new Error('At least one Deadline Group is required for a Spot Fleet Request Configuration');
     }
     array.forEach(value => {
       if (!regex.test(value)) {
-        throw new Error(`Invalid value: ${value} for property '${property}'. Valid characters are A-Z, a-z, 0-9, - and _. Also, group 'none' is reserved as the default group.`);
+        throw new Error(`Invalid value: ${value} for property '${property}'. Valid characters are a-z, 0-9, - and _. Also, group 'none' is reserved as the default group.`);
       }
     });
   }

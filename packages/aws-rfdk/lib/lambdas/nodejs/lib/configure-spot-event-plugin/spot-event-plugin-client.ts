@@ -26,6 +26,30 @@ interface DescribeServerDataResponse {
 }
 
 /**
+ * A response from get pool/group request
+ */
+export interface PoolGroupCollections {
+  /**
+   * The collection of user-created Pools/Groups that are currently active
+   */
+  readonly Pools: string [];
+
+  /**
+   * The collection of Pools/Groups that are currently obsolete
+   */
+  readonly ObsoletePools: string [];
+}
+
+/**
+ * A type of collection to get/recive from Deadline.
+ */
+export enum CollectionType {
+  Pool = 'pool',
+
+  Group = 'group',
+}
+
+/**
  * Provides a simple interface to send requests to the Render Queue API related to the Deadline Spot Event Plugin.
  */
 export class SpotEventPluginClient {
@@ -90,6 +114,83 @@ export class SpotEventPluginClient {
       return true;
     } catch(e) {
       console.error(`Failed to save plugin configuration. Reason: ${e}`);
+      return false;
+    }
+  }
+
+  public async addGroups(newGroups?: string[]): Promise<boolean> {
+    if (newGroups && newGroups.length) {
+      const deadlineGroups = await this.getCollection(CollectionType.Group);
+      if (deadlineGroups) {
+        const newDeadlineGroups = deadlineGroups.Pools
+          .concat(newGroups
+            .filter(group => !deadlineGroups.Pools.includes(group)));
+        return await this.saveCollection({
+          Pools: newDeadlineGroups,
+          ObsoletePools: deadlineGroups.ObsoletePools,
+        } as PoolGroupCollections,
+        CollectionType.Group);
+      }
+      return false;
+    }
+    return true;
+  }
+
+  public async addPools(newPools?: string[]): Promise<boolean> {
+    if (newPools && newPools.length) {
+      const deadlinePools = await this.getCollection(CollectionType.Pool);
+      if (deadlinePools) {
+        const newDeadlinePools = deadlinePools.Pools
+          .concat(newPools
+            .filter(pool => !deadlinePools.Pools.includes(pool)));
+        return await this.saveCollection({
+          Pools: newDeadlinePools,
+          ObsoletePools: deadlinePools.ObsoletePools,
+        } as PoolGroupCollections,
+        CollectionType.Pool);
+      }
+      return false;
+    }
+    return true;
+  }
+
+  private async getCollection(type: CollectionType): Promise<PoolGroupCollections|undefined> {
+    console.log(`Getting ${type} collection:`);
+    try {
+      const response = await this.deadlineClient.GetRequest(`/db/settings/collections/${type}s?invalidateCache=true`, {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+      });
+      const deadlinePools: PoolGroupCollections = response.data;
+      if (!deadlinePools.Pools || !Array.isArray(deadlinePools.Pools)) {
+        console.error(`Failed to receive a ${type} collection. Invalid response: ${JSON.stringify(response.data)}.`);
+        return undefined;
+      }
+      return deadlinePools;
+    } catch(e) {
+      console.error(`Failed to get ${type} collection. Reason: ${(<Error>e).message}`);
+      return undefined;
+    }
+  }
+
+  private async saveCollection(pools: PoolGroupCollections, type: CollectionType): Promise<boolean> {
+    console.log(`Saving ${type} collection:`);
+    console.log(pools);
+
+    try {
+      await this.deadlineClient.PostRequest(`/db/settings/collections/${type}s/save`, {
+        Pools: pools.Pools,
+        ObsoletePools: pools.ObsoletePools,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+      });
+      return true;
+    } catch(e) {
+      console.error(`Failed to save ${type} collection. Reason: ${(<Error>e).message}`);
       return false;
     }
   }

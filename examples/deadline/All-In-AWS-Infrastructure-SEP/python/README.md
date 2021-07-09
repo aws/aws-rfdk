@@ -73,8 +73,6 @@ These instructions assume that your working directory is `examples/deadline/All-
 7. You can now [connect to the farm](https://docs.aws.amazon.com/rfdk/latest/guide/connecting-to-render-farm.html) and [submit rendering jobs](https://docs.aws.amazon.com/rfdk/latest/guide/first-rfdk-app.html#_optional_submit_a_job_to_the_render_farm).
 
     **Note:** In order for the Spot Event Plugin to create a Spot Fleet Request you need to:
-    * Create the Deadline Group associated with the Spot Fleet Request Configuration. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html).
-    * Create the Deadline Pools to which the fleet Workers are added. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/pools-and-groups.html).
     * Submit the job with the assigned Deadline Group and Deadline Pool. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/job-submitting.html#submitting-jobs).
 
     **Note:** Disable 'Allow Workers to Perform House Cleaning If Pulse is not Running' in the 'Configure Repository Options' when using Spot Event Plugin. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#prerequisites).

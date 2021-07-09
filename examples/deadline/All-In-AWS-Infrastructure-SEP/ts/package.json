@@ -1,6 +1,6 @@
 {
   "name": "all-in-farm-sep",
-  "version": "0.35.0",
+  "version": "0.36.0",
   "bin": {
     "app": "bin/app.js"
   },
@@ -19,13 +19,13 @@
   },
   "devDependencies": {
     "@types/node": "^15.12.2",
-    "aws-cdk": "1.108.1",
+    "aws-cdk": "1.111.0",
     "ts-node": "^9.1.1",
-    "typescript": "~4.3.2"
+    "typescript": "~4.3.5"
   },
   "dependencies": {
-    "@aws-cdk/core": "1.108.1",
-    "aws-rfdk": "0.35.0",
+    "@aws-cdk/core": "1.111.0",
+    "aws-rfdk": "0.36.0",
     "source-map-support": "^0.5.19"
   }
 }
