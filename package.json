@@ -94,7 +94,7 @@
     "aws-cdk": "1.111.0",
     "aws-sdk": "^2.942.0",
     "constructs": "^3.3.69",
-    "fs-extra": "^9.1.0",
+    "fs-extra": "^10.0.0",
     "jest": "^26.6.3",
     "jest-junit": "^12.2.0",
     "jsii-diff": "^1.30.0",
