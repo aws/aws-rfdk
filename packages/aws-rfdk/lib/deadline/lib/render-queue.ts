@@ -134,9 +134,9 @@ interface DomainInfo {
  */
 interface TlsInfo {
   /**
-   * The certificate to use for the TLS connection.
+   * The certificate the Render Queue's server will use for the TLS connection.
    */
-  readonly clientCert: ICertificate;
+  readonly serverCert: ICertificate;
 
   /**
    * The certificate chain clients can use to verify the certificate.
@@ -215,7 +215,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
 
   private static readonly DEFAULT_HOSTNAME = 'renderqueue';
 
-  private static readonly DEFAULT_DOMAIN_NAME = 'rfdk.internal';
+  private static readonly DEFAULT_DOMAIN_NAME = 'aws-rfdk.com';
 
   /**
   * The minimum Deadline version required for the Remote Connection Server to support load-balancing
@@ -347,7 +347,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       const tlsInfo = this.getOrCreateTlsInfo(props);
 
       this.certChain = tlsInfo.certChain;
-      this.clientCert = tlsInfo.clientCert;
+      this.clientCert = tlsInfo.serverCert;
       loadBalancerFQDN = tlsInfo.domainInfo.fullyQualifiedDomainName;
       domainZone = tlsInfo.domainInfo.domainZone;
     }
@@ -753,18 +753,18 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
         cn: 'RenderQueueRootCA',
       },
     });
-    const rfdkCert = new X509CertificatePem(this, 'RenderQueueCA', {
+    const rfdkCert = new X509CertificatePem(this, 'RenderQueuePemCert', {
       subject: {
         cn: domainInfo.fullyQualifiedDomainName,
       },
       signingCertificate: rootCa,
     });
-    const clientCert = new ImportedAcmCertificate(this, 'AcmCert', rfdkCert );
+    const serverCert = new ImportedAcmCertificate( this, 'AcmCert', rfdkCert );
     const certChain = rfdkCert.certChain!;
 
     return {
       domainInfo,
-      clientCert,
+      serverCert,
       certChain,
     };
   }
@@ -776,7 +776,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    * @returns The provided certificate and domain info
    */
   private getTlsInfoFromUserProps(externalTLS: RenderQueueExternalTLSProps, hostname: RenderQueueHostNameProps): TlsInfo {
-    let clientCert: ICertificate;
+    let serverCert: ICertificate;
     let certChain: ISecret;
 
     if ( (externalTLS.acmCertificate !== undefined ) &&
@@ -795,20 +795,20 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       if ( externalTLS.acmCertificateChain === undefined ) {
         throw new Error('externalTLS.acmCertificateChain must be provided when using externalTLS.acmCertificate.');
       }
-      clientCert = externalTLS.acmCertificate;
+      serverCert = externalTLS.acmCertificate;
       certChain = externalTLS.acmCertificateChain;
 
     } else { // Using externalTLS.rfdkCertificate
       if ( externalTLS.rfdkCertificate!.certChain === undefined ) {
         throw new Error('Provided rfdkCertificate does not contain a certificate chain.');
       }
-      clientCert = new ImportedAcmCertificate(this, 'AcmCert', externalTLS.rfdkCertificate! );
+      serverCert = new ImportedAcmCertificate( this, 'AcmCert', externalTLS.rfdkCertificate! );
       certChain = externalTLS.rfdkCertificate!.certChain;
     }
 
     return {
       domainInfo,
-      clientCert,
+      serverCert,
       certChain,
     };
   }

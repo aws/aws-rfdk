@@ -6,6 +6,7 @@
 import {
   ABSENT,
   arrayWith,
+  countResources,
   countResourcesLike,
   deepObjectLike,
   expect as expectCDK,
@@ -53,10 +54,12 @@ import { Secret } from '@aws-cdk/aws-secretsmanager';
 import {
   App,
   CfnElement,
+  CustomResource,
   Stack,
 } from '@aws-cdk/core';
 
 import {
+  ImportedAcmCertificate,
   X509CertificatePem,
 } from '../..';
 import {
@@ -924,32 +927,45 @@ describe('RenderQueue', () => {
         },
       };
 
-      new RenderQueue(isolatedStack, 'RenderQueue', props);
+      const rq = new RenderQueue(isolatedStack, 'RenderQueue', props);
 
+      const rootCa = rq.node.findChild('RootCA').node.defaultChild as X509CertificatePem;
+      const rootCaGen = rootCa.node.defaultChild as CustomResource;
+      const rfdkCert = rq.node.findChild('RenderQueuePemCert').node.defaultChild as X509CertificatePem;
+      const rfdkCertGen = rfdkCert.node.defaultChild as CustomResource;
+      const acmCert = rq.node.findChild('AcmCert').node.defaultChild as ImportedAcmCertificate;
+
+      expectCDK(isolatedStack).to(haveResourceLike('Custom::RFDK_X509Generator', {
+        Passphrase: isolatedStack.resolve(rootCa.passphrase),
+      }));
+
+      expectCDK(isolatedStack).to(haveResourceLike('Custom::RFDK_X509Generator', {
+        Passphrase: isolatedStack.resolve(rfdkCert.passphrase),
+        SigningCertificate: {
+          Cert: isolatedStack.resolve(rootCaGen.getAtt('Cert')),
+          Key: isolatedStack.resolve(rootCaGen.getAtt('Key')),
+          Passphrase: isolatedStack.resolve(rootCa.passphrase),
+          CertChain: '',
+        },
+      }));
+
+      expectCDK(isolatedStack).to(countResources('Custom::RFDK_AcmImportedCertificate', 1));
       expectCDK(isolatedStack).to(haveResourceLike('Custom::RFDK_AcmImportedCertificate', {
         X509CertificatePem: {
-          Cert: {
-            'Fn::GetAtt': [
-              'RenderQueueRenderQueueCA5EEAD7C4',
-              'Cert',
-            ],
-          },
-          Key: {
-            'Fn::GetAtt': [
-              'RenderQueueRenderQueueCA5EEAD7C4',
-              'Key',
-            ],
-          },
-          Passphrase: {
-            Ref: 'RenderQueueRenderQueueCAPassphrase95F29CE0',
-          },
-          CertChain: {
-            'Fn::GetAtt': [
-              'RenderQueueRenderQueueCA5EEAD7C4',
-              'CertChain',
-            ],
-          },
+          Cert: isolatedStack.resolve(rfdkCertGen.getAtt('Cert')),
+          Key: isolatedStack.resolve(rfdkCertGen.getAtt('Key')),
+          Passphrase: isolatedStack.resolve(rfdkCert.passphrase),
+          CertChain: isolatedStack.resolve(rfdkCertGen.getAtt('CertChain')),
         },
+      }));
+
+      expectCDK(isolatedStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 1));
+      expectCDK(isolatedStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
+        Certificates: [
+          {
+            CertificateArn: isolatedStack.resolve(acmCert.certificateArn),
+          },
+        ],
       }));
     });
 
@@ -1406,12 +1422,7 @@ describe('RenderQueue', () => {
                 ],
               },
               '" --render-queue "http://',
-              {
-                'Fn::GetAtt': [
-                  'RenderQueueLB235D35F4',
-                  'DNSName',
-                ],
-              },
+              isolatedStack.resolve(rq.loadBalancer.loadBalancerDnsName),
               ':8080"  2>&1\n' +
               'Remove-Item -Path "C:/temp/',
               {
@@ -1990,7 +2001,7 @@ describe('RenderQueue', () => {
     // GIVEN
     const zoneName = 'mydomain.local';
 
-    describe('not specified with no TLS', () => {
+    describe('not specified, with no TLS', () => {
       let isolatedStack: Stack;
 
       beforeEach(() => {
@@ -2014,7 +2025,7 @@ describe('RenderQueue', () => {
       });
     });
 
-    test('not specified with TLS', () => {
+    test('not specified, with TLS', () => {
       // GIVEN
       const isolatedStack = new Stack(app, 'IsolatedStack');
 
@@ -2031,21 +2042,11 @@ describe('RenderQueue', () => {
 
       const renderQueue = new RenderQueue(isolatedStack, 'RenderQueue', props);
 
-      const loadBalancerLogicalId = dependencyStack.getLogicalId(
-        renderQueue.loadBalancer.node.defaultChild as CfnElement,
-      );
-
       expectCDK(isolatedStack).to(haveResource('AWS::Route53::RecordSet', {
-        // eslint-disable-next-line dot-notation
-        Name: `${RenderQueue['DEFAULT_HOSTNAME']}.${RenderQueue['DEFAULT_DOMAIN_NAME']}.`,
+        Name: 'renderqueue.aws-rfdk.com.',
         Type: 'A',
         AliasTarget: objectLike({
-          HostedZoneId: {
-            'Fn::GetAtt': [
-              loadBalancerLogicalId,
-              'CanonicalHostedZoneID',
-            ],
-          },
+          HostedZoneId: isolatedStack.resolve(renderQueue.loadBalancer.loadBalancerCanonicalHostedZoneId),
         }),
       }));
     });

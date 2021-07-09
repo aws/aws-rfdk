@@ -83,5 +83,4 @@ class BaseFarmStack(Stack):
             images=images,
             repository=repository,
             deletion_protection=False,
-            traffic_encryption=RenderQueueTrafficEncryptionProps( external_tls=RenderQueueExternalTLSProps( enabled=False ) ),
         )

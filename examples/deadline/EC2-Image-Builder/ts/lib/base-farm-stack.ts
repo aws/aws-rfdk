@@ -68,7 +68,6 @@ export class BaseFarmStack extends Stack {
       images,
       repository,
       deletionProtection: false,
-      trafficEncryption: { externalTLS: { enabled: false } },
     });
   }
 }

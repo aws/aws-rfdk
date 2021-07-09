@@ -56,7 +56,10 @@ export interface RenderQueueHostNameProps {
   readonly hostname?: string;
 
   /**
-   * The private zone to which the DNS A record for the render queue will be added.
+   * The private zone to which the DNS A record for the render queue will be added. We do not recommend
+   * using an unregistered domain for your PrivateHostedZone and we have registered aws-rfdk.com that
+   * can be used if you do not own your own. Refer to RFC 6762 Appendix G for more details about private
+   * DNS namespaces: https://datatracker.ietf.org/doc/html/rfc6762#appendix-G
    */
   readonly zone: IPrivateHostedZone;
 }
@@ -156,7 +159,7 @@ export interface RenderQueueExternalTLSProps {
 
   /**
    * The ACM certificate that will be used for establishing incoming external TLS connections to the RenderQueue.
-   * @default: If not provided, rfdkCertificate will be used.
+   * @default If rfdkCertificate and acmCertificate are both not provided, an rfdkCertificate will be generated and used.
    */
   readonly acmCertificate?: ICertificate;
 
@@ -165,14 +168,14 @@ export interface RenderQueueExternalTLSProps {
    *
    * This certifiate chain **must** include only the CA Certificates PEM file.
    *
-   * @default: If an acmCertificate was provided then this must be provided, otherwise this is ignored.
+   * @default If an acmCertificate was provided then this must be provided, otherwise this is ignored.
    */
   readonly acmCertificateChain?: ISecret;
 
   /**
    * The parameters for an X509 Certificate that will be imported into ACM then used by the RenderQueue.
    *
-   * @default: If rfdkCertificate and acmCertificate are both not provided, an rfdkCertificate will be generated and used.
+   * @default If rfdkCertificate and acmCertificate are both not provided, an rfdkCertificate will be generated and used.
    */
   readonly rfdkCertificate?: IX509CertificatePem;
 }
@@ -287,7 +290,7 @@ export interface RenderQueueProps {
   /**
    * Hostname to use to connect to the RenderQueue.
    *
-   * @default: A private hosted host will be created and the default hostname will be used.
+   * @default - The hostname `renderqueue` will be used and a PrivateHostedZone will be created with the domain name `aws-rfdk.com`
    */
   readonly hostname?: RenderQueueHostNameProps;
 
