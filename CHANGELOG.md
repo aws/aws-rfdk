@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.36.0](https://github.com/aws/aws-rfdk/compare/v0.35.0...v0.36.0) (2021-07-09)
+
+---
+
+**NOTICE:**  This release drops support for NodeJS 10.x and expands support to include NodeJS 16.x ([#459](https://github.com/aws/aws-rfdk/issues/459)) ([5226b9a](https://github.com/aws/aws-rfdk/commit/5226b9ac9d8303c0ae2a7fe33d0cb985aa227758))
+
+---
+
+### Supported CDK Version
+
+* [1.111.0](https://github.com/aws/aws-cdk/releases/tag/v1.111.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.17.4](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **deadline:** create Deadline Groups and Pools on deploy for ConfigureSpotEventPlugin ([#470](https://github.com/aws/aws-rfdk/issues/470)) ([b35ed6d](https://github.com/aws/aws-rfdk/commit/b35ed6d48ca2b1d01152ddc435532a1bb6d70cdb))
+* **examples:** local zones examples ([#314](https://github.com/aws/aws-rfdk/issues/314)) ([1fe72a0](https://github.com/aws/aws-rfdk/commit/1fe72a045569aa688d0d28bbda6fbf67af003e5e))
+
+
+### Bug Fixes
+
+* **core:** Convert group names in SpotEventPluginFleet to lowercase ([#465](https://github.com/aws/aws-rfdk/issues/465)) ([11e30f6](https://github.com/aws/aws-rfdk/commit/11e30f6125b06826e1465a21d7562baa980a00dc))
+
 ## [0.35.0](https://github.com/aws/aws-rfdk/compare/v0.34.0...v0.35.0) (2021-06-18)
 
 
