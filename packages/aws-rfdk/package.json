@@ -160,6 +160,7 @@
     "@aws-cdk/aws-codecommit": "1.111.0",
     "@aws-cdk/aws-codeguruprofiler": "1.111.0",
     "@aws-cdk/aws-codepipeline": "1.111.0",
+    "@aws-cdk/aws-codestarnotifications": "1.111.0",
     "@aws-cdk/aws-cognito": "1.111.0",
     "@aws-cdk/aws-databrew": "1.111.0",
     "@aws-cdk/aws-docdb": "1.111.0",
