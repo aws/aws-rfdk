@@ -135,6 +135,8 @@ const exportingLogGroup = new ExportingLogGroup(stack, 'ExportingLogGroup', {
 
 ## HealthMonitor
 
+![architecture diagram](../../docs/diagrams/core/HealthMonitor.svg)
+
 In order to monitor a heartbeat reported by each render node and to automatically reboot instances that are failing, which will help to avoid extra costs, you can use `HealthMonitor` instance:
 
 ```ts
@@ -658,6 +660,8 @@ RFDK provides the following constructs for working with X509 certificates: `X509
 
 ### X509CertificatePem
 
+![architecture diagram](../../docs/diagrams/core/X509CertificatePem.svg)
+
 `X509CertificatePem` provides a mechanism for generating X.509 certificates. This construct will create the following resources as secrets in Secret Manager:
 1. An X509 certificate in PEM format
 2. A private key in PEM format
@@ -731,6 +735,8 @@ cert.grantFullRead(instance.grantPrincipal);
 
 ### X509CertificatePkcs12
 
+![architecture diagram](../../docs/diagrams/core/X509CertificatePkcs12.svg)
+
 In order to generate a PKCS #12 file from an X.509 certificate in PEM format you can use `X509CertificatePkcs12` construct:
 
 ```ts
@@ -753,6 +759,8 @@ const pkcs12Cert = new X509CertificatePkcs12(stack, 'CertPkcs12', {
 ```
 
 ### ImportedAcmCertificate
+
+![architecture diagram](../../docs/diagrams/core/ImportedAcmCertificate.svg)
 
 You might need to import your X.509 certificate stored as a Secret into the AWS Certificate Manager. In this case, you can use `ImportedAcmCertificate` to do that:
 

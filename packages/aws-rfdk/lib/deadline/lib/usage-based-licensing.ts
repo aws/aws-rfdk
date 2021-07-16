@@ -445,6 +445,8 @@ export interface UsageBasedLicensingProps {
  * Note: This construct does not currently implement the Deadline License Forwarder's Web Forwarding functionality.
  * This construct is not usable in any China region.
  *
+ * ![architecture diagram](/diagrams/deadline/UsageBasedLicensing.svg)
+ *
  * Resources Deployed
  * ------------------------
  * - The Auto Scaling Group (ASG) added to the Amazon Elastic Container Service cluster that is hosting the Deadline

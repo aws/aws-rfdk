@@ -243,6 +243,8 @@ abstract class X509CertificateBase extends Construct {
  * The cost of four AWS SecretsManager Secrets in the deployed region.
  * The other resources created by this construct have negligible ongoing costs.
  *
+ * ![architecture diagram](/diagrams/core/X509CertificatePem.svg)
+ *
  * Resources Deployed
  * ------------------------
  * - DynamoDB Table - Used for tracking resources created by the Custom Resource.
@@ -399,6 +401,8 @@ export interface IX509CertificatePkcs12 extends IConstruct {
  * provided through an instance of the X509CertificatePem Construct. A Lambda Function is used to do the conversion and
  * the result is stored in a Secret. The PKCS #12 file is password protected with a passphrase that is randomly
  * generated and stored in a Secret.
+ *
+ * ![architecture diagram](/diagrams/core/X509CertificatePkcs12.svg)
  *
  * Resources Deployed
  * ------------------------

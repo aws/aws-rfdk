@@ -172,6 +172,8 @@ abstract class RenderQueueBase extends Construct implements IRenderQueue {
  * Most Deadline clients will connect to a Deadline render farm via the the RenderQueue. The API provides Deadline
  * clients access to Deadline's database and repository file-system in a way that is secure, performant, and scalable.
  *
+ * ![architecture diagram](/diagrams/deadline/RenderQueue.svg)
+ *
  * Resources Deployed
  * ------------------------
  * - An Amazon Elastic Container Service (ECS) cluster.
