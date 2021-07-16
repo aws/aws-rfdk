@@ -313,6 +313,8 @@ abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet
  * When the worker fleet is deployed if it has been provided a HealthMonitor the Worker fleet will register itself against the Monitor
  * to ensure that the fleet remains healthy.
  *
+ * ![architecture diagram](/diagrams/deadline/WorkerInstanceFleet.svg)
+ *
  * Resources Deployed
  * ------------------------
  * - An EC2 Auto Scaling Group to maintain the number of instances.

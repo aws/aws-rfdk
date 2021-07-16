@@ -278,6 +278,8 @@ abstract class HealthMonitorBase extends Construct implements IHealthMonitor {
  * being sufficiently unhealthy to warrant termination.
  * This lambda is triggered by CloudWatch alarms via SNS (Simple Notification Service).
  *
+ * ![architecture diagram](/diagrams/core/HealthMonitor.svg)
+ *
  * Resources Deployed
  * ------------------------
  * - Application Load Balancer(s) doing frequent pings to the workers.

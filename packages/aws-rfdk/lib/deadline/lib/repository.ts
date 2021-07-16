@@ -402,6 +402,8 @@ export interface RepositoryProps {
  * and the deployment will continue, otherwise the the deployment will be cancelled.
  * In either case the instance will be cleaned up.
  *
+ * ![architecture diagram](/diagrams/deadline/Repository.svg)
+ *
  * Resources Deployed
  * ------------------------
  * - Encrypted Amazon Elastic File System (EFS) - If no file system is provided.
