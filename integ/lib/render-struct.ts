@@ -11,7 +11,9 @@ import { X509CertificatePem } from 'aws-rfdk';
 import {
   IRepository,
   RenderQueue,
+  RenderQueueHostNameProps,
   RenderQueueProps,
+  RenderQueueTrafficEncryptionProps,
   ThinkboxDockerRecipes,
 } from 'aws-rfdk/deadline';
 import { ThinkboxDockerImageOverrides } from './ThinkboxDockerImageOverrides';
@@ -52,9 +54,9 @@ export class RenderStruct extends Construct {
     const maxLength = 64 - host.length - '.'.length - suffix.length - 1;
     const zoneName = Stack.of(this).stackName.slice(0, maxLength) + suffix;
 
-    let trafficEncryption: any;
-    let hostname: any;
-    let cacert: any;
+    let trafficEncryption: RenderQueueTrafficEncryptionProps | undefined;
+    let hostname: RenderQueueHostNameProps | undefined;
+    let cacert: X509CertificatePem | undefined;
 
     // If configured for HTTPS, the render queue requires a private domain and a signed certificate for authentication
     if( props.protocol === 'https' ) {
@@ -72,8 +74,8 @@ export class RenderStruct extends Construct {
             },
             signingCertificate: cacert,
           }),
-          internalProtocol: ApplicationProtocol.HTTP,
         },
+        internalProtocol: ApplicationProtocol.HTTP,
       };
       hostname = {
         zone: new PrivateHostedZone(this, 'Zone', {
@@ -83,7 +85,7 @@ export class RenderStruct extends Construct {
         hostname: host,
       };
     } else {
-      trafficEncryption = undefined;
+      trafficEncryption = { externalTLS: { enabled: false } };
       hostname = undefined;
     }
 
