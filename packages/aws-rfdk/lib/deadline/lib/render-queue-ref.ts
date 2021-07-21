@@ -159,7 +159,7 @@ export interface RenderQueueExternalTLSProps {
 
   /**
    * The ACM certificate that will be used for establishing incoming external TLS connections to the RenderQueue.
-   * @default If rfdkCertificate and acmCertificate are both not provided, an rfdkCertificate will be generated and used.
+   * @default If rfdkCertificate and acmCertificate are both not provided when TLS is enabled, an rfdkCertificate will be generated and used.
    */
   readonly acmCertificate?: ICertificate;
 
@@ -175,7 +175,7 @@ export interface RenderQueueExternalTLSProps {
   /**
    * The parameters for an X509 Certificate that will be imported into ACM then used by the RenderQueue.
    *
-   * @default If rfdkCertificate and acmCertificate are both not provided, an rfdkCertificate will be generated and used.
+   * @default If rfdkCertificate and acmCertificate are both not provided when TLS is enabled, an rfdkCertificate will be generated and used.
    */
   readonly rfdkCertificate?: IX509CertificatePem;
 }

@@ -15,8 +15,6 @@ from aws_cdk.aws_ec2 import (
 from aws_rfdk.deadline import (
     AwsThinkboxEulaAcceptance,
     RenderQueue,
-    RenderQueueExternalTLSProps,
-    RenderQueueTrafficEncryptionProps,
     Repository,
     RepositoryRemovalPolicies,
     ThinkboxDockerImages,

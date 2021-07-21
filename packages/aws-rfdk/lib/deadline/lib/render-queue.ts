@@ -114,22 +114,6 @@ export interface IRenderQueue extends IConstruct, IConnectable {
 }
 
 /**
- * Interface for information about the render queue's domain.
- */
-interface DomainInfo {
-  /**
-   * The private hosted zone that the render queue's load balancer will be placed in.
-   */
-  readonly domainZone: IPrivateHostedZone;
-
-  /**
-   * The fully qualified domain name that will be given to the load balancer in the private
-   * hosted zone.
-   */
-  readonly fullyQualifiedDomainName: string;
-}
-
-/**
  * Interface for information about the render queue's TLS configuration
  */
 interface TlsInfo {
@@ -144,9 +128,15 @@ interface TlsInfo {
   readonly certChain: ISecret;
 
   /**
-   * The information about the domain for the render queue.
+   * The private hosted zone that the render queue's load balancer will be placed in.
    */
-  readonly domainInfo: DomainInfo;
+  readonly domainZone: IPrivateHostedZone;
+
+  /**
+   * The fully qualified domain name that will be given to the load balancer in the private
+   * hosted zone.
+   */
+  readonly fullyQualifiedDomainName: string;
 }
 
 /**
@@ -348,8 +338,13 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
 
       this.certChain = tlsInfo.certChain;
       this.clientCert = tlsInfo.serverCert;
-      loadBalancerFQDN = tlsInfo.domainInfo.fullyQualifiedDomainName;
-      domainZone = tlsInfo.domainInfo.domainZone;
+      loadBalancerFQDN = tlsInfo.fullyQualifiedDomainName;
+      domainZone = tlsInfo.domainZone;
+    } else {
+      if (props.hostname) {
+        loadBalancerFQDN = this.generateFullyQualifiedDomainName(props.hostname.zone, props.hostname.hostname);
+        domainZone = props.hostname.zone;
+      }
     }
 
     this.version = props.version;
@@ -745,8 +740,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       vpc: vpc,
       zoneName: RenderQueue.DEFAULT_DOMAIN_NAME,
     });
-    const label = hostname?.hostname ?? RenderQueue.DEFAULT_HOSTNAME;
-    const domainInfo = this.createDomainInfo(label, domainZone);
+
+    const fullyQualifiedDomainName = this.generateFullyQualifiedDomainName(domainZone, hostname?.hostname);
 
     const rootCa = new X509CertificatePem(this, 'RootCA', {
       subject: {
@@ -755,7 +750,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     });
     const rfdkCert = new X509CertificatePem(this, 'RenderQueuePemCert', {
       subject: {
-        cn: domainInfo.fullyQualifiedDomainName,
+        cn: fullyQualifiedDomainName,
       },
       signingCertificate: rootCa,
     });
@@ -763,7 +758,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     const certChain = rfdkCert.certChain!;
 
     return {
-      domainInfo,
+      domainZone,
+      fullyQualifiedDomainName,
       serverCert,
       certChain,
     };
@@ -789,7 +785,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
         + 'with the common name of the certificate matching the hostname + domain name.');
     }
 
-    const domainInfo = this.createDomainInfo(hostname.hostname, hostname.zone);
+    const fullyQualifiedDomainName = this.generateFullyQualifiedDomainName(hostname.zone, hostname.hostname);
 
     if ( externalTLS.acmCertificate ) {
       if ( externalTLS.acmCertificateChain === undefined ) {
@@ -807,7 +803,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     }
 
     return {
-      domainInfo,
+      domainZone: hostname.zone,
+      fullyQualifiedDomainName,
       serverCert,
       certChain,
     };
@@ -817,16 +814,12 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    * Helper method to create the fully qualified domain name for the given hostname and PrivateHostedZone.
    * @param hostname
    * @param zone
-   * @returns DomainInfo containing the PrivateHostedZone and fully qualified domain name
+   * @returns The fully qualified domain name
    */
-  private createDomainInfo(hostname: string, zone: IPrivateHostedZone): DomainInfo {
+  private generateFullyQualifiedDomainName(zone: IPrivateHostedZone, hostname: string = RenderQueue.DEFAULT_HOSTNAME): string {
     if (!RenderQueue.RE_VALID_HOSTNAME.test(hostname)) {
       throw new Error(`Invalid RenderQueue hostname: ${hostname}`);
     }
-
-    return {
-      domainZone: zone,
-      fullyQualifiedDomainName: `${hostname}.${zone.zoneName}`,
-    };
+    return `${hostname}.${zone.zoneName}`;
   }
 }

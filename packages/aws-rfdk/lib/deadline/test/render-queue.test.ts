@@ -1243,14 +1243,7 @@ describe('RenderQueue', () => {
                   },
                 ],
               },
-              '" --render-queue "http://',
-              {
-                'Fn::GetAtt': [
-                  'RenderQueueLB235D35F4',
-                  'DNSName',
-                ],
-              },
-              ':8080" \n' +
+              '" --render-queue "http://renderqueue.renderfarm.local:8080" \n' +
               'rm -f "/tmp/',
               {
                 'Fn::Select': [
@@ -1421,9 +1414,7 @@ describe('RenderQueue', () => {
                   },
                 ],
               },
-              '" --render-queue "http://',
-              isolatedStack.resolve(rq.loadBalancer.loadBalancerDnsName),
-              ':8080"  2>&1\n' +
+              '" --render-queue "http://renderqueue.renderfarm.local:8080"  2>&1\n' +
               'Remove-Item -Path "C:/temp/',
               {
                 'Fn::Select': [
@@ -2095,6 +2086,50 @@ describe('RenderQueue', () => {
           }),
         }));
       });
+    });
+
+    test.each([
+      [false],
+      [true],
+    ])('specified with TLS enabled == %s', (isTlsEnabled: boolean) => {
+      const zone = new PrivateHostedZone(dependencyStack, 'Zone', {
+        vpc,
+        zoneName,
+      });
+      const hostname = 'testrq';
+      const isolatedStack = new Stack(app, 'IsolatedStack');
+      const props: RenderQueueProps = {
+        images,
+        repository,
+        version: new VersionQuery(isolatedStack, 'Version'),
+        vpc,
+        hostname: {
+          hostname,
+          zone,
+        },
+        trafficEncryption: {
+          externalTLS: { enabled: isTlsEnabled },
+        },
+      };
+
+      // WHEN
+      const renderQueue = new RenderQueue(isolatedStack, 'RenderQueue', props);
+
+      const loadBalancerLogicalId = dependencyStack.getLogicalId(
+        renderQueue.loadBalancer.node.defaultChild as CfnElement,
+      );
+      expectCDK(isolatedStack).to(haveResource('AWS::Route53::RecordSet', {
+        Name: `${hostname}.${zoneName}.`,
+        Type: 'A',
+        AliasTarget: objectLike({
+          HostedZoneId: {
+            'Fn::GetAtt': [
+              loadBalancerLogicalId,
+              'CanonicalHostedZoneID',
+            ],
+          },
+        }),
+      }));
     });
 
     test.each([
