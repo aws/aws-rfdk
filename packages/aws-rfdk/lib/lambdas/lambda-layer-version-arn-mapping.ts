@@ -51,7 +51,7 @@ export class LambdaLayerVersionArnMapping extends CfnMapping {
    * Gets the singleton instance (per-stack) of this class.
    * @param scope The parent construct.
    */
-  protected static getSingletonInstance(scope: Construct) {
+  private static getSingletonInstance(scope: Construct) {
     const uuid = '7a9adb59-d5d0-42fb-bc5b-a55bcbf6a6b2';
     const uniqueId = 'LambdaLayerVersionArnMapping' + uuid.replace(/[-]/g, '');
     const stack = Stack.of(scope);
