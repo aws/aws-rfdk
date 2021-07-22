@@ -16,7 +16,6 @@ import { PolicyStatement } from '@aws-cdk/aws-iam';
 import { IKey } from '@aws-cdk/aws-kms';
 import {
   Code,
-  LayerVersion,
   Runtime,
   SingletonFunction,
 } from '@aws-cdk/aws-lambda';
@@ -33,7 +32,10 @@ import {
   Token,
 } from '@aws-cdk/core';
 
-import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
+import {
+  LambdaLayer,
+  LambdaLayerVersionArnMapping,
+} from '../../lambdas/lambda-layer-version-arn-mapping';
 import { IAcmImportCertProps } from '../../lambdas/nodejs/x509-certificate';
 
 /**
@@ -122,11 +124,7 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
       billingMode: BillingMode.PAY_PER_REQUEST,
     });
 
-    const region = Stack.of(this).region;
-    const openSslLayerName = 'openssl-al2';
-    const openSslLayerArns: any = ARNS[openSslLayerName];
-    const openSslLayerArn = openSslLayerArns[region];
-    const openSslLayer = LayerVersion.fromLayerVersionArn(this, 'OpenSslLayer', openSslLayerArn);
+    const openSslLayer = LambdaLayerVersionArnMapping.getLambdaLayerVersion(this, 'OpenSslLayer', LambdaLayer.OPEN_SSL_AL2);
 
     const lambda = new SingletonFunction(this, 'AcmImporter', {
       uuid: ImportedAcmCertificate.IMPORTER_UUID,
