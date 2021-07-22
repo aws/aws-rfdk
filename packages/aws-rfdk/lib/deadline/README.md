@@ -36,6 +36,8 @@ _**Note:** RFDK constructs currently support Deadline 10.1.9 and later, unless o
 
 ## Configure Spot Event Plugin
 
+![architecture diagram](../../docs/diagrams/deadline/ConfigureSpotEventPlugin.svg)
+
 The [Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html) can scale cloud-based EC2 Spot instances dynamically based on the queued Jobs and Tasks in the Deadline Database. It associates a Spot Fleet Request with named Deadline Worker Groups, allowing multiple Spot Fleets with different hardware and software specifications to be launched for different types of Jobs based on their Group assignment.
 
 The `ConfigureSpotEventPlugin` construct has two main responsibilities:
@@ -98,18 +100,14 @@ const spotEventPluginConfig = new ConfigureSpotEventPlugin(this, 'ConfigureSpotE
 
 ## Render Queue
 
+![architecture diagram](../../docs/diagrams/deadline/RenderQueue.svg)
+
 The `RenderQueue` is the central service of a Deadline render farm. It consists of the following components:
 
 - **Deadline Repository** - The repository that initializes the persistent data schema used by Deadline such as job information, connected workers, rendered output files, etc.
 - **Deadline Remote Connection Server (RCS)** - The central server that all Deadline applications connect to. The RCS contains the core business logic to manage the render farm.
 
 The `RenderQueue` construct sets up the RCS and configures it to communicate with the Repository and to listen for requests using the configured protocol (HTTP or HTTPS). Docker container images are used to deploy the `RenderQueue` as a fleet of instances within an Elastic Container Service (ECS) cluster. This fleet of instances is load balanced by an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html) which has built-in health monitoring functionality that can be configured through this construct.
-
----
-
-_**Note:** The number of instances running the Render Queue is currently limited to a maximum of one._
-
----
 
 The following example outlines how to construct a `RenderQueue`:
 
@@ -166,6 +164,8 @@ const renderQueue = new RenderQueue(stack, 'RenderQueue', {
 ```
 
 ## Repository
+
+![architecture diagram](../../docs/diagrams/deadline/Repository.svg)
 
 The `Repository` contains the central database and file system used by Deadline. An EC2 instance is temporarily created to run the Deadline Repository installer which configures the database and file system. This construct has optional parameters for the database and file system to use, giving you the option to either provide your own resources or to have the construct create its own. Log messages emitted by the construct are forwarded to CloudWatch via a CloudWatch agent.
 
@@ -225,6 +225,8 @@ repository.configureClientInstance({
 ```
 
 ## Spot Event Plugin Fleet
+
+![architecture diagram](../../docs/diagrams/deadline/SpotEventPluginFleet.svg)
 
 This construct represents a Spot Fleet launched by the [Deadline's Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html) from the [Spot Fleet Request Configuration](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#spot-fleet-request-configurations). The construct itself doesn't create a Spot Fleet Request, but creates all the required resources to be used in the Spot Fleet Request Configuration.
 
@@ -440,6 +442,8 @@ const ubl = new UsageBasedLicensing(scope, 'RenderQueue', {
 
 ## Usage-Based Licensing (UBL)
 
+![architecture diagram](../../docs/diagrams/deadline/UsageBasedLicensing.svg)
+
 Usage-Based Licensing is an on-demand licensing model (see [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/licensing-usage-based.html)). The RFDK supports this type of licensing with the `UsageBasedLicensing` construct. This construct contains the following components:
 
 - **Deadline License Forwarder** - Forwards licenses to Deadline Workers that are rendering jobs.
@@ -503,6 +507,8 @@ const version = VersionQuery.exact(stack, 'ExactVersion', {
 ```
 
 ## Worker Fleet
+
+![architecture diagram](../../docs/diagrams/deadline/WorkerInstanceFleet.svg)
 
 A `WorkerInstanceFleet` represents a fleet of instances that are the render nodes of your render farm. These instances are created in an [`AutoScalingGroup`](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-autoscaling.AutoScalingGroup.html) with a provided AMI that should have Deadline Client installed as well as any desired render applications. Each of the instances will configure itself to connect to the specified [`RenderQueue`](#renderqueue) so that they are able to communicate with Deadline to pick up render jobs. Any logs emitted by the workers are sent to CloudWatch via a CloudWatch agent.
 

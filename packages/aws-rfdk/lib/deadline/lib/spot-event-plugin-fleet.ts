@@ -261,6 +261,8 @@ export interface ISpotEventPluginFleet extends IConnectable, IScriptHost, IGrant
  * required for the Spot Fleet Request and generates the Spot Fleet Configuration setting:
  * a one to one mapping between a Deadline Group and Spot Fleet Request Configurations.
  *
+ * ![architecture diagram](/diagrams/deadline/SpotEventPluginFleet.svg)
+ *
  * Resources Deployed
  * ------------------------
  * - An Instance Role, corresponding IAM Policy and an Instance Profile.
