@@ -1243,7 +1243,7 @@ describe('RenderQueue', () => {
                   },
                 ],
               },
-              '" --render-queue "http://renderqueue.renderfarm.local:8080" \n' +
+              `" --render-queue "http://renderqueue.${ZONE_NAME}:8080"  2>&1\n` +
               'rm -f "/tmp/',
               {
                 'Fn::Select': [
@@ -1414,7 +1414,7 @@ describe('RenderQueue', () => {
                   },
                 ],
               },
-              '" --render-queue "http://renderqueue.renderfarm.local:8080"  2>&1\n' +
+              `" --render-queue "http://renderqueue.${ZONE_NAME}:8080"  2>&1\n` +
               'Remove-Item -Path "C:/temp/',
               {
                 'Fn::Select': [
@@ -2092,6 +2092,7 @@ describe('RenderQueue', () => {
       [false],
       [true],
     ])('specified with TLS enabled == %s', (isTlsEnabled: boolean) => {
+      // GIVEN
       const zone = new PrivateHostedZone(dependencyStack, 'Zone', {
         vpc,
         zoneName,
@@ -2115,6 +2116,7 @@ describe('RenderQueue', () => {
       // WHEN
       const renderQueue = new RenderQueue(isolatedStack, 'RenderQueue', props);
 
+      // THEN
       const loadBalancerLogicalId = dependencyStack.getLogicalId(
         renderQueue.loadBalancer.node.defaultChild as CfnElement,
       );

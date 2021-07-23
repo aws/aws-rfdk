@@ -8,7 +8,14 @@ If you are already setting fields on the `RenderQueueExternalTLSProps` for the R
 
 ## Upgrading Farms Not Using TLS
 
-### RenderQueue Changes
+To upgrade your farm if it does not currently configure TLS for connections to the Render Queue, there are two options:
+
+1. [Migrating to TLS](#migrating-to-tls) (recommended)
+1. [Preserving plain HTTP](#preserving-plain-http)
+
+### Migrating to TLS
+
+#### RenderQueue Changes
 
 Versions of RFDK prior to 0.37.0 had internal TLS between the load balancer and its backing services on by default. This is configurable with the `internalProtocol` field on the `RenderQueueTrafficEncryptionProps` interface. This default was left as-is, so upgrading RFDK will have no effect on the protocol those backing services were already using and they will not need to be replaced. The TLS being enabled by default is between the listener on the load balancer and any Deadline clients that are connecting to it, which is configurable with the `externalProtocol` property on the `RenderQueueTrafficEncryptionProps` interface.
 
@@ -18,13 +25,20 @@ There will be a few new constructs deployed to your farm:
 
 These new constructs will require the Render Queue load balancer's listener to need replacing, but the load balancer itself and the backing services it redirects traffic to will not need to be changed.
 
-### WorkerInstanceFleet Changes
+#### WorkerInstanceFleet and SpotEventPluginFleet Changes
 
-Since the endpoint and port the listener on the load balancer uses will be changed, and the TLS will require any clients connecting to verify its certificate, any stacks that contain dependencies on the Render Queue will first need to be destroyed. If you are using a tiered architecture similar to what we recommend in our documentation, this would include any `WorkerInstanceFleet` constructs that are in a separate stack from the `RenderQueue`. The `WorkerInstanceFleet` constructs configure their connection to the Render Queue during their start-up. Running `cdk destroy "ComputeTier"` (or whatever name you gave your stack containing the workers) to destroy any worker fleets before running `cdk deploy "*"` to redeploy the entire farm should
+Since the endpoint and port the listener on the load balancer uses will be changed, and the TLS will require any clients connecting to verify its certificate, any stacks that contain dependencies on the Render Queue will first need to be destroyed. If you are using a tiered architecture similar to what we recommend in our documentation, this would include any `WorkerInstanceFleet` constructs or `SpotEventPluginFleet` and `ConfigureSpotEventPlugin` constructs. If you are not using a tiered architecture, we still recommend destroying these constructs since we're changing the endpoint that they need to connect to, and that configuration of the endpoint happens in the initialization script for an instance.
 
-The script used to initialize any workers deployed by the farm will also be updated to change the endpoint and port that they use to connect to the Render Queue, and the workers will also need the certificate chain to verify the load balancer (in the default case the cerificate chain only includes the self-signed certificate).
+To perform the removal of these constructs:
+1. Suspend any jobs that are being run by workers that the constructs deployed.
+1. If any spot instances are running, they will need to be terminated since their lifecycle is controlled by Deadline's Spot Event Plugin and not your RFDK app. Trying to destroy/remove the `SpotEventPluginFleet` construct will fail if these hosts are left running because the spot instances use the security group that the construct creates.
+1. Next we have to destroy the constructs that are deploying workers, which could be done in a few ways:
+  1. If you can destroy the Stack that contains these constructs without destroying the rest of your app, then destroy it using the command `cdk destroy "ComputeTier"` (or whatever name you gave your stack).
+  1. If you cannot destroy a single stack or you are not using a tiered architecture, you can just comment out these constructs in your app, rebuild it, and then run `cdk deploy "*"` to perform the removal.
+1. Now that we won't cause any dependency issues, we can update the version of RFDK in our app's `package.json`, install it, and then run the deployment. If worker constructs were commented out in the last step, they can be added back in here and redeployed during the upgrade.
+1. Any jobs that were paused can be resumed after the deployment is complete. Any workers deployed with the `WorkerInstanceFleet` should be connecting through TLS now, and the Spot Event Plugin should be configured so that any new Spot instances it deploys will be properly configured as well.
 
-## Disabling External TLS
+### Preserving plain HTTP
 
 While we strongly suggest farms be upgraded to use TLS, it is possible to override the new default and keep a farm using HTTP instead. To do this, there is an `enabled` field on the `RenderQueueExternalTLSProps` that can be set to false. This will prevent the farm from automatically upgrading the protocol until you decide you're ready. Here's an example of creating a Render Queue with TLS disabled:
 

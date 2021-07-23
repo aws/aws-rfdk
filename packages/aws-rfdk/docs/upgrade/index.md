@@ -5,3 +5,4 @@ applications. The documentation is separated by RFDK versions that included pote
 upgrading to (or beyond) a version listed below, you should consult the the linked upgrade documentation.
 
 *   [`0.27.x`](./upgrading-0.27.md)
+*   [`0.37.x`](./upgrading-0.37.md)
