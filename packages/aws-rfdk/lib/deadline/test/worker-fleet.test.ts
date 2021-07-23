@@ -90,6 +90,7 @@ beforeEach(() => {
       vpc,
       version,
     }),
+    trafficEncryption: { externalTLS: { enabled: false } },
     version,
   });
   wfstack = new Stack(app, 'workerFleetStack', {

@@ -87,6 +87,7 @@ describe('UsageBasedLicensing', () => {
         vpc,
         version: versionedInstallers,
       }),
+      trafficEncryption: { externalTLS: { enabled: false } },
       version: versionedInstallers,
     });
 

@@ -6,6 +6,7 @@
 import {
   ABSENT,
   arrayWith,
+  countResources,
   countResourcesLike,
   deepObjectLike,
   expect as expectCDK,
@@ -53,10 +54,12 @@ import { Secret } from '@aws-cdk/aws-secretsmanager';
 import {
   App,
   CfnElement,
+  CustomResource,
   Stack,
 } from '@aws-cdk/core';
 
 import {
+  ImportedAcmCertificate,
   X509CertificatePem,
 } from '../..';
 import {
@@ -490,10 +493,10 @@ describe('RenderQueue', () => {
         }));
       });
 
-      test('to HTTP externally between clients and ALB', () => {
+      test('to HTTPS externally between clients and ALB', () => {
         expectCDK(isolatedStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
-          Protocol: 'HTTP',
-          Port: 8080,
+          Protocol: 'HTTPS',
+          Port: 4433,
         }));
       });
     });
@@ -642,6 +645,7 @@ describe('RenderQueue', () => {
           vpc,
           trafficEncryption: {
             internalProtocol: ApplicationProtocol.HTTP,
+            externalTLS: { enabled: false },
           },
         };
 
@@ -683,10 +687,11 @@ describe('RenderQueue', () => {
           trafficEncryption: {
             externalTLS: {
               acmCertificate: Certificate.fromCertificateArn(stack, 'Certificate', CERT_ARN),
-              acmCertificateChain: Secret.fromSecretArn(stack, 'CA_Cert', CA_ARN),
+              acmCertificateChain: Secret.fromSecretPartialArn(stack, 'CA_Cert', CA_ARN),
             },
           },
           hostname: {
+            hostname: 'renderqueue',
             zone,
           },
         };
@@ -718,7 +723,7 @@ describe('RenderQueue', () => {
         }));
       });
 
-      test('raises an error when a cert is specified without a hostname', () => {
+      test('raises an error when a cert is specified without a hosted zone', () => {
         // GIVEN
         const props: RenderQueueProps = {
           images,
@@ -738,97 +743,230 @@ describe('RenderQueue', () => {
           new RenderQueue(stack, 'RenderQueue', props);
         })
           // THEN
-          .toThrow(/A hostname must be provided when the external protocol is HTTPS/);
+          .toThrow(/The hostname for the render queue must be defined if supplying your own certificates./);
       });
-    });
 
-    describe('externalProtocol is HTTPS importing cert', () => {
-      let isolatedStack: Stack;
-      let zone: PrivateHostedZone;
-      const ZONE_NAME = 'renderfarm.local';
-
-      beforeEach(() => {
+      test('raises an error when a cert is specified without a hostname', () => {
         // GIVEN
-        isolatedStack = new Stack(app, 'IsolatedStack');
-        zone = new PrivateHostedZone(isolatedStack, 'RenderQueueZone', {
+        const zone = new PrivateHostedZone(isolatedStack, 'RenderQueueZoneNoName', {
           vpc,
           zoneName: ZONE_NAME,
-        });
-
-        const caCert = new X509CertificatePem(isolatedStack, 'CaCert', {
-          subject: {
-            cn: `ca.${ZONE_NAME}`,
-          },
-        });
-        const serverCert = new X509CertificatePem(isolatedStack, 'ServerCert', {
-          subject: {
-            cn: `server.${ZONE_NAME}`,
-          },
-          signingCertificate: caCert,
         });
 
         const props: RenderQueueProps = {
           images,
           repository,
-          version: new VersionQuery(isolatedStack, 'Version'),
+          version: renderQueueVersion,
           vpc,
           trafficEncryption: {
             externalTLS: {
-              rfdkCertificate: serverCert,
+              acmCertificate: Certificate.fromCertificateArn(stack, 'Cert', 'certArn'),
+              acmCertificateChain: Secret.fromSecretArn(stack, 'CA_Cert2', CA_ARN),
             },
-            internalProtocol: ApplicationProtocol.HTTP,
           },
-          hostname: {
-            zone,
-          },
+          hostname: { zone },
         };
 
         // WHEN
-        new RenderQueue(isolatedStack, 'RenderQueue', props);
+        expect(() => {
+          new RenderQueue(stack, 'RenderQueue', props);
+        })
+          // THEN
+          .toThrow(/A hostname must be supplied if a certificate is supplied, with the common name of the certificate matching the hostname \+ domain name/);
+      });
+    });
+
+    describe('externalProtocol is HTTPS importing cert', () => {
+      describe('passing cases', () => {
+        let isolatedStack: Stack;
+        let zone: PrivateHostedZone;
+        const ZONE_NAME = 'renderfarm.local';
+        const HOSTNAME = 'server';
+
+        beforeEach(() => {
+          // GIVEN
+          isolatedStack = new Stack(app, 'IsolatedStack');
+          zone = new PrivateHostedZone(isolatedStack, 'RenderQueueZone', {
+            vpc,
+            zoneName: ZONE_NAME,
+          });
+
+          const caCert = new X509CertificatePem(isolatedStack, 'CaCert', {
+            subject: {
+              cn: `ca.${ZONE_NAME}`,
+            },
+          });
+          const serverCert = new X509CertificatePem(isolatedStack, 'ServerCert', {
+            subject: {
+              cn: `${HOSTNAME}.${ZONE_NAME}`,
+            },
+            signingCertificate: caCert,
+          });
+
+          const props: RenderQueueProps = {
+            images,
+            repository,
+            version: new VersionQuery(isolatedStack, 'Version'),
+            vpc,
+            trafficEncryption: {
+              externalTLS: {
+                rfdkCertificate: serverCert,
+              },
+              internalProtocol: ApplicationProtocol.HTTP,
+            },
+            hostname: {
+              zone,
+              hostname: HOSTNAME,
+            },
+          };
+
+          // WHEN
+          new RenderQueue(isolatedStack, 'RenderQueue', props);
+        });
+
+        test('sets the listener port to 4433', () => {
+          // THEN
+          expectCDK(isolatedStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
+            Port: 4433,
+          }));
+        });
+
+        test('sets the listener protocol to HTTPS', () => {
+          // THEN
+          expectCDK(isolatedStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
+            Protocol: 'HTTPS',
+          }));
+        });
+
+        test('Imports Cert to ACM', () => {
+          // THEN
+          expectCDK(isolatedStack).to(haveResourceLike('Custom::RFDK_AcmImportedCertificate', {
+            X509CertificatePem: {
+              Cert: {
+                'Fn::GetAtt': [
+                  'ServerCert',
+                  'Cert',
+                ],
+              },
+              Key: {
+                'Fn::GetAtt': [
+                  'ServerCert',
+                  'Key',
+                ],
+              },
+              Passphrase: {
+                Ref: 'ServerCertPassphraseE4C3CB38',
+              },
+              CertChain: {
+                'Fn::GetAtt': [
+                  'ServerCert',
+                  'CertChain',
+                ],
+              },
+            },
+          }));
+        });
       });
 
-      test('sets the listener port to 4433', () => {
-        // THEN
-        expectCDK(isolatedStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
-          Port: 4433,
-        }));
-      });
+      describe('failure cases,', () => {
+        test('Throws when missing cert chain', () => {
+          const ZONE_NAME = 'renderfarm.local';
+          const HOSTNAME = 'server';
+          // GIVEN
+          const isolatedStack = new Stack(app, 'IsolatedStack');
+          const zone = new PrivateHostedZone(isolatedStack, 'RenderQueueZone', {
+            vpc,
+            zoneName: ZONE_NAME,
+          });
 
-      test('sets the listener protocol to HTTPS', () => {
-        // THEN
-        expectCDK(isolatedStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
-          Protocol: 'HTTPS',
-        }));
-      });
+          const rootCert = new X509CertificatePem(isolatedStack, 'RootCert', {
+            subject: {
+              cn: `ca.${ZONE_NAME}`,
+            },
+          });
 
-      test('Imports Cert to ACM', () => {
-        // THEN
-        expectCDK(isolatedStack).to(haveResourceLike('Custom::RFDK_AcmImportedCertificate', {
-          X509CertificatePem: {
-            Cert: {
-              'Fn::GetAtt': [
-                'ServerCert',
-                'Cert',
-              ],
+          const props: RenderQueueProps = {
+            images,
+            repository,
+            version: new VersionQuery(isolatedStack, 'Version'),
+            vpc,
+            trafficEncryption: {
+              externalTLS: {
+                rfdkCertificate: rootCert,
+              },
+              internalProtocol: ApplicationProtocol.HTTP,
             },
-            Key: {
-              'Fn::GetAtt': [
-                'ServerCert',
-                'Key',
-              ],
+            hostname: {
+              zone,
+              hostname: HOSTNAME,
             },
-            Passphrase: {
-              Ref: 'ServerCertPassphraseE4C3CB38',
-            },
-            CertChain: {
-              'Fn::GetAtt': [
-                'ServerCert',
-                'CertChain',
-              ],
-            },
+          };
+
+          // WHEN
+          expect(() => {
+            new RenderQueue(isolatedStack, 'RenderQueue', props);
+          })
+            // THEN
+            .toThrow(/Provided rfdkCertificate does not contain a certificate chain/);
+        });
+      });
+    });
+
+    test('Creates default RFDK cert if no cert given', () => {
+      // GIVEN
+      const isolatedStack = new Stack(app, 'IsolatedStack');
+
+      const props: RenderQueueProps = {
+        images,
+        repository,
+        version: new VersionQuery(isolatedStack, 'Version'),
+        vpc,
+        trafficEncryption: {
+          externalTLS: {
           },
-        }));
-      });
+        },
+      };
+
+      const rq = new RenderQueue(isolatedStack, 'RenderQueue', props);
+
+      const rootCa = rq.node.findChild('RootCA').node.defaultChild as X509CertificatePem;
+      const rootCaGen = rootCa.node.defaultChild as CustomResource;
+      const rfdkCert = rq.node.findChild('RenderQueuePemCert').node.defaultChild as X509CertificatePem;
+      const rfdkCertGen = rfdkCert.node.defaultChild as CustomResource;
+      const acmCert = rq.node.findChild('AcmCert').node.defaultChild as ImportedAcmCertificate;
+
+      expectCDK(isolatedStack).to(haveResourceLike('Custom::RFDK_X509Generator', {
+        Passphrase: isolatedStack.resolve(rootCa.passphrase),
+      }));
+
+      expectCDK(isolatedStack).to(haveResourceLike('Custom::RFDK_X509Generator', {
+        Passphrase: isolatedStack.resolve(rfdkCert.passphrase),
+        SigningCertificate: {
+          Cert: isolatedStack.resolve(rootCaGen.getAtt('Cert')),
+          Key: isolatedStack.resolve(rootCaGen.getAtt('Key')),
+          Passphrase: isolatedStack.resolve(rootCa.passphrase),
+          CertChain: '',
+        },
+      }));
+
+      expectCDK(isolatedStack).to(countResources('Custom::RFDK_AcmImportedCertificate', 1));
+      expectCDK(isolatedStack).to(haveResourceLike('Custom::RFDK_AcmImportedCertificate', {
+        X509CertificatePem: {
+          Cert: isolatedStack.resolve(rfdkCertGen.getAtt('Cert')),
+          Key: isolatedStack.resolve(rfdkCertGen.getAtt('Key')),
+          Passphrase: isolatedStack.resolve(rfdkCert.passphrase),
+          CertChain: isolatedStack.resolve(rfdkCertGen.getAtt('CertChain')),
+        },
+      }));
+
+      expectCDK(isolatedStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 1));
+      expectCDK(isolatedStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
+        Certificates: [
+          {
+            CertificateArn: isolatedStack.resolve(acmCert.certificateArn),
+          },
+        ],
+      }));
     });
 
     test('Throws if given ACM cert and RFDK Cert', () => {
@@ -880,41 +1018,10 @@ describe('RenderQueue', () => {
         .toThrow(/Exactly one of externalTLS.acmCertificate and externalTLS.rfdkCertificate must be provided when using externalTLS/);
     });
 
-    test('Throws if no Cert given', () => {
-      // GIVEN
-      const isolatedStack = new Stack(app, 'IsolatedStack');
-      const ZONE_NAME = 'renderfarm.local';
-
-      const zone = new PrivateHostedZone(isolatedStack, 'RenderQueueZone', {
-        vpc,
-        zoneName: ZONE_NAME,
-      });
-
-      const props: RenderQueueProps = {
-        images,
-        repository,
-        version: new VersionQuery(isolatedStack, 'Version'),
-        vpc,
-        trafficEncryption: {
-          externalTLS: {
-          },
-        },
-        hostname: {
-          zone,
-        },
-      };
-
-      // WHEN
-      expect(() => {
-        new RenderQueue(isolatedStack, 'RenderQueue', props);
-      })
-        // THEN
-        .toThrow(/Exactly one of externalTLS.acmCertificate and externalTLS.rfdkCertificate must be provided when using externalTLS/);
-    });
-
     test('Throws if ACM Cert is given without a cert chain', () => {
       // GIVEN
       const isolatedStack = new Stack(app, 'IsolatedStack');
+      const HOSTNAME = 'renderqueue';
       const ZONE_NAME = 'renderfarm.local';
       const CERT_ARN = 'certArn';
 
@@ -934,6 +1041,7 @@ describe('RenderQueue', () => {
           },
         },
         hostname: {
+          hostname: HOSTNAME,
           zone,
         },
       };
@@ -969,6 +1077,7 @@ describe('RenderQueue', () => {
           hostname: {
             zone,
           },
+          trafficEncryption: { externalTLS: { enabled: false } },
         };
 
         // WHEN
@@ -1365,6 +1474,7 @@ describe('RenderQueue', () => {
       let isolatedStack: Stack;
       let zone: PrivateHostedZone;
       let rq: RenderQueue;
+      const HOSTNAME = 'renderqueue';
       const ZONE_NAME = 'renderfarm.local';
       const CERT_ARN = 'arn:a:b:c:dcertarn';
       const CA_ARN = 'arn:aws:secretsmanager:123456789012:secret:ca/arn';
@@ -1382,6 +1492,7 @@ describe('RenderQueue', () => {
           version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           hostname: {
+            hostname: HOSTNAME,
             zone,
           },
           trafficEncryption: {
@@ -1881,7 +1992,7 @@ describe('RenderQueue', () => {
     // GIVEN
     const zoneName = 'mydomain.local';
 
-    describe('not specified', () => {
+    describe('not specified, with no TLS', () => {
       let isolatedStack: Stack;
 
       beforeEach(() => {
@@ -1890,6 +2001,7 @@ describe('RenderQueue', () => {
         const props: RenderQueueProps = {
           images,
           repository,
+          trafficEncryption: { externalTLS: { enabled: false } },
           version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
         };
@@ -1902,6 +2014,32 @@ describe('RenderQueue', () => {
       test('does not create a record set', () => {
         expectCDK(isolatedStack).notTo(haveResource('AWS::Route53::RecordSet'));
       });
+    });
+
+    test('not specified, with TLS', () => {
+      // GIVEN
+      const isolatedStack = new Stack(app, 'IsolatedStack');
+
+      const props: RenderQueueProps = {
+        images,
+        repository,
+        version: new VersionQuery(isolatedStack, 'Version'),
+        vpc,
+        trafficEncryption: {
+          externalTLS: {
+          },
+        },
+      };
+
+      const renderQueue = new RenderQueue(isolatedStack, 'RenderQueue', props);
+
+      expectCDK(isolatedStack).to(haveResource('AWS::Route53::RecordSet', {
+        Name: 'renderqueue.aws-rfdk.com.',
+        Type: 'A',
+        AliasTarget: objectLike({
+          HostedZoneId: isolatedStack.resolve(renderQueue.loadBalancer.loadBalancerCanonicalHostedZoneId),
+        }),
+      }));
     });
 
     describe('specified with zone but no hostname', () => {
@@ -1948,6 +2086,52 @@ describe('RenderQueue', () => {
           }),
         }));
       });
+    });
+
+    test.each([
+      [false],
+      [true],
+    ])('specified with TLS enabled == %s', (isTlsEnabled: boolean) => {
+      // GIVEN
+      const zone = new PrivateHostedZone(dependencyStack, 'Zone', {
+        vpc,
+        zoneName,
+      });
+      const hostname = 'testrq';
+      const isolatedStack = new Stack(app, 'IsolatedStack');
+      const props: RenderQueueProps = {
+        images,
+        repository,
+        version: new VersionQuery(isolatedStack, 'Version'),
+        vpc,
+        hostname: {
+          hostname,
+          zone,
+        },
+        trafficEncryption: {
+          externalTLS: { enabled: isTlsEnabled },
+        },
+      };
+
+      // WHEN
+      const renderQueue = new RenderQueue(isolatedStack, 'RenderQueue', props);
+
+      // THEN
+      const loadBalancerLogicalId = dependencyStack.getLogicalId(
+        renderQueue.loadBalancer.node.defaultChild as CfnElement,
+      );
+      expectCDK(isolatedStack).to(haveResource('AWS::Route53::RecordSet', {
+        Name: `${hostname}.${zoneName}.`,
+        Type: 'A',
+        AliasTarget: objectLike({
+          HostedZoneId: {
+            'Fn::GetAtt': [
+              loadBalancerLogicalId,
+              'CanonicalHostedZoneID',
+            ],
+          },
+        }),
+      }));
     });
 
     test.each([
@@ -2271,13 +2455,13 @@ describe('RenderQueue', () => {
       resourceTypeCounts: {
         'AWS::ECS::Cluster': 1,
         'AWS::EC2::SecurityGroup': 2,
-        'AWS::IAM::Role': 8,
+        'AWS::IAM::Role': 10,
         'AWS::AutoScaling::AutoScalingGroup': 1,
-        'AWS::Lambda::Function': 4,
+        'AWS::Lambda::Function': 6,
         'AWS::SNS::Topic': 1,
         'AWS::ECS::TaskDefinition': 1,
-        'AWS::DynamoDB::Table': 2,
-        'AWS::SecretsManager::Secret': 2,
+        'AWS::DynamoDB::Table': 5,
+        'AWS::SecretsManager::Secret': 4,
         'AWS::ElasticLoadBalancingV2::LoadBalancer': 1,
         'AWS::ElasticLoadBalancingV2::TargetGroup': 1,
         'AWS::ECS::Service': 1,
