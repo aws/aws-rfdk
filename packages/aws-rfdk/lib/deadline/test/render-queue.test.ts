@@ -1243,7 +1243,7 @@ describe('RenderQueue', () => {
                   },
                 ],
               },
-              `" --render-queue "http://renderqueue.${ZONE_NAME}:8080"  2>&1\n` +
+              `" --render-queue "http://renderqueue.${ZONE_NAME}:8080" \n` +
               'rm -f "/tmp/',
               {
                 'Fn::Select': [
