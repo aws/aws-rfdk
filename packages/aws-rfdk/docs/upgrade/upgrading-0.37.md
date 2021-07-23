@@ -31,12 +31,12 @@ Since the endpoint and port the listener on the load balancer uses will be chang
 
 To perform the removal of these constructs:
 1. Suspend any jobs that are being run by workers that the constructs deployed.
-1. If any spot instances are running, they will need to be terminated since their lifecycle is controlled by Deadline's Spot Event Plugin and not your RFDK app. Trying to destroy/remove the `SpotEventPluginFleet` construct will fail if these hosts are left running because the spot instances use the security group that the construct creates.
-1. Next we have to destroy the constructs that are deploying workers, which could be done in a few ways:
-  1. If you can destroy the Stack that contains these constructs without destroying the rest of your app, then destroy it using the command `cdk destroy "ComputeTier"` (or whatever name you gave your stack).
-  1. If you cannot destroy a single stack or you are not using a tiered architecture, you can just comment out these constructs in your app, rebuild it, and then run `cdk deploy "*"` to perform the removal.
-1. Now that we won't cause any dependency issues, we can update the version of RFDK in our app's `package.json`, install it, and then run the deployment. If worker constructs were commented out in the last step, they can be added back in here and redeployed during the upgrade.
-1. Any jobs that were paused can be resumed after the deployment is complete. Any workers deployed with the `WorkerInstanceFleet` should be connecting through TLS now, and the Spot Event Plugin should be configured so that any new Spot instances it deploys will be properly configured as well.
+2. If you are using the `ConfigureSpotEventPlugin` and `SpotEventPluginFleet` constructs, then any spot fleets launched by the Spot Event Plugin will need to be terminated, since their lifecycle is controlled by Deadline's Spot Event Plugin and not your RFDK app. Trying to destroy/remove the `SpotEventPluginFleet` construct will fail if these hosts are left running because the spot instances use the security group that the construct creates.
+3. Next we have to destroy the constructs that are deploying workers, which could be done in a few ways:
+    1. If you can destroy the Stack that contains these constructs without destroying the rest of your app, then destroy it using the command `cdk destroy "ComputeTier"` (or whatever name you gave your stack).
+    2. If you cannot destroy a single stack or you are not using a tiered architecture, you can just comment out these constructs in your app, rebuild it, and then run `cdk deploy "*"` to perform the removal.
+4. Now that we won't cause any dependency issues, we can upgrade the version of RFDK and then run the deployment. If worker constructs were commented out in the last step, they can be added back in here and redeployed during the upgrade.
+5. Any jobs that were paused can be resumed after the deployment is complete. Any workers deployed with the `WorkerInstanceFleet` should be connecting through TLS now, and the Spot Event Plugin should be configured so that any new Spot instances it deploys will be properly configured as well.
 
 ### Preserving plain HTTP
 
