@@ -27,6 +27,31 @@ aws-rfdk/
                     └── ...
 ```
 
+## Referencing the Architecture Diagrams in Code
+
+Architecture diagrams should be embedded in construct JSDoc strings. They can be expressed using Markdown image syntax:
+
+```md
+![architecture diagram](/diagrams/<package>/<ConstructName>.svg)
+```
+
+where the URL is an absolute POSIX path rooted from `aws-rfdk/packages/aws-rfdk/docs`. The RFDK API reference docs
+only process image URLs that begin with `/diagrams`. Putting this together, the JSDoc header for construct `MyConstruct`
+in the `core` package would look:
+
+```ts
+import { Construct } from '@aws-cdk/core';
+
+/**
+ * Documentation for MyConstruct
+ *
+ * ![architecture diagram](/diagrams/core/MyConstruct.svg)
+ */
+export class MyConstruct extends Construct {
+  // ...
+}
+```
+
 ## Diagram Style Conventions
 
 Please make a best-effort to match the design language of the architecture diagrams. Some details include:
