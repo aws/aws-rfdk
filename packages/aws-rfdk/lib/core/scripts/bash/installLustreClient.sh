@@ -85,7 +85,6 @@ function install_on_rhel() {
     [8.4]='4.18.0-305.*'
   )
 
-  rhel_version=$(grep ^VERSION_ID= /etc/os-release | awk -F "=" '{print $2}' | sed s/\"//g)
   kernel_version=$(uname -r)
 
   id=$(grep ^ID= /etc/os-release | awk -F "=" '{print $2}' | sed s/\"//g)
@@ -97,6 +96,8 @@ function install_on_rhel() {
     # The major and minor versions of CentOS releases match that of RHEL,
     # so we can just extract those bits and treat them as the RHEL version
     rhel_version=$(awk '{print $4}' /etc/centos-release | awk -F "." '{print $1"."$2}')
+  else
+    rhel_version=$(grep ^VERSION_ID= /etc/os-release | awk -F "=" '{print $2}' | sed s/\"//g)
   fi
 
   case $rhel_version in
@@ -167,7 +168,7 @@ function install_on_rhel() {
       sudo rpm --import /tmp/fsx-rpm-public-key.asc
       sudo curl https://fsx-lustre-client-repo.s3.amazonaws.com/el/8/fsx-lustre-client.repo -o /etc/yum.repos.d/aws-fsx.repo
       if [[ -n "${replace_ver+x}" ]]; then
-        # Change the baseurl referenced in aws-fsx.repo to so we pull the correct version of the lustre client for this kernel
+        # Change the baseurl referenced in aws-fsx.repo so we pull the correct version of the lustre client for this kernel
         sudo sed -i "s#8#${replace_ver}#" /etc/yum.repos.d/aws-fsx.repo
       fi
 

@@ -46,8 +46,8 @@ export interface MountableFsxLustreProps {
   readonly fileset?: string;
 
   /**
-   * Extra NFSv4 mount options that will be added to /etc/fstab for the file system.
-   * See: {@link https://www.man7.org/linux/man-pages//man5/nfs.5.html}
+   * Extra Lustre mount options that will be added to /etc/fstab for the file system.
+   * See: {@link http://manpages.ubuntu.com/manpages/precise/man8/mount.lustre.8.html}
    *
    * The given values will be joined together into a single string by commas.
    * ex: ['soft', 'rsize=4096'] will become 'soft,rsize=4096'

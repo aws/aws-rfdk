@@ -16,7 +16,7 @@
 #  $1 -- file system Identifier (ex: fs-00000000000)
 #  $2 -- Mount path; directory that we mount the file system to.
 #  $3 -- Mount name
-#  $4 -- (optional) NFSv4 mount options for the file system.
+#  $4 -- (optional) Lustre mount options for the file system.
 
 set -xeu
 
