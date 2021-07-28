@@ -65,6 +65,16 @@ function install_on_al1() {
   sudo yum install -y lustre-client
 }
 
+function verify_lustre_kmod() {
+  modprobe -v --first-time lustre
+  if [[ $? -ne 0 ]]; then
+    echo "ERROR: Lustre client kernel modules were not installed successfully. See above logs for more information."
+    exit 1
+  fi
+
+  sudo lustre_rmmod
+}
+
 function install_on_rhel() {
   # Note: In addition to installing the lustre client packages, an additional "kmod-lustre-client" package also needs to be
   # installed. This package contains kernel-specific modules used by the lustre client.
@@ -111,6 +121,8 @@ function install_on_rhel() {
       esac
       sudo yum -y install "https://downloads.whamcloud.com/public/lustre/lustre-${lustre_version}/el7/client/RPMS/x86_64/kmod-lustre-client-${lustre_version}-1.el7.x86_64.rpm"
       sudo yum -y install "https://downloads.whamcloud.com/public/lustre/lustre-${lustre_version}/el7/client/RPMS/x86_64/lustre-client-${lustre_version}-1.el7.x86_64.rpm"
+
+      verify_lustre_kmod
     ;;
 
     # RHEL 7.7, 7.8, and 7.9
@@ -148,6 +160,8 @@ function install_on_rhel() {
 
       sudo yum clean all
       sudo yum install -y kmod-lustre-client lustre-client
+
+      verify_lustre_kmod
     ;;
 
     # RHEL 8.2 or newer
@@ -174,6 +188,8 @@ function install_on_rhel() {
 
       sudo yum clean all
       sudo yum install -y kmod-lustre-client lustre-client
+
+      verify_lustre_kmod
     ;;
     *) echo "ERROR: Unsupported CentOS/RHEL version: $rhel_version"; exit 1;;
   esac
