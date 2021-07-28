@@ -66,8 +66,7 @@ function install_on_al1() {
 }
 
 function verify_lustre_kmod() {
-  modprobe -v --first-time lustre
-  if [[ $? -ne 0 ]]; then
+  if ! sudo modprobe -v --first-time lustre; then
     echo "ERROR: Lustre client kernel modules were not installed successfully. See above logs for more information."
     exit 1
   fi
