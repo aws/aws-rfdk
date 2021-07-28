@@ -487,6 +487,17 @@
     "@aws-cdk/core" "1.111.0"
     constructs "^3.3.69"
 
+"@aws-cdk/aws-fsx@1.111.0":
+  version "1.111.0"
+  resolved "https://registry.yarnpkg.com/@aws-cdk/aws-fsx/-/aws-fsx-1.111.0.tgz#a38c3093a0fdca4051273b7a6fd70bfda6a79bf8"
+  integrity sha512-ww7kNd/rEkCKtqc63siZ9ul47SWsA8P13046J6vec5F+q7sIhHz8EaaeyxHqZnPYooyS1RqaW67RovuDWpAdew==
+  dependencies:
+    "@aws-cdk/aws-ec2" "1.111.0"
+    "@aws-cdk/aws-iam" "1.111.0"
+    "@aws-cdk/aws-kms" "1.111.0"
+    "@aws-cdk/core" "1.111.0"
+    constructs "^3.3.69"
+
 "@aws-cdk/aws-globalaccelerator@1.111.0":
   version "1.111.0"
   resolved "https://registry.yarnpkg.com/@aws-cdk/aws-globalaccelerator/-/aws-globalaccelerator-1.111.0.tgz#5890737f02cd4d98ca6d69421e6b285f2cd304fd"

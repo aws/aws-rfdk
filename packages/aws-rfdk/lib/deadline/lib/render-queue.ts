@@ -218,6 +218,11 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   private static readonly RE_VALID_HOSTNAME = /^[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/i;
 
   /**
+   * UID/GID for the RCS user.
+   */
+  private static readonly RCS_USER = { uid: 1000, gid: 1000 };
+
+  /**
    * The principal to grant permissions to.
    */
   public readonly grantPrincipal: IPrincipal;
@@ -410,6 +415,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       portNumber: internalPortNumber,
       protocol: internalProtocol,
       repository: props.repository,
+      runAsUser: RenderQueue.RCS_USER,
     });
     this.taskDefinition = taskDefinition;
 
@@ -639,6 +645,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     portNumber: number,
     protocol: ApplicationProtocol,
     repository: IRepository,
+    runAsUser?: { uid: number, gid?: number },
   }) {
     const { image, portNumber, protocol, repository } = props;
 
@@ -676,6 +683,9 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       environment.RCS_TLS_REQUIRE_CLIENT_CERT = 'no';
     }
 
+    // We can ignore this in test coverage because we always use RenderQueue.RCS_USER
+    /* istanbul ignore next */
+    const user = props.runAsUser ? `${props.runAsUser.uid}:${props.runAsUser.gid}` : undefined;
     const containerDefinition = taskDefinition.addContainer('ContainerDefinition', {
       image,
       memoryReservationMiB: 2048,
@@ -684,6 +694,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
         logGroup: this.logGroup,
         streamPrefix: 'RCS',
       }),
+      user,
     });
 
     containerDefinition.addMountPoints(connection.readWriteMountPoint);

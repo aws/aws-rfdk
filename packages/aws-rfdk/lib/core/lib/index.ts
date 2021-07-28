@@ -15,6 +15,7 @@ export * from './mongodb-instance';
 export * from './mongodb-post-install';
 export * from './mountable-ebs';
 export * from './mountable-efs';
+export * from './mountable-fsx-lustre';
 export * from './mountable-filesystem';
 export * from './pad-efs-storage';
 export { RFDK_VERSION } from './runtime-info';

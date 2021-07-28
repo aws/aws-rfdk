@@ -2723,4 +2723,12 @@ describe('RenderQueue', () => {
     }));
   });
 
+  test('runs as RCS user', () => {
+    // THEN
+    expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
+      ContainerDefinitions: arrayWith(
+        objectLike({ User: '1000:1000' }),
+      ),
+    }));
+  });
 });
