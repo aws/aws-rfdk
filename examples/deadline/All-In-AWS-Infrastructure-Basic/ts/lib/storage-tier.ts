@@ -21,6 +21,7 @@ import { DatabaseCluster } from '@aws-cdk/aws-docdb';
 import {
   AccessPoint,
   FileSystem,
+  PosixUser,
 } from '@aws-cdk/aws-efs';
 import {
   ServicePrincipal,
@@ -102,6 +103,14 @@ export abstract class StorageTier extends cdk.Stack {
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
+    // Initialize the UID and GID of the POSIX user that the Repository will be accessing the filesystem as.
+    // The Deadline Repository requires root access to the filesystem to perform the repository setup. If mounting this
+    // filesystem on a machine that does not require root access, you should use another access point with a different user.
+    const repositoryUser: PosixUser = {
+      uid: '0',
+      gid: '0',
+    };
+
     // Create an EFS access point that is used to grant the Repository and RenderQueue with write access to the Deadline
     // Repository directory in the EFS file-system.
     const accessPoint = new AccessPoint(this, 'AccessPoint', {
@@ -111,8 +120,8 @@ export abstract class StorageTier extends cdk.Stack {
       // owning UID/GID set as specified here. These should be set up to grant read and write access to the UID/GID
       // configured in the "poxisUser" property below.
       createAcl: {
-        ownerGid: '10000',
-        ownerUid: '10000',
+        ownerGid: repositoryUser.uid,
+        ownerUid: repositoryUser.gid,
         permissions: '750',
       },
 
@@ -123,10 +132,7 @@ export abstract class StorageTier extends cdk.Stack {
       // UID/GID values instead of those from the user on the system where the EFS is mounted. If you intend to use the
       // same EFS file-system for other purposes (e.g. render assets, plug-in storage), you may want to evaluate the
       // UID/GID permissions based on your requirements.
-      posixUser: {
-        uid: '10000',
-        gid: '10000',
-      },
+      posixUser: repositoryUser,
     });
 
     this.mountableFileSystem = new MountableEfs(this, {

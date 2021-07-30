@@ -116,6 +116,14 @@ class StorageTier(Stack):
             removal_policy=RemovalPolicy.DESTROY
         )
 
+        # Initialize the UID and GID of the POSIX user that the Repository will be accessing the filesystem as.
+        # The Deadline Repository requires root access to the filesystem to perform the repository setup. If mounting this
+        # filesystem on a machine that does not require root access, you should use another access point with a different user.
+        repository_user = PosixUser(
+          uid='0',
+          gid='0'
+        )
+
         # Create an EFS access point that is used to grant the Repository and RenderQueue with write access to the
         # Deadline Repository directory in the EFS file-system.
         access_point = AccessPoint(
@@ -127,8 +135,8 @@ class StorageTier(Stack):
             # the owning UID/GID set as specified here. These should be set up to grant read and write access to the
             # UID/GID configured in the "poxis_user" property below.
             create_acl=Acl(
-                owner_uid='10000',
-                owner_gid='10000',
+                owner_uid=repository_user.uid,
+                owner_gid=repository_user.gid,
                 permissions='750',
             ),
 
@@ -139,10 +147,7 @@ class StorageTier(Stack):
             # these UID/GID values instead of those from the user on the system where the EFS is mounted. If you intend
             # to use the same EFS file-system for other purposes (e.g. render assets, plug-in storage), you may want to
             # evaluate the UID/GID permissions based on your requirements.
-            posix_user=PosixUser(
-                uid='10000',
-                gid='10000'
-            )
+            posix_user=repository_user
         )
 
         self.mountable_file_system = MountableEfs(

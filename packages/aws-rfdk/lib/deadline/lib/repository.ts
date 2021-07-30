@@ -306,6 +306,9 @@ export interface RepositoryProps {
   /**
    * Specify the file system where the deadline repository needs to be initialized.
    *
+   * If using EFS access points, you must give access to the filesystem as the root user (UID=0 & GID=0)
+   * for the Deadline Repository setup to succeed.
+   *
    * If not providing a filesystem, then we will provision an Amazon EFS filesystem for you.
    * This filesystem will contain files for the Deadline Repository filesystem. It will also
    * contain 40GB of additional padding files (see RFDK's PadEfsStorage for details) to increase
