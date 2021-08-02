@@ -60,6 +60,8 @@ Please make a best-effort to match the design language of the architecture diagr
 
 *   10pt Helvetica font
 *   Orthogonal (horizontal and vertical only) routing of lines with no curves
+*   For connecting lines that overlap other lines of the same color, use the **Arc** for the **Line jumps** line
+    property 
 
 ### Constructs
 
