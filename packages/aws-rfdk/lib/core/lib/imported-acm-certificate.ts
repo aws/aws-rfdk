@@ -74,6 +74,8 @@ export interface ImportedAcmCertificateProps {
  * AWS Certificate Manager (ACM). It uses an AWS Lambda Function to extract the certificate from Secrets in AWS SecretsManager
  * and then import it into ACM. The interface is intended to be used with the {@link X509CertificatePem} Construct.
  *
+ * ![architecture diagram](/diagrams/core/ImportedAcmCertificate.svg)
+ *
  * Resources Deployed
  * ------------------------
  * - DynamoDB Table - Used for tracking resources created by the Custom Resource.
