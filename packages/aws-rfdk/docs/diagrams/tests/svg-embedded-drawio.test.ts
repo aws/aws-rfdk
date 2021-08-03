@@ -8,7 +8,7 @@ import { promises as fsPromises } from 'fs';
 import * as path from 'path';
 
 /**
- * This is the regular expression that validates that the dar.io diagram is embedded within the SVG file.
+ * This is the regular expression that validates that the draw.io diagram is embedded within the SVG file.
  *
  * draw.io embeds the diagram as a "content" XML attribute of the <svg> element. This looks like:
  *
@@ -33,7 +33,7 @@ function findSvgDiagrams(dirPath?: string): string[] {
     dirPath = DIAGRAM_ROOT;
   }
 
-  const diagrams: string[] = [];
+  let diagrams: string[] = [];
 
   const listings = fs.readdirSync(dirPath);
 
@@ -42,7 +42,7 @@ function findSvgDiagrams(dirPath?: string): string[] {
     const stat = fs.statSync(listingPath);
     if (stat.isDirectory()) {
       const dirDiagrams = findSvgDiagrams(listingPath);
-      diagrams.splice(diagrams.length, 0, ...dirDiagrams);
+      diagrams = diagrams.concat(...dirDiagrams);
     }
     else if (path.extname(listing).toLowerCase() === '.svg') {
       diagrams.push(listingPath);
