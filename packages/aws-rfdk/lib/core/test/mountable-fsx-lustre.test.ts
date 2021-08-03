@@ -199,4 +199,17 @@ describe('MountableFsxLustre', () => {
     // THEN
     expect(userData).toMatch(new RegExp(escapeTokenRegex(`bash ./mountFsxLustre.sh \${Token[TOKEN.\\d+]} /mnt/fsx/fs1 \${Token[TOKEN.\\d+]}/${fileset} rw`)));
   });
+
+  test('.usesUserPosixPermissions() is true', () => {
+    // GIVEN
+    const mount = new MountableFsxLustre(fs, {
+      filesystem: fs,
+    });
+
+    // WHEN
+    const usesUserPosixPermissions = mount.usesUserPosixPermissions();
+
+    // THEN
+    expect(usesUserPosixPermissions).toEqual(true);
+  });
 });

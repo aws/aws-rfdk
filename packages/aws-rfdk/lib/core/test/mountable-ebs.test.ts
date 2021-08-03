@@ -309,4 +309,17 @@ describe('Test MountableBlockVolume', () => {
     expect(matches).toHaveLength(2);
     expect(matches[0]).toBe(matches[1]);
   });
+
+  test('.usesUserPosixPermissions() is true', () => {
+    // GIVEN
+    const mount1 = new MountableBlockVolume(ebsVol, {
+      blockVolume: ebsVol,
+    });
+
+    // WHEN
+    const usesUserPosixPermissions = mount1.usesUserPosixPermissions();
+
+    // THEN
+    expect(usesUserPosixPermissions).toEqual(true);
+  });
 });

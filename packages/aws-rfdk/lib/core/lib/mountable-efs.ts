@@ -195,6 +195,22 @@ export class MountableEfs implements IMountableLinuxFilesystem {
   }
 
   /**
+   * @inheritdoc
+   */
+  public usesUserPosixPermissions(): boolean {
+    if (this.accessPoint) {
+      // We cannot determine if the access point forces a POSIX user in the import case
+      if (!(this.accessPoint instanceof efs.AccessPoint)) {
+        throw new Error(`MountableEfs.usesUserPosixPermissions() only supports efs.AccessPoint instances, got "${this.accessPoint.constructor.name}"`);
+      }
+
+      const accessPointResource = this.accessPoint.node.defaultChild as efs.CfnAccessPoint;
+      return !accessPointResource.posixUser;
+    }
+    return true;
+  }
+
+  /**
    * Uses a CDK escape-hatch to fetch the UID/GID of the access point POSIX user.
    *
    * @param accessPoint The access point to obtain the POSIX user for

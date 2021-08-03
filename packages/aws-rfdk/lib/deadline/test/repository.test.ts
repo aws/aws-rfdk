@@ -1225,11 +1225,15 @@ test('imports repository settings', () => {
   expect(installerGroup.userData.render()).toContain(`aws s3 cp '${repositorySettings.s3ObjectUrl}'`);
 });
 
-test('changes ownership of repository files', () => {
+test('IFileSystem.usesUserPosixPermissions() = true changes ownership of repository files', () => {
   // GIVEN
   const repo = new Repository(stack, 'Repository', {
     version,
     vpc,
+    fileSystem: {
+      mountToLinuxInstance: (_target, _mount) => {},
+      usesUserPosixPermissions: () => true,
+    },
   });
 
   // WHEN
@@ -1237,4 +1241,22 @@ test('changes ownership of repository files', () => {
 
   // THEN
   expect(script).toMatch('-o 1000:1000');
+});
+
+test('IFileSystem.usesUserPosixPermissions() = false does not change ownership of repository files', () => {
+  // GIVEN
+  const repo = new Repository(stack, 'Repository', {
+    version,
+    vpc,
+    fileSystem: {
+      mountToLinuxInstance: (_target, _mount) => {},
+      usesUserPosixPermissions: () => false,
+    },
+  });
+
+  // WHEN
+  const script = (repo.node.defaultChild as AutoScalingGroup).userData.render();
+
+  // THEN
+  expect(script).not.toMatch('-o 1000:1000');
 });

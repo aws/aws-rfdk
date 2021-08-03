@@ -109,6 +109,13 @@ export class MountableFsxLustre implements IMountableLinuxFilesystem {
   }
 
   /**
+   * @inheritdoc
+   */
+  public usesUserPosixPermissions(): boolean {
+    return true;
+  }
+
+  /**
    * Fetch the Asset singleton for the FSx for Lustre mounting scripts, or generate it if needed.
    */
   protected mountAssetSingleton(scope: IConstruct): Asset {
