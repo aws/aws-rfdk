@@ -1225,7 +1225,7 @@ test('imports repository settings', () => {
   expect(installerGroup.userData.render()).toContain(`aws s3 cp '${repositorySettings.s3ObjectUrl}'`);
 });
 
-test('IFileSystem.usesUserPosixPermissions() = true changes ownership of repository files', () => {
+test('IMountableLinuxFilesystem.usesUserPosixPermissions() = true changes ownership of repository files', () => {
   // GIVEN
   const repo = new Repository(stack, 'Repository', {
     version,
