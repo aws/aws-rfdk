@@ -1243,7 +1243,7 @@ test('IMountableLinuxFilesystem.usesUserPosixPermissions() = true changes owners
   expect(script).toMatch('-o 1000:1000');
 });
 
-test('IFileSystem.usesUserPosixPermissions() = false does not change ownership of repository files', () => {
+test('IMountableLinuxFilesystem.usesUserPosixPermissions() = false does not change ownership of repository files', () => {
   // GIVEN
   const repo = new Repository(stack, 'Repository', {
     version,
