@@ -19,6 +19,7 @@ import {
 } from '@aws-cdk/aws-ec2';
 import * as efs from '@aws-cdk/aws-efs';
 import {
+  Arn,
   App,
   CfnResource,
   Stack,
@@ -340,6 +341,96 @@ describe('Test MountableEFS', () => {
           ),
         }));
       });
+    });
+  });
+
+  describe('.usesUserPosixPermissions()', () => {
+    test('access point with POSIX user returns false', () => {
+      // GIVEN
+      const mount = new MountableEfs(stack, {
+        filesystem: efsFS,
+        accessPoint: new efs.AccessPoint(stack, 'AccessPoint', {
+          fileSystem: efsFS,
+          posixUser: {
+            uid: '1000',
+            gid: '1000',
+          },
+        }),
+      });
+
+      // WHEN
+      const usesUserPosixPermissions = mount.usesUserPosixPermissions();
+
+      // THEN
+      expect(usesUserPosixPermissions).toEqual(false);
+    });
+
+    test('access point without POSIX user returns true', () => {
+      // GIVEN
+      const mount = new MountableEfs(stack, {
+        filesystem: efsFS,
+        accessPoint: new efs.AccessPoint(stack, 'AccessPoint', {
+          fileSystem: efsFS,
+        }),
+      });
+
+      // WHEN
+      const usesUserPosixPermissions = mount.usesUserPosixPermissions();
+
+      // THEN
+      expect(usesUserPosixPermissions).toEqual(true);
+    });
+
+    type AccessPointProvider = (stack: Stack) => efs.IAccessPoint;
+    test.each<[string, AccessPointProvider]>([
+      [
+        'AccessPoint.fromAccessPointId(...)',
+        (inputStack) => efs.AccessPoint.fromAccessPointId(inputStack, 'AccessPoint', 'accessPointId'),
+      ],
+      [
+        'AccessPoint.fromAccessPointAttributes(...)',
+        (inputStack) => {
+          return efs.AccessPoint.fromAccessPointAttributes(inputStack, 'AccessPoint', {
+            accessPointArn: Arn.format(
+              {
+                resource: 'AccessPoint',
+                service: 'efs',
+                resourceName: 'accessPointName',
+              },
+              inputStack,
+            ),
+            fileSystem: efsFS,
+          });
+        },
+      ],
+    ])('%s throws error', (_label, accessPointProvider) => {
+      // GIVEN
+      const accessPoint = accessPointProvider(stack);
+      const mount = new MountableEfs(stack, {
+        filesystem: efsFS,
+        accessPoint,
+      });
+
+      // WHEN
+      function when() {
+        mount.usesUserPosixPermissions();
+      }
+
+      // THEN
+      expect(when).toThrow(/^MountableEfs.usesUserPosixPermissions\(\) only supports efs.AccessPoint instances, got ".*"$/);
+    });
+
+    test('no access point returns true', () => {
+      // GIVEN
+      const mount = new MountableEfs(stack, {
+        filesystem: efsFS,
+      });
+
+      // WHEN
+      const usesUserPosixPermissions = mount.usesUserPosixPermissions();
+
+      // THEN
+      expect(usesUserPosixPermissions).toEqual(true);
     });
   });
 });

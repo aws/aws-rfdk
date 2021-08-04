@@ -676,7 +676,9 @@ export class Repository extends Construct implements IRepository {
       repositoryInstallationPath,
       props.version,
       props.repositorySettings,
-      Repository.REPOSITORY_OWNER,
+      // Change ownership of the Deadline repository files if-and-only-if the mounted file-system
+      // uses the POSIX permissions based on the process' user UID/GID
+      this.fileSystem.usesUserPosixPermissions() ? Repository.REPOSITORY_OWNER : undefined,
     );
 
     this.configureSelfTermination();
