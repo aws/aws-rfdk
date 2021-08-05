@@ -1,6 +1,6 @@
 {
   "name": "all-in-farm-local-zone",
-  "version": "0.36.0",
+  "version": "0.37.0",
   "bin": {
     "app": "bin/app.js"
   },
@@ -23,7 +23,7 @@
     "@aws-cdk/aws-elasticloadbalancingv2": "1.116.0",
     "@aws-cdk/aws-route53": "1.116.0",
     "@aws-cdk/core": "1.116.0",
-    "aws-rfdk": "0.36.0",
+    "aws-rfdk": "0.37.0",
     "source-map-support": "^0.5.19"
   }
 }
