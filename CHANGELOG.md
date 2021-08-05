@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.37.0](https://github.com/aws/aws-rfdk/compare/v0.36.0...v0.37.0) (2021-08-05)
+
+
+### Supported CDK Version
+
+* [1.116.0](https://github.com/aws/aws-cdk/releases/tag/v1.116.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.17.4](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deadline:** MountableEfs will not work with the Repository construct when
+created with an imported EFS Access Point
+* **deadline:** Farms currently not configured to use external TLS on
+the Render Queue will be modified to have it enabled and using the
+default certificate and hosted zone. To keep external TLS disabled, the
+`enabled` flag on the `RenderQueueExternalTLSProps` can be set to false;
+however, we strongly encourage you to enable TLS. See the[RFDK 0.37.x upgrade documentation](https://github.com/aws/aws-rfdk/blob/v0.37.0/packages/aws-rfdk/docs/upgrade/upgrading-0.37.md)
+for more details and guidance on how to upgrade.
+
+### Features
+
+* **core:** add FSx for Lustre integration ([#461](https://github.com/aws/aws-rfdk/issues/461)) ([bf5bbb9](https://github.com/aws/aws-rfdk/commit/bf5bbb99d195c5aebd4ba1a4ce2c42bc1436f905))
+* **deadline:** use TLS between RenderQueue and clients by default ([#491](https://github.com/aws/aws-rfdk/issues/491)) ([1e3eb63](https://github.com/aws/aws-rfdk/commit/1e3eb63212575a8bd581af7f1832df1b95ab75e0)), closes [#490](https://github.com/aws/aws-rfdk/issues/490)
+
+
+### Documentation
+
+* add construct architecture diagrams ([#508](https://github.com/aws/aws-rfdk/pull/508)) ([b83c0e0](https://github.com/aws/aws-rfdk/commit/b83c0e0823ef94e9df44112e194bc1bb2bf9e25a))
+
 ## [0.36.0](https://github.com/aws/aws-rfdk/compare/v0.35.0...v0.36.0) (2021-07-09)
 
 ---
