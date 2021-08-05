@@ -100,6 +100,7 @@ describe('SpotEventPluginFleet', () => {
         vpc,
         version,
       }),
+      trafficEncryption: { externalTLS: { enabled: false } },
       version,
     });
     spotFleetStack = new Stack(app, 'SpotFleetStack', {

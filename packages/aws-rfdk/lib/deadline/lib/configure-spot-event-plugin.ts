@@ -335,6 +335,8 @@ export interface ConfigureSpotEventPluginProps {
  *  - A policy to pass a fleet and instance role
  *  - A policy to create tags for spot fleet requests
  *
+ * ![architecture diagram](/diagrams/deadline/ConfigureSpotEventPlugin.svg)
+ *
  * Resources Deployed
  * ------------------------
  * - An AWS Lambda that is used to connect to the render queue, and save Spot Event Plugin configurations.

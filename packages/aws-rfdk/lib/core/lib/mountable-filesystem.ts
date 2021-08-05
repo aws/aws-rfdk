@@ -65,4 +65,13 @@ export interface IMountableLinuxFilesystem {
    * @param mount  The directory, or drive letter, to mount the filesystem to.
    */
   mountToLinuxInstance(target: IMountingInstance, mount: LinuxMountPointProps): void;
+
+  /**
+   * Returns whether the mounted file-system evaluates the UID/GID of the system user accessing the file-system.
+   *
+   * Some network file-systems provide features to fix a UID/GID for all access to the mounted file-system and ignore
+   * the system user accessing the file. If this is the case, an implementing class must indicate this in the return
+   * value.
+   */
+  usesUserPosixPermissions(): boolean;
 }

@@ -86,6 +86,7 @@ describe('ConfigureSpotEventPlugin', () => {
         vpc,
         version,
       }),
+      trafficEncryption: { externalTLS: { enabled: false } },
       version,
     });
 
@@ -688,6 +689,7 @@ describe('ConfigureSpotEventPlugin', () => {
         vpc,
         version,
       }),
+      trafficEncryption: { externalTLS: { enabled: false } },
       version,
     });
 
@@ -909,6 +911,7 @@ describe('ConfigureSpotEventPlugin', () => {
           vpc,
           version,
         }),
+        trafficEncryption: { externalTLS: { enabled: false } },
         version,
       });
 
@@ -943,6 +946,7 @@ describe('ConfigureSpotEventPlugin', () => {
         vpc,
         version,
       }),
+      trafficEncryption: { externalTLS: { enabled: false } },
       version,
     });
 

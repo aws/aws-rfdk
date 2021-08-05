@@ -75,10 +75,10 @@ The developers actively use Linux for development, but macOS and the Windows Sub
 
 To build, we use the [jsii/superchain docker container](https://hub.docker.com/r/jsii/superchain).
 
-1. Acquire the latest `jsii/superchain` docker image, if you do not already have it.
+1. Acquire the latest `jsii/superchain:node14` docker image, if you do not already have it.
 
     ```bash
-    docker pull jsii/superchain
+    docker pull jsii/superchain:node14
     ```
 
 2. Enter the docker container
@@ -180,6 +180,15 @@ git clean -fdx
 - [ ] Docs
   - __jsdocs__: All public APIs documented
   - __README__: README and/or documentation topic updated
+  - __Architecture Diagrams__: Any new constructs with non-trivial complexity should have accompanying architectural
+    diagrams. Similarly, any changes to a construct's architecture should also be reflected in the architecture
+    diagrams.
+
+    Please read the [architecture diagrams README for more details](packages/aws-rfdk/docs/diagrams/README.md).
+
+  - __Breaking?__: add upgrade documentation to `packages/aws-rfdk/docs/upgrade` which clearly guides users through the
+    process of assessing whether they are impacted by the breaking change and to determine what action they should take
+    to upgrade
 - [ ] Title and Description
   - __Change type__: title prefixed with **fix**, **feat** and module name in parens, which will appear in changelog
   - __Title__: use lower-case and doesn't end with a period

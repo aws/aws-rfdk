@@ -402,6 +402,8 @@ export interface RepositoryProps {
  * and the deployment will continue, otherwise the the deployment will be cancelled.
  * In either case the instance will be cleaned up.
  *
+ * ![architecture diagram](/diagrams/deadline/Repository.svg)
+ *
  * Resources Deployed
  * ------------------------
  * - Encrypted Amazon Elastic File System (EFS) - If no file system is provided.
@@ -469,6 +471,11 @@ export class Repository extends Construct implements IRepository {
    * Default retention period for DocumentDB automated backups if one isn't provided in the props.
    */
   private static DEFAULT_DATABASE_RETENTION_PERIOD: Duration = Duration.days(15);
+
+  /**
+   * The Repository owner is 1000:1000 (ec2-user on AL2).
+   */
+  private static REPOSITORY_OWNER = { uid: 1000, gid: 1000 };
 
   /**
    * @inheritdoc
@@ -669,6 +676,9 @@ export class Repository extends Construct implements IRepository {
       repositoryInstallationPath,
       props.version,
       props.repositorySettings,
+      // Change ownership of the Deadline repository files if-and-only-if the mounted file-system
+      // uses the POSIX permissions based on the process' user UID/GID
+      this.fileSystem.usesUserPosixPermissions() ? Repository.REPOSITORY_OWNER : undefined,
     );
 
     this.configureSelfTermination();
@@ -902,6 +912,7 @@ export class Repository extends Construct implements IRepository {
     installPath: string,
     version: IVersion,
     settings?: Asset,
+    owner?: { uid: number, gid: number },
   ) {
     const installerScriptAsset = ScriptAsset.fromPathConvention(this, 'DeadlineRepositoryInstallerScript', {
       osType: installerGroup.osType,
@@ -918,9 +929,9 @@ export class Repository extends Construct implements IRepository {
     version.linuxInstallers.repository.s3Bucket.grantRead(installerGroup, version.linuxInstallers.repository.objectKey);
 
     const installerArgs = [
-      `"s3://${version.linuxInstallers.repository.s3Bucket.bucketName}/${version.linuxInstallers.repository.objectKey}"`,
-      `"${installPath}"`,
-      version.linuxFullVersionString(),
+      '-i', `"s3://${version.linuxInstallers.repository.s3Bucket.bucketName}/${version.linuxInstallers.repository.objectKey}"`,
+      '-p', `"${installPath}"`,
+      '-v', version.linuxFullVersionString(),
     ];
 
     if (settings) {
@@ -928,7 +939,13 @@ export class Repository extends Construct implements IRepository {
         bucket: settings.bucket,
         bucketKey: settings.s3ObjectKey,
       });
-      installerArgs.push(repositorySettingsFilePath);
+      installerArgs.push('-s', repositorySettingsFilePath);
+    }
+
+    // We can ignore this in test coverage because we always use Repository.REPOSITORY_OWNER
+    /* istanbul ignore next */
+    if (owner) {
+      installerArgs.push('-o', `${owner.uid}:${owner.gid}`);
     }
 
     installerScriptAsset.executeOn({

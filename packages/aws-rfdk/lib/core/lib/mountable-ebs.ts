@@ -151,6 +151,13 @@ export class MountableBlockVolume implements IMountableLinuxFilesystem {
   }
 
   /**
+   * @inheritdoc
+   */
+  public usesUserPosixPermissions(): boolean {
+    return true;
+  }
+
+  /**
    * Grant required permissions to the target. The mounting script requires two permissions:
    * 1) Permission to describe the volume
    * 2) Permission to attach the volume
