@@ -6,7 +6,14 @@
 import * as crypto from 'crypto';
 import { join } from 'path';
 
-import { ICertificate } from '@aws-cdk/aws-certificatemanager';
+import {
+  Certificate,
+  ICertificate,
+} from '@aws-cdk/aws-certificatemanager';
+import {
+  Metric,
+  MetricOptions,
+} from '@aws-cdk/aws-cloudwatch';
 import {
   AttributeType,
   BillingMode,
@@ -96,6 +103,7 @@ export interface ImportedAcmCertificateProps {
  */
 export class ImportedAcmCertificate extends Construct implements ICertificate {
   private static IMPORTER_UUID = '2d20d8f2-7b84-444e-b738-c75b499a9eaa';
+  private static CERT_LOOKUP_CONSTRUCT_ID = 'CertificateLookup';
 
   /**
    * The ARN for the Certificate that was imported into ACM
@@ -209,5 +217,26 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
     });
 
     this.certificateArn = Token.asString(resource.getAtt('CertificateArn'));
+  }
+
+  /**
+   * @inheritdoc
+   */
+  metricDaysToExpiry(props?: MetricOptions): Metric {
+    const certLookupNode = this.node.tryFindChild(ImportedAcmCertificate.CERT_LOOKUP_CONSTRUCT_ID);
+    let certLookup: ICertificate | undefined;
+
+    /* istanbul ignore next */
+    if (certLookupNode) {
+      certLookup = certLookupNode as Certificate;
+    } else {
+      certLookup = Certificate.fromCertificateArn(
+        this,
+        ImportedAcmCertificate.CERT_LOOKUP_CONSTRUCT_ID,
+        this.certificateArn,
+      );
+    }
+
+    return certLookup.metricDaysToExpiry(props);
   }
 }
