@@ -1289,7 +1289,7 @@ test('secret manager enabled', () => {
   // THEN
   expect(repository.secretsManagementSettings.credentials).toBe(expectedCredentials);
   const installerGroup = repository.node.tryFindChild('Installer') as AutoScalingGroup;
-  expect(installerGroup.userData.render()).toContain(`--installSecretsManagement true ${stack.region} ${expectedCredentials.secretArn}`);
+  expect(installerGroup.userData.render()).toContain(`-r ${stack.region} -c ${expectedCredentials.secretArn}`);
 });
 
 test('secret manager is enabled by default', () => {

@@ -17,11 +17,11 @@ Required arguments:
 
 Optional arguments
   -s Deadline Repository settings file to import.
-  -o The UID[:GID] that this script will chown the Repository files for. If GID is not specified, it defults to be the same as UID."
+  -o The UID[:GID] that this script will chown the Repository files for. If GID is not specified, it defults to be the same as UID.
   -c Secret management admin credentials ARN. If this parameter is specified, secrets management will be enabled.
-  -r Region where stacks are deployed. Required to get secret management credentials.
+  -r Region where stacks are deployed. Required to get secret management credentials."
 
-while getopts "i:p:v:s:o:" opt; do
+while getopts "i:p:v:s:o:c:r:" opt; do
   case $opt in
     i) S3PATH="$OPTARG"
     ;;
@@ -118,29 +118,16 @@ fi
 SECRET_MANAGEMENT_ARG=''
 if [ ! -z "${SECRET_MANAGEMENT_ARN+x}" ]; then
   sudo yum install -y jq
-
   SM_SECRET_VALUE=$(aws secretsmanager get-secret-value --secret-id=$SECRET_MANAGEMENT_ARN --region=$AWS_REGION)
   SM_SECRET_STRING=$(jq -r '.SecretString' <<< "$SM_SECRET_VALUE")
   SECRET_MANAGEMENT_USER=$(jq -r '.username' <<< "$SM_SECRET_STRING")
   SECRET_MANAGEMENT_PASSWORD=$(jq -r '.password' <<< "$SM_SECRET_STRING")
-
-  len=$(echo ${#SECRET_MANAGEMENT_PASSWORD})
-  if test $len -ge 8 ; then
-      echo "$SECRET_MANAGEMENT_PASSWORD" | grep -q [0-9]
-      if test $? -eq 0 ; then
-          echo "$SECRET_MANAGEMENT_PASSWORD" | grep -q [A-Z]
-          if test $? -eq 0 ; then
-              echo "$SECRET_MANAGEMENT_PASSWORD" | grep -q [a-z]
-              if test $? -eq 0 ; then
-                  echo "$SECRET_MANAGEMENT_PASSWORD" | grep -q [~,.,:,@,!,\#,%,*,_,+,-,=,?]
-                  if test $? -eq 0 ; then
-                      SM_STRONG_PASSWORD='true'
-                  fi  
-              fi
-          fi
-      fi
-  fi
-  if [ -z "${SM_STRONG_PASSWORD+x}" ]; then
+  if !([[ ${#SECRET_MANAGEMENT_PASSWORD} -ge 8 ]] && 
+    echo $SECRET_MANAGEMENT_PASSWORD | grep -q [0-9] &&
+    echo $SECRET_MANAGEMENT_PASSWORD | grep -q [a-z] &&
+    echo $SECRET_MANAGEMENT_PASSWORD | grep -q [A-Z] &&
+    echo $SECRET_MANAGEMENT_PASSWORD | grep -q [^[:alnum:]])
+  then
     echo "ERROR: Admin password is too weak. It must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, one symbol and one digit."
     exit 1
   fi
