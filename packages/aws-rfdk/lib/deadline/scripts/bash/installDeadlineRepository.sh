@@ -132,7 +132,7 @@ if [ ! -z "${SECRET_MANAGEMENT_ARN+x}" ]; then
     exit 1
   fi
   echo "Secret management is enabled. Credentials are stored in secret: $SECRET_MANAGEMENT_ARN"
-  SECRET_MANAGEMENT_ARG="--installSecretsManagement true --secretsAdminName \"$SECRET_MANAGEMENT_USER\" --secretsAdminPassword \"$SECRET_MANAGEMENT_PASSWORD\""
+  SECRET_MANAGEMENT_ARG="--installSecretsManagement true --secretsAdminName $SECRET_MANAGEMENT_USER --secretsAdminPassword $SECRET_MANAGEMENT_PASSWORD"
 fi
 
 if [[ -n "${DEADLINE_REPOSITORY_OWNER+x}" ]]; then

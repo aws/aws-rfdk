@@ -35,6 +35,7 @@ import {
 } from '@aws-cdk/aws-ec2';
 import {
   ContainerImage,
+  Ec2TaskDefinition,
   TaskDefinition,
 } from '@aws-cdk/aws-ecs';
 import {
@@ -50,7 +51,7 @@ import {
 import {
   Bucket,
 } from '@aws-cdk/aws-s3';
-import { Secret } from '@aws-cdk/aws-secretsmanager';
+import { CfnSecret, ISecret, Secret } from '@aws-cdk/aws-secretsmanager';
 import {
   App,
   CfnElement,
@@ -2730,5 +2731,132 @@ describe('RenderQueue', () => {
         objectLike({ User: '1000:1000' }),
       ),
     }));
+  });
+
+  describe('Secrets Management', () => {
+    let secretsManagementCredentials: ISecret;
+    let rqSecretsManagementProps: RenderQueueProps;
+
+    beforeEach(() => {
+      secretsManagementCredentials = new Secret(stack, 'SecretsManagementCredentials');
+      rqSecretsManagementProps = {
+        vpc,
+        images,
+        repository,
+        version: renderQueueVersion,
+        secretsManagementCredentials,
+        trafficEncryption: {
+          internalProtocol: ApplicationProtocol.HTTPS,
+          externalTLS: { enabled: true },
+        },
+      };
+    });
+
+    test('throws if secrets management not enabled on repository', () => {
+      // GIVEN
+      const secret = new Secret(dependencyStack, 'DeadlineSecretsManagementCredentials');
+      const smRepository = new Repository(dependencyStack, 'SecretsManagementRepository', {
+        vpc,
+        version,
+        secretsManagementSettings: {
+          enabled: false,
+          credentials: secret,
+        },
+      });
+
+      // WHEN
+      expect(() => new RenderQueue(stack, 'SecretsManagementRenderQueue', {
+        ...rqSecretsManagementProps,
+        repository: smRepository,
+      }))
+
+        // THEN
+        .toThrowError(/Secrets Management is not enabled on the Repository/);
+    });
+
+    test('throws if internal protocol is not HTTPS', () => {
+      // WHEN
+      expect(() => new RenderQueue(stack, 'SecretsManagementRenderQueue', {
+        ...rqSecretsManagementProps,
+        trafficEncryption: {
+          internalProtocol: ApplicationProtocol.HTTP,
+        },
+      }))
+
+        // THEN
+        .toThrowError(/The internal protocol on the Render Queue is not HTTPS./);
+    });
+
+    test('throws if external TLS is not enabled', () => {
+      // WHEN
+      expect(() => new RenderQueue(stack, 'SecretsManagementRenderQueue', {
+        ...rqSecretsManagementProps,
+        trafficEncryption: {
+          externalTLS: { enabled: false },
+        },
+      }))
+
+        // THEN
+        .toThrowError(/External TLS on the Render Queue is not enabled./);
+    });
+
+    test('grants read permissions to secrets management credentials', () => {
+      // WHEN
+      const rq = new RenderQueue(stack, 'SecretsManagementRenderQueue', rqSecretsManagementProps);
+
+      // THEN
+      expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+        PolicyDocument: objectLike({
+          Statement: arrayWith({
+            Action: [
+              'secretsmanager:GetSecretValue',
+              'secretsmanager:DescribeSecret',
+            ],
+            Effect: 'Allow',
+            Resource: stack.resolve((secretsManagementCredentials.node.defaultChild as CfnSecret).ref),
+          }),
+        }),
+        Roles: [stack.resolve((rq.node.tryFindChild('RCSTask') as Ec2TaskDefinition).taskRole.roleName)],
+      }));
+    });
+
+    test('defines secrets management credentials environment variable', () => {
+      // WHEN
+      new RenderQueue(stack, 'SecretsManagementRenderQueue', rqSecretsManagementProps);
+
+      // THEN
+      expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
+        ContainerDefinitions: arrayWith(objectLike({
+          Environment: arrayWith({
+            Name: 'RCS_SM_CREDENTIALS_URI',
+            Value: stack.resolve((secretsManagementCredentials.node.defaultChild as CfnSecret).ref),
+          }),
+        })),
+      }));
+    });
+
+    test('creates and mounts docker volume for deadline key pairs', () => {
+      // WHEN
+      new RenderQueue(stack, 'SecretsManagementRenderQueue', rqSecretsManagementProps);
+
+      // THEN
+      expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
+        ContainerDefinitions: arrayWith(objectLike({
+          MountPoints: arrayWith({
+            ContainerPath: '/home/ec2-user/.config/.mono/keypairs',
+            ReadOnly: false,
+            SourceVolume: 'deadline-user-keypairs',
+          }),
+        })),
+        Volumes: arrayWith({
+          DockerVolumeConfiguration: {
+            Autoprovision: true,
+            Driver: 'local',
+            Scope: 'shared',
+          },
+          Name: 'deadline-user-keypairs',
+        }),
+      }));
+    });
   });
 });

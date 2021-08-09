@@ -377,6 +377,24 @@ export interface RenderQueueProps {
    * @default false
    */
   readonly enableLocalFileCaching?: boolean;
+
+  /**
+ * The credentials for configuring Deadline Secrets Management on the Render Queue. Providing this value will enable Secrets Management
+ * on the Render Queue.
+ *
+ * The secret must be in the following JSON format:
+ *
+ * ```
+ * {
+ *   username: string,
+ *   password: string,
+ * }
+ * ```
+ *
+ * @see https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html
+ * @default Deadline Secrets Management is not enabled
+ */
+  readonly secretsManagementCredentials?: ISecret;
 }
 
 /**
