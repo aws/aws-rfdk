@@ -46,6 +46,10 @@ import {
   Asset,
 } from '@aws-cdk/aws-s3-assets';
 import {
+  ISecret,
+  Secret,
+} from '@aws-cdk/aws-secretsmanager';
+import {
   Annotations,
   Construct,
   Duration,
@@ -272,6 +276,36 @@ export interface RepositorySecurityGroupsOptions {
 }
 
 /**
+ * Settings used by Deadline Secrets Management, a feature introduced in Deadline 10.1.10 for securely managing storage
+ * and access of Secrets for your render farm.
+ * More details at:
+ * https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html
+ * Using Secrets Management requires TLS to be enabled between the RenderQueue and its clients. If this feature is enabled, the
+ * `externalTLS` on the `RenderQueueTrafficEncryptionProps` interface on the RenderQueue cannot be disabled.
+ */
+export interface SecretsManagementProps {
+  /**
+   * Whether or not to enable the Secrets Management feature.
+   */
+  readonly enabled: boolean;
+
+  /**
+   * A Secret containing the username and password to use for the admin role.
+   * The contents of this secret must be a JSON document with the keys "username" and "password". ex:
+   *     {
+   *         "username": <admin user name>,
+   *         "password": <admin user password>,
+   *     }
+   * Password should be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, one symbol and one number.
+   * In the case when the password does not meet the requirements, the repository construct will fail to deploy.
+   * It is highly recommended that you leave this parameter undefined to enable the automatic generation of a strong password.
+   *
+   * @default: A random username and password will be generated in a Secret with ID `SMAdminUser` and will need to be retrieved from AWS Secrets Manager if it is needed
+   */
+  readonly credentials?: ISecret;
+}
+
+/**
  * Properties for the Deadline repository
  */
 export interface RepositoryProps {
@@ -387,6 +421,15 @@ export interface RepositoryProps {
    * @default Repository settings are not imported.
    */
   readonly repositorySettings?: Asset;
+
+  /**
+   * Define the settings used by Deadline Secrets Management, a feature introduced in Deadline 10.1.10 for securely managing storage
+   * and access of Secrets for your render farm.
+   * More details at:
+   * https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html
+   * @default: Secrets Management will be enabled and a username and password will be automatically generated if none are supplied.
+   */
+  readonly secretsManagementSettings?: SecretsManagementProps;
 }
 
 /**
@@ -478,6 +521,11 @@ export class Repository extends Construct implements IRepository {
   private static REPOSITORY_OWNER = { uid: 1000, gid: 1000 };
 
   /**
+   * Default username for auto generated admin credentials in Secret Manager.
+   */
+  private static DEFAULT_SECRETS_MANAGEMENT_USERNAME: string = 'admin';
+
+  /**
    * @inheritdoc
    */
   public readonly rootPrefix: string;
@@ -508,6 +556,11 @@ export class Repository extends Construct implements IRepository {
    */
   private readonly installerGroup: AutoScalingGroup;
 
+  /**
+   * Deadline Secrets Management settings.
+   */
+  public readonly secretsManagementSettings: SecretsManagementProps;
+
   constructor(scope: Construct, id: string, props: RepositoryProps) {
     super(scope, id);
 
@@ -525,6 +578,23 @@ export class Repository extends Construct implements IRepository {
     }
 
     this.version = props.version;
+
+    this.secretsManagementSettings = {
+      enabled: props.secretsManagementSettings?.enabled ?? true,
+      credentials: props.secretsManagementSettings?.credentials ??
+        ((props.secretsManagementSettings?.enabled ?? true) ? new Secret(this, 'SMAdminUser', {
+          description: 'Admin credentials for Deadline Secrets Management',
+          generateSecretString: {
+            excludeCharacters: '\"$&\'()/<>[\\]\`{|}',
+            includeSpace: false,
+            passwordLength: 24,
+            requireEachIncludedType: true,
+
+            generateStringKey: 'password',
+            secretStringTemplate: JSON.stringify({ username: Repository.DEFAULT_SECRETS_MANAGEMENT_USERNAME }),
+          },
+        }) : undefined),
+    };
 
     this.fileSystem = props.fileSystem ?? (() => {
       const fs = new EfsFileSystem(this, 'FileSystem', {
@@ -933,6 +1003,12 @@ export class Repository extends Construct implements IRepository {
       '-p', `"${installPath}"`,
       '-v', version.linuxFullVersionString(),
     ];
+
+    if (this.secretsManagementSettings.enabled) {
+      installerArgs.push('-r', Stack.of(this.secretsManagementSettings.credentials ?? this).region);
+      this.secretsManagementSettings.credentials!.grantRead(installerGroup);
+      installerArgs.push('-c', this.secretsManagementSettings.credentials!.secretArn ?? '');
+    }
 
     if (settings) {
       const repositorySettingsFilePath = installerGroup.userData.addS3DownloadCommand({

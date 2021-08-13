@@ -36,6 +36,7 @@ import {
 } from '@aws-cdk/aws-efs';
 import { Bucket } from '@aws-cdk/aws-s3';
 import { Asset } from '@aws-cdk/aws-s3-assets';
+import { Secret } from '@aws-cdk/aws-secretsmanager';
 import {
   App,
   CfnElement,
@@ -1069,7 +1070,7 @@ describe('tagging', () => {
       'AWS::EC2::SecurityGroup': 3,
       'AWS::DocDB::DBClusterParameterGroup': 1,
       'AWS::DocDB::DBSubnetGroup': 1,
-      'AWS::SecretsManager::Secret': 1,
+      'AWS::SecretsManager::Secret': 2,
       'AWS::DocDB::DBCluster': 1,
       'AWS::DocDB::DBInstance': 1,
       'AWS::IAM::Role': 1,
@@ -1259,4 +1260,60 @@ test('IMountableLinuxFilesystem.usesUserPosixPermissions() = false does not chan
 
   // THEN
   expect(script).not.toMatch('-o 1000:1000');
+});
+
+test('secret manager enabled', () => {
+  // GIVEN
+  const expectedCredentials = new Secret(stack, 'CustomSMAdminUser', {
+    description: 'Custom admin credentials for the Secret Management',
+    generateSecretString: {
+      excludeCharacters: '\"$&\'()-/<>[\\]\`{|}',
+      includeSpace: false,
+      passwordLength: 24,
+      requireEachIncludedType: true,
+      generateStringKey: 'password',
+      secretStringTemplate: JSON.stringify({ username: 'admin' }),
+    },
+  });
+
+  // WHEN
+  const repository = new Repository(stack, 'Repository', {
+    vpc,
+    version,
+    secretsManagementSettings: {
+      enabled: true,
+      credentials: expectedCredentials,
+    },
+  });
+
+  // THEN
+  expect(repository.secretsManagementSettings.credentials).toBe(expectedCredentials);
+  const installerGroup = repository.node.tryFindChild('Installer') as AutoScalingGroup;
+  expect(installerGroup.userData.render()).toContain(`-r ${stack.region} -c ${expectedCredentials.secretArn}`);
+});
+
+test('secret manager is enabled by default', () => {
+  // WHEN
+  const repository = new Repository(stack, 'Repository', {
+    vpc,
+    version,
+  });
+
+  // THEN
+  expect(repository.secretsManagementSettings.enabled).toBeTruthy();
+  expect(repository.secretsManagementSettings.credentials).toBeDefined();
+});
+
+test('credentials are undefined when secrets management is disabled', () => {
+  // WHEN
+  const repository = new Repository(stack, 'Repository', {
+    vpc,
+    version,
+    secretsManagementSettings: {
+      enabled: false,
+    },
+  });
+
+  // THEN
+  expect(repository.secretsManagementSettings.credentials).toBeUndefined();
 });
