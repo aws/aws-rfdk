@@ -51,8 +51,8 @@ export const REPO_DC_ASSET = {
 };
 
 export const RQ_CONNECTION_ASSET = {
-  Bucket: 'AssetParameters74fd6cba5cebe5a13738b535ab6b010a0fe1154689bad4df3ef49ed7bddc1075S3Bucket0337801D',
-  Key: 'AssetParameters74fd6cba5cebe5a13738b535ab6b010a0fe1154689bad4df3ef49ed7bddc1075S3VersionKey144181B5',
+  Bucket: 'AssetParametersfd2517b91b53ebe13fa425370792a214fe2d9ca5fef04190186c1e20f77e338dS3Bucket006428E9',
+  Key: 'AssetParametersfd2517b91b53ebe13fa425370792a214fe2d9ca5fef04190186c1e20f77e338dS3VersionKey1CB2D684',
 };
 
 export function linuxCloudWatchScriptBoilerplate(scriptParams: string) {
