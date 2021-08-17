@@ -173,7 +173,7 @@ def configure_deadline( config ):
             print("Testing Deadline connection...")
             stdout.flush()
             try:
-                call_deadline_command(['GetJobs'])
+                call_deadline_command(['GetRepositoryVersion'])
             except Exception as e:
                 print('Deadline connection error: %s' % e)
             print("Deadline connection configured correctly")
