@@ -328,6 +328,7 @@ describe('Test WorkerInstanceConfiguration connect to RenderQueue', () => {
       repository: new Repository(stack, 'Repository', {
         vpc,
         version,
+        secretsManagementSettings: { enabled: false },
       }),
       trafficEncryption: { externalTLS: { enabled: false } },
     });

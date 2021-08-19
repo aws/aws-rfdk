@@ -89,6 +89,7 @@ beforeEach(() => {
     repository: new Repository(stack, 'Repository', {
       vpc,
       version,
+      secretsManagementSettings: { enabled: false },
     }),
     trafficEncryption: { externalTLS: { enabled: false } },
     version,

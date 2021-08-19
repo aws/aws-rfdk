@@ -85,6 +85,7 @@ describe('ConfigureSpotEventPlugin', () => {
       repository: new Repository(stack, 'Repository', {
         vpc,
         version,
+        secretsManagementSettings: { enabled: false },
       }),
       trafficEncryption: { externalTLS: { enabled: false } },
       version,
@@ -688,6 +689,7 @@ describe('ConfigureSpotEventPlugin', () => {
       repository: new Repository(stack, 'Repository2', {
         vpc,
         version,
+        secretsManagementSettings: { enabled: false },
       }),
       trafficEncryption: { externalTLS: { enabled: false } },
       version,
@@ -910,6 +912,7 @@ describe('ConfigureSpotEventPlugin', () => {
         repository: new Repository(newStack, 'Repository', {
           vpc,
           version,
+          secretsManagementSettings: { enabled: false },
         }),
         trafficEncryption: { externalTLS: { enabled: false } },
         version,
@@ -945,6 +948,7 @@ describe('ConfigureSpotEventPlugin', () => {
       repository: new Repository(newStack, 'Repository', {
         vpc,
         version,
+        secretsManagementSettings: { enabled: false },
       }),
       trafficEncryption: { externalTLS: { enabled: false } },
       version,

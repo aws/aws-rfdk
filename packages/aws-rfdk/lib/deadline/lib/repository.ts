@@ -191,6 +191,11 @@ export interface IRepository extends IConstruct {
   readonly version: IVersion;
 
   /**
+   * Deadline Secrets Management settings.
+   */
+  readonly secretsManagementSettings: SecretsManagementProps;
+
+  /**
    * Configures an ECS Container Instance and Task Definition for deploying a Deadline Client that directly connects to
    * this repository.
    *
@@ -557,7 +562,7 @@ export class Repository extends Construct implements IRepository {
   private readonly installerGroup: AutoScalingGroup;
 
   /**
-   * Deadline Secrets Management settings.
+   * @inheritdoc
    */
   public readonly secretsManagementSettings: SecretsManagementProps;
 
