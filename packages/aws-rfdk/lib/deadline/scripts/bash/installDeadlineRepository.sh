@@ -18,7 +18,7 @@ Required arguments:
 Optional arguments
   -s Deadline Repository settings file to import.
   -o The UID[:GID] that this script will chown the Repository files for. If GID is not specified, it defults to be the same as UID.
-  -c Secret management admin credentials ARN. If this parameter is specified, secrets management will be enabled.
+  -c Secrets management admin credentials ARN. If this parameter is specified, secrets management will be enabled.
   -r Region where stacks are deployed. Required to get secret management credentials."
 
 while getopts "i:p:v:s:o:c:r:" opt; do
@@ -131,8 +131,10 @@ if [ ! -z "${SECRET_MANAGEMENT_ARN+x}" ]; then
     echo "ERROR: Admin password is too weak. It must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, one symbol and one digit."
     exit 1
   fi
-  echo "Secret management is enabled. Credentials are stored in secret: $SECRET_MANAGEMENT_ARN"
+  echo "Secrets management is enabled. Credentials are stored in secret: $SECRET_MANAGEMENT_ARN"
   SECRET_MANAGEMENT_ARGS=("--installSecretsManagement" "true" "--secretsAdminName" "$SECRET_MANAGEMENT_USER" "--secretsAdminPassword" "$SECRET_MANAGEMENT_PASSWORD")
+else
+  echo "Secrets management is not enabled."
 fi
 
 if [[ -n "${DEADLINE_REPOSITORY_OWNER+x}" ]]; then
