@@ -2820,6 +2820,21 @@ describe('RenderQueue', () => {
         .toThrowError(/The Repository does not have Secrets Management credentials/);
     });
 
+    test('throws if deadline version is too low', () => {
+      // GIVEN
+      const oldVersion = new VersionQuery(new Stack(app, 'OldDeadlineVersionStack'), 'OldDeadlineVersion', { version: '10.0.0.0' });
+
+      // WHEN
+      expect(() => new RenderQueue(stack, 'SecretsManagementRenderQueue', {
+        ...rqSecretsManagementProps,
+        version: oldVersion,
+      }))
+
+        // THEN
+        /* eslint-disable-next-line dot-notation */
+        .toThrowError(`The supplied Deadline version is lower than the minimum required version: ${RenderQueue['MINIMUM_SECRETS_MANAGEMENT_VERSION'].toString()}`);
+    });
+
     test('grants read permissions to secrets management credentials', () => {
       // WHEN
       const rq = new RenderQueue(stack, 'SecretsManagementRenderQueue', rqSecretsManagementProps);

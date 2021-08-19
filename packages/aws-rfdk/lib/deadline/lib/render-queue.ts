@@ -216,6 +216,11 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   private static readonly MINIMUM_LOAD_BALANCING_VERSION = new Version([10, 1, 10, 0]);
 
   /**
+   * The minimum Deadline version required to enable Deadline Secrets Management on the Render Queue.
+   */
+  private static readonly MINIMUM_SECRETS_MANAGEMENT_VERSION = new Version([10, 1, 18, 0]);
+
+  /**
    * Regular expression that validates a hostname (portion in front of the subdomain).
    */
   private static readonly RE_VALID_HOSTNAME = /^[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/i;
@@ -223,6 +228,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   /**
    * Information for the RCS user.
    */
+
   private static readonly RCS_USER = { uid: 1000, gid: 1000, username: 'ec2-user' };
 
   /**
@@ -415,6 +421,9 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
 
     if (props.repository.secretsManagementSettings.enabled) {
       const errors = [];
+      if (props.version.isLessThan(RenderQueue.MINIMUM_SECRETS_MANAGEMENT_VERSION)) {
+        errors.push(`The supplied Deadline version is lower than the minimum required version: ${RenderQueue.MINIMUM_SECRETS_MANAGEMENT_VERSION.toString()}`);
+      }
       if (props.repository.secretsManagementSettings.credentials === undefined) {
         errors.push('The Repository does not have Secrets Management credentials');
       }
@@ -425,7 +434,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
         errors.push('External TLS on the Render Queue is not enabled.');
       }
       if (errors.length > 0) {
-        throw new Error(`Secrets Management cannot be enabled on the Render Queue for the following reasons:\n${errors.join('\n')}`);
+        throw new Error(`Deadline Secrets Management is enabled on the supplied Repository but cannot be enabled on the Render Queue for the following reasons:\n${errors.join('\n')}`);
       }
     }
     const taskDefinition = this.createTaskDefinition({
