@@ -25,7 +25,7 @@ while getopts "i:p:v:s:o:c:r:" opt; do
   case $opt in
     i) S3PATH="$OPTARG"
     ;;
-    p) PREFIX="$OPTARG" 
+    p) PREFIX="$OPTARG"
     ;;
     v) DEADLINE_REPOSITORY_VERSION="$OPTARG"
     ;;
@@ -74,7 +74,7 @@ if test -f "$REPOSITORY_FILE_PATH"; then
         exit 1
     fi
     echo "Database Connection is valid.  Validating Deadline Version."
-    
+
     # Following runs the .ini file as a script while suppressing all the errors. This creates bash variables with
     # the key's name and sets its value to the value specified in .ini file.
     # This is a quick way to read the .ini values but is not a full-proof way. Since we dont have common keys in
@@ -123,7 +123,7 @@ if [ ! -z "${SECRET_MANAGEMENT_ARN+x}" ]; then
   SM_SECRET_STRING=$(jq -r '.SecretString' <<< "$SM_SECRET_VALUE")
   SECRET_MANAGEMENT_USER=$(jq -r '.username' <<< "$SM_SECRET_STRING")
   SECRET_MANAGEMENT_PASSWORD=$(jq -r '.password' <<< "$SM_SECRET_STRING")
-  if !([[ ${#SECRET_MANAGEMENT_PASSWORD} -ge 8 ]] && 
+  if !([[ ${#SECRET_MANAGEMENT_PASSWORD} -ge 8 ]] &&
     echo $SECRET_MANAGEMENT_PASSWORD | grep -q [0-9] &&
     echo $SECRET_MANAGEMENT_PASSWORD | grep -q [a-z] &&
     echo $SECRET_MANAGEMENT_PASSWORD | grep -q [A-Z] &&

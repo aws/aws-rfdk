@@ -5,9 +5,20 @@
  */
 
 import 'source-map-support/register';
-import { config } from './config';
+
+import {
+  InstanceClass,
+  InstanceSize,
+  InstanceType,
+  MachineImage,
+} from '@aws-cdk/aws-ec2';
 import * as cdk from '@aws-cdk/core';
+
+import { config } from './config';
+
+import { ComputeTier } from '../lib/compute-tier';
 import { NetworkTier } from '../lib/network-tier';
+import { SecurityTier } from '../lib/security-tier';
 import {
   ServiceTier,
 } from '../lib/service-tier';
@@ -16,14 +27,9 @@ import {
   StorageTierDocDB,
   StorageTierMongoDB,
 } from '../lib/storage-tier';
-import { SecurityTier } from '../lib/security-tier';
-import {
-  InstanceClass,
-  InstanceSize,
-  InstanceType,
-  MachineImage,
-} from '@aws-cdk/aws-ec2';
-import { ComputeTier } from '../lib/compute-tier';
+import { SSMInstancePolicyAspect } from '../lib/ssm-policy-aspect';
+import { WorkstationTier } from '../lib/workstation-tier';
+
 
   // ------------------------------ //
   // --- Validate Config Values --- //
@@ -119,7 +125,19 @@ new ComputeTier(app, 'ComputeTier', {
   vpc: network.vpc,
   renderQueue: service.renderQueue,
   workerMachineImage: MachineImage.genericLinux(config.deadlineClientLinuxAmiMap),
-  keyPairName: config.keyPairName ? config.keyPairName : undefined,
+  keyPairName: config.keyPairName,
   usageBasedLicensing: service.ublLicensing,
   licenses: config.ublLicenses,
 });
+
+new WorkstationTier(app, 'WorkstationTier', {
+  env,
+  vpc: network.vpc,
+  renderQueue: service.renderQueue,
+  keyPairName: config.keyPairName,
+  deadlineInstallerBucketName: config.deadlineInstallerBucketName,
+  deadlineInstallerObjectNameLinux: config.deadlineInstallerObjectNameLinux,
+  deadlineInstallerObjectNameWindows: config.deadlineInstallerObjectNameWindows,
+});
+
+cdk.Aspects.of(app).add(new SSMInstancePolicyAspect());

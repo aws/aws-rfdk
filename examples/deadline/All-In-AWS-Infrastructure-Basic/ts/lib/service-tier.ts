@@ -4,10 +4,7 @@
  */
 
 import {
-  BastionHostLinux,
-  BlockDeviceVolume,
   IVpc,
-  SubnetType,
 } from '@aws-cdk/aws-ec2';
 import {
   ApplicationProtocol,
@@ -15,9 +12,14 @@ import {
 import {
   IPrivateHostedZone,
 } from '@aws-cdk/aws-route53';
+import {
+  Secret,
+} from '@aws-cdk/aws-secretsmanager';
 import * as cdk from '@aws-cdk/core';
+
 import {
   MountableEfs,
+  SessionManagerHelper,
   X509CertificatePem,
 } from 'aws-rfdk';
 import {
@@ -25,15 +27,14 @@ import {
   DatabaseConnection,
   RenderQueue,
   Repository,
+  Stage,
   ThinkboxDockerImages,
+  ThinkboxDockerRecipes,
   UsageBasedLicense,
   UsageBasedLicensing,
   VersionQuery,
 } from 'aws-rfdk/deadline';
-import {
-  Secret,
-} from '@aws-cdk/aws-secretsmanager';
-import { SessionManagerHelper } from 'aws-rfdk/lib/core';
+import * as path from 'path';
 
 /**
  * Properties for {@link ServiceTier}.
@@ -93,11 +94,6 @@ export interface ServiceTierProps extends cdk.StackProps {
  */
 export class ServiceTier extends cdk.Stack {
   /**
-   * A bastion host to connect to the render farm with.
-   */
-  public readonly bastion: BastionHostLinux;
-
-  /**
    * The render queue.
    */
   public readonly renderQueue: RenderQueue;
@@ -121,32 +117,6 @@ export class ServiceTier extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props: ServiceTierProps) {
     super(scope, id, props);
 
-    // Bastion instance for convenience (e.g. SSH into RenderQueue and WorkerFleet instances).
-    // Not a critical component of the farm, so this can be safely removed. An alternative way
-    // to access your hosts is also provided by the Session Manager, which is also configured
-    // later in this example.
-    this.bastion = new BastionHostLinux(this, 'Bastion', {
-      vpc: props.vpc,
-      subnetSelection: {
-        subnetType: SubnetType.PUBLIC,
-      },
-      blockDevices: [{
-        deviceName: '/dev/xvda',
-        volume: BlockDeviceVolume.ebs(50, {
-          encrypted: true,
-        })},
-      ],
-    });
-    props.database.allowConnectionsFrom(this.bastion);
-
-    // Granting the bastion access to the entire EFS file-system.
-    // This can also be safely removed
-    new MountableEfs(this, {
-      filesystem: props.mountableFileSystem.fileSystem,
-    }).mountToLinuxInstance(this.bastion.instance, {
-      location: '/mnt/efs',
-    });
-
     this.version = new VersionQuery(this, 'Version', {
       version: props.deadlineVersion,
     });
@@ -158,11 +128,9 @@ export class ServiceTier extends cdk.Stack {
       fileSystem: props.mountableFileSystem,
       repositoryInstallationTimeout: cdk.Duration.minutes(20),
       repositoryInstallationPrefix: "/",
-    });
-
-    const images = new ThinkboxDockerImages(this, 'Images', {
-      version: this.version,
-      userAwsThinkboxEulaAcceptance: props.acceptAwsThinkboxEula,
+      secretsManagementSettings: {
+        enabled: true,
+      },
     });
 
     const serverCert = new X509CertificatePem(this, 'RQCert', {
@@ -174,9 +142,12 @@ export class ServiceTier extends cdk.Stack {
       signingCertificate: props.rootCa,
     });
 
+    const recipes = new ThinkboxDockerRecipes(this, 'Recipes', {
+      stage: Stage.fromDirectory(path.join(__dirname, "..", "stage")),
+    });
     this.renderQueue = new RenderQueue(this, 'RenderQueue', {
       vpc: props.vpc,
-      images: images,
+      images: recipes.renderQueueImages,
       repository,
       hostname: {
         hostname: 'renderqueue',
@@ -198,7 +169,6 @@ export class ServiceTier extends cdk.Stack {
       // For an EFS and NFS filesystem, this requires the 'fsc' mount option.
       enableLocalFileCaching: true,
     });
-    this.renderQueue.connections.allowDefaultPortFrom(this.bastion);
 
     // This is an optional feature that will set up your EC2 instances to be enabled for use with
     // the Session Manager. RFDK deploys EC2 instances that aren't available through a public subnet,
@@ -214,6 +184,10 @@ export class ServiceTier extends cdk.Stack {
       }
       const ublCertSecret = Secret.fromSecretCompleteArn(this, 'UBLCertsSecret', props.ublCertsSecretArn);
 
+      const images = new ThinkboxDockerImages(this, 'Images', {
+        version: this.version,
+        userAwsThinkboxEulaAcceptance: props.acceptAwsThinkboxEula,
+      });
       this.ublLicensing = new UsageBasedLicensing(this, 'UBLLicensing', {
         vpc: props.vpc,
         images: images,

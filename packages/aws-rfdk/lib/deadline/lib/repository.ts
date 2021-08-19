@@ -729,6 +729,9 @@ export class Repository extends Construct implements IRepository {
     this.node.defaultChild = this.installerGroup;
     // Ensure the DB is serving before we try to connect to it.
     this.databaseConnection.addChildDependency(this.installerGroup);
+    if (this.secretsManagementSettings.enabled) {
+      this.installerGroup.node.addDependency(this.secretsManagementSettings.credentials!);
+    }
 
     // Updating the user data with installation logs stream -- ALWAYS DO THIS FIRST.
     this.configureCloudWatchLogStream(this.installerGroup, `${id}`, props.logGroupProps);
@@ -1012,7 +1015,7 @@ export class Repository extends Construct implements IRepository {
     if (this.secretsManagementSettings.enabled) {
       installerArgs.push('-r', Stack.of(this.secretsManagementSettings.credentials ?? this).region);
       this.secretsManagementSettings.credentials!.grantRead(installerGroup);
-      installerArgs.push('-c', this.secretsManagementSettings.credentials!.secretArn ?? '');
+      installerArgs.push('-c', this.secretsManagementSettings.credentials!.secretArn);
     }
 
     if (settings) {

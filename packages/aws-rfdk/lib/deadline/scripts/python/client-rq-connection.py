@@ -189,10 +189,10 @@ def configure_deadline( config ):
                 passphrase = fetch_secret(config.client_tls_cert_passphrase)
                 repo_args.append(passphrase)
 
-    change_repo_results = call_deadline_command(repo_args)
-    if change_repo_results.startswith('Deadline configuration error:'):
-        print(change_repo_results)
-        raise Exception(change_repo_results)
+            change_repo_results = call_deadline_command(repo_args)
+            if change_repo_results.startswith('Deadline configuration error:'):
+                print(change_repo_results)
+                raise Exception(change_repo_results)
 
 def call_deadline_command(arguments):
     """
