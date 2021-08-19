@@ -86,6 +86,7 @@ describe('UsageBasedLicensing', () => {
       repository: new Repository(dependencyStack, 'RepositoryNonDefault', {
         vpc,
         version: versionedInstallers,
+        secretsManagementSettings: { enabled: false },
       }),
       trafficEncryption: { externalTLS: { enabled: false } },
       version: versionedInstallers,

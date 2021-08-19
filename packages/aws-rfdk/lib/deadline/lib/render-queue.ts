@@ -413,12 +413,12 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     });
     this.logGroup.grantWrite(this.asg);
 
-    if (props.secretsManagementCredentials !== undefined) {
+    if (props.repository.secretsManagementSettings.enabled) {
       const errors = [];
-      if (props.repository.secretsManagementSettings.enabled !== true) {
-        errors.push('Secrets Management is not enabled on the Repository');
+      if (props.repository.secretsManagementSettings.credentials === undefined) {
+        errors.push('The Repository does not have Secrets Management credentials');
       }
-      if (props.trafficEncryption?.internalProtocol !== ApplicationProtocol.HTTPS) {
+      if (internalProtocol !== ApplicationProtocol.HTTPS) {
         errors.push('The internal protocol on the Render Queue is not HTTPS.');
       }
       if (externalProtocol !== ApplicationProtocol.HTTPS) {
@@ -434,8 +434,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       protocol: internalProtocol,
       repository: props.repository,
       runAsUser: RenderQueue.RCS_USER,
-      secretsManagementOptions: props.secretsManagementCredentials ? {
-        credentials: props.secretsManagementCredentials,
+      secretsManagementOptions: props.repository.secretsManagementSettings.enabled ? {
+        credentials: props.repository.secretsManagementSettings.credentials!,
         posixUsername: RenderQueue.RCS_USER.username,
       } : undefined,
     });
@@ -550,7 +550,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       });
     }
 
-    props.secretsManagementCredentials?.grantRead(this);
+    props.repository.secretsManagementSettings.credentials?.grantRead(this);
 
     this.ecsServiceStabilized = new WaitForStableService(this, 'WaitForStableService', {
       service: this.pattern.service,
