@@ -102,20 +102,21 @@ chmod +x $REPO_INSTALLER
 
 set +x
 
-INSTALLER_DB_ARGS_STRING=''
-for key in "${!INSTALLER_DB_ARGS[@]}"; do INSTALLER_DB_ARGS_STRING=$INSTALLER_DB_ARGS_STRING"${key} ${INSTALLER_DB_ARGS[$key]} "; done
+REPO_ARGS=()
 
-REPOSITORY_SETTINGS_ARGS=()
+for key in "${!INSTALLER_DB_ARGS[@]}"; do
+  REPO_ARGS+=("${key}" "${INSTALLER_DB_ARGS[$key]}")
+done
+
 if [ ! -z "${DEADLINE_REPOSITORY_SETTINGS_FILE+x}" ]; then
   if [ ! -f "$DEADLINE_REPOSITORY_SETTINGS_FILE" ]; then
     echo "ERROR: Repository settings file was specified but is not a file: $DEADLINE_REPOSITORY_SETTINGS_FILE."
     exit 1
   else
-    REPOSITORY_SETTINGS_ARGS=("--importrepositorysettings" "true" "--repositorysettingsimportoperation" "append" "--repositorysettingsimportfile" "$DEADLINE_REPOSITORY_SETTINGS_FILE")
+    REPO_ARGS+=("--importrepositorysettings" "true" "--repositorysettingsimportoperation" "append" "--repositorysettingsimportfile" "$DEADLINE_REPOSITORY_SETTINGS_FILE")
   fi
 fi
 
-SECRET_MANAGEMENT_ARGS=()
 if [ ! -z "${SECRET_MANAGEMENT_ARN+x}" ]; then
   sudo yum install -y jq
   SM_SECRET_VALUE=$(aws secretsmanager get-secret-value --secret-id=$SECRET_MANAGEMENT_ARN --region=$AWS_REGION)
@@ -132,7 +133,7 @@ if [ ! -z "${SECRET_MANAGEMENT_ARN+x}" ]; then
     exit 1
   fi
   echo "Secrets management is enabled. Credentials are stored in secret: $SECRET_MANAGEMENT_ARN"
-  SECRET_MANAGEMENT_ARGS=("--installSecretsManagement" "true" "--secretsAdminName" "$SECRET_MANAGEMENT_USER" "--secretsAdminPassword" "$SECRET_MANAGEMENT_PASSWORD")
+  REPO_ARGS+=("--installSecretsManagement" "true" "--secretsAdminName" "$SECRET_MANAGEMENT_USER" "--secretsAdminPassword" "$SECRET_MANAGEMENT_PASSWORD")
 else
   echo "Secrets management is not enabled."
 fi
@@ -166,7 +167,7 @@ if [[ -n "${DEADLINE_REPOSITORY_OWNER+x}" ]]; then
   fi
 fi
 
-$REPO_INSTALLER --mode unattended --setpermissions false --prefix "$PREFIX" --installmongodb false --backuprepo false ${INSTALLER_DB_ARGS_STRING} "${REPOSITORY_SETTINGS_ARGS[@]}" "${SECRET_MANAGEMENT_ARGS[@]}"
+$REPO_INSTALLER --mode unattended --setpermissions false --prefix "$PREFIX" --installmongodb false --backuprepo false ${REPO_ARGS[@]+"${REPO_ARGS[@]}"}
 
 if [[ -n "${REPOSITORY_OWNER_UID+x}" ]]; then
   echo "Changing ownership of Deadline Repository files to UID=$REPOSITORY_OWNER_UID GID=$REPOSITORY_OWNER_GID"
