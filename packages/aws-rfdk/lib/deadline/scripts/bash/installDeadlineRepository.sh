@@ -167,6 +167,10 @@ if [[ -n "${DEADLINE_REPOSITORY_OWNER+x}" ]]; then
   fi
 fi
 
+# The syntax ${array[@]+"${array[@]}"} is a way to get around the expansion of an empty array raising an unbound variable error since this script
+# sets the "u" shell option above. This is a use of the ${parameter+word} shell expansion. If the value of "parameter" is unset, nothing will be
+# substituted in its place. If "parameter" is set, then the value of "word" is used, which is the expansion of the populated array.
+# Since bash treats the expansion of an empty array as an unset variable, we can use this pattern expand the array only if it is populated.
 $REPO_INSTALLER --mode unattended --setpermissions false --prefix "$PREFIX" --installmongodb false --backuprepo false ${REPO_ARGS[@]+"${REPO_ARGS[@]}"}
 
 if [[ -n "${REPOSITORY_OWNER_UID+x}" ]]; then
