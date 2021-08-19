@@ -2832,7 +2832,7 @@ describe('RenderQueue', () => {
 
         // THEN
         /* eslint-disable-next-line dot-notation */
-        .toThrowError(`The supplied Deadline version is lower than the minimum required version: ${RenderQueue['MINIMUM_SECRETS_MANAGEMENT_VERSION'].toString()}`);
+        .toThrowError(`The supplied Deadline version (${oldVersion.versionString}) is lower than the minimum required version: ${RenderQueue['MINIMUM_SECRETS_MANAGEMENT_VERSION'].toString()}`);
     });
 
     test('grants read permissions to secrets management credentials', () => {

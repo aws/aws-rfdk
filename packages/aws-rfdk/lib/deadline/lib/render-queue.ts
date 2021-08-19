@@ -215,10 +215,12 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   */
   private static readonly MINIMUM_LOAD_BALANCING_VERSION = new Version([10, 1, 10, 0]);
 
+  // TODO: Update this with the version of Deadline that includes the changes for RFDK Secrets Management.
+  // This is a temporary minimum version until this feature branch is merged
   /**
    * The minimum Deadline version required to enable Deadline Secrets Management on the Render Queue.
    */
-  private static readonly MINIMUM_SECRETS_MANAGEMENT_VERSION = new Version([10, 1, 18, 0]);
+  private static readonly MINIMUM_SECRETS_MANAGEMENT_VERSION = new Version([10, 1, 15, 0]);
 
   /**
    * Regular expression that validates a hostname (portion in front of the subdomain).
@@ -422,7 +424,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     if (props.repository.secretsManagementSettings.enabled) {
       const errors = [];
       if (props.version.isLessThan(RenderQueue.MINIMUM_SECRETS_MANAGEMENT_VERSION)) {
-        errors.push(`The supplied Deadline version is lower than the minimum required version: ${RenderQueue.MINIMUM_SECRETS_MANAGEMENT_VERSION.toString()}`);
+        errors.push(`The supplied Deadline version (${props.version.versionString}) is lower than the minimum required version: ${RenderQueue.MINIMUM_SECRETS_MANAGEMENT_VERSION.toString()}`);
       }
       if (props.repository.secretsManagementSettings.credentials === undefined) {
         errors.push('The Repository does not have Secrets Management credentials');
