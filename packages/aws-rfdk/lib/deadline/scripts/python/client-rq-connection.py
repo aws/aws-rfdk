@@ -12,7 +12,7 @@ import errno
 import os
 import re
 import subprocess
-from sys import platform
+from sys import platform, stdout
 
 import boto3
 
@@ -133,8 +133,8 @@ def configure_deadline( config ):
 
     # Ensure that the client is configured to connect to a Remote RCS.
     call_deadline_command(['SetIniFileSetting', 'ConnectionType', 'Remote'])
+    call_deadline_command(['SetIniFileSetting', 'ProxyRoot', config.render_queue.address])
 
-    repo_args = ['ChangeRepository','Proxy',config.render_queue.address]
     if config.render_queue.scheme == 'http':
         print( "Configuring Deadline to connect to the Render Queue (%s) using HTTP Traffic" % config.render_queue.address )
         #Ensure SSL is disabled
@@ -168,7 +168,15 @@ def configure_deadline( config ):
 
             call_deadline_command(['SetIniFileSetting', 'ProxySSLCA', cert_path])
             call_deadline_command(['SetIniFileSetting', 'ClientSSLAuthentication', 'NotRequired'])
-            repo_args.append(cert_path)
+
+            # Validate Deadline connection
+            print("Testing Deadline connection...")
+            stdout.flush()
+            try:
+                call_deadline_command(['GetRepositoryVersion'])
+            except Exception as e:
+                print('Deadline connection error: %s' % e)
+            print("Deadline connection configured correctly")
         else:
             """
             If we are configuring Deadline to connect using a client cert we need to:
@@ -182,8 +190,9 @@ def configure_deadline( config ):
             with open(cert_path, 'wb') as f:
                 f.write(cert_contents)
 
-            call_deadline_command(['SetIniFileSetting', 'ProxySSLCA', cert_path])
             call_deadline_command(['SetIniFileSetting', 'ClientSSLAuthentication', 'Required'])
+
+            repo_args = ['ChangeRepository', 'Proxy', config.render_queue.address]
             repo_args.append(cert_path)
             if config.client_tls_cert_passphrase:
                 passphrase = fetch_secret(config.client_tls_cert_passphrase)
@@ -208,6 +217,8 @@ def call_deadline_command(arguments):
         raise Exception('Failed to call Deadline.')
 
     output, errors = proc.communicate()
+    if proc.returncode != 0:
+        raise ValueError('DeadlineCommandError: \n%s\n%s' % (output, errors))
     return output
 
 def get_deadline_command():
