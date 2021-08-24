@@ -82,8 +82,7 @@ if test -f "$REPOSITORY_FILE_PATH"; then
     # The proper way to achieve this is to use a ini config manager tool to get the value of required key.
     source $REPOSITORY_FILE_PATH > /dev/null 2>&1 || true
     if [[ "$Version" = "$DEADLINE_REPOSITORY_VERSION" ]]; then
-        echo "Repository version $DEADLINE_REPOSITORY_VERSION already exists at path $REPOSITORY_FILE_PATH. Not proceeding with Repository installation."
-        exit 0
+        echo "Repository version $DEADLINE_REPOSITORY_VERSION already exists at path $REPOSITORY_FILE_PATH."
     else
         SplitVersion=(${Version//./ })
         SplitRepoVersion=(${DEADLINE_REPOSITORY_VERSION//./ })
