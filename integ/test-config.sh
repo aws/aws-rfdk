@@ -37,6 +37,7 @@ export SKIP_deadline_01_repository_TEST
 export SKIP_deadline_02_renderQueue_TEST
 export SKIP_deadline_03_workerFleetHttp_TEST
 export SKIP_deadline_04_workerFleetHttps_TEST
+export SKIP_deadline_05_secretsManagement_TEST
 
 # All test suites will be run in parallel
 export RUN_TESTS_IN_PARALLEL=false
