@@ -6,6 +6,7 @@
 # exit when any command fails
 set -xeuo pipefail
 
+MIN_DEADLINE_VERSION_REPO_NO_ROOT="10.1.18"
 USAGE="Usage: $0 -i <installer-s3-path> -p <local-installer-path> -v <deadline-version>
 
 This script downloads the deadline repository installer and executes it.
@@ -109,6 +110,7 @@ if [ ! -z "${DEADLINE_REPOSITORY_SETTINGS_FILE+x}" ]; then
   fi
 fi
 
+INSTALL_AS_NON_ROOT_CMD=""
 if [[ -n "${DEADLINE_REPOSITORY_OWNER+x}" ]]; then
   if [[ ! "$DEADLINE_REPOSITORY_OWNER" =~ ^[0-9]+(:[0-9]+)?$ ]]; then
     echo "ERROR: Deadline Repository owner is invalid: ${DEADLINE_REPOSITORY_OWNER}"
@@ -136,11 +138,22 @@ if [[ -n "${DEADLINE_REPOSITORY_OWNER+x}" ]]; then
     # Create the user
     useradd deadline-rcs-user -u $REPOSITORY_OWNER_UID -g $REPOSITORY_OWNER_GID
   fi
+
+  # Determine whether we can run the installer as the user that will own the repository
+  VERSION_COMPONENTS=(${DEADLINE_REPOSITORY_VERSION//./ })
+  MIN_VERSION_COMPONENTS=(${MIN_DEADLINE_VERSION_REPO_NO_ROOT//./ })
+  if !([[ ${VERSION_COMPONENTS[0]} -lt ${MIN_VERSION_COMPONENTS[0]} ]] || \
+       [[ ${VERSION_COMPONENTS[1]} -lt ${MIN_VERSION_COMPONENTS[1]} ]] || \
+       [[ ${VERSION_COMPONENTS[2]} -lt ${MIN_VERSION_COMPONENTS[2]} ]])
+  then
+    echo "Deadline Repository installer will be run as UID=$REPOSITORY_OWNER_UID"
+    INSTALL_AS_NON_ROOT_CMD="sudo -u #$REPOSITORY_OWNER_UID"
+  fi
 fi
 
-$REPO_INSTALLER --mode unattended --setpermissions false --prefix "$PREFIX" --installmongodb false --backuprepo false ${INSTALLER_DB_ARGS_STRING} $REPOSITORY_SETTINGS_ARG_STRING
+$INSTALL_AS_NON_ROOT_CMD $REPO_INSTALLER --mode unattended --setpermissions false --prefix "$PREFIX" --installmongodb false --backuprepo false ${INSTALLER_DB_ARGS_STRING} $REPOSITORY_SETTINGS_ARG_STRING
 
-if [[ -n "${REPOSITORY_OWNER_UID+x}" ]]; then
+if [[ -z "$INSTALL_AS_NON_ROOT_CMD" ]] && [[ -n "${REPOSITORY_OWNER_UID+x}" ]]; then
   echo "Changing ownership of Deadline Repository files to UID=$REPOSITORY_OWNER_UID GID=$REPOSITORY_OWNER_GID"
   sudo chown -R "$REPOSITORY_OWNER_UID:$REPOSITORY_OWNER_GID" "$PREFIX"
 fi
