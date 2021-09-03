@@ -187,7 +187,18 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
        * Input:           Output from command to print contents of repository.ini delivered via SSM command
        * Expected result: Contents of repository.ini matches a regex string indicating the correct version number
       **********************************************************************************************************/
-      var regex = new RegExp('\\[DeadlineRepository\\]\nVersion=' + deadlineVersion);
+      let expectedVersion: string;
+      switch (deadlineVersion) {
+        // Special case for Deadline 10.1.18.5 since it appears as 10.1.18.4 due to known issues in Deadline's build pipeline
+        case '10.1.18.5':
+          expectedVersion = '10.1.18.4';
+          break;
+
+        default:
+          expectedVersion = deadlineVersion!;
+          break;
+      }
+      const regex = new RegExp('\\[DeadlineRepository\\]\nVersion=' + expectedVersion);
       expect(output).toEqual(expect.stringMatching(regex));
     });
   });
