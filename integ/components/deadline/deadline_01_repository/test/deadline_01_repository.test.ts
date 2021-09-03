@@ -198,7 +198,7 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
           expectedVersion = deadlineVersion!;
           break;
       }
-      const regex = new RegExp('\\[DeadlineRepository\\]\nVersion=' + expectedVersion);
+      const regex = new RegExp('\\[DeadlineRepository\\]\nVersion=' + expectedVersion.replace('.', '\\.'));
       expect(output).toEqual(expect.stringMatching(regex));
     });
   });
