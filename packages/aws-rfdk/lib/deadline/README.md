@@ -163,6 +163,15 @@ const renderQueue = new RenderQueue(stack, 'RenderQueue', {
 });
 ```
 
+### Enabling Deadline Secrets Management on the Render Queue
+
+When [Deadline Secrets Management](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) is enabled on the `Repository` construct,
+the `RenderQueue` will automatically configure itself as a Server role in Deadline Secrets Management.
+
+TODO: Add more details about auto-registration rules and how to use them (also in dev guide)
+
+For more information on using Deadline Secrets Management in RFDK, please see the [RFDK Developer Guide](https://docs.aws.amazon.com/rfdk/latest/guide/deadline-secrets-management-rfdk.html).
+
 ## Repository
 
 ![architecture diagram](../../docs/diagrams/deadline/Repository.svg)
@@ -223,6 +232,31 @@ repository.configureClientInstance({
   mountPoint: '/mnt/repository'
 });
 ```
+
+### Configuring Deadline Secrets Management
+
+By default, [Deadline Secrets Management](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) is enabled on the `Repository`.
+RFDK will create administator credentials for Deadline Secrets Management, store them in AWS Secrets Manager, and configure the Deadline Repository with those credentials. If you would like to use your own
+credentials for Deadline Secrets Management, you can do so by storing them in AWS Secrets Manager and providing the `Repository` the ARN of the Secret containing your credentials:
+
+```ts
+const secretsManagementCredentials = Secret.fromSecretCompleteArn(
+  this,
+  'DeadlineSecretsManagementCredentials',
+  'yourSecretArn',
+);
+
+const repository = new Repository(this, 'Repository', {
+  vpc,
+  version,
+  secretsManagementSettings: {
+    enabled: true,
+    credentials: secretsManagementCredentials,
+  },
+});
+```
+
+For more information on using Deadline Secrets Management in RFDK, please see the [RFDK Developer Guide](https://docs.aws.amazon.com/rfdk/latest/guide/deadline-secrets-management-rfdk.html).
 
 ## Spot Event Plugin Fleet
 
