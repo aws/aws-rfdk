@@ -144,7 +144,7 @@ def configure_deadline( config ):
 
     else:
         print("Configuring Deadline to connect to the Render Queue using HTTPS Traffic")
-        call_deadline_command(['SetIniFileSetting','ProxyUseSSL','True'])
+        call_deadline_command(['SetIniFileSetting', 'ProxyUseSSL', 'True'])
 
         try:
             os.makedirs(CERT_DIR)
@@ -172,10 +172,8 @@ def configure_deadline( config ):
             # Validate Deadline connection
             print("Testing Deadline connection...")
             stdout.flush()
-            try:
-                call_deadline_command(['GetRepositoryVersion'])
-            except Exception as e:
-                print('Deadline connection error: %s' % e)
+            call_deadline_command(['GetRepositoryVersion'])
+
             print("Deadline connection configured correctly")
         else:
             """
@@ -199,9 +197,8 @@ def configure_deadline( config ):
                 repo_args.append(passphrase)
 
             change_repo_results = call_deadline_command(repo_args)
-            if change_repo_results.startswith('Deadline configuration error:'):
-                print(change_repo_results)
-                raise Exception(change_repo_results)
+            print('Running: %s\nResult: %s' % (repo_args, change_repo_results))
+
 
 def call_deadline_command(arguments):
     """
