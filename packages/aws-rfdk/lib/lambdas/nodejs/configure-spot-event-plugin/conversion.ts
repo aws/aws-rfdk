@@ -121,12 +121,13 @@ export function validateLaunchTemplateOverrides(launchTemplateOverrides: LaunchT
 export function validateLaunchTemplateConfigs(launchTemplateConfigs: LaunchTemplateConfig[], propertyName: string): LaunchTemplateConfig[] {
   validateArray(launchTemplateConfigs, propertyName);
 
-  launchTemplateConfigs.forEach(ltc => {
-    validateProperty(input => input !== undefined && typeof input === 'object' || !Array.isArray(input), ltc.LaunchTemplateSpecification, `${propertyName}.LaunchTemplateSpecification`);
-    validateLaunchTemplateSpecification(ltc.LaunchTemplateSpecification, `${propertyName}.LaunchTemplateSpecification`);
+  launchTemplateConfigs.forEach((ltc, i) => {
+    const ltcPropertyName = `${propertyName}[${i}]`;
+    validateProperty(input => typeof input === 'object' && !Array.isArray(input), ltc.LaunchTemplateSpecification, `${ltcPropertyName}.LaunchTemplateSpecification`);
+    validateLaunchTemplateSpecification(ltc.LaunchTemplateSpecification, `${ltcPropertyName}.LaunchTemplateSpecification`);
 
-    validateProperty(input => Array.isArray(input), ltc.Overrides, `${propertyName}.Overrides`);
-    ltc.Overrides.forEach(override => validateLaunchTemplateOverrides(override, `${propertyName}.Overrides`));
+    validateProperty(input => Array.isArray(input), ltc.Overrides, `${ltcPropertyName}.Overrides`);
+    ltc.Overrides.forEach((override, idx) => validateLaunchTemplateOverrides(override, `${ltcPropertyName}.Overrides[${idx}]`));
   });
 
   return launchTemplateConfigs;

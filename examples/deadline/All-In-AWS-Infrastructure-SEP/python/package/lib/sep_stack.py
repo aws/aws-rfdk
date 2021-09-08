@@ -60,8 +60,8 @@ class SEPStackProps(StackProps):
     docker_recipes_stage_path: str
     # The IMachineImage to use for Workers (needs Deadline Client installed).
     worker_machine_image: IMachineImage
-    # Whether the DeadlineResourceTracker stack and supporting resources already exist or not.
-    deadline_resource_tracker_exists: bool
+    # Whether the DeadlineResourceTrackerAccessRole IAM role required by Deadline's Resource Tracker should be created in this CDK app.
+    create_resource_tracker_role: bool
 
 
 class SEPStack(Stack):
@@ -161,7 +161,7 @@ class SEPStack(Stack):
             ),
         )
 
-        if not props.deadline_resource_tracker_exists:
+        if props.create_resource_tracker_role:
             # Creates the Resource Tracker Access role. This role is required to exist in your account so the resource tracker will work properly
             Role(
                 self,

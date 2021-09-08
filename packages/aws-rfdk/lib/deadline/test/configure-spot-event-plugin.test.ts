@@ -17,7 +17,6 @@ import {
   InstanceClass,
   InstanceSize,
   InstanceType,
-  LaunchTemplate,
   SubnetType,
   SecurityGroup,
   Vpc,
@@ -234,28 +233,8 @@ describe('ConfigureSpotEventPlugin', () => {
               {
                 LaunchTemplateSpecification: {
                   Version: '$Latest',
-                  LaunchTemplateId: {
-                    Ref: 'ConfigureSpotEventPluginSpotFleett2smallLaunchTemplate0EB718EA5',
-                  },
+                  LaunchTemplateId: stack.resolve(fleet.launchTemplate.launchTemplateId),
                 },
-                Overrides: [
-                  {
-                    SubnetId: {
-                      'Fn::Join': [
-                        '',
-                        [
-                          {
-                            Ref: 'VpcPrivateSubnet1Subnet536B997A',
-                          },
-                          ',',
-                          {
-                            Ref: 'VpcPrivateSubnet2Subnet3788AAA1',
-                          },
-                        ],
-                      ],
-                    },
-                  },
-                ],
               },
             ],
             TagSpecifications: arrayWith(
@@ -430,36 +409,6 @@ describe('ConfigureSpotEventPlugin', () => {
       })));
     });
 
-    test('creates LaunchTemplates for each fleet instance type', () => {
-      // WHEN
-      const sep = new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
-        vpc,
-        renderQueue: renderQueue,
-        spotFleets: [
-          fleet,
-        ],
-      });
-
-      // THEN
-      fleet.instanceTypes.forEach((instanceType, idx) => {
-        const launchTemplate = sep.node.tryFindChild(`${fleet.node.id}${instanceType}LaunchTemplate${idx}`) as LaunchTemplate;
-        expect(launchTemplate).toBeDefined();
-        cdkExpect(stack).to(haveResourceLike('AWS::IAM::InstanceProfile', {
-          Roles: [stack.resolve(launchTemplate.role?.roleName)],
-        }));
-        cdkExpect(stack).to(haveResourceLike('AWS::EC2::LaunchTemplate', {
-          LaunchTemplateData: objectLike({
-            ImageId: fleet.machineImage.getImage(stack).imageId,
-            SecurityGroupIds: fleet.securityGroups.map(sg => stack.resolve(sg.securityGroupId)),
-            UserData: {
-              'Fn::Base64': stack.resolve(fleet.userData.render()),
-            },
-            InstanceType: instanceType.toString(),
-          }),
-        }));
-      });
-    });
-
     test('adds multiple fleet security groups to launch template', () => {
       // GIVEN
       const securityGroups = [
@@ -486,7 +435,7 @@ describe('ConfigureSpotEventPlugin', () => {
       // THEN
       cdkExpect(stack).to(haveResourceLike('AWS::EC2::LaunchTemplate', {
         LaunchTemplateData: objectLike({
-          SecurityGroupIds: fleet2.securityGroups.map(sg => stack.resolve(sg.securityGroupId)),
+          SecurityGroupIds: securityGroups.map(sg => stack.resolve(sg.securityGroupId)),
         }),
       }));
     });

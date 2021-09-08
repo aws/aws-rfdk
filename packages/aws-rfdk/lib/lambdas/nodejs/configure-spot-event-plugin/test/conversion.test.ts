@@ -426,46 +426,50 @@ describe('validateLaunchTemplateSpecification', () => {
 
   test('throws if id is invalid', () => {
     // GIVEN
+    const invalidValue = 123;
     const spec: LaunchTemplateSpecification = {
       Version: '1',
       // @ts-ignore
-      LaunchTemplateId: 123,
+      LaunchTemplateId: invalidValue,
     };
 
     // WHEN
     expect(() => validateLaunchTemplateSpecification(spec, propertyName))
 
       // THEN
-      .toThrow();
+      .toThrowError(new RegExp(`The value of ${propertyName}.LaunchTemplateId should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
   });
 
   test('throws if name is invalid', () => {
     // GIVEN
+    const invalidValue = 123;
     const spec: LaunchTemplateSpecification = {
       Version: '1',
       // @ts-ignore
-      LaunchTemplateName: 123,
+      LaunchTemplateName: invalidValue,
     };
 
     // WHEN
     expect(() => validateLaunchTemplateSpecification(spec, propertyName))
 
       // THEN
-      .toThrow();
+      .toThrowError(new RegExp(`The value of ${propertyName}.LaunchTemplateName should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
   });
 
   test('throws if version is invalid', () => {
     // GIVEN
+    const invalidValue = 123;
     const spec: LaunchTemplateSpecification = {
+      LaunchTemplateId: '',
       // @ts-ignore
-      Version: 123,
+      Version: invalidValue,
     };
 
     // WHEN
     expect(() => validateLaunchTemplateSpecification(spec, propertyName))
 
       // THEN
-      .toThrow();
+      .toThrowError(`The value of ${propertyName}.Version should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`);
   });
 });
 
@@ -489,72 +493,77 @@ describe('validateLaunchTemplateOverrides', () => {
 
   test('throws if AvailabilityZone is invalid', () => {
     // GIVEN
+    const invalidValue = 123;
     const overrides: LaunchTemplateOverrides = {
       // @ts-ignore
-      AvailabilityZone: 123,
+      AvailabilityZone: invalidValue,
     };
 
     // WHEN
     expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
 
       // THEN
-      .toThrowError();
+      .toThrowError(new RegExp(`The value of ${propertyName}.AvailabilityZone should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
   });
 
   test('throws if InstanceType is invalid', () => {
     // GIVEN
+    const invalidValue = 123;
     const overrides: LaunchTemplateOverrides = {
       // @ts-ignore
-      InstanceType: 123,
+      InstanceType: invalidValue,
     };
 
     // WHEN
     expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
 
       // THEN
-      .toThrowError();
+      .toThrowError(new RegExp(`The value of ${propertyName}.InstanceType should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
   });
 
   test('throws if SpotPrice is invalid', () => {
     // GIVEN
+    const invalidValue = 123;
     const overrides: LaunchTemplateOverrides = {
       // @ts-ignore
-      SpotPrice: 123,
+      SpotPrice: invalidValue,
     };
 
     // WHEN
     expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
 
       // THEN
-      .toThrowError();
+      .toThrowError(new RegExp(`The value of ${propertyName}.SpotPrice should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
   });
 
   test('throws if SubnetId is invalid', () => {
     // GIVEN
+    const invalidValue = 123;
     const overrides: LaunchTemplateOverrides = {
       // @ts-ignore
-      SubnetId: 123,
+      SubnetId: invalidValue,
     };
 
     // WHEN
     expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
 
       // THEN
-      .toThrowError();
+      .toThrowError(new RegExp(`The value of ${propertyName}.SubnetId should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
   });
 
   test('throws if WeightedCapacity is invalid', () => {
     // GIVEN
+    const invalidValue = 'WeightedCapacity';
     const overrides: LaunchTemplateOverrides = {
       // @ts-ignore
-      WeightedCapacity: 'WeightedCapacity',
+      WeightedCapacity: invalidValue,
     };
 
     // WHEN
     expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
 
       // THEN
-      .toThrowError();
+      .toThrowError(`${propertyName}.WeightedCapacity type is not valid.`);
   });
 });
 
@@ -587,14 +596,15 @@ describe('validateLaunchTemplateConfigs', () => {
     })
 
       // THEN
-      .toThrow();
+      .toThrowError(`${propertyName} should be an array with at least one element.`);
   });
 
   test('throws when LaunchTemplateSpecification is the wrong type', () => {
     // GIVEN
+    const invalidValue = 123;
     const config: LaunchTemplateConfig = {
       // @ts-ignore
-      LaunchTemplateSpecification: 123,
+      LaunchTemplateSpecification: invalidValue,
       Overrides,
     };
 
@@ -602,15 +612,17 @@ describe('validateLaunchTemplateConfigs', () => {
     expect(() => validateLaunchTemplateConfigs([config], propertyName))
 
       // THEN
-      .toThrow();
+      .toThrowError(`${propertyName}[0].LaunchTemplateSpecification type is not valid.`);
   });
 
   test('throws when LaunchTemplateSpecification is invalid', () => {
     // GIVEN
+    const invalidValue = 123;
     const config: LaunchTemplateConfig = {
       LaunchTemplateSpecification: {
+        LaunchTemplateId: '',
         // @ts-ignore
-        Version: 123,
+        Version: invalidValue,
       },
       Overrides,
     };
@@ -619,7 +631,7 @@ describe('validateLaunchTemplateConfigs', () => {
     expect(() => validateLaunchTemplateConfigs([config], propertyName))
 
       // THEN
-      .toThrow();
+      .toThrowError(`The value of ${propertyName}[0].LaunchTemplateSpecification.Version should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`);
   });
 
   test('throws when Overrides is not an array', () => {
@@ -634,16 +646,17 @@ describe('validateLaunchTemplateConfigs', () => {
     expect(() => validateLaunchTemplateConfigs([config], propertyName))
 
       // THEN
-      .toThrow();
+      .toThrowError(`${propertyName}[0].Overrides type is not valid.`);
   });
 
   test('throws when a LaunchTemplateOverride is invalid', () => {
     // GIVEN
+    const invalidValue = 123;
     const config: LaunchTemplateConfig = {
       LaunchTemplateSpecification: LaunchTemplateSpec,
       Overrides: [{
         // @ts-ignore
-        AvailabilityZone: 123,
+        AvailabilityZone: invalidValue,
       }],
     };
 
@@ -651,6 +664,6 @@ describe('validateLaunchTemplateConfigs', () => {
     expect(() => validateLaunchTemplateConfigs([config], propertyName))
 
       // THEN
-      .toThrow();
+      .toThrowError(`The value of ${propertyName}[0].Overrides[0].AvailabilityZone should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`);
   });
 });

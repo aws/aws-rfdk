@@ -53,7 +53,7 @@ export interface SEPStackProps extends StackProps {
   /**
    * Whether the DeadlineResourceTracker stack and supporting resources already exist or not.
    */
-  readonly deadlineResourceTrackerExists: boolean;
+  readonly createResourceTrackerRole: boolean;
 }
 
 export class SEPStack extends Stack {
@@ -131,7 +131,7 @@ export class SEPStack extends Stack {
       trafficEncryption,
     });
 
-    if (!props.deadlineResourceTrackerExists) {
+    if (props.createResourceTrackerRole) {
       // Creates the Resource Tracker Access role. This role is required to exist in your account so the resource tracker will work properly
       new Role(this, 'ResourceTrackerRole', {
         assumedBy: new ServicePrincipal('lambda.amazonaws.com'),

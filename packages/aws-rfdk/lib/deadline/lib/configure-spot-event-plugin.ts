@@ -7,7 +7,6 @@ import * as path from 'path';
 
 import {
   IVpc,
-  LaunchTemplate,
   SubnetSelection,
   SubnetType,
 } from '@aws-cdk/aws-ec2';
@@ -24,15 +23,12 @@ import {
 import { RetentionDays } from '@aws-cdk/aws-logs';
 import {
   Annotations,
-  Aspects,
   Construct,
   CustomResource,
   Duration,
   IResolvable,
   Lazy,
   Stack,
-  Tag,
-  Tags,
 } from '@aws-cdk/core';
 
 import {
@@ -544,55 +540,15 @@ export class ConfigureSpotEventPlugin extends Construct {
 
   /**
    * Construct Spot Fleet Configurations from the provided fleet.
-   * Each congiguration is a mapping between one Deadline Group and one Spot Fleet Request Configuration.
+   * Each configuration is a mapping between one Deadline Group and one Spot Fleet Request Configuration.
    */
   private generateSpotFleetRequestConfig(fleet: SpotEventPluginFleet): SpotFleetRequestConfiguration[] {
-    const { subnetIds } = fleet.subnets;
-    const subnetId = subnetIds.join(',');
-
     const spotFleetRequestTagsToken = this.tagSpecifications(fleet, SpotFleetResourceType.SPOT_FLEET_REQUEST);
-
-    const launchTemplates: LaunchTemplate[] = fleet.instanceTypes.map((instanceType, idx) => {
-      const launchTemplate = new LaunchTemplate(this, `${fleet.node.id}${instanceType}LaunchTemplate${idx}`, {
-        blockDevices: fleet.blockDevices,
-        role: fleet.fleetInstanceRole,
-        machineImage: fleet.machineImage,
-        keyName: fleet.keyName,
-        securityGroup: fleet.securityGroups[0],
-        userData: fleet.userData,
-        instanceType,
-      });
-      if (fleet.securityGroups.length > 1) {
-        launchTemplate.connections.addSecurityGroup(...fleet.securityGroups.slice(1));
-      }
-
-      // Add tags that are added via the TagManager API
-      /* istanbul ignore if */
-      if (fleet.tags.hasTags()) {
-        const tags = fleet.tags.renderTags() as {[key: string]: string}[];
-        tags.forEach(tag => Tags.of(launchTemplate).add(tag.Key, tag.Value));
-      }
-
-      // Add tags that are added via the Tags API which uses Aspects and is a layer above the TagManager API
-      const tagAspects = Aspects.of(fleet).aspects.filter(aspect => aspect instanceof Tag) as Tag[];
-      tagAspects.forEach(tagAspect => Tags.of(launchTemplate).add(tagAspect.key, tagAspect.value));
-
-      return launchTemplate;
-    });
 
     const spotFleetRequestProps: SpotFleetRequestProps = {
       AllocationStrategy: fleet.allocationStrategy,
       IamFleetRole: fleet.fleetRole.roleArn,
-      LaunchTemplateConfigs: launchTemplates.map(launchTemplate => {
-        return {
-          LaunchTemplateSpecification: {
-            Version: '$Latest',
-            LaunchTemplateId: launchTemplate.launchTemplateId,
-            LaunchTemplateName: launchTemplate.launchTemplateName,
-          },
-          Overrides: [{ SubnetId: subnetId }],
-        };
-      }),
+      LaunchTemplateConfigs: fleet._launchTemplateConfigs,
       ReplaceUnhealthyInstances: true,
       // In order to work with Deadline, the 'Target Capacity' of the Spot fleet Request is
       // the maximum number of Workers that Deadline will start.

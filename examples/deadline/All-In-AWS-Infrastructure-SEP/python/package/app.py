@@ -45,7 +45,7 @@ def main():
     sep_props = sep_stack.SEPStackProps(
         docker_recipes_stage_path=os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, 'stage'),
         worker_machine_image=MachineImage.generic_linux(config.deadline_client_linux_ami_map),
-        deadline_resource_tracker_exists=config.deadline_resource_tracker_exists,
+        deadline_resource_tracker_exists=config.create_resource_tracker_role,
     )
     service = sep_stack.SEPStack(app, 'SEPStack', props=sep_props, env=env)
 

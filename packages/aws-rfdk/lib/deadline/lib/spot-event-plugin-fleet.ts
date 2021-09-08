@@ -14,6 +14,8 @@ import {
   InstanceType,
   ISecurityGroup,
   IVpc,
+  LaunchTemplate,
+  LaunchTemplateSpecialVersions,
   OperatingSystemType,
   Port,
   SecurityGroup,
@@ -37,6 +39,7 @@ import {
   Expiration,
   Stack,
   TagManager,
+  Tags,
   TagType,
 } from '@aws-cdk/core';
 import {
@@ -46,6 +49,9 @@ import {
 import {
   tagConstruct,
 } from '../../core/lib/runtime-info';
+import {
+  LaunchTemplateConfig,
+} from '../../lambdas/nodejs/configure-spot-event-plugin';
 import {
   IRenderQueue,
 } from './render-queue';
@@ -214,6 +220,13 @@ export interface SpotEventPluginFleetProps {
    * @default: Not used.
    */
   readonly userDataProvider?: IInstanceUserDataProvider;
+
+  /**
+   * Whether the instances in the Spot Fleet should be tracked by Deadline Resource Tracker.
+   *
+   * @default true
+   */
+  readonly trackInstancesWithResourceTracker?: boolean;
 }
 
 /**
@@ -270,6 +283,7 @@ export interface ISpotEventPluginFleet extends IConnectable, IScriptHost, IGrant
  * - An Amazon CloudWatch log group that contains the Deadline Worker, Deadline Launcher, and instance-startup logs for the instances
  *   in the fleet.
  * - A security Group if security groups are not provided.
+ * - An EC2 Launch Template for the Spot Fleet.
  *
  * Security Considerations
  * ------------------------
@@ -423,6 +437,16 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
    */
   public readonly blockDevices?: BlockDevice[];
 
+  /**
+   * The Launch Template for this Spot Fleet. This launch template does not specify an instance type or subnet.
+   */
+  public readonly launchTemplate: LaunchTemplate;
+
+  /**
+   * @internal
+   */
+  public readonly _launchTemplateConfigs: any[];
+
   constructor(scope: Construct, id: string, props: SpotEventPluginFleetProps) {
     super(scope, id);
 
@@ -496,6 +520,9 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
+
+    this.launchTemplate = this.createLaunchTemplate(props.trackInstancesWithResourceTracker ?? true);
+    this._launchTemplateConfigs = this.createLaunchTemplateConfigs();
   }
 
   /**
@@ -510,6 +537,47 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
    */
   public allowRemoteControlTo(other: IConnectable): void {
     other.connections.allowTo(this.connections, this.remoteControlPorts, 'Worker remote command listening port');
+  }
+
+  private createLaunchTemplate(resourceTrackerEnabled: boolean): LaunchTemplate {
+    const launchTemplate = new LaunchTemplate(this, 'LaunchTemplate', {
+      blockDevices: this.blockDevices,
+      role: this.fleetInstanceRole,
+      machineImage: this.machineImage,
+      keyName: this.keyName,
+      securityGroup: this.securityGroups[0],
+      userData: this.userData,
+    });
+    if (this.securityGroups.length > 1) {
+      launchTemplate.connections.addSecurityGroup(...this.securityGroups.slice(1));
+    }
+
+    Tags.of(launchTemplate).add(resourceTrackerEnabled ? 'DeadlineTrackedAWSResource' : 'DeadlineResourceTracker', 'SpotEventPlugin');
+
+    return launchTemplate;
+  }
+
+  private createLaunchTemplateConfigs(): LaunchTemplateConfig[] {
+    const launchTemplateConfigs: LaunchTemplateConfig[] = [];
+
+    // Create a launch template config for each instance type + subnet pair
+    this.instanceTypes.forEach(instanceType => {
+      this.subnets.subnetIds.forEach(subnetId => {
+        launchTemplateConfigs.push({
+          LaunchTemplateSpecification: {
+            Version: LaunchTemplateSpecialVersions.LATEST_VERSION,
+            LaunchTemplateId: this.launchTemplate.launchTemplateId,
+            LaunchTemplateName: this.launchTemplate.launchTemplateName,
+          },
+          Overrides: [{
+            InstanceType: instanceType.toString(),
+            SubnetId: subnetId,
+          }],
+        });
+      });
+    });
+
+    return launchTemplateConfigs;
   }
 
   private validateProps(props: SpotEventPluginFleetProps): void {

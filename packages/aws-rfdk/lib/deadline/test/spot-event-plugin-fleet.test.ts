@@ -52,6 +52,7 @@ import { tagFields } from '../../core/lib/runtime-info';
 import {
   escapeTokenRegex,
 } from '../../core/test/token-regex-helpers';
+import { LaunchTemplateConfig } from '../../lambdas/nodejs/configure-spot-event-plugin';
 import {
   IHost,
   InstanceUserDataProvider,
@@ -347,19 +348,75 @@ describe('SpotEventPluginFleet', () => {
       expect(fleet.keyName).toBeUndefined();
     });
 
-    test('.defaultSubnets is true', () => {
+    test('creates launch template configs for each instance type', () => {
       // WHEN
+      const moreInstanceTypes: InstanceType[] = [
+        new InstanceType('t2.small'),
+        new InstanceType('c5.large'),
+      ];
       const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
         vpc,
         renderQueue,
         deadlineGroups,
+        workerMachineImage,
+        maxCapacity,
+        instanceTypes: moreInstanceTypes,
+      });
+
+      // THEN
+      expect(fleet._launchTemplateConfigs.length).toBeGreaterThanOrEqual(moreInstanceTypes.length);
+      moreInstanceTypes.forEach(instanceType => {
+        expect(fleet._launchTemplateConfigs.some(ltc => {
+          return (ltc as LaunchTemplateConfig).Overrides.some(override => override.InstanceType === instanceType.toString());
+        })).toBeTruthy();
+      });
+    });
+
+    test('creates launch template configs for each subnet id', () => {
+      // WHEN
+      const subnets = vpc.selectSubnets({ subnetType: SubnetType.PRIVATE });
+      const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
+        vpc,
+        renderQueue,
         instanceTypes,
+        deadlineGroups,
+        workerMachineImage,
+        maxCapacity,
+        vpcSubnets: subnets,
+      });
+
+      // THEN
+      expect(fleet._launchTemplateConfigs.length).toBeGreaterThanOrEqual(subnets.subnets.length);
+      subnets.subnetIds.forEach(subnetId => {
+        expect(fleet._launchTemplateConfigs.some(ltc => {
+          return (ltc as LaunchTemplateConfig).Overrides.some(override => override.SubnetId === subnetId);
+        })).toBeTruthy();
+      });
+    });
+
+    test('add tag indicating resource tracker is enabled', () => {
+      // WHEN
+      new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
+        vpc,
+        renderQueue,
+        instanceTypes,
+        deadlineGroups,
         workerMachineImage,
         maxCapacity,
       });
 
       // THEN
-      expect(fleet.defaultSubnets).toBeTruthy();
+      expectCDK(spotFleetStack).to(haveResourceLike('AWS::EC2::LaunchTemplate', {
+        LaunchTemplateData: objectLike({
+          TagSpecifications: arrayWith({
+            ResourceType: 'instance',
+            Tags: arrayWith({
+              Key: 'DeadlineTrackedAWSResource',
+              Value: 'SpotEventPlugin',
+            }),
+          }),
+        }),
+      }));
     });
   });
 
@@ -783,6 +840,32 @@ describe('SpotEventPluginFleet', () => {
       expectCDK(stack).to(haveResource('Custom::LogRetention', {
         RetentionInDays: 3,
         LogGroupName: testPrefix + id,
+      }));
+    });
+
+    test('adds tag indicating resource tracker is not enabled', () => {
+      // WHEN
+      new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
+        vpc,
+        renderQueue,
+        instanceTypes,
+        deadlineGroups,
+        workerMachineImage,
+        maxCapacity,
+        trackInstancesWithResourceTracker: false,
+      });
+
+      // THEN
+      expectCDK(spotFleetStack).to(haveResourceLike('AWS::EC2::LaunchTemplate', {
+        LaunchTemplateData: objectLike({
+          TagSpecifications: arrayWith({
+            ResourceType: 'instance',
+            Tags: arrayWith({
+              Key: 'DeadlineResourceTracker',
+              Value: 'SpotEventPlugin',
+            }),
+          }),
+        }),
       }));
     });
   });

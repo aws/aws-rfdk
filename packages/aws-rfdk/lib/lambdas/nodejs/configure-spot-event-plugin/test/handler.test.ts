@@ -132,7 +132,7 @@ describe('SEPConfiguratorResource', () => {
       jest.clearAllMocks();
     });
 
-    test('saves server data with no configuration', async () => {
+    test('does not save server data when no configurations are provided', async () => {
       // GIVEN
       const mockSaveServerData = jest.fn( (_a) => Promise.resolve(true) );
       mockSpotEventPluginClient.saveServerData = mockSaveServerData;
@@ -164,10 +164,7 @@ describe('SEPConfiguratorResource', () => {
       // THEN
       expect(result).toBeUndefined();
       expect(mockSaveServerData.mock.calls.length).toBe(1);
-      const calledWithString = mockSaveServerData.mock.calls[0][0];
-      const calledWithObject = JSON.parse(calledWithString);
-
-      expect(JSON.stringify(calledWithObject)).toEqual(JSON.stringify(validSepConfiguration.spotFleetRequestConfigurations));
+      expect(mockSaveServerData).toBeCalledWith(JSON.stringify(validSepConfiguration.spotFleetRequestConfigurations));
     });
 
     test('save spot event plugin configs', async () => {
