@@ -42,6 +42,7 @@ from aws_rfdk.deadline import (
     RenderQueueTrafficEncryptionProps,
     RenderQueueExternalTLSProps,
     Repository,
+    SecretsManagementProps,
     ThinkboxDockerImages,
     UsageBasedLicense,
     UsageBasedLicensing,
@@ -72,6 +73,10 @@ class ServiceTierProps(StackProps):
     deadline_version: str
     # Whether the AWS Thinkbox End-User License Agreement is accepted or not
     accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance
+    # Whether to enable Deadline Secrets Management.
+    enable_secrets_management: bool
+    # The ARN of the AWS Secret containing the admin credentials for Deadline Secrets Management.
+    secrets_management_secret_arn: typing.Optional[str]
 
 
 class ServiceTier(Stack):
@@ -122,6 +127,12 @@ class ServiceTier(Stack):
             version=props.deadline_version
         )
 
+        secrets_management_settings = SecretsManagementProps(
+            enabled = props.enable_secrets_management
+        )
+        if props.enable_secrets_management and props.secrets_management_secret_arn is not None:
+            secrets_management_settings["credentials"] = Secret.from_secret_arn(self, 'SMAdminUser', props.secrets_management_secret_arn)
+
         repository = Repository(
             self,
             'Repository',
@@ -130,7 +141,8 @@ class ServiceTier(Stack):
             file_system=props.mountable_file_system,
             repository_installation_timeout=Duration.minutes(20),
             repository_installation_prefix='/',
-            version=self.version
+            version=self.version,
+            secrets_management_settings=secrets_management_settings
         )
 
         images = ThinkboxDockerImages(

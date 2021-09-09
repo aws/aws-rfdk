@@ -79,7 +79,7 @@ export interface ServiceTierProps extends cdk.StackProps {
 
   /**
    * Version of Deadline to use.
-   * @default The latest available release of Deadline is used
+   * @default - The latest available release of Deadline is used
    */
   readonly deadlineVersion?: string;
 
@@ -87,6 +87,17 @@ export interface ServiceTierProps extends cdk.StackProps {
    * Whether the AWS Thinkbox End-User License Agreement is accepted or not
    */
   readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance;
+
+  /**
+   * Whether to enable Deadline Secrets Management.
+   */
+   readonly enableSecretsManagement: boolean;
+
+  /**
+   * The ARN of the AWS Secret containing the admin credentials for Deadline Secrets Management.
+   * @default - If Deadline Secrets Management is enabled, an AWS Secret with admin credentials will be generated.
+   */
+   readonly secretsManagementSecretArn?: string;
 }
 
 /**
@@ -129,7 +140,8 @@ export class ServiceTier extends cdk.Stack {
       repositoryInstallationTimeout: cdk.Duration.minutes(20),
       repositoryInstallationPrefix: "/",
       secretsManagementSettings: {
-        enabled: true,
+        enabled: props.enableSecretsManagement,
+        credentials: props.secretsManagementSecretArn ? Secret.fromSecretCompleteArn(this, 'SMAdminUser', props.secretsManagementSecretArn) : undefined,
       },
     });
 

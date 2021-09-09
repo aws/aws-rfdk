@@ -59,6 +59,13 @@ class AppConfig:
         # If false, then we use Amazon DocumentDB to back the render farm.
         self.deploy_mongo_db: bool = False
 
+        # Whether to enable Deadline Secrets Management.
+        self.enable_secrets_management: bool = True
+
+        # A Secret in AWS SecretsManager that stores the admin credentials for Deadline Secrets Management.
+        # If not defined and Secrets Management is enabled, an AWS Secret with admin credentials will be generated.
+        self.secrets_management_secret_arn: Optional[str] = None
+
         # This is only relevant if deploy_mongo_db is True.
         #
         # Change this value to MongoDbSsplLicenseAcceptance.USER_ACCEPTS_SSPL
