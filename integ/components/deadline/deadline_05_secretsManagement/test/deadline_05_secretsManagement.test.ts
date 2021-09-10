@@ -38,6 +38,21 @@ beforeAll(async () => {
       smSecretArns[+testId] = outputValue;
     }
   });
+
+  // Assert the required outputs are found, failing if any are missing
+  const errors = [];
+  if (!bastionId) {
+    errors.push('A stack output for "bastionId" is required but was not found');
+  }
+  testCases.forEach(testCase => {
+    const testId = testCase[1];
+    if (!smSecretArns[testId]) {
+      errors.push(`A stack output for deadlineSecretsManagementCredentialsSM${testId} is required but was not found`);
+    }
+  });
+  if (errors.length > 0) {
+    throw new Error(`Test failed to initialize for the following reasons:\n${errors.join('\n')}`);
+  }
 });
 
 describe.each(testCases)('Deadline Secrets Management tests (%s)', (_, id) => {

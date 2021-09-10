@@ -81,11 +81,13 @@ export abstract class TestingTier extends Stack {
    *
    * @param testSuiteId Test case to configure the cert for
    * @param cert Certificate for authenticating to the database/render queue used for this test case
+   * @param suffix The suffix to apply to the construct ID. This should be used when this method is called
+   * more than once in the same stack to distinguish between to CfnOutputs for a certificate.
    */
-  public configureCert(testSuiteId: string, cert?: X509CertificatePem) {
+  public configureCert(testSuiteId: string, cert?: X509CertificatePem, suffix?: string) {
     if(cert) {
       cert.cert.grantRead(this.testInstance);
-      new CfnOutput(this, 'CertSecretARN' + testSuiteId, {
+      new CfnOutput(this, 'CertSecretARN' + suffix + testSuiteId, {
         value: cert.cert.secretArn,
       });
     };
@@ -166,6 +168,7 @@ export abstract class TestingTier extends Stack {
       'sudo ./deadline-client-installer.run --mode unattended',
       `rm -f ${installerPath}`,
       'rm -f ./deadline-client-installer.run',
+      'export DEADLINE_PATH=/opt/Thinkbox/Deadline10/bin',
     );
   }
 

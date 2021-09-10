@@ -28,6 +28,10 @@ SM_SECRET_STRING=$(jq -r '.SecretString' <<< "$SM_SECRET_VALUE")
 SM_USERNAME=$(jq -r '.username' <<< "$SM_SECRET_STRING")
 export SM_PASSWORD=$(jq -r '.password' <<< "$SM_SECRET_STRING")
 
+# The syntax ${array[@]+"${array[@]}"} is a way to get around the expansion of an empty array raising an unbound variable error since this script
+# sets the "u" shell option above. This is a use of the ${parameter+word} shell expansion. If the value of "parameter" is unset, nothing will be
+# substituted in its place. If "parameter" is set, then the value of "word" is used, which is the expansion of the populated array.
+# Since bash treats the expansion of an empty array as an unset variable, we can use this pattern expand the array only if it is populated.
 "$DEADLINE_PATH/deadlinecommand" secrets $COMMAND "$SM_USERNAME" --password env:SM_PASSWORD ${SM_CMD_ARGS[@]+"${SM_CMD_ARGS[@]}"}
 
 unset SM_PASSWORD

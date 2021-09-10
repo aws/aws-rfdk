@@ -38,12 +38,12 @@ export class SecretsManagementTestingTier extends TestingTier {
     super(scope, id, props);
 
     const testSuiteId = 'SM1';
-    this.configureRepo(testSuiteId, props.storageStruct.repo);
+    this.configureRepoConnection(testSuiteId, props.storageStruct.repo);
     this.configureDatabase(testSuiteId, props.storageStruct.database);
     this.testInstance.connections.allowToDefaultPort(props.storageStruct.efs);
-    this.configureCert(testSuiteId, props.storageStruct.database.cert);
+    this.configureCert(testSuiteId, props.storageStruct.database.cert, 'Database');
     this.configureRenderQueue(testSuiteId, props.renderStruct.renderQueue);
-    this.configureCert(testSuiteId, props.renderStruct.cert);
+    this.configureCert(testSuiteId, props.renderStruct.cert, 'RenderQueue');
 
     this.configureBastionUserData({
       testingScriptPath: path.join(__dirname, '../scripts/bastion/testing'),
@@ -51,20 +51,13 @@ export class SecretsManagementTestingTier extends TestingTier {
   }
 
   /**
-   * @inheritdoc
-   */
-  protected installDeadlineClient(): void {
-    super.installDeadlineClient();
-    this.testInstance.instance.addUserData('export DEADLINE_PATH=/opt/Thinkbox/Deadline10/bin');
-  }
-
-  /**
-   * Mounts the Deadline repository's file system to the bastion and outputs the name of its log group
+   * Mounts the Deadline repository's file system to the bastion and outputs the ARN of the
+   * Secret containing Deadline Secrets Management admin credentials.
    *
    * @param testSuiteId Test case to configure the repository for
    * @param repo Repository object to connect to the test Bastion
    */
-  private configureRepo(testSuiteId: string, repo: Repository) {
+  private configureRepoConnection(testSuiteId: string, repo: Repository) {
     this.installDeadlineClient();
     repo.configureClientInstance({
       host: this.testInstance.instance,
