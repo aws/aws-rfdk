@@ -237,12 +237,29 @@ repository.configureClientInstance({
 
 By default, [Deadline Secrets Management](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) is enabled on the `Repository`.
 RFDK will create administator credentials for Deadline Secrets Management, store them in AWS Secrets Manager, and configure the Deadline Repository with those credentials. If you would like to use your own
-credentials for Deadline Secrets Management, you can do so by storing them in AWS Secrets Manager and providing the `Repository` the ARN of the Secret containing your credentials:
+credentials for Deadline Secrets Management, you can do so by storing them in AWS Secrets Manager and providing them to the `Repository` construct. The Secret must be a JSON document with the following format:
+
+```jsonc
+{
+  // Replace the values of these fields with your own values
+  "username": "your_username",
+  "password": "your_password"
+}
+```
+
+---
+
+_**Note:** The `password` should be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, one symbol and one number._
+
+---
+
+You can then provide the ARN of the Secret containing your credentials to the `Repository` construct:
 
 ```ts
 const secretsManagementCredentials = Secret.fromSecretCompleteArn(
   this,
   'DeadlineSecretsManagementCredentials',
+  // Replace with your Secret ARN
   'yourSecretArn',
 );
 
