@@ -87,7 +87,7 @@ export abstract class TestingTier extends Stack {
   public configureCert(testSuiteId: string, cert?: X509CertificatePem, suffix?: string) {
     if(cert) {
       cert.cert.grantRead(this.testInstance);
-      new CfnOutput(this, 'CertSecretARN' + suffix + testSuiteId, {
+      new CfnOutput(this, 'CertSecretARN' + (suffix ?? '') + testSuiteId, {
         value: cert.cert.secretArn,
       });
     };

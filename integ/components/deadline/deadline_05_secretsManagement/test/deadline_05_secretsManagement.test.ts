@@ -17,9 +17,8 @@ const secretsManager = new SecretsManager();
 const bastionRegex = /bastionId/;
 const smSecretRegex = /deadlineSecretsManagementCredentialsSM(\d)/;
 
-const testCases: Array<Array<any>> = [
-  [ 'Secrets Management is enabled', 1 ],
-];
+const testSuiteId = 1;
+
 let bastionId: string;
 let smSecretArns: Array<any> = [];
 
@@ -44,19 +43,16 @@ beforeAll(async () => {
   if (!bastionId) {
     errors.push('A stack output for "bastionId" is required but was not found');
   }
-  testCases.forEach(testCase => {
-    const testId = testCase[1];
-    if (!smSecretArns[testId]) {
-      errors.push(`A stack output for deadlineSecretsManagementCredentialsSM${testId} is required but was not found`);
-    }
-  });
+  if (!smSecretArns[testSuiteId]) {
+    errors.push(`A stack output for deadlineSecretsManagementCredentialsSM${testSuiteId} is required but was not found`);
+  }
   if (errors.length > 0) {
     throw new Error(`Test failed to initialize for the following reasons:\n${errors.join('\n')}`);
   }
 });
 
-describe.each(testCases)('Deadline Secrets Management tests (%s)', (_, id) => {
-  test(`SM-${id}-1: Deadline Repository configures Secrets Management`, async () => {
+describe('Deadline Secrets Management tests', () => {
+  test(`SM-${testSuiteId}-1: Deadline Repository configures Secrets Management`, async () => {
     /**********************************************************************************************************
      * TestID:          SM-1
      * Description:     Confirm that Deadline Repository configures Secrets Management
@@ -70,11 +66,11 @@ describe.each(testCases)('Deadline Secrets Management tests (%s)', (_, id) => {
       InstanceIds: [bastionId],
       Parameters: {
         commands: [
-          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArns[id]}' ListAllAdminUsers`,
+          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArns[testSuiteId]}' ListAllAdminUsers`,
         ],
       },
     };
-    const secret = await secretsManager.getSecretValue({ SecretId: smSecretArns[id] }).promise();
+    const secret = await secretsManager.getSecretValue({ SecretId: smSecretArns[testSuiteId] }).promise();
     const smCreds = JSON.parse(secret.SecretString!);
     const adminUserRegex = new RegExp(`${smCreds.username}\\s+Registered`);
 
@@ -85,7 +81,7 @@ describe.each(testCases)('Deadline Secrets Management tests (%s)', (_, id) => {
     expect(response.output).toMatch(adminUserRegex);
   });
 
-  test(`SM-${id}-2: Deadline Render Queue has a Server role`, async () => {
+  test(`SM-${testSuiteId}-2: Deadline Render Queue has a Server role`, async () => {
     /**********************************************************************************************************
      * TestID:          SM-2
      * Description:     Confirm that Deadline Render Queue configures itself as a Server role
@@ -100,7 +96,7 @@ describe.each(testCases)('Deadline Secrets Management tests (%s)', (_, id) => {
       InstanceIds: [bastionId],
       Parameters: {
         commands: [
-          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArns[id]}' ListAllMachines "*" Server`,
+          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArns[testSuiteId]}' ListAllMachines "*" Server`,
         ],
       },
     };
