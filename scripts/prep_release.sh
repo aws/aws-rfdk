@@ -58,8 +58,8 @@ pushd $TESTS_DIR
 yarn run e2e-automated
 popd
 
-# Build and publish lambda layers
-/bin/bash ${SCRIPT_DIR}/publish-all-lambda-layers.sh
+# # Build and publish lambda layers
+# /bin/bash ${SCRIPT_DIR}/publish-all-lambda-layers.sh
 
 # Perform the bump
 /bin/bash ${ROOT_DIR}/bump.sh
