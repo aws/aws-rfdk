@@ -5,9 +5,10 @@
 
 import * as path from 'path';
 import { BastionHostLinux, InstanceType, Port, SubnetType, Vpc } from '@aws-cdk/aws-ec2';
+import { RetentionDays } from '@aws-cdk/aws-logs';
 import { Asset } from '@aws-cdk/aws-s3-assets';
 import { CfnOutput, Construct, Duration, Stack, StackProps } from '@aws-cdk/core';
-import { X509CertificatePem } from 'aws-rfdk';
+import { CloudWatchAgent, CloudWatchConfigBuilder, LogGroupFactory, X509CertificatePem } from 'aws-rfdk';
 import { RenderQueue} from 'aws-rfdk/deadline';
 import { IRenderFarmDb } from './storage-struct';
 
@@ -68,6 +69,7 @@ export abstract class TestingTier extends Stack {
       },
     });
     this.testInstance = testInstance;
+    this.configureBastionLogs(this.testInstance, id + 'Bastion');
 
     // Output bastion id for use in tests
     new CfnOutput(this, 'bastionId', {
@@ -258,5 +260,23 @@ export abstract class TestingTier extends Stack {
 
     this.testInstance.instance.userData.addCommands( ...userDataCommands );
     this.testInstance.instance.userData.addSignalOnExitCommand( this.testInstance.instance );
+  }
+
+  private configureBastionLogs(bastion: BastionHostLinux, groupName: string) {
+    const logGroup = LogGroupFactory.createOrFetch(this, 'BastionLogGroupWrapper', groupName, {
+      retention: RetentionDays.ONE_WEEK,
+    });
+    logGroup.grantWrite(bastion);
+
+    const cloudWatchConfigurationBuilder = new CloudWatchConfigBuilder();
+    cloudWatchConfigurationBuilder.addLogsCollectList(logGroup.logGroupName,
+      'cloud-init-output',
+      '/var/log/cloud-init-output.log',
+    );
+
+    new CloudWatchAgent(this, 'BastionCloudWatchAgent', {
+      cloudWatchConfig: cloudWatchConfigurationBuilder.generateCloudWatchConfiguration(),
+      host: bastion.instance,
+    });
   }
 }
