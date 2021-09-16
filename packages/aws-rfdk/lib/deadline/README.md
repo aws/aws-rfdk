@@ -166,7 +166,7 @@ const renderQueue = new RenderQueue(stack, 'RenderQueue', {
 ### Enabling Deadline Secrets Management on the Render Queue
 
 When [Deadline Secrets Management](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) is enabled on the `Repository` construct,
-the `RenderQueue` will automatically configure itself as a Server role in Deadline Secrets Management.
+the `RenderQueue` will automatically configure itself as a [Server role](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles) in Deadline Secrets Management.
 
 TODO: Add more details about auto-registration rules and how to use them (also in dev guide)
 
