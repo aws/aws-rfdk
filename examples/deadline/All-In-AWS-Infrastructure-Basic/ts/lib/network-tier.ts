@@ -74,27 +74,12 @@ export class NetworkTier extends cdk.Stack {
         {
           name: 'Public',
           subnetType: SubnetType.PUBLIC,
-          cidrMask: 28, // 14 IP addresses
+          cidrMask: 28,
         },
         {
           name: 'Private',
           subnetType: SubnetType.PRIVATE,
-          cidrMask: 20, // 4,094 IP addresses
-        },
-        {
-          name: 'WorkerFleet',
-          subnetType: SubnetType.PRIVATE,
-          cidrMask: 20, // 4,094 IP addresses
-        },
-        {
-          name: 'SpotFleet1',
-          subnetType: SubnetType.PRIVATE,
-          cidrMask: 20, // 4,094 IP addresses
-        },
-        {
-          name: 'SpotFleet2',
-          subnetType: SubnetType.PRIVATE,
-          cidrMask: 20, // 4,094 IP addresses
+          cidrMask: 18, // 16,382 IP addresses
         },
       ],
       // VPC flow logs are a security best-practice as they allow us
@@ -151,7 +136,7 @@ export class NetworkTier extends cdk.Stack {
 
     this.dnsZone = new PrivateHostedZone(this, 'DnsZone', {
       vpc: this.vpc,
-      zoneName: 'aws-rfdk.com',
+      zoneName: 'deadline-test.internal',
     });
   }
 }
