@@ -112,7 +112,7 @@ beforeEach(() => {
     }
   }
 
-  version = new MockVersion([10,1,9,2]);
+  version = new MockVersion([10,1,19,0]);
 });
 
 test('can create two repositories', () => {
@@ -858,7 +858,7 @@ test('repository instance is created with correct installer path version', () =>
 
   // THEN
   const script = (repo.node.defaultChild as AutoScalingGroup).userData;
-  expect(script.render()).toMatch(/10\.1\.9\.2/);
+  expect(script.render()).toEqual(expect.stringContaining(version.versionString));
 });
 
 test.each([
@@ -1206,6 +1206,42 @@ test('throws an error if supplied a MountableEfs with no Access Point', () => {
 
   // THEN
   expect(when).toThrow('When using EFS with the Repository, you must provide an EFS Access Point');
+});
+
+test('disable Secrets Management by default when Deadline version is old', () => {
+  // GIVEN
+  const newStack = new Stack(app, 'NewStack');
+  const oldVersion = new VersionQuery(newStack, 'OldDeadlineVersion', { version: '10.0.0.0' });
+
+  // WHEN
+  const repository = new Repository(newStack, 'Repo', {
+    vpc,
+    version: oldVersion,
+  });
+
+  // THEN
+  expect(repository.secretsManagementSettings.enabled).toBeFalsy();
+  expect(repository.secretsManagementSettings.credentials).toBeUndefined();
+});
+
+test('throws when Secrets Management is enabled but deadline version is too low', () => {
+  // GIVEN
+  const newStack = new Stack(app, 'NewStack');
+  const oldVersion = new VersionQuery(newStack, 'OldDeadlineVersion', { version: '10.0.0.0' });
+
+  // WHEN
+  function when() {
+    new Repository(newStack, 'Repo', {
+      version: oldVersion,
+      vpc,
+      secretsManagementSettings: {
+        enabled: true,
+      },
+    });
+  }
+
+  // THEN
+  expect(when).toThrow(`The supplied Deadline version (${oldVersion.versionString}) does not support Deadline Secrets Management in RFDK. Either upgrade Deadline to the minimum required version (${Version.MINIMUM_SECRETS_MANAGEMENT_VERSION.versionString}) or disable the feature in the Repository's construct properties.`);
 });
 
 test('imports repository settings', () => {
