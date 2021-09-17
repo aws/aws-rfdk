@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.38.0](https://github.com/aws/aws-rfdk/compare/v0.37.0...v0.38.0) (2021-09-17)
+
+
+### Supported CDK Version
+
+* [1.116.0](https://github.com/aws/aws-cdk/releases/tag/v1.116.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.18.5](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **deadline:** add Deadline Secrets Management integration in the Render Queue ([#528](https://github.com/aws/aws-rfdk/issues/528)) ([48baa18](https://github.com/aws/aws-rfdk/commit/48baa185b274030cab29a235469536585822313f))
+* **deadline:** add Secret Management support for Repository ([#514](https://github.com/aws/aws-rfdk/issues/514)) ([8c7dda6](https://github.com/aws/aws-rfdk/commit/8c7dda6deaa826e2efec379c9bf67b30fce02a89))
+* **integ:** add secrets management integration tests ([d7213be](https://github.com/aws/aws-rfdk/commit/d7213beba4c82a9ac18117606f55eedf83f0bad7))
+
+
+### Bug Fixes
+
+* **deadline:** fix client TLS config for Deadline 10.1.18.5 (integ tests still broken) ([0cc1285](https://github.com/aws/aws-rfdk/commit/0cc1285784e589789a0b0d41c99836dcc0b64c85))
+* **deadline:** fix issue in client TLS configuration for Deadline 10.1.18 ([#543](https://github.com/aws/aws-rfdk/issues/543)) ([05b14f9](https://github.com/aws/aws-rfdk/commit/05b14f9ed5810d876c3a3df0293cb81531e833f5))
+* **deadline:** reinstall repository even if version is not changed ([821bab2](https://github.com/aws/aws-rfdk/commit/821bab291da27b226f74d4a9c5a01f1189cfb5e4))
+* **integ:** add special case in repository tests for deadline 10.1.18.5 ([#557](https://github.com/aws/aws-rfdk/issues/557)) ([7734b2f](https://github.com/aws/aws-rfdk/commit/7734b2fa57244ff8a065cf60b76be8b2233fd022))
+
 ## [0.37.0](https://github.com/aws/aws-rfdk/compare/v0.36.0...v0.37.0) (2021-08-05)
 
 

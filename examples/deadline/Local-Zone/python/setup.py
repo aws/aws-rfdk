@@ -21,7 +21,7 @@ setuptools.setup(
         "aws-cdk.aws-elasticloadbalancingv2==1.116.0",
         "aws-cdk.aws-route53==1.116.0",
         "aws-cdk.core==1.116.0",
-        "aws-rfdk==0.37.0",
+        "aws-rfdk==0.38.0",
         "jsii==1.31.0",
     ],
 
