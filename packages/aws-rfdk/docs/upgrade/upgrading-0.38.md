@@ -14,7 +14,7 @@ RFDK does not automatically configure Deadline Secrets Management on your farm.
 ---
 
 _This section describes how to upgrade your RFDK farm while also enabling Deadline Secrets Management. If you would **not** like to enable Deadline Secrets Management, please skip to the
-next section "Upgrading Farms Without Enabling Deadline Secrets Management"._
+next section "Upgrading RFDK Without Enabling Deadline Secrets Management"._
 
 ---
 
@@ -29,9 +29,6 @@ Your `RenderQueue` will use HTTPS for both internal and external protocols for R
         1. You **HAVE NOT** specified the `trafficEncryption.externalTLS` (TypeScript) / `traffic_encryption.external_tls` (Python)
         1. You **HAVE NOT** specified `trafficEncryption.externalTLS.enabled` (TypeScript) / `traffic_encryption.external_tls.enabled` (Python)
         1. You **HAVE** specified `trafficEncryption.externalTLS.enabled` (TypeScript) / `traffic_encryption.external_tls.enabled` (Python) and it is set to `true` (TypeScript) / `True` (Python)
-
-If you have determined that your `RenderQueue` will use HTTPS for both internal and external protocols in RFDK 0.38.0, then all you need to do to enable Deadline Secrets Management is to upgrade
-your RFDK application to use 0.38.0 and re-deploy.
 
 The below example code snippets demonstrate what each case above may look like:
 
@@ -222,6 +219,9 @@ RenderQueue(self, 'RenderQueue',
 ```
 
 </details>
+
+If you have determined that your `RenderQueue` will use HTTPS for both internal and external protocols in RFDK 0.38.0, then all you need to do to enable Deadline Secrets Management is to upgrade
+your RFDK application to use RFDK `0.38.x` and Deadline `10.1.19.x` or higher and re-deploy.
 
 
 ## Upgrading RFDK Without Enabling Deadline Secrets Management

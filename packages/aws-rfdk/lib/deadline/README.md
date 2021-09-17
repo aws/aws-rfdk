@@ -14,13 +14,17 @@ _**Note:** RFDK constructs currently support Deadline 10.1.9 and later, unless o
 - [Configure Spot Event Plugin](#configure-spot-event-plugin) (supports Deadline 10.1.12 and later)
   - [Saving Spot Event Plugin Options](#saving-spot-event-plugin-options)
   - [Saving Spot Fleet Request Configurations](#saving-spot-fleet-request-configurations)
+- [Deadline Secrets Management Considerations](#deadline-secrets-management-considerations)
+  - [Using Dedicated Subnets for Deadline Components](#using-dedicated-subnets-for-deadline-components)
 - [Render Queue](#render-queue)
   - [Docker Container Images](#render-queue-docker-container-images)
   - [Encryption](#render-queue-encryption)
   - [Health Monitoring](#render-queue-health-monitoring)
   - [Deletion Protection](#render-queue-deletion-protection)
+  - [Configuring Deadline Secrets Management](#configuring-deadline-secrets-management-on-the-render-queue)
 - [Repository](#repository)
   - [Configuring Deadline Client Connections](#configuring-deadline-client-connections)
+  - [Configuring Deadline Secrets Management](#configuring-deadline-secrets-management-on-the-repository)
 - [Spot Event Plugin Fleet](#spot-event-plugin-fleet) (supports Deadline 10.1.12 and later)
   - [Changing Default Options](#changing-default-options)
 - [Stage](#stage)
@@ -98,6 +102,28 @@ const spotEventPluginConfig = new ConfigureSpotEventPlugin(this, 'ConfigureSpotE
 });
 ```
 
+## Deadline Secrets Management Considerations
+
+### Using Dedicated Subnets for Deadline Components
+
+When using Deadline Secrets Management in RFDK, you will need to create [auto-registration rules](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#automatically-registering-identities-and-adding-roles)
+for the various Deadline components that connect to your Repository or Render Queue. These auto-registration rules work like an IP-address-based allowlist that give machines with
+IP addresses that match a rule access to secrets in Deadline, based on their [assigned role](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles).
+The components that need auto-registration rules created for them include, but are not limited to, the following:
+
+- The Application Load Balancer of the [`RenderQueue`](#render-queue)
+- Deadline workers in a [`WorkerFleet`](#worker-fleet)
+- Deadline workers created by the Spot Event Plugin, which are configured by the [`ConfigureSpotEventPlugin`](#configure-spot-event-plugin) construct.
+
+RFDK creates auto-registration rules based on the Classless Inter-Domain Routing (CIDR) range of the subnet(s) that a component can be deployed into. Therefore, we highly recommend
+creating a dedicated subnet for each component above for the following reasons:
+
+1. You can assign different [roles](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles)
+to each component. For example, the Deadline Render Queue is must be assigned the "Server" role and Deadline workers are typically assigned the "Client" role.
+1. The size of the subnet can be limited to only what is necessary for your workload, avoiding an overly permissive auto-registration rule.
+
+For more information on setting up auto-registration rules in RFDK, see [Configuring Deadline Secrets Management on the Render Queue](#configuring-deadline-secrets-management-on-the-render-queue).
+
 ## Render Queue
 
 ![architecture diagram](../../docs/diagrams/deadline/RenderQueue.svg)
@@ -163,7 +189,7 @@ const renderQueue = new RenderQueue(stack, 'RenderQueue', {
 });
 ```
 
-### Enabling Deadline Secrets Management on the Render Queue
+### Configuring Deadline Secrets Management on the Render Queue
 
 When [Deadline Secrets Management](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) is enabled on the `Repository` construct,
 the `RenderQueue` will automatically configure itself as a [Server role](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles) in Deadline Secrets Management.
@@ -233,11 +259,12 @@ repository.configureClientInstance({
 });
 ```
 
-### Configuring Deadline Secrets Management
+### Configuring Deadline Secrets Management on the Repository
 
 By default, [Deadline Secrets Management](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) is enabled on the `Repository`.
-RFDK will create administator credentials for Deadline Secrets Management, store them in AWS Secrets Manager, and configure the Deadline Repository with those credentials. If you would like to use your own
-credentials for Deadline Secrets Management, you can do so by storing them in AWS Secrets Manager and providing them to the `Repository` construct. The Secret must be a JSON document with the following format:
+when using Deadline 10.1.19 or higher. RFDK will create administator credentials for Deadline Secrets Management, store them in AWS Secrets Manager, and configure the Deadline Repository with those credentials.
+If you would like to use your own credentials for Deadline Secrets Management, you can do so by storing them in AWS Secrets Manager and providing them to the `Repository` construct. The Secret must be a JSON
+document with the following format:
 
 ```jsonc
 {
