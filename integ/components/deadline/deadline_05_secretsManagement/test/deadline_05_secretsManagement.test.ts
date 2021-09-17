@@ -106,6 +106,6 @@ describe('Deadline Secrets Management tests', () => {
 
     // THEN
     // Assert there is exactly one Server identity (the RCS)
-    expect(response.output.match(/ec2-user\s+\[Server\]\s+Registered/)?.length).toBe(1);
+    expect(response.output).toMatchTimes(/ec2-user\s+\[Server\]\s+Registered/g, 1);
   });
 });
