@@ -22,6 +22,7 @@ import {
 } from '@aws-cdk/aws-certificatemanager';
 import {
   AmazonLinuxGeneration,
+  AmazonLinuxImage,
   Instance,
   InstanceClass,
   InstanceSize,
@@ -30,6 +31,7 @@ import {
   Port,
   SecurityGroup,
   Subnet,
+  SubnetType,
   Vpc,
   WindowsVersion,
 } from '@aws-cdk/aws-ec2';
@@ -76,6 +78,8 @@ import {
   RenderQueueProps,
   RenderQueueSecurityGroups,
   Repository,
+  SecretsManagementRegistrationStatus,
+  SecretsManagementRole,
   VersionQuery,
 } from '../lib';
 import {
@@ -2892,6 +2896,32 @@ describe('RenderQueue', () => {
           Name: 'deadline-user-keypairs',
         }),
       }));
+    });
+
+    test('client registration is delegated to SecretsManagementIdentityRegistration', () => {
+      // WHEN
+      const rq = new RenderQueue(stack, 'SecretsManagementRenderQueue', rqSecretsManagementProps);
+      const clientInstance = new Instance(dependencyStack, 'ClientInstance', {
+        instanceType: new InstanceType('t3.micro'),
+        machineImage: new AmazonLinuxImage(),
+        vpc,
+      });
+      const callParams = {
+        dependent: clientInstance,
+        registrationStatus: SecretsManagementRegistrationStatus.REGISTERED,
+        role: SecretsManagementRole.CLIENT,
+        vpc,
+        vpcSubnets: { subnetType: SubnetType.PRIVATE },
+      };
+      // @ts-ignore
+      const identityRegistrationSettings = rq.identityRegistrationSettings;
+      jest.spyOn(identityRegistrationSettings, 'addSubnetIdentityRegistrationSetting');
+
+      // WHEN
+      rq.configureSecretsManagementAutoRegistration(callParams);
+
+      // THEN
+      expect(identityRegistrationSettings.addSubnetIdentityRegistrationSetting).toHaveBeenCalledWith(callParams);
     });
   });
 });

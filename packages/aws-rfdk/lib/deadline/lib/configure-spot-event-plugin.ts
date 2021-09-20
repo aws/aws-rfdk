@@ -34,6 +34,7 @@ import {
   Lazy,
   Stack,
 } from '@aws-cdk/core';
+
 import {
   PluginSettings,
   SEPConfiguratorResourceProps,
@@ -45,7 +46,14 @@ import {
   BlockDeviceMappingProperty,
   BlockDeviceProperty,
 } from '../../lambdas/nodejs/configure-spot-event-plugin';
-import { IRenderQueue, RenderQueue } from './render-queue';
+import {
+  IRenderQueue,
+  RenderQueue,
+} from './render-queue';
+import {
+  SecretsManagementRegistrationStatus,
+  SecretsManagementRole,
+} from './secrets-management-ref';
 import { SpotEventPluginFleet } from './spot-event-plugin-fleet';
 import {
   SpotFleetRequestType,
@@ -498,6 +506,18 @@ export class ConfigureSpotEventPlugin extends Construct {
     // Add a dependency on the render queue to ensure that
     // it is running before we try to send requests to it.
     resource.node.addDependency(props.renderQueue);
+
+    if (props.spotFleets && props.renderQueue.repository.secretsManagementSettings.enabled) {
+      props.spotFleets.forEach(spotFleet => {
+        props.renderQueue.configureSecretsManagementAutoRegistration({
+          dependent: resource,
+          role: SecretsManagementRole.CLIENT,
+          registrationStatus: SecretsManagementRegistrationStatus.REGISTERED,
+          vpc: props.vpc,
+          vpcSubnets: spotFleet.subnets,
+        });
+      });
+    }
 
     this.node.defaultChild = resource;
   }

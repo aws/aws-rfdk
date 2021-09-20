@@ -58,7 +58,7 @@ export interface DeadlineDockerRecipes {
   /**
    * A mapping of name to recipe
    */
-  readonly [name: string]: Recipe | undefined;
+  readonly [name: string]: Recipe;
 }
 
 /**
@@ -154,6 +154,7 @@ export class Stage {
     }
 
     const version = rawManifest.version;
+    /* istanbul ignore else */
     if (version === undefined) {
       throw new Error('Manifest contains no "version" key');
     } else if (typeof version !== 'string') {
@@ -227,5 +228,40 @@ export class Stage {
   private getReleaseVersion(fullVersion: string): string {
     const versionComponents = fullVersion.split('.');
     return `${versionComponents[0]}.${versionComponents[1]}.${versionComponents[2]}`;
+  }
+
+  public get clientInstallerPath(): string {
+    const INSTALLER_FILENAME_RE = /^DeadlineClient-(?<version>.+)-linux-x64-installer\.run$/;
+
+    const listing = fs.readdirSync(
+      path.join(
+        this.dirPath,
+        'bin',
+      ),
+    ).filter(filename => INSTALLER_FILENAME_RE.test(filename));
+
+    /* istanbul ignore else */
+    if (listing.length === 1) {
+      const filename = listing[0];
+      const match = INSTALLER_FILENAME_RE.exec(filename);
+      const version = match!.groups!.version;
+      const recipes = Array.from(Object.values(this.manifest.recipes));
+      const aRecipeHasMatchingDlVersion = recipes.some((recipe) => {
+        return recipe.buildArgs?.DL_VERSION === version;
+      });
+      const installerPath = path.join(
+        this.dirPath,
+        'bin',
+        listing[0],
+      );;
+      if (!aRecipeHasMatchingDlVersion) {
+        throw new Error(`No stage recipes refer to the Deadline Client installer found (${installerPath})`);
+      }
+      return installerPath;
+    } else if (listing.length === 0) {
+      throw new Error(`No matching Client installer found in "${this.dirPath}"`);
+    } else {
+      throw new Error(`Multiple Client installers found: ${listing.join(',')}`);
+    }
   }
 }

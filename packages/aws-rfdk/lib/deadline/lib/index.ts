@@ -9,6 +9,7 @@ export * from './host-ref';
 export * from './render-queue';
 export * from './render-queue-ref';
 export * from './repository';
+export * from './secrets-management-ref';
 export * from './spot-event-plugin-fleet';
 export * from './spot-event-plugin-fleet-ref';
 export * from './stage';

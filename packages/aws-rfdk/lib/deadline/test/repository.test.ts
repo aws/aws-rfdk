@@ -61,6 +61,7 @@ import {
   Repository,
   VersionQuery,
   Version,
+  PlatformInstallers,
 } from '../lib';
 import {
   REPO_DC_ASSET,
@@ -99,13 +100,17 @@ beforeEach(() => {
   });
 
   class MockVersion extends Version implements IVersion {
-    readonly linuxInstallers = {
+    readonly linuxInstallers: PlatformInstallers = {
       patchVersion: 0,
       repository: {
         objectKey: 'testInstaller',
         s3Bucket: new Bucket(stack, 'LinuxInstallerBucket'),
       },
-    }
+      client: {
+        objectKey: 'testClientInstaller',
+        s3Bucket: new Bucket(stack, 'LinuxClientInstallerBucket'),
+      },
+    };
 
     public linuxFullVersionString() {
       return this.toString();
@@ -949,6 +954,12 @@ test('repository configure client instance', () => {
   // Make sure we call the configureRepositoryDirectConnect script with appropriate argument.
   const regex = new RegExp(escapeTokenRegex('\'/tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\' \\"/mnt/repository/DeadlineRepository\\"'));
   expect(userData).toMatch(regex);
+
+  // TODO: Add test to assert the IAM instance profile is given read access to the database credentials secret
+  // expectCDK(stack).to(haveResourceLike('AWS::IAM::Role'))
+  // expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy'))
+  // expectCDK(stack).to(haveResourceLike('AWS::IAM::InstanceProfile'))
+  // expectCDK(stack).to(haveResourceLike('AWS::EC2::Instance'))
 });
 
 test('configureClientInstance uses singleton for repo config script', () => {

@@ -19,6 +19,7 @@ import {
   SubnetType,
 } from '@aws-cdk/aws-ec2';
 import {
+  CfnService,
   Cluster,
   Compatibility,
   ContainerImage,
@@ -38,6 +39,10 @@ import {
   Construct,
 } from '@aws-cdk/core';
 
+import {
+  SecretsManagementRegistrationStatus,
+  SecretsManagementRole,
+} from '.';
 import {
   LogGroupFactory,
   LogGroupFactoryProps,
@@ -511,8 +516,10 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
 
     this.cluster = new Cluster(this, 'Cluster', { vpc: props.vpc });
 
+    const vpcSubnets = props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE };
+
     this.asg = this.cluster.addCapacity('ASG', {
-      vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
+      vpcSubnets,
       instanceType: props.instanceType ? props.instanceType : InstanceType.of(InstanceClass.C5, InstanceSize.LARGE),
       minCapacity: props.desiredCount ?? 1,
       maxCapacity: props.desiredCount ?? 1,
@@ -592,6 +599,16 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
     this.service.node.addDependency(this.asg);
 
     this.node.defaultChild = this.service;
+
+    if (props.renderQueue.repository.secretsManagementSettings.enabled) {
+      props.renderQueue.configureSecretsManagementAutoRegistration({
+        dependent: this.service.node.defaultChild as CfnService,
+        registrationStatus: SecretsManagementRegistrationStatus.REGISTERED,
+        role: SecretsManagementRole.CLIENT,
+        vpc: props.vpc,
+        vpcSubnets,
+      });
+    }
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
