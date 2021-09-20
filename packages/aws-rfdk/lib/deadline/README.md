@@ -21,6 +21,7 @@ _**Note:** RFDK constructs currently support Deadline 10.1.9 and later, unless o
   - [Encryption](#render-queue-encryption)
   - [Health Monitoring](#render-queue-health-monitoring)
   - [Deletion Protection](#render-queue-deletion-protection)
+  - [Subnet Placement](#render-queue-subnet-placement)
   - [Configuring Deadline Secrets Management](#configuring-deadline-secrets-management-on-the-render-queue)
 - [Repository](#repository)
   - [Configuring Deadline Client Connections](#configuring-deadline-client-connections)
@@ -188,6 +189,48 @@ const renderQueue = new RenderQueue(stack, 'RenderQueue', {
   deletionProtection: false
 });
 ```
+
+### Render Queue Subnet Placement
+
+We highly recommend creating dedicated subnets for the Render Queue's [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html)
+that will only be used by the load balancer. Using dedicated subnets for load balancers is considered best practice and is especially important if you are using
+Deadline Secrets Management (see [Deadline Secrets Management Considerations](#using-dedicated-subnets-for-deadline-components)).
+
+The following example creates a dedicated subnet group for the `RenderQueue` to use for its Application Load balancer:
+```ts
+const vpc = new Vpc(this, 'Vpc', {
+  // ...
+  subnetConfiguration: [
+    // ...
+
+    // Provide a subnet configuration for the Render Queue subnet group
+    {
+      name: 'RenderQueueSubnets',
+      subnetType: SubnetType.PRIVATE,
+      cidrMask: 27,
+    },
+
+    // ...
+  ],
+  // ...
+});
+
+// ...
+
+const renderQueue = new RenderQueue(stack, 'RenderQueue', {
+  // ...
+  vpc,
+
+  // Select the dedicated Render Queue subnets to put the ALB in
+  vpcSubnetsAlb: vpc.selectSubnets({ subnetGroupName: 'RenderQueueSubnets' }),
+
+  // ...
+});
+```
+
+Application Load Balancers have requirements for the subnets they are deployed into, such as requiring that each subnet be from a different Availability Zone and that each subnet
+have a CIDR block with at least a `/27` bitmask and at least 8 free IP addresses per subnet. For the full list of requirements, please see the
+[Elastic Load Balancing documentation](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#subnets-load-balancer).
 
 ### Configuring Deadline Secrets Management on the Render Queue
 
