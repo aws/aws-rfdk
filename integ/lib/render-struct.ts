@@ -16,7 +16,7 @@ import {
   RenderQueueTrafficEncryptionProps,
   ThinkboxDockerRecipes,
 } from 'aws-rfdk/deadline';
-import { ThinkboxDockerImageOverrides } from './ThinkboxDockerImageOverrides';
+import { ThinkboxDockerImageOverrides } from './thinkbox-docker-image-overrides';
 
 const DOCKER_IMAGE_OVERRIDES_ENV_VAR = 'RFDK_DOCKER_IMAGE_OVERRIDES';
 
@@ -75,7 +75,7 @@ export class RenderStruct extends Construct {
             signingCertificate: cacert,
           }),
         },
-        internalProtocol: ApplicationProtocol.HTTP,
+        internalProtocol: ApplicationProtocol.HTTPS,
       };
       hostname = {
         zone: new PrivateHostedZone(this, 'Zone', {

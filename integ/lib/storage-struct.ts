@@ -55,6 +55,10 @@ export interface StorageStructProps {
   readonly integStackTag: string;
   readonly version: IVersion;
   readonly databaseType?: DatabaseType;
+  /**
+   * @default false
+   */
+  readonly enableSecretsManagement?: boolean;
 }
 
 export class StorageStruct extends Construct {
@@ -223,6 +227,9 @@ export class StorageStruct extends Construct {
       removalPolicy: {
         database: RemovalPolicy.DESTROY,
         filesystem: RemovalPolicy.DESTROY,
+      },
+      secretsManagementSettings: {
+        enabled: props.enableSecretsManagement ?? false,
       },
     });
 

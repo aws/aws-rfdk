@@ -8,7 +8,13 @@
 set -euo pipefail
 shopt -s globstar
 
-INTEG_ROOT="$(pwd)"
+export INTEG_ROOT="$(pwd)"
+
+# Create temp directory
+export INTEG_TEMP_DIR="$INTEG_ROOT/.e2etemp"
+rm -rf $INTEG_TEMP_DIR
+mkdir -p $INTEG_TEMP_DIR
+
 BASH_SCRIPTS="$INTEG_ROOT/scripts/bash"
 INFRASTRUCTURE_APP="$INTEG_ROOT/components/_infrastructure"
 
@@ -39,7 +45,7 @@ for COMPONENT in **/cdk.json; do
     # Use a pattern match to exclude the infrastructure app from the results
     if [[ "$(basename "$COMPONENT_ROOT")" != _* ]]; then
         # Excecute the e2e test in the component's scripts directory
-        cd "$INTEG_ROOT/$COMPONENT_ROOT" && ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME"  --deploy-and-test-only
+        cd "$INTEG_ROOT/$COMPONENT_ROOT" && ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" --deploy-and-test-only || true
     fi
 done
 
