@@ -44,6 +44,9 @@ def main():
     if 'region' in config.deadline_client_linux_ami_map:
         raise ValueError('Deadline Client Linux AMI map is required but was not specified.')
 
+    if not config.enable_secrets_management and config.secrets_management_secret_arn:
+        print('Deadline Secrets Management is disabled, so the admin credentials specified in the provided secret will not be used.')
+
     # ------------------------------
     # Application
     # ------------------------------
@@ -110,7 +113,9 @@ def main():
         root_ca=security.root_ca,
         dns_zone=network.dns_zone,
         deadline_version=config.deadline_version,
-        accept_aws_thinkbox_eula=config.accept_aws_thinkbox_eula
+        accept_aws_thinkbox_eula=config.accept_aws_thinkbox_eula,
+        enable_secrets_management=config.enable_secrets_management,
+        secrets_management_secret_arn=config.secrets_management_secret_arn
     )
     service = service_tier.ServiceTier(app, 'ServiceTier', props=service_props, env=env)
 
