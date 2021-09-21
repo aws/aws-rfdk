@@ -3,8 +3,8 @@
 Starting in RFDK v0.38.0, [Deadline Secrets Management](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) will be enabled on the
 `Repository` and `RenderQueue` constructs by default when using Deadline 10.1.19 and later. This can cause some issues with existing farm configurations because Deadline Secrets Management requires:
 
-- The internal protocol on the Render Queue to be HTTPS
-- The external protocol on the Render Queue to be HTTPS
+- The internal protocol on the Render Queue to be HTTPS ("internal" refers to traffic between the Deadline Remote Connection Server and the Render Queue's load balancer)
+- The external protocol on the Render Queue to be HTTPS ("external" refers to traffic between the Render Queue's load balancer and clients)
 
 Additionally, if you plan on upgrading to RFDK 0.38 or newer and Deadline 10.1.19 or newer, but do **not** want to enable Deadline Secrets Management, you may have to make changes to your RFDK application so that
 RFDK does not automatically configure Deadline Secrets Management on your farm.
@@ -17,6 +17,9 @@ _This section describes how to upgrade your RFDK farm while also enabling Deadli
 next section "Upgrading RFDK Without Enabling Deadline Secrets Management"._
 
 ---
+
+The first step to making sure you are ready to enable Deadline Secrets Management is to make sure you have HTTPS enabled on the `RenderQueue` for both the internal and external protocols.
+If you are upgrading from a version prior to 0.37, you should refer to the [v0.37 upgrade documentation](./upgrading-0.37.md) for details about how the `RenderQueue` will default to using HTTPS.
 
 Your `RenderQueue` will use HTTPS for both internal and external protocols for RFDK 0.38.0 if **EITHER** of the following are true:
 

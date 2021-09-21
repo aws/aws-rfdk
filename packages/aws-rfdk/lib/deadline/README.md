@@ -103,6 +103,53 @@ const spotEventPluginConfig = new ConfigureSpotEventPlugin(this, 'ConfigureSpotE
 });
 ```
 
+### Spot Event Plugin Fleet Subnet Placement
+
+We highly recommend creating dedicated subnets for the Spot Event Plugin Fleets in your farm as it is considered best practice and is especially important if you are using
+Deadline Secrets Management (see [Deadline Secrets Management Considerations](#using-dedicated-subnets-for-deadline-components)).
+
+The following example creates a dedicated subnet group for a `SpotEventPluginFleet`:
+```ts
+const vpc = new Vpc(this, 'Vpc', {
+  // ...
+  subnetConfiguration: [
+    // ...
+
+    // Provide a subnet configuration for the SpotEventPluginFleet subnet group
+    {
+      name: 'SpotEventPluginFleetSubnets',
+      subnetType: SubnetType.PRIVATE,
+      cidrMask: 20,
+    },
+
+    // ...
+  ],
+  // ...
+});
+
+// ...
+
+const fleet = new SpotEventPluginFleet(stack, 'SpotEventPluginFleet', {
+  // ...
+  vpc,
+
+  // Select the dedicated WorkerInstanceFleet subnets to put the worker nodes in
+  vpcSubnets: {
+    subnetGroupName: "SpotEventPluginFleetSubnets",
+  },
+
+  // ...
+});
+
+new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
+  vpc,
+  spotFleets: [
+    fleet,
+  ],
+  // ...
+})
+```
+
 ## Deadline Secrets Management Considerations
 
 ### Using Dedicated Subnets for Deadline Components
@@ -119,11 +166,16 @@ The components that need auto-registration rules created for them include, but a
 RFDK creates auto-registration rules based on the Classless Inter-Domain Routing (CIDR) range of the subnet(s) that a component can be deployed into. Therefore, we highly recommend
 creating a dedicated subnet for each component above for the following reasons:
 
-1. You can assign different [roles](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles)
-to each component. For example, the Deadline Render Queue is must be assigned the "Server" role and Deadline workers are typically assigned the "Client" role.
+1. RFDK configures Deadline Secrets Management to auto-register identities from any host within the Render Queue's Application Load Balancer (ALB) subnets. This is necessary for RFDK
+to create [identity registration settings](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-registration-settings-ref-label)
+for other clients that connect to the Render Queue through its ALB (e.g. `UsageBasedLicensing`, `WorkerInstanceFleet`, and `SpotEventPluginFleet`). If other hosts are deployed into the same
+subnets as the Render Queue's ALB, they will be able to auto-register identities even though they don't have a corresponding identity registration setting.
 1. The size of the subnet can be limited to only what is necessary for your workload, avoiding an overly permissive auto-registration rule.
 
-For more information on setting up auto-registration rules in RFDK, see [Configuring Deadline Secrets Management on the Render Queue](#configuring-deadline-secrets-management-on-the-render-queue).
+For more details on dedicated subnet placements, see:
+- [Render Queue Subnet Placement](#render-queue-subnet-placement)
+- [Worker Fleet Subnet Placement](#worker-fleet-subnet-placement)
+- [Spot Event Plugin Fleet Subnet Placement](#spot-event-plugin-fleet-subnet-placement)
 
 ## Render Queue
 
@@ -205,7 +257,7 @@ const vpc = new Vpc(this, 'Vpc', {
 
     // Provide a subnet configuration for the Render Queue subnet group
     {
-      name: 'RenderQueueSubnets',
+      name: 'RenderQueueALBSubnets',
       subnetType: SubnetType.PRIVATE,
       cidrMask: 27,
     },
@@ -222,7 +274,7 @@ const renderQueue = new RenderQueue(stack, 'RenderQueue', {
   vpc,
 
   // Select the dedicated Render Queue subnets to put the ALB in
-  vpcSubnetsAlb: vpc.selectSubnets({ subnetGroupName: 'RenderQueueSubnets' }),
+  vpcSubnetsAlb: vpc.selectSubnets({ subnetGroupName: 'RenderQueueALBSubnets' }),
 
   // ...
 });
@@ -236,8 +288,6 @@ have a CIDR block with at least a `/27` bitmask and at least 8 free IP addresses
 
 When [Deadline Secrets Management](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) is enabled on the `Repository` construct,
 the `RenderQueue` will automatically configure itself as a [Server role](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles) in Deadline Secrets Management.
-
-TODO: Add more details about auto-registration rules and how to use them (also in dev guide)
 
 For more information on using Deadline Secrets Management in RFDK, please see the [RFDK Developer Guide](https://docs.aws.amazon.com/rfdk/latest/guide/deadline-secrets-management-rfdk.html).
 
@@ -686,5 +736,44 @@ const fleet = new WorkerInstanceFleet(stack, 'WorkerFleet', {
   renderQueue,
   workerMachineImage: /* ... */,
   userDataProvider: new UserDataProvider(stack, 'UserDataProvider'),
+});
+```
+
+### Worker Fleet Subnet Placement
+
+We highly recommend creating dedicated subnets for the Worker Fleets in your farm as it is considered best practice and is especially important if you are using
+Deadline Secrets Management (see [Deadline Secrets Management Considerations](#using-dedicated-subnets-for-deadline-components)).
+
+The following example creates a dedicated subnet group for a `WorkerInstanceFleet`:
+```ts
+const vpc = new Vpc(this, 'Vpc', {
+  // ...
+  subnetConfiguration: [
+    // ...
+
+    // Provide a subnet configuration for the WorkerInstanceFleet subnet group
+    {
+      name: 'WorkerInstanceFleetSubnets',
+      subnetType: SubnetType.PRIVATE,
+      cidrMask: 20,
+    },
+
+    // ...
+  ],
+  // ...
+});
+
+// ...
+
+const workerInstanceFleet = new WorkerInstanceFleet(stack, 'WorkerInstanceFleet', {
+  // ...
+  vpc,
+
+  // Select the dedicated WorkerInstanceFleet subnets to put the worker nodes in
+  vpcSubnets: {
+    subnetGroupName: "WorkerInstanceFleetSubnets",
+  },
+
+  // ...
 });
 ```
