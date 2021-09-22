@@ -166,10 +166,11 @@ The components that need auto-registration rules created for them include, but a
 RFDK creates auto-registration rules based on the Classless Inter-Domain Routing (CIDR) range of the subnet(s) that a component can be deployed into. Therefore, we highly recommend
 creating a dedicated subnet for each component above for the following reasons:
 
-1. RFDK configures Deadline Secrets Management to auto-register identities from any host within the Render Queue's Application Load Balancer (ALB) subnets. This is necessary for RFDK
-to create [identity registration settings](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-registration-settings-ref-label)
-for other clients that connect to the Render Queue through its ALB (e.g. `UsageBasedLicensing`, `WorkerInstanceFleet`, and `SpotEventPluginFleet`). If other hosts are deployed into the same
-subnets as the Render Queue's ALB, they will be able to auto-register identities even though they don't have a corresponding identity registration setting.
+1. RFDK automatically configures Deadline Secrets Management [identity registration settings](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-registration-settings-ref-label).
+These settings are configured such that the Render Queue will register identities that are created by Deadline Clients (e.g. `UsageBasedLicensing`, `WorkerInstanceFleet`, and `SpotEventPluginFleet`)
+connecting via the Render Queue's Application Load Balancer (ALB). Deadline requires that you specify trusted load balancers when configuring identity registration settings by their connecting
+IP address. Application Load Balancers can scale to use any available IP address in the subnets, so the full subnet IP range is used by RFDK. For this reason, we recommend dedicating subnets
+exclusively for the Render Queue's ALB.
 1. The size of the subnet can be limited to only what is necessary for your workload, avoiding an overly permissive auto-registration rule.
 
 For more details on dedicated subnet placements, see:
