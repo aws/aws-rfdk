@@ -223,9 +223,14 @@ RenderQueue(self, 'RenderQueue',
 
 </details>
 
-If you have determined that your `RenderQueue` will use HTTPS for both internal and external protocols in RFDK 0.38.0, then all you need to do to enable Deadline Secrets Management is to upgrade
-your RFDK application to use RFDK `0.38.x` and Deadline `10.1.19.x` or higher and re-deploy.
+If you have determined that your `RenderQueue` will use HTTPS for both internal and external protocols in RFDK 0.38.0, then the next steps are to determine:
 
+- If you would like to set up your own administrator credentials for Deadline Secrets Management or let RFDK generate them for you
+- If you should restructure your VPC to use dedicated subnets for different constructs.
+
+More details on these considerations can be found in the [RFDK Deadline readme](../../lib/deadline/README.md).
+
+Finally, all you need to do to enable Deadline Secrets Management is to upgrade your RFDK application to use RFDK `0.38.x` and Deadline `10.1.19.x` or higher and re-deploy.
 
 ## Upgrading RFDK Without Enabling Deadline Secrets Management
 
