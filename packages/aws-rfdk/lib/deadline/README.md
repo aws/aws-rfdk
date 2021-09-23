@@ -28,6 +28,7 @@ _**Note:** RFDK constructs currently support Deadline 10.1.9 and later, unless o
   - [Configuring Deadline Secrets Management](#configuring-deadline-secrets-management-on-the-repository)
 - [Spot Event Plugin Fleet](#spot-event-plugin-fleet) (supports Deadline 10.1.12 and later)
   - [Changing Default Options](#changing-default-options)
+  - [Subnet Placement](#spot-event-plugin-fleet-subnet-placement)
 - [Stage](#stage)
   - [Staging Docker Recipes](#staging-docker-recipes)
 - [ThinkboxDockerImages](#thinkbox-docker-images)
@@ -35,9 +36,10 @@ _**Note:** RFDK constructs currently support Deadline 10.1.9 and later, unless o
   - [Docker Container Images](#usage-based-licensing-docker-container-images)
   - [Uploading Binary Secrets to SecretsManager](#uploading-binary-secrets-to-secretsmanager)
 - [VersionQuery](#versionquery)
-- [Worker Fleet](#worker-fleet)
-  - [Health Monitoring](#worker-fleet-health-monitoring)
+- [Worker Instance Fleet](#worker-instance-fleet)
+  - [Health Monitoring](#worker-instance-fleet-health-monitoring)
   - [Custom Worker Instance Startup](#custom-worker-instance-startup)
+  - [Subnet Placement](#worker-instance-fleet-subnet-placement)
 
 ## Configure Spot Event Plugin
 
@@ -154,13 +156,13 @@ new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
 
 ### Using Dedicated Subnets for Deadline Components
 
-When using Deadline Secrets Management in RFDK, you will need to create [auto-registration rules](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#automatically-registering-identities-and-adding-roles)
-for the various Deadline components that connect to your Repository or Render Queue. These auto-registration rules work like an IP-address-based allowlist that give machines with
-IP addresses that match a rule access to secrets in Deadline, based on their [assigned role](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles).
-The components that need auto-registration rules created for them include, but are not limited to, the following:
+When Secrets Management is enabled on the `Repository` construct, RFDK will handle configuring [identity registration settings](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#automatically-registering-identities-and-adding-roles)
+using the subnets of the RFDK constructs involved. Because a construct's resources can be assigned any IP address in the subnet range, RFDK must create rules that cover the entire subnet.
+These identity registration settings work like an IP-address-based allowlist that give machines with IP addresses that match a rule access to secrets in Deadline, based on their [assigned role](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles).
+The components that need identity registration settings created for them include, but are not limited to, the following:
 
 - The Application Load Balancer of the [`RenderQueue`](#render-queue)
-- Deadline workers in a [`WorkerFleet`](#worker-fleet)
+- Deadline workers in a [`WorkerInstanceFleet`](#worker-instance-fleet)
 - Deadline workers created by the Spot Event Plugin, which are configured by the [`ConfigureSpotEventPlugin`](#configure-spot-event-plugin) construct.
 
 RFDK creates auto-registration rules based on the Classless Inter-Domain Routing (CIDR) range of the subnet(s) that a component can be deployed into. Therefore, we highly recommend
@@ -175,7 +177,7 @@ exclusively for the Render Queue's ALB.
 
 For more details on dedicated subnet placements, see:
 - [Render Queue Subnet Placement](#render-queue-subnet-placement)
-- [Worker Fleet Subnet Placement](#worker-fleet-subnet-placement)
+- [Worker Instance Fleet Subnet Placement](#worker-instance-fleet-subnet-placement)
 - [Spot Event Plugin Fleet Subnet Placement](#spot-event-plugin-fleet-subnet-placement)
 
 ## Render Queue
@@ -678,7 +680,7 @@ const version = VersionQuery.exact(stack, 'ExactVersion', {
 });
 ```
 
-## Worker Fleet
+## Worker Instance Fleet
 
 ![architecture diagram](../../docs/diagrams/deadline/WorkerInstanceFleet.svg)
 
@@ -693,7 +695,7 @@ const fleet = new WorkerInstanceFleet(stack, 'WorkerFleet', {
 });
 ```
 
-### Worker Fleet Health Monitoring
+### Worker Instance Fleet Health Monitoring
 
 The `WorkerInstanceFleet` uses Elastic Load Balancing (ELB) health checks with its `AutoScalingGroup` to ensure the fleet is operating as expected. ELB health checks have two components:
 
@@ -740,9 +742,9 @@ const fleet = new WorkerInstanceFleet(stack, 'WorkerFleet', {
 });
 ```
 
-### Worker Fleet Subnet Placement
+### Worker Instance Fleet Subnet Placement
 
-We highly recommend creating dedicated subnets for the Worker Fleets in your farm as it is considered best practice and is especially important if you are using
+We highly recommend creating dedicated subnets for the Worker Instance Fleets in your farm as it is considered best practice and is especially important if you are using
 Deadline Secrets Management (see [Deadline Secrets Management Considerations](#using-dedicated-subnets-for-deadline-components)).
 
 The following example creates a dedicated subnet group for a `WorkerInstanceFleet`:
