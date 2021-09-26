@@ -1317,3 +1317,34 @@ test('credentials are undefined when secrets management is disabled', () => {
   // THEN
   expect(repository.secretsManagementSettings.credentials).toBeUndefined();
 });
+
+
+test('throws an error if credentials are undefined and database is imported', () => {
+  // GIVEN
+  const sg = new SecurityGroup(stack, 'SG', {
+    vpc,
+  });
+  const secret = new Secret(stack, 'Secret');
+  const database = DatabaseCluster.fromDatabaseClusterAttributes(stack, 'DbCluster', {
+    clusterEndpointAddress: '1.2.3.4',
+    clusterIdentifier: 'foo',
+    instanceEndpointAddresses: [ '1.2.3.5' ],
+    instanceIdentifiers: [ 'i0' ],
+    port: 27001,
+    readerEndpointAddress: '1.2.3.6',
+    securityGroup: sg,
+  });
+  const databaseConnection = DatabaseConnection.forDocDB({database, login: secret});
+
+  // WHEN
+  function when() {
+    new Repository(stack, 'Repository', {
+      vpc,
+      version,
+      database: databaseConnection,
+    });
+  }
+
+  // THEN
+  expect(when).toThrow('Admin credentials for Deadline Secrets Management cannot be generated when using an imported database. For setting up your own credentials, please refer to https://github.com/aws/aws-rfdk/tree/mainline/packages/aws-rfdk/lib/deadline#configuring-deadline-secrets-management-on-the-repository.');
+});
