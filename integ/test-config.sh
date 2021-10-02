@@ -27,6 +27,23 @@ export DEADLINE_STAGING_PATH
 #     }
 export RFDK_DOCKER_IMAGE_OVERRIDES
 
+export UBL_CERTIFICATE_BUNDLE_SECRET_ARN
+
+# Map of UBL licenses and the limits for them.
+#   - This must be specified if UBL_CERTIFICATE_BUNDLE_SECRET_ARN is specified.
+#   - Expected format is a JSON object where the keys are the name of a product in PascalCase,
+#     and the values are numbers that represent the UBL limit. A limit of 0 is treated as unlimited UBL.
+#   - To see all supported licenses, see the static `for...()` methods in the UsageBasedLicense class in RFDK.
+#
+# Example:
+# {
+#   "Maya": 10,
+#   "Cinema4D": 0,
+#   // ...
+# }
+export UBL_LICENSE_MAP
+
+
 # EC2 AMIs to use for Deadline workers
 #   - If not set here, the appropriate basic worker AMI for the version of Deadline and region will be pulled from the public directory
 export LINUX_DEADLINE_AMI_ID

@@ -117,6 +117,10 @@ export class StorageStruct extends Construct {
       // Create EFS file system
       deadlineEfs = new FileSystem(this, 'FileSystem', {
         vpc,
+        vpcSubnets: {
+          subnetType: SubnetType.PRIVATE,
+          onePerAz: true,
+        },
         removalPolicy: RemovalPolicy.DESTROY,
       });
       const accessPoint = new AccessPoint(this, 'AccessPoint', {

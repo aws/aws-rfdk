@@ -32,6 +32,6 @@ export SM_PASSWORD=$(jq -r '.password' <<< "$SM_SECRET_STRING")
 # sets the "u" shell option above. This is a use of the ${parameter+word} shell expansion. If the value of "parameter" is unset, nothing will be
 # substituted in its place. If "parameter" is set, then the value of "word" is used, which is the expansion of the populated array.
 # Since bash treats the expansion of an empty array as an unset variable, we can use this pattern expand the array only if it is populated.
-"$DEADLINE_PATH/deadlinecommand" secrets $COMMAND "$SM_USERNAME" --password env:SM_PASSWORD ${SM_CMD_ARGS[@]+"${SM_CMD_ARGS[@]}"}
+"$DEADLINE_PATH/deadlinecommand" --json secrets $COMMAND "$SM_USERNAME" --password env:SM_PASSWORD ${SM_CMD_ARGS[@]+"${SM_CMD_ARGS[@]}"}
 
 unset SM_PASSWORD
