@@ -7,7 +7,6 @@ import {
   BastionHostLinux,
   BlockDeviceVolume,
   IVpc,
-  SubnetType,
 } from '@aws-cdk/aws-ec2';
 import {
   ApplicationProtocol,
@@ -34,6 +33,8 @@ import {
   Secret,
 } from '@aws-cdk/aws-secretsmanager';
 import { SessionManagerHelper } from 'aws-rfdk/lib/core';
+
+import { Subnets } from './subnets';
 
 /**
  * Properties for {@link ServiceTier}.
@@ -139,7 +140,7 @@ export class ServiceTier extends cdk.Stack {
     this.bastion = new BastionHostLinux(this, 'Bastion', {
       vpc: props.vpc,
       subnetSelection: {
-        subnetType: SubnetType.PUBLIC,
+        subnetGroupName: Subnets.PUBLIC.name,
       },
       blockDevices: [{
         deviceName: '/dev/xvda',
@@ -164,6 +165,9 @@ export class ServiceTier extends cdk.Stack {
 
     const repository = new Repository(this, 'Repository', {
       vpc: props.vpc,
+      vpcSubnets: {
+        subnetGroupName: Subnets.INFRASTRUCTURE.name,
+      },
       version: this.version,
       database: props.database,
       fileSystem: props.mountableFileSystem,
@@ -191,6 +195,23 @@ export class ServiceTier extends cdk.Stack {
 
     this.renderQueue = new RenderQueue(this, 'RenderQueue', {
       vpc: props.vpc,
+      vpcSubnets: {
+        subnetGroupName: Subnets.INFRASTRUCTURE.name,
+      },
+      /**
+       * It is considered good practice to put the Render Queue's load blanacer in dedicated subnets because:
+       *
+       * 1. Deadline Secrets Management identity registration settings will be scoped down to least-privilege
+       *
+       *    (see https://github.com/aws/aws-rfdk/blob/release/packages/aws-rfdk/lib/deadline/README.md#render-queue-subnet-placement)
+       *
+       * 2. The load balancer can scale to use IP addresses in the subnet without conflicts from other AWS resources
+       *
+       *    (see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#subnets-load-balancer)
+       */
+      vpcSubnetsAlb: {
+        subnetGroupName: Subnets.RENDER_QUEUE_ALB.name,
+      },
       images: images,
       repository,
       hostname: {
@@ -231,6 +252,9 @@ export class ServiceTier extends cdk.Stack {
 
       this.ublLicensing = new UsageBasedLicensing(this, 'UBLLicensing', {
         vpc: props.vpc,
+        vpcSubnets: {
+          subnetGroupName: Subnets.USAGE_BASED_LICENSING.name,
+        },
         images: images,
         licenses: props.ublLicenses,
         renderQueue: this.renderQueue,

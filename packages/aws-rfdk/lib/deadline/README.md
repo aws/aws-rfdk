@@ -175,6 +175,8 @@ IP address. Application Load Balancers can scale to use any available IP address
 exclusively for the Render Queue's ALB.
 1. The size of the subnet can be limited to only what is necessary for your workload, avoiding an overly permissive auto-registration rule.
 
+Please consult the [`All-In-AWS-Infrastructure-Basic` example CDK application](https://github.com/aws/aws-rfdk/blob/release/examples/deadline/All-In-AWS-Infrastructure-Basic) for a reference implementation that demonstrates dedicated subnets.
+
 For more details on dedicated subnet placements, see:
 - [Render Queue Subnet Placement](#render-queue-subnet-placement)
 - [Worker Instance Fleet Subnet Placement](#worker-instance-fleet-subnet-placement)

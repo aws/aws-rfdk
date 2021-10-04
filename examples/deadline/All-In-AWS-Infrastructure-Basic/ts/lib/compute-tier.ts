@@ -27,6 +27,8 @@ import {
 import { Asset } from '@aws-cdk/aws-s3-assets';
 import * as path from 'path'
 
+import { Subnets } from './subnets';
+
 /**
  * Properties for {@link ComputeTier}.
  */
@@ -123,6 +125,9 @@ export class ComputeTier extends cdk.Stack {
 
     this.healthMonitor = new HealthMonitor(this, 'HealthMonitor', {
       vpc: props.vpc,
+      vpcSubnets: {
+        subnetGroupName: Subnets.INFRASTRUCTURE.name,
+      },
       // TODO - Evaluate deletion protection for your own needs. This is set to false to
       // cleanly remove everything when this stack is destroyed. If you would like to ensure
       // that this resource is not accidentally deleted, you should set this to true.
@@ -131,6 +136,9 @@ export class ComputeTier extends cdk.Stack {
 
     this.workerFleet = new WorkerInstanceFleet(this, 'WorkerFleet', {
       vpc: props.vpc,
+      vpcSubnets: {
+        subnetGroupName: Subnets.WORKERS.name,
+      },
       renderQueue: props.renderQueue,
       workerMachineImage: props.workerMachineImage,
       healthMonitor: this.healthMonitor,
