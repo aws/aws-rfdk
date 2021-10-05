@@ -131,7 +131,7 @@ export interface IRenderQueue extends IConstruct, IConnectable {
    * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-registration-settings-ref-label
    * for details
    *
-   * @param props Properties that specify thje configuration to be applied to the Deadline' Secrets Management identity
+   * @param props Properties that specify the configuration to be applied to the Deadline' Secrets Management identity
    * registration settings. This specifies a VPC subnet and configures Deadline to automatically register identities of
    * clients connecting from the subnet to a chosen Deadline Secrets Management role and status.
    */

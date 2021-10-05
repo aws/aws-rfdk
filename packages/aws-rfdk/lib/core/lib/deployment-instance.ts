@@ -46,7 +46,7 @@ import { tagConstruct } from './runtime-info';
  */
 export interface DeploymentInstanceProps {
   /**
-   * The time CloudFormation should wait for the success signals before failing the create/update.
+   * The amount of time that CloudFormation should wait for the success signals before failing the create/update.
    *
    * @default 15 minutes
    */
@@ -75,7 +75,8 @@ export interface DeploymentInstanceProps {
 
   /**
    * Properties for setting up the Deadline DeploymentInstance's LogGroup in CloudWatch
-   * @default - LogGroup will be created with all properties' default values to the LogGroup: /renderfarm/<construct id>
+   *
+   * @default the LogGroup will be created with all properties' default values to the LogGroup: /renderfarm/<construct id>
    */
   readonly logGroupProps?: LogGroupFactoryProps;
 

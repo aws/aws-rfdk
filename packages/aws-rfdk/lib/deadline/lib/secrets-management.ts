@@ -160,7 +160,7 @@ export class SecretsManagementIdentityRegistration extends Construct {
           ),
           Array.from(this.subnetRegistrations.entries())
             // Each setting becomes a comma (,) separated string of fields
-            //   <SUBNET_ID>,<ROLE>,<REGISTRATIONSTATUS>
+            //   <SUBNET_ID>,<ROLE>,<REGISTRATION_STATUS>
             .map(subnetRegistrationEntry => {
               const [subnetID, registrationSettingEffect] = subnetRegistrationEntry;
               return [
