@@ -13,6 +13,7 @@ import {
   Lazy,
   Stack,
   Fn,
+  Annotations,
 } from '@aws-cdk/core';
 
 import {
@@ -102,6 +103,8 @@ export class SecretsManagementIdentityRegistration extends Construct {
 
   private readonly deploymentInstance: DeploymentInstance;
 
+  private readonly renderQueueSubnets: SelectedSubnets;
+
   private readonly subnetRegistrations: Map<string, RegistrationSettingStack>;
 
   constructor(scope: Construct, id: string, props: SecretsManagementIdentityRegistrationProps) {
@@ -118,6 +121,7 @@ export class SecretsManagementIdentityRegistration extends Construct {
     }
     this.adminCredentials = props.repository.secretsManagementSettings.credentials;
     this.deploymentInstance = props.deploymentInstance;
+    this.renderQueueSubnets = props.renderQueueSubnets;
 
     // Download and install the Deadline Client
     this.installDeadlineClient(props);
@@ -143,6 +147,11 @@ export class SecretsManagementIdentityRegistration extends Construct {
     const { vpc, vpcSubnets } = addSubnetProps;
     const selectedSubnets = vpc.selectSubnets(vpcSubnets);
     selectedSubnets.subnets.forEach(subnet => {
+      if (this.renderQueueSubnets.subnets.some(rqSubnet => subnet == rqSubnet)) {
+        Annotations.of(addSubnetProps.dependent).addWarning(
+          `Deadline Secrets Management is enabled on the Repository and VPC subnets of the Render Queue match the subnets of ${addSubnetProps.dependent.node.path}. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components`,
+        );
+      }
       const observedSubnet = this.subnetRegistrations.get(subnet.subnetId);
       if (observedSubnet) {
         if (observedSubnet.registrationStatus !== addSubnetProps.registrationStatus) {

@@ -16,6 +16,7 @@ import {
   IVpc,
   S3DownloadOptions,
   SelectedSubnets,
+  SubnetSelection,
   SubnetType,
   UserData,
   Vpc,
@@ -586,111 +587,30 @@ describe('SecretsManagementIdentityRegistration', () => {
         expect(resolvedCalls).toContainEqual(expectedCall);
       });
 
-      // eslint-disable-next-line jest/no-commented-out-tests
-      // test('normalizes subnet ID order', () => {
-      //   // GIVEN
-      //   vpc = new Vpc(dependencyStack, 'Vpc2', {
-      //     subnetConfiguration: [
-      //       {
-      //         name: RENDER_QUEUE_ALB_SUBNET_NAME,
-      //         subnetType: SubnetType.PRIVATE,
-      //         cidrMask: 28,
-      //       },
-      //       {
-      //         name: 'a',
-      //         subnetType: SubnetType.PRIVATE,
-      //         cidrMask: 28,
-      //       },
-      //       {
-      //         name: 'z',
-      //         subnetType: SubnetType.PRIVATE,
-      //         cidrMask: 28,
-      //       },
-      //     ],
-      //   });
-      //   const identityRegistrationSettingsScriptLocalPath = 'identityRegistrationSettingsScriptLocalPath';
-      //   deploymentInstance.userData.addS3DownloadCommand.mockReturnValue(identityRegistrationSettingsScriptLocalPath);
-      //   const clientStack = new Stack(app, 'ClientStack');
-      //   const client1 = new Construct(clientStack, 'client1');
-      //   const client2 = new Construct(clientStack, 'client2');
-      //   createTarget();
-      //   const baseProps = {
-      //     registrationStatus: SecretsManagementRegistrationStatus.REGISTERED,
-      //     role: SecretsManagementRole.CLIENT,
-      //     vpc,
-      //   };
-      //   target.addSubnetIdentityRegistrationSetting({
-      //     ...baseProps,
-      //     dependent: client1,
-      //     vpcSubnets: { subnetGroupName: 'z' },
-      //   });
+      test('warns about dedicated subnets when ALB and source subnets match', () => {
+        // GIVEN
+        createTarget();
+        const dependent = new Construct(stack, 'Dependent');
+        const registrationStatus = SecretsManagementRegistrationStatus.REGISTERED;
+        const role = SecretsManagementRole.CLIENT;
+        const vpcSubnets: SubnetSelection = {
+          subnetGroupName: RENDER_QUEUE_ALB_SUBNET_NAME,
+        };
 
-      //   // WHEN
-      //   target.addSubnetIdentityRegistrationSetting({
-      //     ...baseProps,
-      //     dependent: client2,
-      //     vpcSubnets: { subnetGroupName: 'a' },
-      //   });
+        // WHEN
+        target.addSubnetIdentityRegistrationSetting({
+          dependent,
+          registrationStatus,
+          role,
+          vpc,
+          vpcSubnets,
+        });
 
-      //   // THEN
-      //   const resolvedCalls = deploymentInstance.userData.addCommands.mock.calls.map(call => {
-      //     return deploymentInstanceStack.resolve(call);
-      //   });
-      //   const expectedSubnetIdOrder = ([] as string[]).concat(
-      //     ...vpc.selectSubnets({ subnetGroupName: 'a' }).subnetIds,
-      //     ...vpc.selectSubnets({ subnetGroupName: 'z' }).subnetIds
-      //   )
-      //   const expectedCall = [{
-      //     "Fn::Join": [
-      //       "",
-      //       [
-      //         // Command is run as "ec2-user" which has the database credentials stored
-      //         `sudo --login -u ec2-user ${identityRegistrationSettingsScriptLocalPath} `,
-      //         {
-      //           "Fn::Join": [
-      //             " ",
-      //             [
-      //               "--region",
-      //               {
-      //                 "Ref": "AWS::Region"
-      //               },
-      //               // The Deadline Secrets Management admin credentials secret ARN is passed
-      //               "--credentials",
-      //               deploymentInstanceStack.resolve(`"${repository.secretsManagementSettings.credentials!.secretArn}"`),
-      //               // The Render Queue's ALB subnets are passed as --connection-subnet args
-      //               ...vpc.selectSubnets({ subnetGroupName: RENDER_QUEUE_ALB_SUBNET_NAME }).subnetIds.map(subnetID => {
-      //                 return {
-      //                   'Fn::Join': [
-      //                     '',
-      //                     [
-      //                       '--connection-subnet "',
-      //                       deploymentInstanceStack.resolve(subnetID),
-      //                       '"'
-      //                     ],
-      //                   ],
-      //                 };
-      //               }),
-      //               // The Deadline Client's subnets, desired role, and registration status are passed as --source-subnet args
-      //               ...expectedSubnetIdOrder.map(subnetID => {
-      //                 return {
-      //                   'Fn::Join': [
-      //                     '',
-      //                     [
-      //                       '--source-subnet "',
-      //                       deploymentInstanceStack.resolve(subnetID),
-      //                       `,${baseProps.role},${baseProps.registrationStatus}"`,
-      //                     ],
-      //                   ],
-      //                 };
-      //               }),
-      //             ],
-      //           ],
-      //         },
-      //       ],
-      //     ],
-      //   }];
-      //   expect(resolvedCalls).toContainEqual(expectedCall);
-      // });
+        expect(dependent.node.metadataEntry).toContainEqual(expect.objectContaining({
+          type: 'aws:cdk:warning',
+          data: `Deadline Secrets Management is enabled on the Repository and VPC subnets of the Render Queue match the subnets of ${dependent.node.path}. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components`,
+        }));
+      });
     });
 
     test('Repository with no admin credentials throws an error', () => {

@@ -36,6 +36,7 @@ import {
 } from '@aws-cdk/aws-iam';
 import { ISecret } from '@aws-cdk/aws-secretsmanager';
 import {
+  Annotations,
   Construct,
 } from '@aws-cdk/core';
 
@@ -515,6 +516,12 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
     }
 
     this.cluster = new Cluster(this, 'Cluster', { vpc: props.vpc });
+
+    if (!props.vpcSubnets && props.renderQueue.repository.secretsManagementSettings.enabled) {
+      Annotations.of(this).addWarning(
+        'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
+      );
+    }
 
     const vpcSubnets = props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE };
 

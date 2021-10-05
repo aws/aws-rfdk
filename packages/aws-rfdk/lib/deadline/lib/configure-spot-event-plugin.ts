@@ -26,6 +26,7 @@ import {
 } from '@aws-cdk/aws-lambda';
 import { RetentionDays } from '@aws-cdk/aws-logs';
 import {
+  Annotations,
   Construct,
   CustomResource,
   Duration,
@@ -509,6 +510,11 @@ export class ConfigureSpotEventPlugin extends Construct {
 
     if (props.spotFleets && props.renderQueue.repository.secretsManagementSettings.enabled) {
       props.spotFleets.forEach(spotFleet => {
+        if (spotFleet.defaultSubnets) {
+          Annotations.of(spotFleet).addWarning(
+            'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
+          );
+        }
         props.renderQueue.configureSecretsManagementAutoRegistration({
           dependent: resource,
           role: SecretsManagementRole.CLIENT,

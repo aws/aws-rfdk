@@ -20,6 +20,7 @@ import {
   InstanceClass,
   InstanceSize,
   InstanceType,
+  SubnetType,
   Vpc,
 } from '@aws-cdk/aws-ec2';
 import {
@@ -967,5 +968,101 @@ describe('ConfigureSpotEventPlugin', () => {
 
     // THEN
     expect(createConfigureSpotEventPlugin).not.toThrow();
+  });
+
+  describe('secrets management enabled', () => {
+    beforeEach(() => {
+      region = 'us-east-1';
+      app = new App();
+      stack = new Stack(app, 'stack', {
+        env: {
+          region,
+        },
+      });
+      vpc = new Vpc(stack, 'Vpc');
+
+      version = new VersionQuery(stack, 'Version');
+
+      renderQueue = new RenderQueue(stack, 'RQ', {
+        vpc,
+        images: { remoteConnectionServer: ContainerImage.fromAsset(__dirname) },
+        repository: new Repository(stack, 'Repository', {
+          vpc,
+          version,
+        }),
+        version,
+      });
+
+      groupName = 'group_name1';
+    });
+
+    describe('a fleet without vpcSunbets', () => {
+      beforeEach(() => {
+        // GIVEN
+        fleet = new SpotEventPluginFleet(stack, 'SpotFleet', {
+          vpc,
+          renderQueue: renderQueue,
+          deadlineGroups: [
+            groupName,
+          ],
+          instanceTypes: [
+            InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+          ],
+          workerMachineImage,
+          maxCapacity: 1,
+        });
+
+        // WHEN
+        new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
+          renderQueue,
+          vpc,
+          spotFleets: [fleet],
+        });
+      });
+
+      test('warns about dedicated subnets', () => {
+        // THEN
+        expect(fleet.node.metadataEntry).toContainEqual(expect.objectContaining({
+          type: 'aws:cdk:warning',
+          data: 'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
+        }));
+      });
+    });
+
+    describe('a fleet with subnets specified', () => {
+      beforeEach(() => {
+        // GIVEN
+        fleet = new SpotEventPluginFleet(stack, 'SpotFleetWithSubnets', {
+          vpc,
+          vpcSubnets: {
+            subnetType: SubnetType.PRIVATE,
+          },
+          renderQueue: renderQueue,
+          deadlineGroups: [
+            groupName,
+          ],
+          instanceTypes: [
+            InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+          ],
+          workerMachineImage,
+          maxCapacity: 1,
+        });
+
+        // WHEN
+        new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
+          renderQueue,
+          vpc,
+          spotFleets: [fleet],
+        });
+      });
+
+      // THEN
+      test('does not warn about dedicated subnets', () => {
+        expect(fleet.node.metadataEntry).not.toContainEqual(expect.objectContaining({
+          type: 'aws:cdk:warning',
+          data: expect.stringMatching(/dedicated subnet/i),
+        }));
+      });
+    });
   });
 });

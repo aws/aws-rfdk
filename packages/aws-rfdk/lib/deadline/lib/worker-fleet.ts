@@ -531,6 +531,11 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
     );
 
     if (props.renderQueue.repository.secretsManagementSettings.enabled) {
+      if (!props.vpcSubnets) {
+        Annotations.of(this).addWarning(
+          'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
+        );
+      }
       props.renderQueue.configureSecretsManagementAutoRegistration({
         vpc: props.vpc,
         vpcSubnets,
