@@ -74,6 +74,29 @@ export interface SecretsManagementIdentityRegistrationProps {
   readonly version: IVersion;
 }
 
+/**
+ * Construct that configures desired Deadline Secrets Management identity registration settings.
+ *
+ * Resources Deployed
+ * ------------------------
+ * - IAM policy statements are added to the IAM policy that is attached to the IAM role of the DeploymentInstance.
+ *   These statements grant the DeploymentInstance the ability to fetch the Deadline Client installer, get the value of
+ *   the AWS Secrets Manager secert containing the Deadline Secrets Management administrator credentials, get the value
+ *   of the AWS Secrets Manager secert containing the Deadline Repository's database credentials,
+ * - Security group ingress rule to allow the DeploymentInstance to connect to the Repository's database
+ * - Security group ingress rule to allow the DeploymentInstance to connect to the Repository's file-system
+ * Security Considerations
+ * ------------------------
+ * - The instances deployed by this construct download and run scripts from your CDK bootstrap bucket when that instance
+ *   is launched. You must limit write access to your CDK bootstrap bucket to prevent an attacker from modifying the actions
+ *   performed by these scripts. We strongly recommend that you either enable Amazon S3 server access logging on your CDK
+ *   bootstrap bucket, or enable AWS CloudTrail on your account to assist in post-incident analysis of compromised production
+ *   environments.
+ * - The instance deployed by this construct has read/write access to the Deadline Repository (database and
+ *   file-system), the AWS Secrets Manager secrets containing credentials for the Database and the Deadline Secrets
+ *   Management administrator. Access to the instance permits command and control of the render farm and should be
+ *   restricted.
+ */
 export class SecretsManagementIdentityRegistration extends Construct {
   private readonly adminCredentials: ISecret;
 

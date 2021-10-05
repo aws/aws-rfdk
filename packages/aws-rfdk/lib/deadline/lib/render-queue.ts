@@ -129,7 +129,11 @@ export interface IRenderQueue extends IConstruct, IConnectable {
    * subnet to a specified role and status.
    *
    * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-registration-settings-ref-label
-   * for details
+   * for details.
+   *
+   * All RFDK constructs that require Deadline Secrets Management identity registration call this method internally.
+   * End-users of RFDK should not need to use this method unless they have a special need and understand its inner
+   * workings.
    *
    * @param props Properties that specify the configuration to be applied to the Deadline' Secrets Management identity
    * registration settings. This specifies a VPC subnet and configures Deadline to automatically register identities of
@@ -973,10 +977,11 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    * The construct that manages Deadline Secrets Management identity registration settings
    */
   private get identityRegistrationSettings(): SecretsManagementIdentityRegistration {
-    const secretsManagementIdentityRegistration = this.node.tryFindChild('SecretsManagementIdentityRegistration');
+    const IDENTITY_REGISTRATION_CONSTRUCT_ID = 'SecretsManagementIdentityRegistration';
+    const secretsManagementIdentityRegistration = this.node.tryFindChild(IDENTITY_REGISTRATION_CONSTRUCT_ID);
     if (!secretsManagementIdentityRegistration) {
       return new SecretsManagementIdentityRegistration(
-        this, 'SecretsManagementIdentityRegistration', {
+        this, IDENTITY_REGISTRATION_CONSTRUCT_ID, {
           deploymentInstance: this.deploymentInstance,
           repository: this.repository,
           renderQueueSubnets: this.props.vpc.selectSubnets(

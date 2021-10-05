@@ -46,6 +46,11 @@ import { tagConstruct } from './runtime-info';
  */
 export interface DeploymentInstanceProps {
   /**
+   * The VPC that the instance should be launched in.
+   */
+  readonly vpc: IVpc;
+
+  /**
    * The amount of time that CloudFormation should wait for the success signals before failing the create/update.
    *
    * @default 15 minutes
@@ -93,11 +98,6 @@ export interface DeploymentInstanceProps {
    * @default true
    */
   readonly selfTerminate?: boolean;
-
-  /**
-   * The VPC that the instance should be launched in.
-   */
-  readonly vpc: IVpc;
 
   /**
    * The subnets to deploy the instance to

@@ -78,7 +78,8 @@ BYTE_MASK = 0xFF
 # Constants for determining the Deadline path from the environment script installed by the Deadline Client installer
 # on Linux
 DL_ENV_SCRIPT_PATH_RE = re.compile(r'DEADLINEBIN="(?P<DeadlineDir>.*)"$', re.VERBOSE | re.MULTILINE)
-DL_ENV_SCRIPT_PATH = '/etc/profile.d/deadlineclient.sh'
+DL_ENV_SCRIPT_PATH_LINUX = '/etc/profile.d/deadlineclient.sh'
+DL_PATH_FILE_MACOS = '/Users/Shared/Thinkbox/DEADLINE_PATH'
 
 
 #####################################
@@ -141,7 +142,7 @@ def parse_args(args):
         A type function for converting args that represent secrets into a named Tuple
 
         :param value: The string representing the argument
-        :return: AwsSecret or FileSecret based on the value
+        :return: AwsSecret based on the value
         :exception argparse.ArgumentTypeError: if the argument cannot be converted properly.
         """
 
@@ -224,7 +225,7 @@ def validate_config(config):
 
 def fetch_secret(secret, binary=False):
     """
-    Fetch a secret from AWS or from a local file
+    Fetch a secret from AWS
 
     :return: returns the contents of the secret
     """
@@ -317,18 +318,22 @@ class DeadlineSecretsCommandClient(object):
         # On Linux, the Deadline Client installer creates a system-wide script to set the DEADLINE_PATH environment
         # variable. Cloud-init does not load system environment variables. Cherry-pick the
         # environment variable installed by the Deadline Client installer.
-        if not deadline_bin and os.path.exists(DL_ENV_SCRIPT_PATH):
-            print('using environement script at "%s"...' % DL_ENV_SCRIPT_PATH)
-            with io.open(DL_ENV_SCRIPT_PATH, 'r', encoding='utf8') as env_script:
+        if not deadline_bin and os.path.exists(DL_ENV_SCRIPT_PATH_LINUX):
+            print(f'using environement script at "{DL_ENV_SCRIPT_PATH_LINUX}"...')
+            with io.open(DL_ENV_SCRIPT_PATH_LINUX, 'r', encoding='utf8') as env_script:
                 env_script_contents = env_script.read()
             dl_path_match = DL_ENV_SCRIPT_PATH_RE.search(env_script_contents)
             if dl_path_match:
                 deadline_bin = dl_path_match.group('DeadlineDir')
 
         # On OSX, we look for the DEADLINE_PATH file if the environment variable does not exist.
-        if deadline_bin == "" and os.path.exists("/Users/Shared/Thinkbox/DEADLINE_PATH"):
-            with open("/Users/Shared/Thinkbox/DEADLINE_PATH") as f:
+        if deadline_bin == "" and os.path.exists(DL_PATH_FILE_MACOS):
+            print(f'using MacOS Deadline path file at "{DL_PATH_FILE_MACOS}"...')
+            with io.open(DL_PATH_FILE_MACOS, 'r', encoding='utf8') as f:
                 deadline_bin = f.read().strip()
+
+        if not deadline_bin:
+            raise ValueError('Could not determine deadline path')
 
         deadline_command = os.path.join(deadline_bin, "deadlinecommand")
 
