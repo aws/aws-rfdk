@@ -28,7 +28,6 @@ import { Bucket } from '@aws-cdk/aws-s3';
 import { Asset } from '@aws-cdk/aws-s3-assets';
 import { StringParameter } from '@aws-cdk/aws-ssm';
 import * as cdk from '@aws-cdk/core';
-import { Duration } from '@aws-cdk/core';
 
 import {
   DeploymentInstance,
@@ -60,23 +59,22 @@ describe('DeploymentInstance', () => {
   let stack: cdk.Stack;
   let vpc: Vpc;
   let target: DeploymentInstance;
-  let deploymentInstanceProps: DeploymentInstanceProps;
 
-  beforeEach(() => {
+  beforeAll(() => {
     // GIVEN
     app = new cdk.App();
     depStack = new cdk.Stack(app, 'DepStack');
-    stack = new cdk.Stack(app, 'Stack');
     vpc = new Vpc(depStack, 'VPC');
-    deploymentInstanceProps = {
-      vpc,
-    };
   });
 
   describe('defaults', () => {
-    beforeEach(() => {
+
+    beforeAll(() => {
       // GIVEN
-      target = new DeploymentInstance(stack, DEFAULT_CONSTRUCT_ID, deploymentInstanceProps);
+      stack = new cdk.Stack(app, 'DefaultsStack');
+      target = new DeploymentInstance(stack, DEFAULT_CONSTRUCT_ID, {
+        vpc,
+      });
     });
 
     describe('Auto-Scaling Group', () => {
@@ -186,62 +184,6 @@ describe('DeploymentInstance', () => {
         }));
       });
 
-      describe('User Data', () => {
-        beforeEach(() => {
-          // WHEN
-          target = new DeploymentInstance(stack, 'DeploymentInstanceNew', {
-            vpc,
-            // a hack to be able to spy on the user data's "addOnExitCommand" and "addExecuteFileCommand" methods. NOTE:
-            // this is a slight deviation from a true default test, because we're passing in the "machineImage" prop. We use
-            // open-box knowledge of the default machineImage and change nothing but spying on the method
-            machineImage: new AmazonLinuxWithUserDataSpy(),
-          });
-        });
-
-        test('configures self-termination', () =>{
-          // THEN
-          expect(target.userData.addOnExitCommands).toHaveBeenCalledWith(
-            'TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 30" 2> /dev/null)',
-            'INSTANCE="$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id  2> /dev/null)"',
-            `ASG="$(aws --region ${stack.region} ec2 describe-tags --filters "Name=resource-id,Values=\${INSTANCE}" "Name=key,Values=aws:autoscaling:groupName" --query "Tags[0].Value" --output text)"`,
-            `aws --region ${stack.region} autoscaling update-auto-scaling-group --auto-scaling-group-name \${ASG} --min-size 0 --max-size 0 --desired-capacity 0`,
-          );
-        });
-
-        test('configures CloudWatch Agent', () =>{
-          // GIVEN
-          const spy = target.userData.addExecuteFileCommand as jest.Mock<void, [ExecuteFileOptions]>;
-          const cloudWatchConfigSsmParam = (
-            target
-              .node.findChild('StringParameter')
-          ) as StringParameter;
-
-          // THEN
-
-          // Should have been called
-          expect(spy.mock.calls.length).toBeGreaterThanOrEqual(1);
-
-          // The first call...
-          const executeFileOptions = spy.mock.calls[0][0];
-
-          // Should have been called with arguments
-          const args = executeFileOptions.arguments;
-          expect(args).not.toBeUndefined();
-
-          const splitArgs = args!.split(' ');
-          // Should have three arguments
-          expect(splitArgs).toHaveLength(3);
-
-          // Specify the flag to install the CloudWatch Agent
-          expect(splitArgs[0]).toEqual('-i');
-          // Should pass the region
-          expect(stack.resolve(splitArgs[1])).toEqual(stack.resolve(stack.region));
-          // Should pass the SSM parameter containing the CloudWatch Agent configuration
-          expect(stack.resolve(splitArgs[2])).toEqual(stack.resolve(cloudWatchConfigSsmParam.parameterName));
-        });
-
-      });
-
       test('Uses created Security Group', () => {
         // GIVEN
         const securityGroup = (target
@@ -293,7 +235,7 @@ describe('DeploymentInstance', () => {
     describe('ASG IAM role', () => {
       let instanceRole: iam.CfnRole;
 
-      beforeEach(() => {
+      beforeAll(() => {
         // GIVEN
         instanceRole = (
           target
@@ -519,7 +461,7 @@ describe('DeploymentInstance', () => {
       });
     });
 
-    describe('CloudWatch Agent config SSM paramter', () => {
+    describe('CloudWatch Agent config SSM parameter', () => {
       test('configures log group', () => {
         // GIVEN
         const logGroup = target.node.findChild(`${DEFAULT_CONSTRUCT_ID}LogGroup`) as ILogGroup;
@@ -579,7 +521,72 @@ describe('DeploymentInstance', () => {
     });
   });
 
+  describe('User Data', () => {
+    beforeAll(() => {
+      // GIVEN
+      stack = new cdk.Stack(app, 'UserDataStack');
+
+      // WHEN
+      target = new DeploymentInstance(stack, 'DeploymentInstanceNew', {
+        vpc,
+        // a hack to be able to spy on the user data's "addOnExitCommand" and "addExecuteFileCommand" methods.
+        machineImage: new AmazonLinuxWithUserDataSpy(),
+      });
+    });
+
+    test('configures self-termination', () =>{
+      // THEN
+      expect(target.userData.addOnExitCommands).toHaveBeenCalledWith(
+        'TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 30" 2> /dev/null)',
+        'INSTANCE="$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id  2> /dev/null)"',
+        `ASG="$(aws --region ${stack.region} ec2 describe-tags --filters "Name=resource-id,Values=\${INSTANCE}" "Name=key,Values=aws:autoscaling:groupName" --query "Tags[0].Value" --output text)"`,
+        `aws --region ${stack.region} autoscaling update-auto-scaling-group --auto-scaling-group-name \${ASG} --min-size 0 --max-size 0 --desired-capacity 0`,
+      );
+    });
+
+    test('configures CloudWatch Agent', () =>{
+      // GIVEN
+      const spy = target.userData.addExecuteFileCommand as jest.Mock<void, [ExecuteFileOptions]>;
+      const cloudWatchConfigSsmParam = (
+        target
+          .node.findChild('StringParameter')
+      ) as StringParameter;
+
+      // THEN
+
+      // Should have been called
+      expect(spy.mock.calls.length).toBeGreaterThanOrEqual(1);
+
+      // The first call...
+      const executeFileOptions = spy.mock.calls[0][0];
+
+      // Should have been called with arguments
+      const args = executeFileOptions.arguments;
+      expect(args).not.toBeUndefined();
+
+      const splitArgs = args!.split(' ');
+      // Should have three arguments
+      expect(splitArgs).toHaveLength(3);
+
+      // Specify the flag to install the CloudWatch Agent
+      expect(splitArgs[0]).toEqual('-i');
+      // Should pass the region
+      expect(stack.resolve(splitArgs[1])).toEqual(stack.resolve(stack.region));
+      // Should pass the SSM parameter containing the CloudWatch Agent configuration
+      expect(stack.resolve(splitArgs[2])).toEqual(stack.resolve(cloudWatchConfigSsmParam.parameterName));
+    });
+
+  });
+
   describe('Custom::LogRetention.LogGroupName', () => {
+    beforeEach(() => {
+      // We need a clean construct tree, because the tests use the same construct ID
+      app = new cdk.App();
+      depStack = new cdk.Stack(app, 'DepStack');
+      vpc = new Vpc(depStack, 'VPC');
+      stack = new cdk.Stack(app, 'Stack');
+    });
+
     // GIVEN
     test.each<[
       {
@@ -623,7 +630,7 @@ describe('DeploymentInstance', () => {
     ])('%s => %s', ({ logGroupName, logGroupPrefix }, expectedLogGroupName) => {
       // WHEN
       new DeploymentInstance(stack, DEFAULT_CONSTRUCT_ID, {
-        ...deploymentInstanceProps,
+        vpc,
         logGroupName,
         logGroupProps: logGroupPrefix ? { logGroupPrefix } : undefined,
       });
@@ -636,18 +643,23 @@ describe('DeploymentInstance', () => {
   });
 
   // GIVEN
-  describe.each<[InstanceType | undefined]>([
-    [undefined],
-    [new InstanceType('c5.large')],
-    [new InstanceType('m5.2xlarge')],
-  ])('.instanceType = %s', (instanceType) => {
+  describe.each<[InstanceType | undefined, string]>([
+    [undefined, 'Undefined'],
+    [new InstanceType('c5.large'), 'C5Large'],
+    [new InstanceType('m5.2xlarge'), 'M52XLarge'],
+  ])('.instanceType = %s', (instanceType, stackNameSuffix) => {
     // GIVEN
     const expectedInstanceType = instanceType ?? InstanceType.of(InstanceClass.T3, InstanceSize.SMALL);
+    beforeAll(() => {
+      // We want an isolated stack to ensure expectCDK is only searching resources
+      // synthesized by the specific DeploymentInstance stack
+      stack = new cdk.Stack(app, `InstanceTypeStack${stackNameSuffix}`);
+    });
 
     test(`AWS::AutoScaling::LaunchConfiguration.InstanceType = ${expectedInstanceType}`, () => {
       // WHEN
       new DeploymentInstance(stack, DEFAULT_CONSTRUCT_ID, {
-        ...deploymentInstanceProps,
+        vpc,
         instanceType,
       });
 
@@ -659,13 +671,14 @@ describe('DeploymentInstance', () => {
   });
 
   describe('.selfTermination = false', () => {
-    beforeEach(() => {
+    beforeAll(() => {
       // GIVEN
+      stack = new cdk.Stack(app, 'SelfTerminationDisabledStack');
       // Spy on user data method calls
       const machineImage = new AmazonLinuxWithUserDataSpy();
 
-      deploymentInstanceProps = {
-        ...deploymentInstanceProps,
+      const deploymentInstanceProps: DeploymentInstanceProps = {
+        vpc,
         selfTerminate: false,
         machineImage,
       };
@@ -731,12 +744,14 @@ describe('DeploymentInstance', () => {
     ['PT10M'],
   ])('.executionTimeout = %s', (executionTimeoutStr) => {
 
-    let executionTimeout: Duration;
-    beforeEach(() => {
+    let executionTimeout: cdk.Duration;
+    beforeAll(() => {
       // GIVEN
-      executionTimeout = Duration.parse(executionTimeoutStr);
-      deploymentInstanceProps = {
-        ...deploymentInstanceProps,
+      // Use a clean stack to not pollute other stacks with resources
+      stack = new cdk.Stack(app, `ExecutionTimeout${executionTimeoutStr}`);
+      executionTimeout = cdk.Duration.parse(executionTimeoutStr);
+      const deploymentInstanceProps: DeploymentInstanceProps = {
+        vpc,
         executionTimeout,
       };
 
