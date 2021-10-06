@@ -190,19 +190,22 @@ export class SecretsManagementIdentityRegistration extends Construct {
               .subnetIds
               .map(subnetID => `--connection-subnet "${subnetID}"`)
           ),
-          Array.from(this.subnetRegistrations.entries())
-            // Each setting becomes a comma (,) separated string of fields
-            //   <SUBNET_ID>,<ROLE>,<REGISTRATION_STATUS>
-            .map(subnetRegistrationEntry => {
-              const [subnetID, registrationSettingEffect] = subnetRegistrationEntry;
-              return [
-                subnetID,
-                registrationSettingEffect.role.toString(),
-                (registrationSettingEffect.registrationStatus).toString(),
-              ].join(',');
-            })
-            // quote
-            .map(joinedSubnetArgValue => `--source-subnet "${joinedSubnetArgValue}"`),
+          // Subnets of RFDK Deadline Client constructs
+          (
+            Array.from(this.subnetRegistrations.entries())
+              // Each setting becomes a comma (,) separated string of fields
+              //   <SUBNET_ID>,<ROLE>,<REGISTRATION_STATUS>
+              .map(subnetRegistrationEntry => {
+                const [subnetID, registrationSettingEffect] = subnetRegistrationEntry;
+                return [
+                  subnetID,
+                  registrationSettingEffect.role.toString(),
+                  (registrationSettingEffect.registrationStatus).toString(),
+                ].join(',');
+              })
+              // convert into argument key/value pair
+              .map(joinedSubnetArgValue => `--source-subnet "${joinedSubnetArgValue}"`)
+          ),
         );
       },
     });
