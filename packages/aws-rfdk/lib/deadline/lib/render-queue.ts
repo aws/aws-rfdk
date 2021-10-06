@@ -135,7 +135,7 @@ export interface IRenderQueue extends IConstruct, IConnectable {
    * End-users of RFDK should not need to use this method unless they have a special need and understand its inner
    * workings.
    *
-   * @param props Properties that specify the configuration to be applied to the Deadline' Secrets Management identity
+   * @param props Properties that specify the configuration to be applied to the Deadline Secrets Management identity
    * registration settings. This specifies a VPC subnet and configures Deadline to automatically register identities of
    * clients connecting from the subnet to a chosen Deadline Secrets Management role and status.
    */
@@ -969,7 +969,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     } else if (deploymentInstanceNode instanceof DeploymentInstance) {
       return deploymentInstanceNode;
     } else {
-      throw new Error(`Unexpected type for ${deploymentInstanceNode.node.path} (${typeof(deploymentInstanceNode)})`);
+      throw new Error(`Unexpected type for ${deploymentInstanceNode.node.path}. Expected ${DeploymentInstance.name}, but found ${typeof(deploymentInstanceNode)}.`);
     }
   }
 
@@ -993,7 +993,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     } else if (secretsManagementIdentityRegistration instanceof SecretsManagementIdentityRegistration) {
       return secretsManagementIdentityRegistration;
     } else {
-      throw new Error(`Unexpected type for ${secretsManagementIdentityRegistration.node.path} (${typeof(secretsManagementIdentityRegistration)})`);
+      throw new Error(`Unexpected type for ${secretsManagementIdentityRegistration.node.path}. Expected ${SecretsManagementIdentityRegistration.name}, but found ${typeof(secretsManagementIdentityRegistration)}.`);
     }
   }
 }

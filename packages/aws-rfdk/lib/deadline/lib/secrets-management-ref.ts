@@ -28,7 +28,7 @@ export enum SecretsManagementRole {
    * [Remote Connection Server](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/remote-connection-server.html#remote-connection-server-ref-label)
    * application. The Server role is granted to a registered machine by an administrator in the
    * [Monitor UI](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-assigning-ref-label).
-   * In order to encrypt and decrypt secrets, the master key must be assigned to the Server by and Administrator user
+   * In order to encrypt and decrypt secrets, the master key must be assigned to the Server by an Administrator user
    * running the [GrantKeyAccessToServer command](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#deadline-secrets-management-command-grantkeyaccesstoserver).
    * Servers can encrypt and decrypt all secrets, and are responsible for providing secrets to approved clients.
    */

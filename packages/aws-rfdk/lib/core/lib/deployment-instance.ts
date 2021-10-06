@@ -9,7 +9,6 @@ import {
   UpdatePolicy,
 } from '@aws-cdk/aws-autoscaling';
 import {
-  AmazonLinuxImage,
   Connections,
   IConnectable,
   IMachineImage,
@@ -17,6 +16,7 @@ import {
   InstanceSize,
   InstanceType,
   IVpc,
+  MachineImage,
   SubnetSelection,
   SubnetType,
 } from '@aws-cdk/aws-ec2';
@@ -79,7 +79,7 @@ export interface DeploymentInstanceProps {
   readonly logGroupName?: string;
 
   /**
-   * Properties for setting up the Deadline DeploymentInstance's LogGroup in CloudWatch
+   * Properties for setting up the DeploymentInstance's LogGroup in CloudWatch
    *
    * @default the LogGroup will be created with all properties' default values to the LogGroup: /renderfarm/<construct id>
    */
@@ -164,7 +164,7 @@ export class DeploymentInstance extends Construct implements IScriptHost, IConne
     this.asg = new AutoScalingGroup(this, 'ASG', {
       instanceType: props.instanceType ?? InstanceType.of(InstanceClass.T3, InstanceSize.SMALL),
       keyName: props.keyName,
-      machineImage: props.machineImage ?? new AmazonLinuxImage(),
+      machineImage: props.machineImage ?? MachineImage.latestAmazonLinux(),
       vpc: props.vpc,
       vpcSubnets: props.vpcSubnets ?? {
         subnetType: SubnetType.PRIVATE,
@@ -203,14 +203,23 @@ export class DeploymentInstance extends Construct implements IScriptHost, IConne
     }
   }
 
+  /**
+   * @inheritdoc
+   */
   public get osType() {
     return this.asg.osType;
   }
 
+  /**
+   * @inheritdoc
+   */
   public get userData() {
     return this.asg.userData;
   }
 
+  /**
+   * @inheritdoc
+   */
   public get grantPrincipal() {
     return this.asg.grantPrincipal;
   }
@@ -222,6 +231,8 @@ export class DeploymentInstance extends Construct implements IScriptHost, IConne
    *   - The cloud-init log
    *
    * @param asg The auto-scaling group
+   * @param groupName The name of the Log Group, or suffix of the Log Group if `logGroupProps.logGroupPrefix` is
+   *                  specified
    * @param logGroupProps The properties for LogGroupFactory to create or fetch the log group
    */
   private configureCloudWatchAgent(asg: AutoScalingGroup, groupName: string, logGroupProps?: LogGroupFactoryProps) {

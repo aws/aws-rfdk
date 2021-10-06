@@ -15,9 +15,8 @@ import { CfnLaunchConfiguration } from '@aws-cdk/aws-autoscaling';
 import {
   AmazonLinuxImage,
   ExecuteFileOptions,
-  InstanceClass,
-  InstanceSize,
   InstanceType,
+  MachineImage,
   SecurityGroup,
   SubnetType,
   Vpc,
@@ -168,7 +167,7 @@ describe('DeploymentInstance', () => {
 
       test('uses latest Amazon Linux machine image', () => {
         // GIVEN
-        const amazonLinux = new AmazonLinuxImage();
+        const amazonLinux = MachineImage.latestAmazonLinux();
         const imageId: { Ref: string } = stack.resolve(amazonLinux.getImage(stack)).imageId;
 
         // THEN
@@ -512,6 +511,8 @@ describe('DeploymentInstance', () => {
       });
     });
 
+    // RFDK adds the resourceLogicalId tag to the Auto-Scaling Group in order to scope down the permissions of the
+    // IAM policy given to the EC2 instance profile so that only that ASG can be scaled by the instance.
     test('Tagging for self-termination', () => {
       // THEN
       const matcher = resourceTagMatcher('AWS::AutoScaling::AutoScalingGroup', 'resourceLogicalId', cdk.Names.uniqueId(target));
@@ -608,11 +609,6 @@ describe('DeploymentInstance', () => {
         '/renderfarm/foo',
       ],
       [
-        { logGroupName: 'bar' },
-        // expected final log group name
-        '/renderfarm/bar',
-      ],
-      [
         {
           logGroupPrefix: 'logGroupPrefix',
         },
@@ -643,31 +639,23 @@ describe('DeploymentInstance', () => {
   });
 
   // GIVEN
-  describe.each<[InstanceType | undefined, string]>([
-    [undefined, 'Undefined'],
-    [new InstanceType('c5.large'), 'C5Large'],
-    [new InstanceType('m5.2xlarge'), 'M52XLarge'],
-  ])('.instanceType = %s', (instanceType, stackNameSuffix) => {
+  test('uses specified instance type', () => {
     // GIVEN
-    const expectedInstanceType = instanceType ?? InstanceType.of(InstanceClass.T3, InstanceSize.SMALL);
-    beforeAll(() => {
-      // We want an isolated stack to ensure expectCDK is only searching resources
-      // synthesized by the specific DeploymentInstance stack
-      stack = new cdk.Stack(app, `InstanceTypeStack${stackNameSuffix}`);
+    const instanceType = new InstanceType('c5.large');
+    // We want an isolated stack to ensure expectCDK is only searching resources
+    // synthesized by the specific DeploymentInstance stack
+    stack = new cdk.Stack(app, 'InstanceTypeStack');
+
+    // WHEN
+    new DeploymentInstance(stack, DEFAULT_CONSTRUCT_ID, {
+      vpc,
+      instanceType,
     });
 
-    test(`AWS::AutoScaling::LaunchConfiguration.InstanceType = ${expectedInstanceType}`, () => {
-      // WHEN
-      new DeploymentInstance(stack, DEFAULT_CONSTRUCT_ID, {
-        vpc,
-        instanceType,
-      });
-
-      // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
-        InstanceType: expectedInstanceType.toString(),
-      }));
-    });
+    // THEN
+    expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+      InstanceType: instanceType.toString(),
+    }));
   });
 
   describe('.selfTermination = false', () => {
@@ -694,7 +682,7 @@ describe('DeploymentInstance', () => {
       ]));
     });
 
-    test('is not grante IAM permissions to scale the Auto-Scaling Group', () => {
+    test('is not granted IAM permissions to scale the Auto-Scaling Group', () => {
       // GIVEN
       const instanceRole = (
         target
@@ -710,6 +698,7 @@ describe('DeploymentInstance', () => {
             {
               Action: 'autoscaling:UpdateAutoScalingGroup',
               Condition: {
+                // This tag is added by RFDK to scope down the permissions of the policy for least-privilege
                 StringEquals: { 'autoscaling:ResourceTag/resourceLogicalId': cdk.Names.uniqueId(target) },
               },
               Effect: 'Allow',
@@ -740,16 +729,13 @@ describe('DeploymentInstance', () => {
   });
 
   // GIVEN
-  describe.each<[string]>([
-    ['PT10M'],
-  ])('.executionTimeout = %s', (executionTimeoutStr) => {
+  describe('.executionTimeout is specified', () => {
+    const  executionTimeout = cdk.Duration.minutes(30);
 
-    let executionTimeout: cdk.Duration;
     beforeAll(() => {
       // GIVEN
       // Use a clean stack to not pollute other stacks with resources
-      stack = new cdk.Stack(app, `ExecutionTimeout${executionTimeoutStr}`);
-      executionTimeout = cdk.Duration.parse(executionTimeoutStr);
+      stack = new cdk.Stack(app, 'ExecutionTimeout');
       const deploymentInstanceProps: DeploymentInstanceProps = {
         vpc,
         executionTimeout,
@@ -760,7 +746,7 @@ describe('DeploymentInstance', () => {
     });
 
     // THEN
-    test('AWS::AutoScaling::AutoScalingGroup creation policy signal timeout is set', () => {
+    test('AWS::AutoScaling::AutoScalingGroup creation policy signal timeout is set accordingly', () => {
       expectCDK(stack).to(haveResourceLike(
         'AWS::AutoScaling::AutoScalingGroup',
         {

@@ -121,41 +121,43 @@ describe('UsageBasedLicensing', () => {
     });
   }
 
-  describe.each<[string, boolean]>([
-    ['specified', true],
-    ['not specified', false],
-  ])('vpcSubnets %s', (_, vpcSubnetsSpecified) => {
-    let ubl: UsageBasedLicensing;
+  describe('vpcSubnets', () => {
+    describe('specified', () => {
+      let ubl: UsageBasedLicensing;
 
-    beforeEach(() => {
       // WHEN
-      if (vpcSubnetsSpecified) {
+      beforeEach(() => {
         ubl = createUbl({
           vpcSubnets: {
             subnetType: SubnetType.PRIVATE,
           },
         });
-      }
-      else {
-        ubl = createUbl();
-      }
-    });
+      });
 
-    // THEN
-    if (vpcSubnetsSpecified) {
+      // THEN
       test('does not emit warnings', () => {
         expect(ubl.node.metadataEntry).not.toContainEqual(expect.objectContaining({
           type: 'aws:cdk:warning',
         }));
       });
-    } else {
+    });
+
+    describe('not specified', () => {
+      let ubl: UsageBasedLicensing;
+
+      // WHEN
+      beforeEach(() => {
+        ubl = createUbl();
+      });
+
+      // THEN
       test('emits warning about dedicated subnets', () => {
         expect(ubl.node.metadataEntry).toContainEqual(expect.objectContaining({
           type: 'aws:cdk:warning',
           data: 'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
         }));
       });
-    }
+    });
   });
 
   describe('configures auto registration', () => {

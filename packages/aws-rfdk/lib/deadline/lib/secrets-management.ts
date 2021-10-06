@@ -28,7 +28,13 @@ import {
 } from '../../core';
 import { DeploymentInstance } from '../../core/lib/deployment-instance';
 
-interface RegistrationSettingStack {
+/**
+ * A data structure that contains the desired Deadline Secrets Management role and registration status to be applied to
+ * Deadline Clients.
+ *
+ * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html
+ */
+interface RegistrationSettingEffect {
   /**
    * The Deadline Secrets Management registration status to be applied to the Deadline Client identities that connect
    * from the specified VPC subnets.
@@ -38,16 +44,11 @@ interface RegistrationSettingStack {
   readonly registrationStatus: SecretsManagementRegistrationStatus;
 
   /**
-   * The role to assign to be assigned to the Deadline Client identities that connect from the specified VPC subnets.
+   * The role to be assigned to the Deadline Client identities that connect from the specified VPC subnets.
    *
    * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles
    */
   readonly role: SecretsManagementRole;
-
-  /**
-   * The stack of the subnet
-   */
-  readonly stack: Stack;
 }
 
 /**
@@ -105,12 +106,12 @@ export class SecretsManagementIdentityRegistration extends Construct {
 
   private readonly renderQueueSubnets: SelectedSubnets;
 
-  private readonly subnetRegistrations: Map<string, RegistrationSettingStack>;
+  private readonly subnetRegistrations: Map<string, RegistrationSettingEffect>;
 
   constructor(scope: Construct, id: string, props: SecretsManagementIdentityRegistrationProps) {
     super(scope, id);
 
-    this.subnetRegistrations = new Map<string, RegistrationSettingStack>();
+    this.subnetRegistrations = new Map<string, RegistrationSettingEffect>();
 
     if (!props.repository.secretsManagementSettings.enabled) {
       throw new Error('Secrets management is not enabled on repository');
@@ -163,7 +164,6 @@ export class SecretsManagementIdentityRegistration extends Construct {
         this.subnetRegistrations.set(subnet.subnetId, {
           registrationStatus: addSubnetProps.registrationStatus,
           role: addSubnetProps.role,
-          stack: Stack.of(subnet),
         });
       }
     });

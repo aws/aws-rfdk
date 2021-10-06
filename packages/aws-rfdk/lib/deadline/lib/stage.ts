@@ -253,7 +253,7 @@ export class Stage {
         this.dirPath,
         'bin',
         listing[0],
-      );;
+      );
       if (!aRecipeHasMatchingDlVersion) {
         throw new Error(`No stage recipes refer to the Deadline Client installer found (${installerPath})`);
       }
