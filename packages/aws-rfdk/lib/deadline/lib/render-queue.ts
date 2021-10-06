@@ -250,6 +250,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
 
   private static readonly DEFAULT_VPC_SUBNETS_ALB: SubnetSelection = { subnetType: SubnetType.PRIVATE, onePerAz: true };
 
+  private static readonly DEFAULT_VPC_SUBNETS_OTHER: SubnetSelection = { subnetType: SubnetType.PRIVATE };
+
   /**
   * The minimum Deadline version required for the Remote Connection Server to support load-balancing
   */
@@ -426,7 +428,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       throw new Error(`renderQueueSize.desired capacity cannot be more than ${maxCapacity}: got ${this.renderQueueSize.desired}`);
     }
     this.asg = this.cluster.addCapacity('RCS Capacity', {
-      vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
+      vpcSubnets: props.vpcSubnets ?? RenderQueue.DEFAULT_VPC_SUBNETS_OTHER,
       instanceType: props.instanceType ?? new InstanceType('c5.large'),
       minCapacity,
       desiredCapacity: this.renderQueueSize?.desired,
@@ -962,9 +964,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     if (deploymentInstanceNode === undefined) {
       return new DeploymentInstance(this, CONFIGURE_REPOSITORY_CONSTRUCT_ID, {
         vpc: this.props.vpc,
-        vpcSubnets: {
-          subnetType: SubnetType.PUBLIC,
-        },
+        vpcSubnets: this.props.vpcSubnets ?? RenderQueue.DEFAULT_VPC_SUBNETS_OTHER,
       });
     } else if (deploymentInstanceNode instanceof DeploymentInstance) {
       return deploymentInstanceNode;
