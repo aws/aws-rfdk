@@ -84,10 +84,8 @@ fi
 # the matching AWS Portal AMI IDs
 export DEADLINE_VERSION=$(node -e $'const json = require(process.argv[1] + \'/manifest.json\'); console.log(json.version)' "$DEADLINE_STAGING_PATH")
 
-# If executing worker fleet tests, find Deadline AMIs based on supplied version
-if [ ! "${SKIP_deadline_03_repository_TEST-}" = true ]; then
-    source $BASH_SCRIPTS/fetch-worker-amis.sh
-fi
+# Find Deadline AMIs based on supplied version
+source $BASH_SCRIPTS/fetch-worker-amis.sh
 
 # Create a unique tag to add to stack names and some resources
 if [ -z ${INTEG_STACK_TAG+x} ]; then

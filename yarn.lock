@@ -2324,6 +2324,13 @@
   resolved "https://registry.yarnpkg.com/@tootallnate/once/-/once-1.1.2.tgz#ccb91445360179a04e7fe6aff78c00ffc1eeaf82"
   integrity sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==
 
+"@types/archiver@^5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@types/archiver/-/archiver-5.3.0.tgz#2b34ba56d4d7102d256b922c7e91e09eab79db6f"
+  integrity sha512-qJ79qsmq7O/k9FYwsF6O1xVA1PeLV+9Bh3TYkVCu3VzMR6vN9JQkgEOh/rrQ0R+F4Ta+R3thHGewxQtFglwVfg==
+  dependencies:
+    "@types/glob" "*"
+
 "@types/aws-lambda@^8.10.81":
   version "8.10.83"
   resolved "https://registry.yarnpkg.com/@types/aws-lambda/-/aws-lambda-8.10.83.tgz#66db06cedb7476e860e8655e4387fd2e4385433a"
@@ -2369,7 +2376,7 @@
   dependencies:
     "@types/node" "*"
 
-"@types/glob@^7.1.4":
+"@types/glob@*", "@types/glob@^7.1.4":
   version "7.1.4"
   resolved "https://registry.yarnpkg.com/@types/glob/-/glob-7.1.4.tgz#ea59e21d2ee5c517914cb4bc8e4153b99e566672"
   integrity sha512-w+LsMxKyYQm347Otw+IfBXOv9UWVjpHpCDdbBMt8Kz/xbvCYNjP+0qPh91Km3iKfSRLBB0P7fAMf0KHrPu+MyA==

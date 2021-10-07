@@ -27,10 +27,14 @@ export DEADLINE_STAGING_PATH
 #     }
 export RFDK_DOCKER_IMAGE_OVERRIDES
 
+# The ARN of the Secret containing a zip file with the UBL certificates to use.
+#   - If unspecified, a secret will be created that contains dummy certificates.
+#   - If this is specified, UBL_LICENSE_MAP must be specified as well.
+#   - For more info, please see https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/licensing-usage-based.html#third-party-usage-based-licensing
 export UBL_CERTIFICATE_BUNDLE_SECRET_ARN
 
 # Map of UBL licenses and the limits for them.
-#   - This must be specified if UBL_CERTIFICATE_BUNDLE_SECRET_ARN is specified.
+#   - This must be specified if UBL_CERTIFICATE_BUNDLE_SECRET_ARN is specified, otherwise this is ignored.
 #   - Expected format is a JSON object where the keys are the name of a product in PascalCase,
 #     and the values are numbers that represent the UBL limit. A limit of 0 is treated as unlimited UBL.
 #   - To see all supported licenses, see the static `for...()` methods in the UsageBasedLicense class in RFDK.

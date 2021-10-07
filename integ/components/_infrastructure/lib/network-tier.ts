@@ -14,16 +14,12 @@ import {
   StackProps,
 } from '@aws-cdk/core';
 
-export enum NetworkTierSubnets {
-  testRunner = 'testRunner',
-  renderQueueAlb = 'renderQueueAlb',
-  sepFleet = 'sepFleet',
-  ubl = 'ubl',
-  workerInstanceFleet = 'workerInstanceFleet',
-}
-
-export type NetworkTierSubnetConfiguration = {
-  [key in NetworkTierSubnets]: SubnetConfiguration;
+export interface NetworkTierSubnetConfiguration {
+  readonly testRunner: SubnetConfiguration;
+  readonly renderQueueAlb: SubnetConfiguration;
+  readonly sepFleet: SubnetConfiguration;
+  readonly ubl: SubnetConfiguration;
+  readonly workerInstanceFleet: SubnetConfiguration;
 }
 
 export class NetworkTier extends Stack {

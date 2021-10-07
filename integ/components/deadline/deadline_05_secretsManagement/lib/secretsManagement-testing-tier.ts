@@ -6,18 +6,15 @@
 import * as path from 'path';
 import {
   IVpc,
-  Port,
 } from '@aws-cdk/aws-ec2';
 import { CfnOutput, Construct } from '@aws-cdk/core';
 import { Repository } from 'aws-rfdk/deadline';
 import { RenderStruct } from '../../../../lib/render-struct';
-import { SepWorkerStruct } from '../../../../lib/sep-worker-struct';
 import { StorageStruct } from '../../../../lib/storage-struct';
 import {
   TestingTier,
   TestingTierProps,
 } from '../../../../lib/testing-tier';
-import { WorkerStruct } from '../../../../lib/worker-struct';
 import { NetworkTier } from '../../../_infrastructure/lib/network-tier';
 
 /**
@@ -26,8 +23,6 @@ import { NetworkTier } from '../../../_infrastructure/lib/network-tier';
 export interface SecretsManagementTestingTierProps extends TestingTierProps {
   readonly renderStruct: RenderStruct;
   readonly storageStruct: StorageStruct;
-  readonly workerStruct?: WorkerStruct;
-  readonly sepWorkerStruct?: SepWorkerStruct;
 }
 
 /**
@@ -61,9 +56,6 @@ export class SecretsManagementTestingTier extends TestingTier {
       testingScriptPath: path.join(__dirname, '../scripts/bastion/testing'),
     });
 
-    props.workerStruct?.workerFleet.forEach(wf => this.testInstance.connections.allowTo(wf, Port.tcp(22)));
-    props.sepWorkerStruct?.fleets.forEach(f => this.testInstance.connections.allowTo(f, Port.tcp(22)));
-
     // Generate CfnOutputs for the subnets of components that should be auto-registered as Clients
     this.generateComponentCfnOutputs(testSuiteId, this.vpc);
   }
@@ -91,7 +83,7 @@ export class SecretsManagementTestingTier extends TestingTier {
   }
 
   /**
-   * Generates CfnOutputs for the Render Queue ALB subnets and Deadline client components.
+   * Generates CfnOutputs for the Render Queue ALB subnets and Deadline client subnets.
    * @param testSuiteId The ID of the test suite.
    * @param vpc The infrastructure VPC containing the subnets the components are deployed into.
    */
