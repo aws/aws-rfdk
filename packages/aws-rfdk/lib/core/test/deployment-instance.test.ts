@@ -439,6 +439,7 @@ describe('DeploymentInstance', () => {
               {
                 Action: 'autoscaling:UpdateAutoScalingGroup',
                 Condition: {
+                  // This tag is added by RFDK to scope down the permissions of the policy for least-privilege
                   StringEquals: { 'autoscaling:ResourceTag/resourceLogicalId': cdk.Names.uniqueId(target) },
                 },
                 Effect: 'Allow',
