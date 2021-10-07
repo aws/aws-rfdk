@@ -398,7 +398,7 @@ def get_rfdk_registration_settings(dl_secrets: DeadlineSecretsCommandClient) -> 
 
 
 def delete_setting(dl_secrets: DeadlineSecretsCommandClient, setting: LoadBalancerIdentityRegistrationSetting) -> None:
-    print(dl_secrets.run_sh([
+    print(dl_secrets.run_str([
         'DeleteLoadBalancerIdentityRegistrationSetting',
         setting.settings_id
     ]))
