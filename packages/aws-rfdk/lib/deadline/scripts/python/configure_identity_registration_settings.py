@@ -398,10 +398,10 @@ def get_rfdk_registration_settings(dl_secrets: DeadlineSecretsCommandClient) -> 
 
 
 def delete_setting(dl_secrets: DeadlineSecretsCommandClient, setting: LoadBalancerIdentityRegistrationSetting) -> None:
-    print(dl_secrets.run_str([
+    print(dl_secrets.run_str(
         'DeleteLoadBalancerIdentityRegistrationSetting',
         setting.settings_id
-    ]))
+    ))
 
 
 def cidr_to_ipv4_match(cidr: str) -> str:
