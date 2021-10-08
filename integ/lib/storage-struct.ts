@@ -79,11 +79,13 @@ export class StorageStruct extends Construct {
     // Get farm VPC from lookup
     const vpc = Vpc.fromLookup(this, 'Vpc', { tags: { StackName: infrastructureStackName }}) as Vpc;
 
-    // Create EFS filesystem
+    // Create EFS filesystem here since both MongoDB and DocDB will be backed by an EFS filesystem.
     const deadlineEfs = new FileSystem(this, 'FileSystem', {
       vpc,
       vpcSubnets: {
         subnetType: SubnetType.PRIVATE,
+        // We must limit the subnets to one per AZ to avoid creating duplicate EFS mount targets for the same AZ,
+        // causing the stack deployment to fail.
         onePerAz: true,
       },
       removalPolicy: RemovalPolicy.DESTROY,

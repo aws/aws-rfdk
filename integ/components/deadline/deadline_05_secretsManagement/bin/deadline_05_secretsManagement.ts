@@ -102,7 +102,7 @@ async function getUsageBasedLicensingProperties(): Promise<RenderStructUsageBase
     }
 
     const licenses = [...Object.keys(parsedUblLicenseMap).map(l => {
-      const limit = parsedUblLicenseMap[l] > 0 ? parsedUblLicenseMap[l] : UsageBasedLicense.UNLIMITED;
+      const limit = parsedUblLicenseMap[l] > 0 ? Math.min(parsedUblLicenseMap[l], UsageBasedLicense.UNLIMITED) : UsageBasedLicense.UNLIMITED;
       const funcName = `for${l}`;
       if (!(funcName in UsageBasedLicense)) {
         throw new Error(`Unsupported license "${l}". Please see the UsageBasedLicense class in RFDK for supported licenses.`);
@@ -140,18 +140,23 @@ async function getUsageBasedLicensingProperties(): Promise<RenderStructUsageBase
         };
       }
     } catch (e) {
-      // eslint-disable-next-line
-      console.log(`UBL secret with name ${secretName} not found.`);
+      const awsError = e as AWS.AWSError;
+      if (awsError.code === 'ResourceNotFoundException') {
+        // eslint-disable-next-line
+        console.log(`UBL secret with name ${secretName} not found.`);
 
-      // Secret does not exist, so we need to create the secret
-      putSecret = async data => {
-        const createSecretResponse = await secrets.createSecret({
-          Name: secretName,
-          Description: 'Dummy UBL certificate bundle for RFDK integration tests',
-          SecretBinary: data,
-        }).promise();
-        return createSecretResponse.ARN!;
-      };
+        // Secret does not exist, so we need to create the secret
+        putSecret = async data => {
+          const createSecretResponse = await secrets.createSecret({
+            Name: secretName,
+            Description: 'Dummy UBL certificate bundle for RFDK integration tests',
+            SecretBinary: data,
+          }).promise();
+          return createSecretResponse.ARN!;
+        };
+      } else {
+        throw e;
+      }
     }
 
     // Create dummy certificate bundle
