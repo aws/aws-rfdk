@@ -15,8 +15,7 @@ from aws_cdk.aws_ec2 import (
     BlockDevice,
     BlockDeviceVolume,
     IVpc,
-    SubnetSelection,
-    SubnetType
+    SubnetSelection
 )
 from aws_cdk.aws_elasticloadbalancingv2 import (
     ApplicationProtocol
@@ -48,6 +47,8 @@ from aws_rfdk.deadline import (
     UsageBasedLicensing,
     VersionQuery,
 )
+
+from . import subnets
 
 
 @dataclass
@@ -104,7 +105,7 @@ class ServiceTier(Stack):
             'Bastion',
             vpc=props.vpc,
             subnet_selection=SubnetSelection(
-                subnet_type=SubnetType.PUBLIC
+                subnet_group_name=subnets.PUBLIC.name
             ),
             block_devices=[
                 BlockDevice(
@@ -137,6 +138,9 @@ class ServiceTier(Stack):
             self,
             'Repository',
             vpc=props.vpc,
+            vpc_subnets=SubnetSelection(
+                subnet_group_name=subnets.INFRASTRUCTURE.name
+            ),
             database=props.database,
             file_system=props.mountable_file_system,
             repository_installation_timeout=Duration.minutes(20),
@@ -167,6 +171,22 @@ class ServiceTier(Stack):
             self,
             'RenderQueue',
             vpc=props.vpc,
+            vpc_subnets=SubnetSelection(
+                subnet_group_name=subnets.INFRASTRUCTURE.name
+            ),
+            # It is considered good practice to put the Render Queue's load blanacer in dedicated subnets because:
+            #
+            # 1. Deadline Secrets Management identity registration settings will be scoped down to least-privilege
+            #
+            #    (see https://github.com/aws/aws-rfdk/blob/release/packages/aws-rfdk/lib/deadline/README.md#render-queue-subnet-placement)
+            #
+            # 2. The load balancer can scale to use IP addresses in the subnet without conflicts from other AWS
+            #    resources
+            #
+            #    (see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#subnets-load-balancer)
+            vpc_subnets_alb=SubnetSelection(
+                subnet_group_name=subnets.RENDER_QUEUE_ALB.name
+            ),
             images=images,
             repository=repository,
             hostname=RenderQueueHostNameProps(
@@ -207,6 +227,9 @@ class ServiceTier(Stack):
                 self,
                 'UsageBasedLicensing',
                 vpc=props.vpc,
+                vpc_subnets=SubnetSelection(
+                    subnet_group_name=subnets.USAGE_BASED_LICENSING.name
+                ),
                 images=images,
                 licenses=props.ubl_licenses,
                 render_queue=self.render_queue,
