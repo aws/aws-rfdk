@@ -996,73 +996,65 @@ describe('ConfigureSpotEventPlugin', () => {
       groupName = 'group_name1';
     });
 
-    describe('a fleet without vpcSunbets', () => {
-      beforeEach(() => {
-        // GIVEN
-        fleet = new SpotEventPluginFleet(stack, 'SpotFleet', {
-          vpc,
-          renderQueue: renderQueue,
-          deadlineGroups: [
-            groupName,
-          ],
-          instanceTypes: [
-            InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-          ],
-          workerMachineImage,
-          maxCapacity: 1,
-        });
-
-        // WHEN
-        new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
-          renderQueue,
-          vpc,
-          spotFleets: [fleet],
-        });
+    test('a fleet without vpcSubnets specified => warns about dedicated subnets', () => {
+      // GIVEN
+      fleet = new SpotEventPluginFleet(stack, 'SpotFleet', {
+        vpc,
+        renderQueue: renderQueue,
+        deadlineGroups: [
+          groupName,
+        ],
+        instanceTypes: [
+          InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+        ],
+        workerMachineImage,
+        maxCapacity: 1,
       });
 
-      test('warns about dedicated subnets', () => {
-        // THEN
-        expect(fleet.node.metadataEntry).toContainEqual(expect.objectContaining({
-          type: 'aws:cdk:warning',
-          data: 'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
-        }));
-      });
-    });
-
-    describe('a fleet with subnets specified', () => {
-      beforeEach(() => {
-        // GIVEN
-        fleet = new SpotEventPluginFleet(stack, 'SpotFleetWithSubnets', {
-          vpc,
-          vpcSubnets: {
-            subnetType: SubnetType.PRIVATE,
-          },
-          renderQueue: renderQueue,
-          deadlineGroups: [
-            groupName,
-          ],
-          instanceTypes: [
-            InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
-          ],
-          workerMachineImage,
-          maxCapacity: 1,
-        });
-
-        // WHEN
-        new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
-          renderQueue,
-          vpc,
-          spotFleets: [fleet],
-        });
+      // WHEN
+      new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
+        renderQueue,
+        vpc,
+        spotFleets: [fleet],
       });
 
       // THEN
-      test('does not warn about dedicated subnets', () => {
-        expect(fleet.node.metadataEntry).not.toContainEqual(expect.objectContaining({
-          type: 'aws:cdk:warning',
-          data: expect.stringMatching(/dedicated subnet/i),
-        }));
+      expect(fleet.node.metadataEntry).toContainEqual(expect.objectContaining({
+        type: 'aws:cdk:warning',
+        data: 'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
+      }));
+    });
+
+    test('a fleet with vpcSubnets specified => does not warn about dedicated subnets', () => {
+      // GIVEN
+      fleet = new SpotEventPluginFleet(stack, 'SpotFleetWithSubnets', {
+        vpc,
+        vpcSubnets: {
+          subnetType: SubnetType.PRIVATE,
+        },
+        renderQueue: renderQueue,
+        deadlineGroups: [
+          groupName,
+        ],
+        instanceTypes: [
+          InstanceType.of(InstanceClass.T2, InstanceSize.SMALL),
+        ],
+        workerMachineImage,
+        maxCapacity: 1,
       });
+
+      // WHEN
+      new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
+        renderQueue,
+        vpc,
+        spotFleets: [fleet],
+      });
+
+      // THEN
+      expect(fleet.node.metadataEntry).not.toContainEqual(expect.objectContaining({
+        type: 'aws:cdk:warning',
+        data: expect.stringMatching(/dedicated subnet/i),
+      }));
     });
   });
 });

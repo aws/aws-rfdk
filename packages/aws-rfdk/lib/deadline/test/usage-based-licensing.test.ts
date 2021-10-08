@@ -121,43 +121,33 @@ describe('UsageBasedLicensing', () => {
     });
   }
 
-  describe('vpcSubnets', () => {
-    describe('specified', () => {
-      let ubl: UsageBasedLicensing;
+  test('vpcSubnets specified => does not emit warnings', () => {
+    // GIVEN
+    const vpcSubnets: SubnetSelection = {
+      subnetType: SubnetType.PRIVATE,
+    };
 
-      // WHEN
-      beforeEach(() => {
-        ubl = createUbl({
-          vpcSubnets: {
-            subnetType: SubnetType.PRIVATE,
-          },
-        });
-      });
-
-      // THEN
-      test('does not emit warnings', () => {
-        expect(ubl.node.metadataEntry).not.toContainEqual(expect.objectContaining({
-          type: 'aws:cdk:warning',
-        }));
-      });
+    // WHEN
+    const ubl = createUbl({
+      vpcSubnets,
     });
 
-    describe('not specified', () => {
-      let ubl: UsageBasedLicensing;
+    // THEN
+    expect(ubl.node.metadataEntry).not.toContainEqual(expect.objectContaining({
+      type: 'aws:cdk:warning',
+      data: expect.stringMatching(/dedicated subnet/i),
+    }));
+  });
 
-      // WHEN
-      beforeEach(() => {
-        ubl = createUbl();
-      });
+  test('vpcSubnets not specified => emits warning about dedicated subnets', () => {
+    // WHEN
+    const ubl = createUbl();
 
-      // THEN
-      test('emits warning about dedicated subnets', () => {
-        expect(ubl.node.metadataEntry).toContainEqual(expect.objectContaining({
-          type: 'aws:cdk:warning',
-          data: 'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
-        }));
-      });
-    });
+    // THEN
+    expect(ubl.node.metadataEntry).toContainEqual(expect.objectContaining({
+      type: 'aws:cdk:warning',
+      data: 'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
+    }));
   });
 
   describe('configures auto registration', () => {

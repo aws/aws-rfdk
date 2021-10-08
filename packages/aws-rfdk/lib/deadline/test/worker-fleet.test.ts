@@ -1968,47 +1968,34 @@ describe('secrets management enabled', () => {
     props = {
       renderQueue,
       vpc,
-      workerMachineImage: new GenericWindowsImage({
-      }),
+      workerMachineImage: new GenericWindowsImage({}),
     };
   });
 
-  describe('vpc subnets not specified', () => {
-    let workerInstanceFleet: WorkerInstanceFleet;
-
+  test('vpc subnets not specified => warns about dedicated subnets', () => {
     // WHEN
-    beforeEach(() => {
-      workerInstanceFleet = new WorkerInstanceFleet(wfstack, 'WorkerInstanceFleet', props);
-    });
+    const workerInstanceFleet = new WorkerInstanceFleet(wfstack, 'WorkerInstanceFleet', props);
 
     // THEN
-    test('warns about dedicated subnets', () => {
-      expect(workerInstanceFleet.node.metadataEntry).toContainEqual(expect.objectContaining({
-        type: 'aws:cdk:warning',
-        data: 'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
-      }));
-    });
+    expect(workerInstanceFleet.node.metadataEntry).toContainEqual(expect.objectContaining({
+      type: 'aws:cdk:warning',
+      data: 'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
+    }));
   });
 
-  describe('vpc subnets specified', () => {
-    let workerInstanceFleet: WorkerInstanceFleet;
-
+  test('vpc subnets specified => does not emit dedicated subnets warning', () => {
     // WHEN
-    beforeEach(() => {
-      workerInstanceFleet = new WorkerInstanceFleet(wfstack, 'WorkerInstanceFleet', {
-        ...props,
-        vpcSubnets: {
-          subnetType: SubnetType.PRIVATE,
-        },
-      });
+    const workerInstanceFleet = new WorkerInstanceFleet(wfstack, 'WorkerInstanceFleet', {
+      ...props,
+      vpcSubnets: {
+        subnetType: SubnetType.PRIVATE,
+      },
     });
 
     // THEN
-    test('does not emit dedicated subnets warning', () => {
-      expect(workerInstanceFleet.node.metadataEntry).not.toContainEqual(expect.objectContaining({
-        type: 'aws:cdk:warning',
-        data: expect.stringMatching(/dedicated subnet/i),
-      }));
-    });
+    expect(workerInstanceFleet.node.metadataEntry).not.toContainEqual(expect.objectContaining({
+      type: 'aws:cdk:warning',
+      data: expect.stringMatching(/dedicated subnet/i),
+    }));
   });
 });

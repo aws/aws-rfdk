@@ -587,7 +587,7 @@ describe('SecretsManagementIdentityRegistration', () => {
         expect(resolvedCalls).toContainEqual(expectedCall);
       });
 
-      test('warns about dedicated subnets when ALB and source subnets match', () => {
+      test('warns about dedicated subnets when render queue ALB and source subnets match', () => {
         // GIVEN
         createTarget();
         const dependent = new Construct(stack, 'Dependent');
