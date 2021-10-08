@@ -51,7 +51,9 @@
     "lintfix": "cdk-lint --fix",
     "package": "cdk-package",
     "pkglint": "pkglint -f",
-    "test": "cdk-test",
+    "test": "yarn testcdk && yarn testpy",
+    "testcdk": "cdk-test",
+    "testpy": "./test-python.sh",
     "watch": "cdk-watch"
   },
   "keywords": [
