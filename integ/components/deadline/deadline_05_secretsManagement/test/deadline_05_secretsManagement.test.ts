@@ -33,20 +33,18 @@ const workerInstanceFleetSubnetCidrBlocksRegex = /workerInstanceFleetSubnetCidrB
 
 const identityRegistrationSettingsNameRegex = /RfdkSubnet\|(?<connectionSubnetId>subnet-[0-9a-z]+)\|(?<sourceSubnetId>subnet-[0-9a-z]+)/;
 
-const testSuiteId = 1;
-
 let bastionId: string;
-const smSecretArns: string[] = [];
+let smSecretArn: string;
 
-const renderQueueAlbSubnetIds: string[][] = [];
-const ublSubnetIds: string[][] = [];
-const sepFleetSubnetIds: string[][] = [];
-const workerInstanceFleetSubnetIds: string[][] = [];
+const renderQueueAlbSubnetIds: string[] = [];
+const ublSubnetIds: string[] = [];
+const sepFleetSubnetIds: string[] = [];
+const workerInstanceFleetSubnetIds: string[] = [];
 
-const renderQueueAlbSubnetCidrBlocks: string[][] = [];
-const ublSubnetCidrBlocks: string[][] = [];
-const sepFleetSubnetCidrBlocks: string[][] = [];
-const workerInstanceFleetSubnetCidrBlocks: string[][] = [];
+const renderQueueAlbSubnetCidrBlocks: string[] = [];
+const ublSubnetCidrBlocks: string[] = [];
+const sepFleetSubnetCidrBlocks: string[] = [];
+const workerInstanceFleetSubnetCidrBlocks: string[] = [];
 
 beforeAll(async () => {
   // Query the TestingStack and await its outputs to use as test inputs
@@ -59,36 +57,27 @@ beforeAll(async () => {
     if (bastionRegex.test(outputKey)) {
       bastionId = outputValue;
     } else if (smSecretRegex.test(outputKey)) {
-      let testId = smSecretRegex.exec(outputKey)![1];
-      smSecretArns[+testId] = outputValue;
+      smSecretArn = outputValue;
 
       // Subnet IDs
     } else if (renderQueueAlbSubnetIdsRegex.test(outputKey)) {
-      let testId = renderQueueAlbSubnetIdsRegex.exec(outputKey)![1];
-      renderQueueAlbSubnetIds[+testId] = JSON.parse(outputValue) as string[];
+      renderQueueAlbSubnetIds.push(...JSON.parse(outputValue) as string[]);
     } else if (ublSubnetIdsRegex.test(outputKey)) {
-      let testId = ublSubnetIdsRegex.exec(outputKey)![1];
-      ublSubnetIds[+testId] = JSON.parse(outputValue) as string[];
+      ublSubnetIds.push(...JSON.parse(outputValue) as string[]);
     } else if (sepFleetSubnetIdsRegex.test(outputKey)) {
-      let testId = sepFleetSubnetIdsRegex.exec(outputKey)![1];
-      sepFleetSubnetIds[+testId] = JSON.parse(outputValue) as string[];
+      sepFleetSubnetIds.push(...JSON.parse(outputValue) as string[]);
     } else if (workerInstanceFleetSubnetIdsRegex.test(outputKey)) {
-      let testId = workerInstanceFleetSubnetIdsRegex.exec(outputKey)![1];
-      workerInstanceFleetSubnetIds[+testId] = JSON.parse(outputValue) as string[];
+      workerInstanceFleetSubnetIds.push(...JSON.parse(outputValue) as string[]);
 
       // Subnet CIDR blocks
     } else if (renderQueueAlbSubnetCidrBlocksRegex.test(outputKey)) {
-      let testId = renderQueueAlbSubnetCidrBlocksRegex.exec(outputKey)![1];
-      renderQueueAlbSubnetCidrBlocks[+testId] = JSON.parse(outputValue) as string[];
+      renderQueueAlbSubnetCidrBlocks.push(...JSON.parse(outputValue) as string[]);
     } else if (ublSubnetCidrBlocksRegex.test(outputKey)) {
-      let testId = ublSubnetCidrBlocksRegex.exec(outputKey)![1];
-      ublSubnetCidrBlocks[+testId] = JSON.parse(outputValue) as string[];
+      ublSubnetCidrBlocks.push(...JSON.parse(outputValue) as string[]);
     } else if (sepFleetSubnetCidrBlocksRegex.test(outputKey)) {
-      let testId = sepFleetSubnetCidrBlocksRegex.exec(outputKey)![1];
-      sepFleetSubnetCidrBlocks[+testId] = JSON.parse(outputValue) as string[];
+      sepFleetSubnetCidrBlocks.push(...JSON.parse(outputValue) as string[]);
     } else if (workerInstanceFleetSubnetCidrBlocksRegex.test(outputKey)) {
-      let testId = workerInstanceFleetSubnetCidrBlocksRegex.exec(outputKey)![1];
-      workerInstanceFleetSubnetCidrBlocks[+testId] = JSON.parse(outputValue) as string[];
+      workerInstanceFleetSubnetCidrBlocks.push(...JSON.parse(outputValue) as string[]);
     }
   });
 
@@ -97,32 +86,32 @@ beforeAll(async () => {
   if (!bastionId) {
     errors.push('A stack output for "bastionId" is required but was not found');
   }
-  if (!smSecretArns[testSuiteId]) {
-    errors.push(`A stack output for deadlineSecretsManagementCredentialsSM${testSuiteId} is required but was not found`);
+  if (!smSecretArn) {
+    errors.push('A stack output for deadlineSecretsManagementCredentialsSM1 is required but was not found');
   }
-  if (!renderQueueAlbSubnetIds[testSuiteId]) {
-    errors.push(`A stack output for renderQueueAlbSubnetIdsSM${testSuiteId} is required but was not found`);
+  if (!renderQueueAlbSubnetIds.length) {
+    errors.push('A stack output for renderQueueAlbSubnetIdsSM1 is required but was not found');
   }
-  if (!ublSubnetIds[testSuiteId]) {
-    errors.push(`A stack output for ublSubnetIdsSM${testSuiteId} is required but was not found`);
+  if (!ublSubnetIds.length) {
+    errors.push('A stack output for ublSubnetIdsSM1 is required but was not found');
   }
-  if (!sepFleetSubnetIds[testSuiteId]) {
-    errors.push(`A stack output for sepFleetSubnetIdsSM${testSuiteId} is required but was not found`);
+  if (!sepFleetSubnetIds.length) {
+    errors.push('A stack output for sepFleetSubnetIdsSM1 is required but was not found');
   }
-  if (!workerInstanceFleetSubnetIds[testSuiteId]) {
-    errors.push(`A stack output for workerInstanceFleetSubnetIdsSM${testSuiteId} is required but was not found`);
+  if (!workerInstanceFleetSubnetIds.length) {
+    errors.push('A stack output for workerInstanceFleetSubnetIdsSM1 is required but was not found');
   }
-  if (!renderQueueAlbSubnetCidrBlocks[testSuiteId]) {
-    errors.push(`A stack output for renderQueueAlbSubnetCidrBlocksSM${testSuiteId} is required but was not found`);
+  if (!renderQueueAlbSubnetCidrBlocks.length) {
+    errors.push('A stack output for renderQueueAlbSubnetCidrBlocksSM1 is required but was not found');
   }
-  if (!ublSubnetCidrBlocks[testSuiteId]) {
-    errors.push(`A stack output for ublSubnetCidrBlocksSM${testSuiteId} is required but was not found`);
+  if (!ublSubnetCidrBlocks.length) {
+    errors.push('A stack output for ublSubnetCidrBlocksSM1 is required but was not found');
   }
-  if (!sepFleetSubnetCidrBlocks[testSuiteId]) {
-    errors.push(`A stack output for sepFleetSubnetCidrBlocksSM${testSuiteId} is required but was not found`);
+  if (!sepFleetSubnetCidrBlocks.length) {
+    errors.push('A stack output for sepFleetSubnetCidrBlocksSM1 is required but was not found');
   }
-  if (!workerInstanceFleetSubnetCidrBlocks[testSuiteId]) {
-    errors.push(`A stack output for workerInstanceFleetSubnetCidrBlocksSM${testSuiteId} is required but was not found`);
+  if (!workerInstanceFleetSubnetCidrBlocks.length) {
+    errors.push('A stack output for workerInstanceFleetSubnetCidrBlocksSM1 is required but was not found');
   }
   if (errors.length > 0) {
     throw new Error(`Test failed to initialize for the following reasons:\n${errors.join('\n')}`);
@@ -130,7 +119,7 @@ beforeAll(async () => {
 });
 
 describe('Deadline Secrets Management tests', () => {
-  test(`SM-${testSuiteId}-1: Deadline Repository configures Secrets Management`, async () => {
+  test('SM-1-1: Deadline Repository configures Secrets Management', async () => {
     /**********************************************************************************************************
      * TestID:          SM-1
      * Description:     Confirm that Deadline Repository configures Secrets Management
@@ -144,11 +133,11 @@ describe('Deadline Secrets Management tests', () => {
       InstanceIds: [bastionId],
       Parameters: {
         commands: [
-          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArns[testSuiteId]}' ListAllAdminUsers`,
+          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArn}' ListAllAdminUsers`,
         ],
       },
     };
-    const secret = await secretsManager.getSecretValue({ SecretId: smSecretArns[testSuiteId] }).promise();
+    const secret = await secretsManager.getSecretValue({ SecretId: smSecretArn }).promise();
     const smCreds = JSON.parse(secret.SecretString!);
     const adminUserRegex = new RegExp(`${smCreds.username}\\s+Registered`);
 
@@ -159,7 +148,7 @@ describe('Deadline Secrets Management tests', () => {
     expect(response.output).toMatch(adminUserRegex);
   });
 
-  test(`SM-${testSuiteId}-2: Deadline Render Queue has a Server role`, async () => {
+  test('SM-1-2: Deadline Render Queue has a Server role', async () => {
     /**********************************************************************************************************
      * TestID:          SM-2
      * Description:     Confirm that Deadline Render Queue configures itself as a Server role
@@ -174,7 +163,7 @@ describe('Deadline Secrets Management tests', () => {
       InstanceIds: [bastionId],
       Parameters: {
         commands: [
-          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArns[testSuiteId]}' ListAllMachines "*" Server`,
+          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArn}' ListAllMachines "*" Server`,
         ],
       },
     };
@@ -187,11 +176,11 @@ describe('Deadline Secrets Management tests', () => {
     expect(response.output).toMatchTimes(/ec2-user\s+\[Server\]\s+Registered/g, 1);
   });
 
-  test.each<[number, string, string[][]]>([
+  test.each<[number, string, string[]]>([
     [3, 'Usage Based Licensing', ublSubnetIds],
     [4, 'Worker Instance Fleet', workerInstanceFleetSubnetIds],
     [5, 'Spot Event Plugin Fleet', sepFleetSubnetIds],
-  ])(`SM-${testSuiteId}-%s: Deadline %s has an identity registration setting`, async (_testId, _componentName, clientSubnetIdMap) => {
+  ])('SM-1-%s: Deadline %s has an identity registration setting', async (_testId, _componentName, clientSubnetIdMap) => {
     /**********************************************************************************************************
      * Description:     Confirm that a Deadline client has an identity registration settings created for it
      * Input:           Output from "deadlinecommand secrets GetLoadBalancerIdentityRegistrationSettings" call
@@ -206,14 +195,14 @@ describe('Deadline Secrets Management tests', () => {
       InstanceIds: [bastionId],
       Parameters: {
         commands: [
-          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArns[testSuiteId]}' GetLoadBalancerIdentityRegistrationSettings`,
+          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArn}' GetLoadBalancerIdentityRegistrationSettings`,
         ],
       },
     };
-    const rqAlbSubnetIds = renderQueueAlbSubnetIds[testSuiteId];
+    const rqAlbSubnetIds = renderQueueAlbSubnetIds;
     const expectedSubnetPairs: { connectionSubnetId: string, sourceSubnetId: string }[] = [];
     rqAlbSubnetIds.forEach(albSubnetId => {
-      clientSubnetIdMap[testSuiteId].forEach(clientSubnetId => {
+      clientSubnetIdMap.forEach(clientSubnetId => {
         expectedSubnetPairs.push(expect.objectContaining({
           connectionSubnetId: albSubnetId,
           sourceSubnetId: clientSubnetId,
@@ -242,12 +231,12 @@ describe('Deadline Secrets Management tests', () => {
     expect(settingSubnetPairs).toEqual(expect.arrayContaining(expectedSubnetPairs));
   });
 
-  test.each<[number, string, string[][]]>([
+  test.each<[number, string, string[]]>([
     [6, 'Usage Based Licensing', ublSubnetCidrBlocks],
     [7, 'Worker Instance Fleet', workerInstanceFleetSubnetCidrBlocks],
     // TODO: In the future, we should add the ability to submit Deadline jobs so that a SEP fleet can be spun up and used for this test
     // [8, 'Spot Event Plugin Fleet', sepFleetSubnetCidrBlocks],
-  ])(`SM-${testSuiteId}-%s: Deadline %s is automatically registered as a Client`, async (_testId, _componentName, clientSubnetCidrBlockMap) => {
+  ])('SM-1-%s: Deadline %s is automatically registered as a Client', async (_testId, _componentName, clientSubnetCidrBlockMap) => {
     /**********************************************************************************************************
      * Description:     Confirm that a Deadline client is automatically registered as a Client role.
      * Input:           Output from "deadlinecommand secrets "ListAllMachines" call delivered via SSM command
@@ -262,14 +251,14 @@ describe('Deadline Secrets Management tests', () => {
       InstanceIds: [bastionId],
       Parameters: {
         commands: [
-          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArns[testSuiteId]}' ListAllMachines "*" Client`,
+          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArn}' ListAllMachines "*" Client`,
         ],
       },
     };
-    const rqAlbSubnetCidrBlocks = renderQueueAlbSubnetCidrBlocks[testSuiteId];
+    const rqAlbSubnetCidrBlocks = renderQueueAlbSubnetCidrBlocks;
     const expectedSubnetCidrPairs: { connectionSubnetCidrBlock: string, sourceSubnetCidrBlock: string }[] = [];
     rqAlbSubnetCidrBlocks.forEach(albSubnetCidrblock => {
-      clientSubnetCidrBlockMap[testSuiteId].forEach(clientSubnetCidrBlock => {
+      clientSubnetCidrBlockMap.forEach(clientSubnetCidrBlock => {
         expectedSubnetCidrPairs.push({
           connectionSubnetCidrBlock: albSubnetCidrblock,
           sourceSubnetCidrBlock: clientSubnetCidrBlock,

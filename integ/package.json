@@ -56,7 +56,6 @@
   },
   "devDependencies": {
     "@aws-cdk/assert": "1.116.0",
-    "@types/archiver": "^5.3.0",
     "@types/jest": "^26.0.24",
     "@types/node": "^16.4.10",
     "@typescript-eslint/eslint-plugin": "^4.28.4",
@@ -87,7 +86,6 @@
     "@aws-cdk/aws-s3-assets": "1.116.0",
     "@aws-cdk/aws-secretsmanager": "1.116.0",
     "@aws-cdk/core": "1.116.0",
-    "archiver": "^5.3.0",
     "aws-rfdk": "0.37.0",
     "aws-sdk": "^2.959.0"
   },

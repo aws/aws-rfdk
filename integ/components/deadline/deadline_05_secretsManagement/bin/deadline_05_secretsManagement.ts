@@ -6,7 +6,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { App, Stack, Aspects } from '@aws-cdk/core';
-import * as archiver from 'archiver';
 import {
   Stage,
   ThinkboxDockerRecipes,
@@ -158,9 +157,7 @@ async function getUsageBasedLicensingProperties(): Promise<RenderStructUsageBase
     // Create dummy certificate bundle
     // eslint-disable-next-line
     console.log('Creating a dummy UBL secret...');
-    const tmpdir = await fs.promises.mkdtemp(path.join('/tmp', 'dummyUblCerts'));
-    const certBundlePath = await createDummyUblCertificates(tmpdir);
-
+    const certBundlePath = path.join(__dirname, '..', 'assets', 'certificates.zip');
     const data = await fs.promises.readFile(certBundlePath);
     const secretArn = await putSecret(data);
 
@@ -169,31 +166,6 @@ async function getUsageBasedLicensingProperties(): Promise<RenderStructUsageBase
       licenses: [UsageBasedLicense.forMaya()],
     };
   }
-}
-
-/**
- * Creates a zip file with a dummy maya.pfx UBL ceritificate.
- * @param dirPath The path to create the certificate bundle in.
- * @returns The path to the certificate bundle file.
- */
-function createDummyUblCertificates(dirPath: string): Promise<string> {
-  return new Promise(async (res, rej) => {
-    const outputPath = path.join(dirPath, 'certificates.zip');
-    const output = fs.createWriteStream(outputPath);
-    output.once('close', () => res(outputPath));
-
-    const archive = archiver('zip');
-    archive.on('warning', rej);
-    archive.on('error', rej);
-    archive.pipe(output);
-
-    // Append a dummy maya.pfx file
-    archive.append('', {
-      name: 'maya.pfx',
-    });
-
-    await archive.finalize();
-  });
 }
 
 void main();
