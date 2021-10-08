@@ -34,6 +34,7 @@ import {
   CfnFileSystem,
   FileSystem as EfsFileSystem,
 } from '@aws-cdk/aws-efs';
+import { CfnRole } from '@aws-cdk/aws-iam';
 import { Bucket } from '@aws-cdk/aws-s3';
 import { Asset } from '@aws-cdk/aws-s3-assets';
 import { Secret } from '@aws-cdk/aws-secretsmanager';
@@ -61,6 +62,7 @@ import {
   Repository,
   VersionQuery,
   Version,
+  PlatformInstallers,
 } from '../lib';
 import {
   REPO_DC_ASSET,
@@ -99,13 +101,17 @@ beforeEach(() => {
   });
 
   class MockVersion extends Version implements IVersion {
-    readonly linuxInstallers = {
+    readonly linuxInstallers: PlatformInstallers = {
       patchVersion: 0,
       repository: {
         objectKey: 'testInstaller',
         s3Bucket: new Bucket(stack, 'LinuxInstallerBucket'),
       },
-    }
+      client: {
+        objectKey: 'testClientInstaller',
+        s3Bucket: new Bucket(stack, 'LinuxClientInstallerBucket'),
+      },
+    };
 
     public linuxFullVersionString() {
       return this.toString();
@@ -931,6 +937,15 @@ test('repository configure client instance', () => {
     instanceType: new InstanceType('t3.small'),
     machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
   });
+  const instanceRole = (
+    instance
+      .node.findChild('InstanceRole')
+      .node.defaultChild
+  ) as CfnRole;
+  const db = (
+    repo
+      .node.findChild('DocumentDatabase')
+  ) as DatabaseCluster;
 
   // WHEN
   repo.configureClientInstance({
@@ -949,6 +964,23 @@ test('repository configure client instance', () => {
   // Make sure we call the configureRepositoryDirectConnect script with appropriate argument.
   const regex = new RegExp(escapeTokenRegex('\'/tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\' \\"/mnt/repository/DeadlineRepository\\"'));
   expect(userData).toMatch(regex);
+
+  // Assert the IAM instance profile is given read access to the database credentials secret
+  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+    PolicyDocument: {
+      Statement: arrayWith({
+        Action: [
+          'secretsmanager:GetSecretValue',
+          'secretsmanager:DescribeSecret',
+        ],
+        Effect: 'Allow',
+        Resource: stack.resolve(db.secret!.secretArn),
+      }),
+    },
+    Roles: [
+      stack.resolve(instanceRole.ref),
+    ],
+  }));
 });
 
 test('configureClientInstance uses singleton for repo config script', () => {

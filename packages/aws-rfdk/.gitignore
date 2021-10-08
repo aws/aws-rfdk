@@ -39,3 +39,6 @@ junit.xml
 
 # Include Mongo support scripts
 !lib/core/scripts/mongodb/**/*.js
+
+# Python cache folders
+__pycache__

@@ -18,10 +18,14 @@ import {
   SynthUtils,
 } from '@aws-cdk/assert';
 import {
+  CfnLaunchConfiguration,
+} from '@aws-cdk/aws-autoscaling';
+import {
   Certificate,
 } from '@aws-cdk/aws-certificatemanager';
 import {
   AmazonLinuxGeneration,
+  AmazonLinuxImage,
   Instance,
   InstanceClass,
   InstanceSize,
@@ -30,6 +34,8 @@ import {
   Port,
   SecurityGroup,
   Subnet,
+  SubnetSelection,
+  SubnetType,
   Vpc,
   WindowsVersion,
 } from '@aws-cdk/aws-ec2';
@@ -76,8 +82,11 @@ import {
   RenderQueueProps,
   RenderQueueSecurityGroups,
   Repository,
+  SecretsManagementRegistrationStatus,
+  SecretsManagementRole,
   VersionQuery,
 } from '../lib';
+import { SecretsManagementIdentityRegistration } from '../lib/secrets-management';
 import {
   RQ_CONNECTION_ASSET,
 } from './asset-constants';
@@ -2892,6 +2901,76 @@ describe('RenderQueue', () => {
           Name: 'deadline-user-keypairs',
         }),
       }));
+    });
+
+    describe('client calls .configureSecretsManagementAutoRegistration()', () => {
+      let callParams: any;
+      let clientInstance: Instance;
+      let identityRegistrationSettings: SecretsManagementIdentityRegistration;
+      let launchConfiguration: CfnLaunchConfiguration;
+      let rqVpcSubnets: SubnetSelection;
+      const RQ_SUBNET_IDS = ['SubnetID1', 'SubnetID2'];
+
+      beforeEach(() => {
+        // GIVEN
+        const subnets = [
+          Subnet.fromSubnetAttributes(dependencyStack, 'Subnet1', {
+            subnetId: RQ_SUBNET_IDS[0],
+            availabilityZone: 'us-west-2a',
+          }),
+          Subnet.fromSubnetAttributes(dependencyStack, 'Subnet2', {
+            subnetId: RQ_SUBNET_IDS[1],
+            availabilityZone: 'us-west-2b',
+          }),
+        ];
+        rqVpcSubnets = {
+          subnets,
+        };
+        const rq = new RenderQueue(stack, 'SecretsManagementRenderQueue', {
+          ...rqSecretsManagementProps,
+          vpcSubnets: rqVpcSubnets,
+        });
+
+        clientInstance = new Instance(stack, 'ClientInstance', {
+          instanceType: new InstanceType('t3.micro'),
+          machineImage: new AmazonLinuxImage(),
+          vpc,
+        });
+        callParams = {
+          dependent: clientInstance,
+          registrationStatus: SecretsManagementRegistrationStatus.REGISTERED,
+          role: SecretsManagementRole.CLIENT,
+          vpc,
+          vpcSubnets: { subnetType: SubnetType.PRIVATE },
+        };
+        launchConfiguration = (
+          // @ts-ignore
+          rq.deploymentInstance
+            .node.findChild('ASG')
+            .node.findChild('LaunchConfig')
+        ) as CfnLaunchConfiguration;
+        // @ts-ignore
+        identityRegistrationSettings = rq.identityRegistrationSettings;
+        jest.spyOn(identityRegistrationSettings, 'addSubnetIdentityRegistrationSetting');
+
+        // WHEN
+        rq.configureSecretsManagementAutoRegistration(callParams);
+      });
+
+      test('registration is delegated to SecretsManagementIdentityRegistration', () => {
+        // THEN
+        expect(identityRegistrationSettings.addSubnetIdentityRegistrationSetting).toHaveBeenCalledWith(callParams);
+      });
+
+      test('deployment instance is created using specified subnets', () => {
+        // THEN
+        expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+          LaunchConfigurationName: stack.resolve(launchConfiguration.ref),
+          VPCZoneIdentifier: arrayWith(
+            ...RQ_SUBNET_IDS,
+          ),
+        }));
+      });
     });
   });
 });

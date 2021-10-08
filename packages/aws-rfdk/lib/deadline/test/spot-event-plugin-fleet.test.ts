@@ -346,6 +346,21 @@ describe('SpotEventPluginFleet', () => {
       // THEN
       expect(fleet.keyName).toBeUndefined();
     });
+
+    test('.defaultSubnets is true', () => {
+      // WHEN
+      const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
+        vpc,
+        renderQueue,
+        deadlineGroups,
+        instanceTypes,
+        workerMachineImage,
+        maxCapacity,
+      });
+
+      // THEN
+      expect(fleet.defaultSubnets).toBeTruthy();
+    });
   });
 
   describe('created with custom values', () => {
@@ -601,6 +616,27 @@ describe('SpotEventPluginFleet', () => {
 
       // THEN
       expect(stack.resolve(fleet.subnets.subnetIds)).toContainEqual(expectedSubnetId);
+    });
+
+    test('.defaultSubnets is false when subnets provided', () => {
+      // GIVEN
+      const privateSubnets: SubnetSelection = {
+        subnetType: SubnetType.PRIVATE,
+      };
+
+      // WHEN
+      const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
+        vpc,
+        renderQueue,
+        deadlineGroups,
+        instanceTypes,
+        workerMachineImage,
+        maxCapacity,
+        vpcSubnets: privateSubnets,
+      });
+
+      // THEN
+      expect(fleet.defaultSubnets).toBeFalsy();
     });
 
     test('uses provided allocation strategy', () => {
