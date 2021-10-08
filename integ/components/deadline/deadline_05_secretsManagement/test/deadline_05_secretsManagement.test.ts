@@ -15,8 +15,8 @@ import awaitSsmCommand from '../../common/functions/awaitSsmCommand';
 // Name of testing stack is derived from env variable to ensure uniqueness
 const testingStackName = 'RFDKInteg-SM-TestingTier' + process.env.INTEG_STACK_TAG?.toString();
 
-const cloudformation = new CloudFormation();
-const secretsManager = new SecretsManager();
+const cloudformation = new CloudFormation({ apiVersion: '2017-10-17' });
+const secretsManager = new SecretsManager({ apiVersion: '2017-10-17' });
 
 const bastionRegex = /bastionId/;
 const smSecretRegex = /deadlineSecretsManagementCredentialsSM(\d)/;

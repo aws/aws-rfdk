@@ -118,7 +118,7 @@ async function getUsageBasedLicensingProperties(): Promise<RenderStructUsageBase
     };
   } else {
     // Default to a dummy secret and license limits
-    const secrets = new AWS.SecretsManager();
+    const secrets = new AWS.SecretsManager({ apiVersion: '2017-10-17' });
     const secretName = 'RFDKInteg-DummyUblCertificateSecret';
 
     let putSecret: (data: Buffer) => Promise<string>;
