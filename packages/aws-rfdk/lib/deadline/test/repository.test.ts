@@ -34,8 +34,10 @@ import {
   CfnFileSystem,
   FileSystem as EfsFileSystem,
 } from '@aws-cdk/aws-efs';
+import { CfnRole } from '@aws-cdk/aws-iam';
 import { Bucket } from '@aws-cdk/aws-s3';
 import { Asset } from '@aws-cdk/aws-s3-assets';
+import { Secret } from '@aws-cdk/aws-secretsmanager';
 import {
   App,
   CfnElement,
@@ -60,6 +62,7 @@ import {
   Repository,
   VersionQuery,
   Version,
+  PlatformInstallers,
 } from '../lib';
 import {
   REPO_DC_ASSET,
@@ -98,13 +101,17 @@ beforeEach(() => {
   });
 
   class MockVersion extends Version implements IVersion {
-    readonly linuxInstallers = {
+    readonly linuxInstallers: PlatformInstallers = {
       patchVersion: 0,
       repository: {
         objectKey: 'testInstaller',
         s3Bucket: new Bucket(stack, 'LinuxInstallerBucket'),
       },
-    }
+      client: {
+        objectKey: 'testClientInstaller',
+        s3Bucket: new Bucket(stack, 'LinuxClientInstallerBucket'),
+      },
+    };
 
     public linuxFullVersionString() {
       return this.toString();
@@ -930,6 +937,15 @@ test('repository configure client instance', () => {
     instanceType: new InstanceType('t3.small'),
     machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
   });
+  const instanceRole = (
+    instance
+      .node.findChild('InstanceRole')
+      .node.defaultChild
+  ) as CfnRole;
+  const db = (
+    repo
+      .node.findChild('DocumentDatabase')
+  ) as DatabaseCluster;
 
   // WHEN
   repo.configureClientInstance({
@@ -948,6 +964,23 @@ test('repository configure client instance', () => {
   // Make sure we call the configureRepositoryDirectConnect script with appropriate argument.
   const regex = new RegExp(escapeTokenRegex('\'/tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\' \\"/mnt/repository/DeadlineRepository\\"'));
   expect(userData).toMatch(regex);
+
+  // Assert the IAM instance profile is given read access to the database credentials secret
+  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+    PolicyDocument: {
+      Statement: arrayWith({
+        Action: [
+          'secretsmanager:GetSecretValue',
+          'secretsmanager:DescribeSecret',
+        ],
+        Effect: 'Allow',
+        Resource: stack.resolve(db.secret!.secretArn),
+      }),
+    },
+    Roles: [
+      stack.resolve(instanceRole.ref),
+    ],
+  }));
 });
 
 test('configureClientInstance uses singleton for repo config script', () => {
@@ -1069,7 +1102,7 @@ describe('tagging', () => {
       'AWS::EC2::SecurityGroup': 3,
       'AWS::DocDB::DBClusterParameterGroup': 1,
       'AWS::DocDB::DBSubnetGroup': 1,
-      'AWS::SecretsManager::Secret': 1,
+      'AWS::SecretsManager::Secret': 2,
       'AWS::DocDB::DBCluster': 1,
       'AWS::DocDB::DBInstance': 1,
       'AWS::IAM::Role': 1,
@@ -1259,4 +1292,91 @@ test('IMountableLinuxFilesystem.usesUserPosixPermissions() = false does not chan
 
   // THEN
   expect(script).not.toMatch('-o 1000:1000');
+});
+
+test('secret manager enabled', () => {
+  // GIVEN
+  const expectedCredentials = new Secret(stack, 'CustomSMAdminUser', {
+    description: 'Custom admin credentials for the Secret Management',
+    generateSecretString: {
+      excludeCharacters: '\"$&\'()-/<>[\\]\`{|}',
+      includeSpace: false,
+      passwordLength: 24,
+      requireEachIncludedType: true,
+      generateStringKey: 'password',
+      secretStringTemplate: JSON.stringify({ username: 'admin' }),
+    },
+  });
+
+  // WHEN
+  const repository = new Repository(stack, 'Repository', {
+    vpc,
+    version,
+    secretsManagementSettings: {
+      enabled: true,
+      credentials: expectedCredentials,
+    },
+  });
+
+  // THEN
+  expect(repository.secretsManagementSettings.credentials).toBe(expectedCredentials);
+  const installerGroup = repository.node.tryFindChild('Installer') as AutoScalingGroup;
+  expect(installerGroup.userData.render()).toContain(`-r ${stack.region} -c ${expectedCredentials.secretArn}`);
+});
+
+test('secret manager is enabled by default', () => {
+  // WHEN
+  const repository = new Repository(stack, 'Repository', {
+    vpc,
+    version,
+  });
+
+  // THEN
+  expect(repository.secretsManagementSettings.enabled).toBeTruthy();
+  expect(repository.secretsManagementSettings.credentials).toBeDefined();
+});
+
+test('credentials are undefined when secrets management is disabled', () => {
+  // WHEN
+  const repository = new Repository(stack, 'Repository', {
+    vpc,
+    version,
+    secretsManagementSettings: {
+      enabled: false,
+    },
+  });
+
+  // THEN
+  expect(repository.secretsManagementSettings.credentials).toBeUndefined();
+});
+
+
+test('throws an error if credentials are undefined and database is imported', () => {
+  // GIVEN
+  const sg = new SecurityGroup(stack, 'SG', {
+    vpc,
+  });
+  const secret = new Secret(stack, 'Secret');
+  const database = DatabaseCluster.fromDatabaseClusterAttributes(stack, 'DbCluster', {
+    clusterEndpointAddress: '1.2.3.4',
+    clusterIdentifier: 'foo',
+    instanceEndpointAddresses: [ '1.2.3.5' ],
+    instanceIdentifiers: [ 'i0' ],
+    port: 27001,
+    readerEndpointAddress: '1.2.3.6',
+    securityGroup: sg,
+  });
+  const databaseConnection = DatabaseConnection.forDocDB({database, login: secret});
+
+  // WHEN
+  function when() {
+    new Repository(stack, 'Repository', {
+      vpc,
+      version,
+      database: databaseConnection,
+    });
+  }
+
+  // THEN
+  expect(when).toThrow('Admin credentials for Deadline Secrets Management cannot be generated when using an imported database. For setting up your own credentials, please refer to https://github.com/aws/aws-rfdk/tree/mainline/packages/aws-rfdk/lib/deadline#configuring-deadline-secrets-management-on-the-repository.');
 });

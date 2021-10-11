@@ -27,6 +27,27 @@ export DEADLINE_STAGING_PATH
 #     }
 export RFDK_DOCKER_IMAGE_OVERRIDES
 
+# The ARN of the Secret containing a zip file with the UBL certificates to use.
+#   - If unspecified, a secret will be created that contains dummy certificates.
+#   - If this is specified, UBL_LICENSE_MAP must be specified as well.
+#   - For more info, please see https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/licensing-usage-based.html#third-party-usage-based-licensing
+export UBL_CERTIFICATE_BUNDLE_SECRET_ARN
+
+# Map of UBL licenses and the limits for them.
+#   - This must be specified if UBL_CERTIFICATE_BUNDLE_SECRET_ARN is specified, otherwise this is ignored.
+#   - Expected format is a JSON object where the keys are the name of a product in PascalCase,
+#     and the values are numbers that represent the UBL limit. A limit of 0 is treated as unlimited UBL.
+#   - To see all supported licenses, see the static `for...()` methods in the UsageBasedLicense class in RFDK.
+#
+# Example:
+# {
+#   "Maya": 10,
+#   "Cinema4D": 0,
+#   // ...
+# }
+export UBL_LICENSE_MAP
+
+
 # EC2 AMIs to use for Deadline workers
 #   - If not set here, the appropriate basic worker AMI for the version of Deadline and region will be pulled from the public directory
 export LINUX_DEADLINE_AMI_ID
@@ -37,6 +58,7 @@ export SKIP_deadline_01_repository_TEST
 export SKIP_deadline_02_renderQueue_TEST
 export SKIP_deadline_03_workerFleetHttp_TEST
 export SKIP_deadline_04_workerFleetHttps_TEST
+export SKIP_deadline_05_secretsManagement_TEST
 
 # All test suites will be run in parallel
 export RUN_TESTS_IN_PARALLEL=false

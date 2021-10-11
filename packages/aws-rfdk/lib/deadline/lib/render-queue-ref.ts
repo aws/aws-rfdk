@@ -188,7 +188,7 @@ export interface RenderQueueTrafficEncryptionProps {
   /**
    * Properties for configuring external TLS connections between the Render Queue and Deadline clients.
    *
-   * @default Plain HTTP communication is used
+   * @default A default certificate is generated and HTTPS communication is used
    */
   readonly externalTLS?: RenderQueueExternalTLSProps;
 

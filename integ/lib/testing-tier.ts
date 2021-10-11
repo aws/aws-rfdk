@@ -4,11 +4,20 @@
  */
 
 import * as path from 'path';
-import { BastionHostLinux, InstanceType, Port, SubnetType, Vpc } from '@aws-cdk/aws-ec2';
+import {
+  BastionHostLinux,
+  InstanceType,
+  Port,
+  Vpc,
+} from '@aws-cdk/aws-ec2';
 import { Asset } from '@aws-cdk/aws-s3-assets';
 import { CfnOutput, Construct, Duration, Stack, StackProps } from '@aws-cdk/core';
-import { X509CertificatePem } from 'aws-rfdk';
-import { RenderQueue} from 'aws-rfdk/deadline';
+import {
+  SessionManagerHelper,
+  X509CertificatePem,
+} from 'aws-rfdk';
+import { RenderQueue } from 'aws-rfdk/deadline';
+import { NetworkTier } from '../components/_infrastructure/lib/network-tier';
 import { IRenderFarmDb } from './storage-struct';
 
 /**
@@ -41,6 +50,11 @@ export abstract class TestingTier extends Stack {
   public readonly testInstance: BastionHostLinux;
 
   /**
+   * The shared infrastructure VPC.
+   */
+  protected readonly vpc: Vpc;
+
+  /**
    * The version of Deadline used for installing DeadlineClient. Must be set by env variable before test execution.
    */
   private deadlineVersion: string = process.env.DEADLINE_VERSION!.toString();
@@ -56,22 +70,22 @@ export abstract class TestingTier extends Stack {
     const infrastructureStackName = 'RFDKIntegInfrastructure' + props.integStackTag;
 
     // Vpc.fromLookup acquires vpc deployed to the _infrastructure stack
-    const vpc = Vpc.fromLookup(this, 'Vpc', { tags: { StackName: infrastructureStackName }}) as Vpc;
+    this.vpc = Vpc.fromLookup(this, 'Vpc', { tags: { StackName: infrastructureStackName }}) as Vpc;
 
     // Create an instance that can be used for testing; SSM commands are communicated to the
     // host instance to run test scripts installed during setup of the instance
-    const testInstance: BastionHostLinux = new BastionHostLinux(this, 'Bastion', {
-      vpc,
+    this.testInstance = new BastionHostLinux(this, 'Bastion', {
+      vpc: this.vpc,
+      subnetSelection: { subnetGroupName: NetworkTier.subnetConfig.testRunner.name },
       instanceType: new InstanceType('t3.small'),
-      subnetSelection: {
-        subnetType: SubnetType.PRIVATE,
-      },
     });
-    this.testInstance = testInstance;
+    if (process.env.DEV_MODE?.toLowerCase() === 'true') {
+      SessionManagerHelper.grantPermissionsTo(this.testInstance);
+    }
 
     // Output bastion id for use in tests
     new CfnOutput(this, 'bastionId', {
-      value: testInstance.instanceId,
+      value: this.testInstance.instanceId,
     });
 
   }
@@ -81,11 +95,13 @@ export abstract class TestingTier extends Stack {
    *
    * @param testSuiteId Test case to configure the cert for
    * @param cert Certificate for authenticating to the database/render queue used for this test case
+   * @param suffix The suffix to apply to the construct ID. This should be used when this method is called
+   * more than once in the same stack to distinguish between to CfnOutputs for a certificate.
    */
-  public configureCert(testSuiteId: string, cert?: X509CertificatePem) {
+  public configureCert(testSuiteId: string, cert?: X509CertificatePem, suffix?: string) {
     if(cert) {
       cert.cert.grantRead(this.testInstance);
-      new CfnOutput(this, 'CertSecretARN' + testSuiteId, {
+      new CfnOutput(this, 'CertSecretARN' + (suffix ?? '') + testSuiteId, {
         value: cert.cert.secretArn,
       });
     };
@@ -166,6 +182,7 @@ export abstract class TestingTier extends Stack {
       'sudo ./deadline-client-installer.run --mode unattended',
       `rm -f ${installerPath}`,
       'rm -f ./deadline-client-installer.run',
+      'export DEADLINE_PATH=/opt/Thinkbox/Deadline10/bin',
     );
   }
 

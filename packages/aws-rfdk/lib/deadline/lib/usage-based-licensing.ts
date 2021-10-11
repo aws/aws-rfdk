@@ -19,6 +19,7 @@ import {
   SubnetType,
 } from '@aws-cdk/aws-ec2';
 import {
+  CfnService,
   Cluster,
   Compatibility,
   ContainerImage,
@@ -35,9 +36,14 @@ import {
 } from '@aws-cdk/aws-iam';
 import { ISecret } from '@aws-cdk/aws-secretsmanager';
 import {
+  Annotations,
   Construct,
 } from '@aws-cdk/core';
 
+import {
+  SecretsManagementRegistrationStatus,
+  SecretsManagementRole,
+} from '.';
 import {
   LogGroupFactory,
   LogGroupFactoryProps,
@@ -511,8 +517,16 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
 
     this.cluster = new Cluster(this, 'Cluster', { vpc: props.vpc });
 
+    if (!props.vpcSubnets && props.renderQueue.repository.secretsManagementSettings.enabled) {
+      Annotations.of(this).addWarning(
+        'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
+      );
+    }
+
+    const vpcSubnets = props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE };
+
     this.asg = this.cluster.addCapacity('ASG', {
-      vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
+      vpcSubnets,
       instanceType: props.instanceType ? props.instanceType : InstanceType.of(InstanceClass.C5, InstanceSize.LARGE),
       minCapacity: props.desiredCount ?? 1,
       maxCapacity: props.desiredCount ?? 1,
@@ -592,6 +606,16 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
     this.service.node.addDependency(this.asg);
 
     this.node.defaultChild = this.service;
+
+    if (props.renderQueue.repository.secretsManagementSettings.enabled) {
+      props.renderQueue.configureSecretsManagementAutoRegistration({
+        dependent: this.service.node.defaultChild as CfnService,
+        registrationStatus: SecretsManagementRegistrationStatus.REGISTERED,
+        role: SecretsManagementRole.CLIENT,
+        vpc: props.vpc,
+        vpcSubnets,
+      });
+    }
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);

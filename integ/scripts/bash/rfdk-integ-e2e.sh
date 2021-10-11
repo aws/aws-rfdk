@@ -10,6 +10,34 @@
 set -euo pipefail
 shopt -s globstar
 
+USAGE="Usage: ./$0 [-d]
+
+Runs the RFDK integration tests.
+
+Options:
+  -d Runs in development mode. CloudFormation stacks will not be torn down and temporary script output will not be deleted.
+  -h Displays this help text.
+"
+
+export DEV_MODE=${DEV_MODE:-false}
+
+while getopts "hd" opt; do
+  case $opt in
+    h)
+        echo "${USAGE}"
+        exit 1
+    ;;
+    d)
+      export DEV_MODE=true
+      echo "Running in development mode..."
+    ;;
+    \?)
+        echo -e "\n${USAGE}" >&2
+        exit 1
+    ;;
+  esac
+done
+
 SCRIPT_EXIT_CODE=0
 
 echo "RFDK end-to-end integration tests started $(date)"
@@ -56,10 +84,8 @@ fi
 # the matching AWS Portal AMI IDs
 export DEADLINE_VERSION=$(node -e $'const json = require(process.argv[1] + \'/manifest.json\'); console.log(json.version)' "$DEADLINE_STAGING_PATH")
 
-# If executing worker fleet tests, find Deadline AMIs based on supplied version
-if [ ! "${SKIP_deadline_03_repository_TEST-}" = true ]; then
-    source $BASH_SCRIPTS/fetch-worker-amis.sh
-fi
+# Find Deadline AMIs based on supplied version
+source $BASH_SCRIPTS/fetch-worker-amis.sh
 
 # Create a unique tag to add to stack names and some resources
 if [ -z ${INTEG_STACK_TAG+x} ]; then
@@ -71,8 +97,12 @@ export PRETEST_FINISH_TIME=$SECONDS
 
 # Define cleanup function for deployment failure
 cleanup_on_failure () {
+  if [[ "$DEV_MODE" == "true" ]]; then
+    echo "Running in development mode, skipping cleanup..."
+  else
     echo "Performing best-effort full cleanup..."
     yarn run tear-down
+  fi
 }
 
 get_component_dirs () {
@@ -117,11 +147,15 @@ SCRIPT_EXIT_CODE=$?
 
 # Destroy the infrastructure stack on completion. 
 export INFRASTRUCTURE_DESTROY_START_TIME=$SECONDS     # Mark infrastructure destroy start time
-$BASH_SCRIPTS/teardown-infrastructure.sh || (
-  echo '$(date "+%Y-%m-%dT%H:%M:%S") [infrastructure] Error destroying infrastructure'
-  # This is a best-effort since we always want to report the test results if possible.
-  cleanup_on_failure || true
-)
+if [[ "$DEV_MODE" == "true" ]]; then
+  echo "Running in development mode, keeping infrastructure up..."
+else
+  $BASH_SCRIPTS/teardown-infrastructure.sh || (
+    echo '$(date "+%Y-%m-%dT%H:%M:%S") [infrastructure] Error destroying infrastructure'
+    # This is a best-effort since we always want to report the test results if possible.
+    cleanup_on_failure || true
+  )
+fi
 export INFRASTRUCTURE_DESTROY_FINISH_TIME=$SECONDS    # Mark infrastructure destroy finish time
 
 echo "Complete!"
@@ -129,8 +163,12 @@ echo "Complete!"
 # Report results
 $BASH_SCRIPTS/report-test-results.sh
 
-echo "Cleaning up folders..."
-yarn run clean
+if [[ "$DEV_MODE" == "true" ]]; then
+  echo "Running in development mode, skipping folder cleanup..."
+else
+  echo "Cleaning up folders..."
+  yarn run clean
+fi
 
 echo "Exiting..."
 

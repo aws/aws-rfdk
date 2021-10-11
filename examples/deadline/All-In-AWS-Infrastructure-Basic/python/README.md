@@ -123,12 +123,36 @@ These instructions assume that your working directory is `examples/deadline/All-
     ```python
     self.alarm_email_address: Optional[str] = 'username@yourdomain.com'
     ```
-15. Deploy all the stacks in the sample app:
+15. Deadline Secrets Management is a feature used to encrypt certain values in the database that need to be kept secret. Additional documentation about the feature and how it works in the RFDK can be found in the [RFDK README](../../../../packages/aws-rfdk/lib/deadline/README.md). By default, Deadline Secrets Management is enabled, but it can be disabled by changing the `enable_secrets_management` variable in `package/config.py`.
+
+    ```python
+    self.enable_secrets_management: bool = False
+    ```
+
+16. When you are using Deadline Secrets Management you can define your own admin credentials by creating a Secret in AWS SecretsManager in the following format:
+
+    ```json
+        {
+            "username": "<admin user name>",
+            "password": "<admin user password>",
+        }
+    ```
+    The password must be at least 8 characters long and contain at least one lowercase, one uppercase, one digit, and one special character.
+
+    Then the value of the `secrets_management_secret_arn` variable in `package/config.py` should be changed to this Secret's ARN:
+
+    ```python
+    self.secrets_management_secret_arn: Optional[str] = '<your secret arn>'
+    ```
+    
+    It is highly recommended that you leave this parameter undefined to enable the automatic generation of a strong password.
+
+17. Deploy all the stacks in the sample app:
 
     ```bash
     cdk deploy "*"
     ```
-16. Once you are finished with the sample app, you can tear it down by running:
+18. Once you are finished with the sample app, you can tear it down by running:
 
     ```bash
     cdk destroy "*"
