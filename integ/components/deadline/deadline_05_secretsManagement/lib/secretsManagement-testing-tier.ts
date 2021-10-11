@@ -4,11 +4,18 @@
  */
 
 import * as path from 'path';
+import {
+  IVpc,
+} from '@aws-cdk/aws-ec2';
 import { CfnOutput, Construct } from '@aws-cdk/core';
 import { Repository } from 'aws-rfdk/deadline';
 import { RenderStruct } from '../../../../lib/render-struct';
 import { StorageStruct } from '../../../../lib/storage-struct';
-import { TestingTier, TestingTierProps } from '../../../../lib/testing-tier';
+import {
+  TestingTier,
+  TestingTierProps,
+} from '../../../../lib/testing-tier';
+import { NetworkTier } from '../../../_infrastructure/lib/network-tier';
 
 /**
  * Properties for SecretsManagementTestingTier
@@ -48,6 +55,9 @@ export class SecretsManagementTestingTier extends TestingTier {
     this.configureBastionUserData({
       testingScriptPath: path.join(__dirname, '../scripts/bastion/testing'),
     });
+
+    // Generate CfnOutputs for the subnets of components that should be auto-registered as Clients
+    this.generateComponentCfnOutputs(testSuiteId, this.vpc);
   }
 
   /**
@@ -70,5 +80,35 @@ export class SecretsManagementTestingTier extends TestingTier {
         value: repo.secretsManagementSettings.credentials!.secretArn,
       });
     }
+  }
+
+  /**
+   * Generates CfnOutputs for the Render Queue ALB subnets and Deadline client subnets.
+   * @param testSuiteId The ID of the test suite.
+   * @param vpc The infrastructure VPC containing the subnets the components are deployed into.
+   */
+  private generateComponentCfnOutputs(testSuiteId: string, vpc: IVpc): void {
+    const { renderQueueAlb, testRunner, ...subnetsToCheck } = NetworkTier.subnetConfig;
+
+    // Create outputs for Render Queue ALB
+    const renderQueueAlbSubnets = vpc.selectSubnets({ subnetGroupName: renderQueueAlb.name });
+    new CfnOutput(this, `renderQueueAlbSubnetIds${testSuiteId}`, {
+      value: JSON.stringify(renderQueueAlbSubnets.subnetIds),
+    });
+    new CfnOutput(this, `renderQueueAlbSubnetCidrBlocks${testSuiteId}`, {
+      value: JSON.stringify(renderQueueAlbSubnets.subnets.map(subnet => subnet.ipv4CidrBlock)),
+    });
+
+    // Create outputs for clients connecting to the Render Queue
+    Object.entries(subnetsToCheck).forEach(kvp => {
+      let [componentName, subnetConfig] = kvp;
+      const subnets = vpc.selectSubnets({ subnetGroupName: subnetConfig.name });
+      new CfnOutput(this, `${componentName}SubnetIds${testSuiteId}`, {
+        value: JSON.stringify(subnets.subnetIds),
+      });
+      new CfnOutput(this, `${componentName}SubnetCidrBlocks${testSuiteId}`, {
+        value: JSON.stringify(subnets.subnets.map(subnet => subnet.ipv4CidrBlock)),
+      });
+    });
   }
 }
