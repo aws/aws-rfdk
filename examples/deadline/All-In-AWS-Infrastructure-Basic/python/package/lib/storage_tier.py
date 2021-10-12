@@ -29,8 +29,7 @@ from aws_cdk.aws_docdb import (
 from aws_cdk.aws_ec2 import (
     InstanceType,
     IVpc,
-    SubnetSelection,
-    SubnetType
+    SubnetSelection
 )
 from aws_cdk.aws_efs import (
     AccessPoint,
@@ -73,6 +72,8 @@ from aws_rfdk.deadline import (
     DatabaseConnection
 )
 
+from . import subnets
+
 
 @dataclass
 class StorageTierProps(StackProps):
@@ -109,6 +110,9 @@ class StorageTier(Stack):
             self,
             'EfsFileSystem',
             vpc=props.vpc,
+            vpc_subnets=SubnetSelection(
+                subnet_group_name=subnets.INFRASTRUCTURE.name
+            ),
             encrypted=True,
             # TODO - Evaluate this removal policy for your own needs. This is set to DESTROY to
             # cleanly remove everything when this stack is destroyed. If you would like to ensure
@@ -207,6 +211,9 @@ class StorageTier(Stack):
             self,
             'PadEfsStorage',
             vpc=props.vpc,
+            vpc_subnets=SubnetSelection(
+                subnet_group_name=subnets.INFRASTRUCTURE.name
+            ),
             access_point=pad_access_point,
             desired_padding=Size.gibibytes(40), # Provides 2 MiB/s of baseline throughput. Costs $12/month.
         )
@@ -331,7 +338,9 @@ class StorageTierDocDB(StorageTier):
             self,
             'DocDBCluster',
             vpc=props.vpc,
-            vpc_subnets=SubnetSelection(subnet_type=SubnetType.PRIVATE),
+            vpc_subnets=SubnetSelection(
+                subnet_group_name=subnets.INFRASTRUCTURE.name
+            ),
             instance_type=props.database_instance_type,
             # TODO - For cost considerations this example only uses 1 Database instance. 
             # It is recommended that when creating your render farm you use at least 2 instances for redundancy.
@@ -418,7 +427,7 @@ class StorageTierMongoDB(StorageTier):
         availability_zone = props.vpc.availability_zones[0]
 
         mongo_vpc_subnet = SubnetSelection(
-            subnet_type=SubnetType.PRIVATE,
+            subnet_group_name=subnets.INFRASTRUCTURE.name,
             availability_zones=[availability_zone]
         )
 

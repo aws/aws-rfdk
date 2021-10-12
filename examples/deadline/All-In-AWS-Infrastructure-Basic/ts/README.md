@@ -119,6 +119,30 @@ These instructions assume that your working directory is `examples/deadline/All-
     ```ts
     public readonly alarmEmailAddress?: string = 'username@yourdomain.com';
     ```
+
+15. Deadline Secrets Management is a feature used to encrypt certain values in the database that need to be kept secret. Additional documentation about the feature and how it works in the RFDK can be found in the [RFDK README](../../../../packages/aws-rfdk/lib/deadline/README.md). By default, Deadline Secrets Management is enabled, but it can be disabled by changing the `enableSecretsManagement` variable in `package/config.ts`.
+
+    ```ts
+    public readonly enableSecretsManagement: boolean = false;
+    ```
+
+16. When you are using Deadline Secrets Management you can define your own admin credentials by creating a Secret in AWS SecretsManager in the following format:
+
+    ```json
+        {
+            "username": "<admin user name>",
+            "password": "<admin user password>",
+        }
+    ```
+    The password must be at least 8 characters long and contain at least one lowercase, one uppercase, one digit, and one special character.
+
+    Then the value of the `secretsManagementSecretArn` variable in `package/config.ts` should be changed to this secret's ARN:
+
+    ```ts
+    public readonly secretsManagementSecretArn?: string = '<your-secret-arn>';
+    ```
+    It is highly recommended that you leave this parameter undefined to enable the automatic generation of a strong password.
+
 14. Build the `aws-rfdk` package, and then build the sample app. There is some magic in the way yarn workspaces and lerna packages work that will link the built `aws-rfdk` from the base directory as the dependency to be used in the example's directory:
     ```bash
     # Navigate to the root directory of the RFDK repository (assumes you started in the example's directory)

@@ -5,13 +5,16 @@
 
 import { DockerImageAsset } from '@aws-cdk/aws-ecr-assets';
 import { ContainerImage } from '@aws-cdk/aws-ecs';
+import { Asset } from '@aws-cdk/aws-s3-assets';
 import { Construct } from '@aws-cdk/core';
 
 import {
+  Installer,
   IVersion,
   RenderQueueImages,
   Stage,
   UsageBasedLicensingImages,
+  Version,
 } from '.';
 
 /**
@@ -139,8 +142,42 @@ export class ThinkboxDockerRecipes extends Construct {
 
   public get version(): IVersion {
     if (!this.versionInstance) {
-      this.versionInstance = this.stage.getVersion(this, 'Version');
+      const version = Version.parse(this.stage.manifest.version);
+
+      const self = this;
+
+      this.versionInstance = {
+        isLessThan: (other) => version.isLessThan(other),
+        linuxFullVersionString: () => this.stage.manifest.version,
+        linuxInstallers: {
+          get client(): Installer {
+            let assetNode = self.node.tryFindChild('ClientInstallerAsset');
+            let asset: Asset;
+            /* istanbul ignore else */
+            if (!assetNode) {
+              asset = new Asset(self, 'ClientInstallerAsset', {
+                path: self.stage.clientInstallerPath,
+              });
+            } else if (assetNode instanceof Asset) {
+              asset = assetNode as Asset;
+            } else {
+              throw new Error(`Node "${assetNode?.node.path}" is not an S3 Asset`);
+            }
+            return {
+              objectKey: asset.s3ObjectKey,
+              s3Bucket: asset.bucket,
+            };
+          },
+          repository: this.stage.getVersion(this, 'VersionQuery').linuxInstallers.repository,
+          patchVersion: version.patchVersion,
+        },
+        majorVersion: version.majorVersion,
+        minorVersion: version.minorVersion,
+        releaseVersion: version.releaseVersion,
+        versionString: version.versionString,
+      };
     }
+
     return this.versionInstance;
   }
 }

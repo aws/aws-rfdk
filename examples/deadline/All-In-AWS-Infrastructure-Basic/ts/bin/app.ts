@@ -45,6 +45,10 @@ import { ComputeTier } from '../lib/compute-tier';
     throw new Error('Deadline Client Linux AMI map is required but was not specified.');
   }
 
+  if (!config.enableSecretsManagement && config.secretsManagementSecretArn) {
+    console.warn('Deadline Secrets Management is disabled, so the admin credentials specified in the provided secret will not be used.');
+  }
+
 // ------------------- //
 // --- Application --- //
 // ------------------- //
@@ -108,6 +112,8 @@ const service = new ServiceTier(app, 'ServiceTier', {
   rootCa: security.rootCa,
   dnsZone: network.dnsZone,
   acceptAwsThinkboxEula: config.acceptAwsThinkboxEula,
+  enableSecretsManagement: config.enableSecretsManagement,
+  secretsManagementSecretArn: config.secretsManagementSecretArn
 });
 
 // -------------------- //

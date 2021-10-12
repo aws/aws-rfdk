@@ -18,9 +18,11 @@ Required arguments:
 
 Optional arguments
   -s Deadline Repository settings file to import.
-  -o The UID[:GID] that this script will chown the Repository files for. If GID is not specified, it defults to be the same as UID."
+  -o The UID[:GID] that this script will chown the Repository files for. If GID is not specified, it defults to be the same as UID.
+  -c Secrets management admin credentials ARN. If this parameter is specified, secrets management will be enabled.
+  -r Region where stacks are deployed. Required to get secret management credentials."
 
-while getopts "i:p:v:s:o:" opt; do
+while getopts "i:p:v:s:o:c:r:" opt; do
   case $opt in
     i) S3PATH="$OPTARG"
     ;;
@@ -31,6 +33,10 @@ while getopts "i:p:v:s:o:" opt; do
     s) DEADLINE_REPOSITORY_SETTINGS_FILE="$OPTARG"
     ;;
     o) DEADLINE_REPOSITORY_OWNER="$OPTARG"
+    ;;
+    c) SECRET_MANAGEMENT_ARN="$OPTARG"
+    ;;
+    r) AWS_REGION="$OPTARG"
     ;;
     /?)
       echo "$USAGE"
@@ -77,8 +83,7 @@ if test -f "$REPOSITORY_FILE_PATH"; then
     # The proper way to achieve this is to use a ini config manager tool to get the value of required key.
     source $REPOSITORY_FILE_PATH > /dev/null 2>&1 || true
     if [[ "$Version" = "$DEADLINE_REPOSITORY_VERSION" ]]; then
-        echo "Repository version $DEADLINE_REPOSITORY_VERSION already exists at path $REPOSITORY_FILE_PATH. Not proceeding with Repository installation."
-        exit 0
+        echo "Repository version $DEADLINE_REPOSITORY_VERSION already exists at path $REPOSITORY_FILE_PATH."
     else
         SplitVersion=(${Version//./ })
         SplitRepoVersion=(${DEADLINE_REPOSITORY_VERSION//./ })
@@ -97,17 +102,40 @@ chmod +x $REPO_INSTALLER
 
 set +x
 
-INSTALLER_DB_ARGS_STRING=''
-for key in "${!INSTALLER_DB_ARGS[@]}"; do INSTALLER_DB_ARGS_STRING=$INSTALLER_DB_ARGS_STRING"${key} ${INSTALLER_DB_ARGS[$key]} "; done
+REPO_ARGS=()
 
-REPOSITORY_SETTINGS_ARG_STRING=''
+for key in "${!INSTALLER_DB_ARGS[@]}"; do
+  REPO_ARGS+=("${key}" "${INSTALLER_DB_ARGS[$key]}")
+done
+
 if [ ! -z "${DEADLINE_REPOSITORY_SETTINGS_FILE+x}" ]; then
   if [ ! -f "$DEADLINE_REPOSITORY_SETTINGS_FILE" ]; then
     echo "ERROR: Repository settings file was specified but is not a file: $DEADLINE_REPOSITORY_SETTINGS_FILE."
     exit 1
   else
-    REPOSITORY_SETTINGS_ARG_STRING="--importrepositorysettings true --repositorysettingsimportoperation append --repositorysettingsimportfile \"$DEADLINE_REPOSITORY_SETTINGS_FILE\""
+    REPO_ARGS+=("--importrepositorysettings" "true" "--repositorysettingsimportoperation" "append" "--repositorysettingsimportfile" "$DEADLINE_REPOSITORY_SETTINGS_FILE")
   fi
+fi
+
+if [ ! -z "${SECRET_MANAGEMENT_ARN+x}" ]; then
+  sudo yum install -y jq
+  SM_SECRET_VALUE=$(aws secretsmanager get-secret-value --secret-id=$SECRET_MANAGEMENT_ARN --region=$AWS_REGION)
+  SM_SECRET_STRING=$(jq -r '.SecretString' <<< "$SM_SECRET_VALUE")
+  SECRET_MANAGEMENT_USER=$(jq -r '.username' <<< "$SM_SECRET_STRING")
+  SECRET_MANAGEMENT_PASSWORD=$(jq -r '.password' <<< "$SM_SECRET_STRING")
+  if !([[ ${#SECRET_MANAGEMENT_PASSWORD} -ge 8 ]] && 
+    echo $SECRET_MANAGEMENT_PASSWORD | grep -q [0-9] &&
+    echo $SECRET_MANAGEMENT_PASSWORD | grep -q [a-z] &&
+    echo $SECRET_MANAGEMENT_PASSWORD | grep -q [A-Z] &&
+    echo $SECRET_MANAGEMENT_PASSWORD | grep -q [^[:alnum:]])
+  then
+    echo "ERROR: Admin password is too weak. It must be at least 8 characters long and contain at least one lowercase letter, one uppercase letter, one symbol and one digit."
+    exit 1
+  fi
+  echo "Secrets management is enabled. Credentials are stored in secret: $SECRET_MANAGEMENT_ARN"
+  REPO_ARGS+=("--installSecretsManagement" "true" "--secretsAdminName" "$SECRET_MANAGEMENT_USER" "--secretsAdminPassword" "$SECRET_MANAGEMENT_PASSWORD")
+else
+  echo "Secrets management is not enabled."
 fi
 
 INSTALL_AS_NON_ROOT_CMD=""
@@ -151,7 +179,11 @@ if [[ -n "${DEADLINE_REPOSITORY_OWNER+x}" ]]; then
   fi
 fi
 
-$INSTALL_AS_NON_ROOT_CMD $REPO_INSTALLER --mode unattended --setpermissions false --prefix "$PREFIX" --installmongodb false --backuprepo false ${INSTALLER_DB_ARGS_STRING} $REPOSITORY_SETTINGS_ARG_STRING
+# The syntax ${array[@]+"${array[@]}"} is a way to get around the expansion of an empty array raising an unbound variable error since this script
+# sets the "u" shell option above. This is a use of the ${parameter+word} shell expansion. If the value of "parameter" is unset, nothing will be
+# substituted in its place. If "parameter" is set, then the value of "word" is used, which is the expansion of the populated array.
+# Since bash treats the expansion of an empty array as an unset variable, we can use this pattern expand the array only if it is populated.
+$INSTALL_AS_NON_ROOT_CMD $REPO_INSTALLER --mode unattended --setpermissions false --prefix "$PREFIX" --installmongodb false --backuprepo false ${REPO_ARGS[@]+"${REPO_ARGS[@]}"}
 
 if [[ -z "$INSTALL_AS_NON_ROOT_CMD" ]] && [[ -n "${REPOSITORY_OWNER_UID+x}" ]]; then
   echo "Changing ownership of Deadline Repository files to UID=$REPOSITORY_OWNER_UID GID=$REPOSITORY_OWNER_GID"

@@ -31,25 +31,53 @@ const RFDK_VERSION = require('../../../package.json').version as string; // esli
  */
 function getExpectedRfdkTagProperties(resourceType: string, constructName: string) {
   const expectedValue = `${RFDK_VERSION}:${constructName}`;
+  return resourceTagMatcher(resourceType, RFDK_TAG_NAME, expectedValue);
+}
+
+/**
+ * Returns a CDK matcher for an expected tag key/value pair for a given Cfn resource type.
+ * This is known to support the following resource types:
+ *
+ * * `AWS::AutoScaling::AutoScalingGroup`
+ * * `AWS::EC2::SecurityGroup`
+ * * `AWS::IAM::Role`
+ * * `AWS::SSM::Parameter`
+ *
+ * All other resources are assumed to allow passing the following tag properties:
+ *
+ * ```js
+ * {
+ *   Tags: [
+ *     {
+ *       Key: 'key',
+ *       Value: 'value',
+ *     },
+ *     // ...
+ *   ]
+ * }
+ * ```
+ */
+/* eslint-disable-next-line jest/no-export */
+export function resourceTagMatcher(resourceType: string, tagName: string, tagValue: string) {
   if (resourceType === 'AWS::SSM::Parameter') {
     return {
       Tags: {
-        [RFDK_TAG_NAME]: expectedValue,
+        [tagName]: tagValue,
       },
     };
   } else if (resourceType === 'AWS::AutoScaling::AutoScalingGroup') {
     return {
       Tags: arrayWith({
-        Key: RFDK_TAG_NAME,
+        Key: tagName,
         PropagateAtLaunch: true,
-        Value: expectedValue,
+        Value: tagValue,
       }),
     };
   } else {
     return {
       Tags: arrayWith({
-        Key: RFDK_TAG_NAME,
-        Value: expectedValue,
+        Key: tagName,
+        Value: tagValue,
       }),
     };
   }

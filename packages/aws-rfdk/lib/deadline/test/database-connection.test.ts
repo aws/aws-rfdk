@@ -24,6 +24,7 @@ import {
   MachineImage,
   SecurityGroup,
   SubnetType,
+  Volume,
   Vpc,
   WindowsVersion,
 } from '@aws-cdk/aws-ec2';
@@ -32,6 +33,7 @@ import {
   Role,
 } from '@aws-cdk/aws-iam';
 import {
+  IPrivateHostedZone,
   PrivateHostedZone,
 } from '@aws-cdk/aws-route53';
 import {
@@ -335,6 +337,13 @@ describe('DocumentDB', () => {
     ]));
   });
 
+  test('Document DB connection is pointed to correct construct', () => {
+    // GIVEN
+    const connection = DatabaseConnection.forDocDB({database, login: database.secret!});
+
+    // THEN
+    expect(connection.databaseConstruct).toEqual(database);
+  });
 });
 
 describe('DocumentDB Version Checks', () => {
@@ -390,10 +399,11 @@ describe('DocumentDB Version Checks', () => {
     });
 
     // WHEN
-    DatabaseConnection.forDocDB({database, login: secret});
+    const databaseConnection = DatabaseConnection.forDocDB({database, login: secret});
 
     // THEN
     expect(database.node.metadata.length).toBe(0);
+    expect(databaseConnection.databaseConstruct).toBeUndefined();
   });
 
   test('No engineVersion given', () => {
@@ -471,13 +481,15 @@ describe('MongoDB', () => {
   let vpc: Vpc;
   let database: IMongoDb;
   let clientCert: X509CertificatePem;
+  let dnsZone: IPrivateHostedZone;
+  let serverCert: X509CertificatePem;
 
   beforeEach(() => {
     stack = new Stack();
     vpc = new Vpc(stack, 'VPC');
     const hostname = 'mongo';
     const zoneName = 'deadline.internal';
-    const dnsZone = new PrivateHostedZone(stack, 'PrivateHostedZone', {
+    dnsZone = new PrivateHostedZone(stack, 'PrivateHostedZone', {
       vpc,
       zoneName,
     });
@@ -486,7 +498,7 @@ describe('MongoDB', () => {
         cn: 'DistinguishedName',
       },
     });
-    const serverCert = new X509CertificatePem(stack, 'ServerCert', {
+    serverCert = new X509CertificatePem(stack, 'ServerCert', {
       subject: {
         cn: `${hostname}.${zoneName}`,
       },
@@ -695,5 +707,37 @@ describe('MongoDB', () => {
 
     // THEN
     expect(dbSpy.calledOnce).toBeTruthy();
+  });
+
+  test('Mongo DB connection is pointed to correct construct', () => {
+    // GIVEN
+    const connection = DatabaseConnection.forMongoDbInstance({database, clientCertificate: clientCert});
+
+    // THEN
+    expect(connection.databaseConstruct).toEqual((<MongoDbInstance>database).mongoDataVolume);
+  });
+
+  test('Mongo DB imported from attributes', () => {
+    // GIVEN
+    const volume = Volume.fromVolumeAttributes(stack, 'Volume', {
+      availabilityZone: 'dummy zone',
+      volumeId: 'vol-05abe246af',
+    });
+
+    const mongoDB = new MongoDbInstance(stack, 'ImportedMongoDb', {
+      vpc,
+      mongoDb: {
+        userSsplAcceptance: MongoDbSsplLicenseAcceptance.USER_ACCEPTS_SSPL,
+        version: MongoDbVersion.COMMUNITY_3_6,
+        hostname: 'mongo',
+        dnsZone,
+        serverCertificate: serverCert,
+        mongoDataVolume: {volume},
+      },
+    });
+    const connection = DatabaseConnection.forMongoDbInstance({database: mongoDB, clientCertificate: clientCert});
+
+    // THEN
+    expect(connection.databaseConstruct).toBeUndefined();
   });
 });

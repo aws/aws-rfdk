@@ -6,7 +6,7 @@
 import {
   InstanceType,
   IVpc,
-  SubnetType,
+  SubnetSelection,
 } from '@aws-cdk/aws-ec2';
 import * as cdk from '@aws-cdk/core';
 import {
@@ -50,6 +50,7 @@ import {
   DatabaseConnection,
 } from 'aws-rfdk/deadline';
 
+import { Subnets } from './subnets';
 
 /**
  * Properties for {@link StorageTier}.
@@ -95,6 +96,9 @@ export abstract class StorageTier extends cdk.Stack {
 
     const fileSystem = new FileSystem(this, 'EfsFileSystem', {
       vpc: props.vpc,
+      vpcSubnets: {
+        subnetGroupName: Subnets.INFRASTRUCTURE.name,
+      },
       encrypted: true,
       // TODO - Evaluate this removal policy for your own needs. This is set to DESTROY to
       // cleanly remove everything when this stack is destroyed. If you would like to ensure
@@ -184,6 +188,9 @@ export abstract class StorageTier extends cdk.Stack {
     });
     new PadEfsStorage(this, 'PadEfsStorage', {
       vpc: props.vpc,
+      vpcSubnets: {
+        subnetGroupName: Subnets.INFRASTRUCTURE.name,
+      },
       accessPoint: padAccessPoint,
       desiredPadding: cdk.Size.gibibytes(40), // Provides 2 MiB/s of baseline throughput. Costs $12/month.
     });
@@ -308,7 +315,9 @@ export class StorageTierDocDB extends StorageTier {
 
     const docDb = new DatabaseCluster(this, 'DocDBCluster', {
       vpc: props.vpc,
-      vpcSubnets: { subnetType: SubnetType.PRIVATE },
+      vpcSubnets: {
+        subnetGroupName: Subnets.INFRASTRUCTURE.name,
+      },
       instanceType: props.databaseInstanceType,
       // TODO - For cost considerations this example only uses 1 Database instance. 
       // It is recommended that when creating your render farm you use at least 2 instances for redundancy.
@@ -407,9 +416,14 @@ export class StorageTierMongoDB extends StorageTier {
 
     const availabilityZone = props.vpc.availabilityZones[0];
 
+    const mongoSubnets: SubnetSelection = {
+      subnetGroupName: Subnets.INFRASTRUCTURE.name,
+      availabilityZones: [availabilityZone]
+    };
+
     const mongoDb = new MongoDbInstance(this, 'MongoDb', {
       vpc: props.vpc,
-      vpcSubnets: { subnetType: SubnetType.PRIVATE, availabilityZones: [ availabilityZone ] },
+      vpcSubnets: mongoSubnets,
       keyName: props.keyPairName,
       instanceType: props.databaseInstanceType,
       mongoDb: {
@@ -423,7 +437,7 @@ export class StorageTierMongoDB extends StorageTier {
 
     new MongoDbPostInstallSetup(this, 'MongoDbPostInstall', {
       vpc: props.vpc,
-      vpcSubnets: { subnetType: SubnetType.PRIVATE, availabilityZones: [ availabilityZone ] },
+      vpcSubnets: mongoSubnets,
       mongoDb,
       users: {
         x509AuthUsers: [

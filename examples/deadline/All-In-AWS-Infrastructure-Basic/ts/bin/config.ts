@@ -69,6 +69,17 @@ class AppConfig {
   public readonly deployMongoDB: boolean = false;
 
   /**
+   * Whether to enable Deadline Secrets Management.
+   */ 
+  public readonly enableSecretsManagement: boolean = true;
+  
+  /**
+   * A Secret in AWS SecretsManager that stores the admin credentials for Deadline Secrets Management.
+   * If not defined and Secrets Management is enabled, an AWS Secret with admin credentials will be generated.
+   */
+  public readonly secretsManagementSecretArn?: string;
+
+  /**
    * This is only relevant if deployMongoDB = true.
    *
    * Change this value to MongoDbSsplLicenseAcceptance.USER_ACCEPTS_SSPL
