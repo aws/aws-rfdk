@@ -298,7 +298,13 @@ class DeadlineSecretsCommandClient(object):
         # Prepend the arguments with the json command-line flag
         transformed_args = ['--json'] + transformed_args
 
-        return json.loads(self._call_deadline_command(transformed_args))
+        result = json.loads(self._call_deadline_command(transformed_args))
+
+        if 'ok' in result.keys():
+            if result['ok'] == False:
+                raise ValueError('DeadlineCommandError: \n%s' % (result))
+
+        return result
 
     def dry_run(self, *args: Iterable[str]):
         transformed_args = self._transform_args(args)
