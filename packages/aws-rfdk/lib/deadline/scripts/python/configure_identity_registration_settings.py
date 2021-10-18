@@ -300,7 +300,7 @@ class DeadlineSecretsCommandClient(object):
 
         result = json.loads(self._call_deadline_command(transformed_args))
 
-        if 'ok' in result.keys():
+        if isinstance(result, dict) and 'ok' in result.keys():
             if result['ok'] == False:
                 raise ValueError('DeadlineCommandError: \n%s' % (result))
 
