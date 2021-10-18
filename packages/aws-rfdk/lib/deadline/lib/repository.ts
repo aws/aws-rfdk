@@ -309,6 +309,14 @@ export interface SecretsManagementProps {
    * @default: A random username and password will be generated in a Secret with ID `SMAdminUser` and will need to be retrieved from AWS Secrets Manager if it is needed
    */
   readonly credentials?: ISecret;
+
+  /**
+   * If Secret with admin credentials is not defined in property `credentials`, then this specifies the retention policy to
+   * use on the Secret with generated credentials. If Secret with credentials is provided, then this property is ignored.
+   *
+   * @default RemovalPolicy.RETAIN
+   */
+  readonly credentialsRemovalPolicy?: RemovalPolicy;
 }
 
 /**
@@ -462,6 +470,7 @@ export interface RepositoryProps {
  * - Instance Role and corresponding IAM Policy.
  * - An Amazon CloudWatch log group that contains the Deadline Repository installation logs.
  * - An RFDK PadEfsStorage - If no filesystem is provided.
+ * - An AWS Secrets Manager Secret - If no Secret with admin credentials for Deadline Secrets Management is provided.
  *
  * Security Considerations
  * ------------------------
@@ -582,6 +591,9 @@ export class Repository extends Construct implements IRepository {
     if (props.fileSystem instanceof MountableEfs && !props.fileSystem.accessPoint) {
       throw new Error('When using EFS with the Repository, you must provide an EFS Access Point');
     }
+    if ((props.secretsManagementSettings?.enabled ?? true) && props.database && !props.database.databaseConstruct) {
+      throw new Error('Admin credentials for Deadline Secrets Management cannot be generated when using an imported database. For setting up your own credentials, please refer to https://github.com/aws/aws-rfdk/tree/mainline/packages/aws-rfdk/lib/deadline#configuring-deadline-secrets-management-on-the-repository.');
+    }
 
     this.version = props.version;
 
@@ -595,7 +607,7 @@ export class Repository extends Construct implements IRepository {
     this.secretsManagementSettings = {
       enabled: secretsManagementIsEnabled,
       credentials: props.secretsManagementSettings?.credentials ??
-        (secretsManagementIsEnabled ? new Secret(this, 'SMAdminUser', {
+        (secretsManagementIsEnabled ? new Secret( props.database?.databaseConstruct ? Stack.of(props.database?.databaseConstruct) : this, 'SMAdminUser', {
           description: 'Admin credentials for Deadline Secrets Management',
           generateSecretString: {
             excludeCharacters: '\"$&\'()/<>[\\]\`{|}',
@@ -605,6 +617,7 @@ export class Repository extends Construct implements IRepository {
             generateStringKey: 'password',
             secretStringTemplate: JSON.stringify({ username: Repository.DEFAULT_SECRETS_MANAGEMENT_USERNAME }),
           },
+          removalPolicy: props.secretsManagementSettings?.credentialsRemovalPolicy ?? RemovalPolicy.RETAIN,
         }) : undefined),
     };
 
@@ -736,9 +749,6 @@ export class Repository extends Construct implements IRepository {
     this.node.defaultChild = this.installerGroup;
     // Ensure the DB is serving before we try to connect to it.
     this.databaseConnection.addChildDependency(this.installerGroup);
-    if (this.secretsManagementSettings.enabled) {
-      this.installerGroup.node.addDependency(this.secretsManagementSettings.credentials!);
-    }
 
     // Updating the user data with installation logs stream -- ALWAYS DO THIS FIRST.
     this.configureCloudWatchLogStream(this.installerGroup, `${id}`, props.logGroupProps);
@@ -1022,7 +1032,7 @@ export class Repository extends Construct implements IRepository {
     if (this.secretsManagementSettings.enabled) {
       installerArgs.push('-r', Stack.of(this.secretsManagementSettings.credentials ?? this).region);
       this.secretsManagementSettings.credentials!.grantRead(installerGroup);
-      installerArgs.push('-c', this.secretsManagementSettings.credentials!.secretArn);
+      installerArgs.push('-c', this.secretsManagementSettings.credentials!.secretArn ?? '');
     }
 
     if (settings) {

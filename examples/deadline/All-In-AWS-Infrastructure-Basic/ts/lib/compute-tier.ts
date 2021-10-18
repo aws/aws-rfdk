@@ -4,18 +4,17 @@
  */
 
 import {
-  InstanceClass,
-  InstanceSize,
-  InstanceType,
+  BastionHostLinux,
   IMachineImage,
   IVpc,
+  Port,
 } from '@aws-cdk/aws-ec2';
 import * as cdk from '@aws-cdk/core';
 import {
-  ConfigureSpotEventPlugin,
+  IHost,
+  InstanceUserDataProvider,
   IRenderQueue,
   IWorkerFleet,
-  SpotEventPluginFleet,
   UsageBasedLicense,
   UsageBasedLicensing,
   WorkerInstanceFleet,
@@ -25,6 +24,10 @@ import {
   IHealthMonitor,
   SessionManagerHelper,
 } from 'aws-rfdk';
+import { Asset } from '@aws-cdk/aws-s3-assets';
+import * as path from 'path'
+
+import { Subnets } from './subnets';
 
 /**
  * Properties for {@link ComputeTier}.
@@ -51,6 +54,11 @@ export interface ComputeTierProps extends cdk.StackProps {
   readonly keyPairName?: string;
 
   /**
+   * The bastion host to allow connection to Worker nodes.
+   */
+  readonly bastion?: BastionHostLinux;
+
+  /**
    * Licensing source for UBL for worker nodes.
    */
   readonly usageBasedLicensing?: UsageBasedLicensing;
@@ -59,6 +67,36 @@ export interface ComputeTierProps extends cdk.StackProps {
    * List of the usage-based liceses that the worker nodes will be served.
    */
   readonly licenses?: UsageBasedLicense[];
+}
+
+class UserDataProvider extends InstanceUserDataProvider {
+  preCloudWatchAgent(host: IHost): void {
+    host.userData.addCommands('echo preCloudWatchAgent');
+  }
+  preRenderQueueConfiguration(host: IHost): void {
+    host.userData.addCommands('echo preRenderQueueConfiguration');
+  }
+  preWorkerConfiguration(host: IHost): void {
+    host.userData.addCommands('echo preWorkerConfiguration');
+  }
+  postWorkerLaunch(host: IHost): void {
+    host.userData.addCommands('echo postWorkerLaunch');
+    if (host.node.scope != undefined) {
+      const testScript = new Asset(
+        host.node.scope as cdk.Construct,
+        'SampleAsset',
+        {path: path.join(__dirname, '..', '..', 'scripts', 'configure_worker.sh')},
+      );
+      testScript.grantRead(host);
+      const localPath = host.userData.addS3DownloadCommand({
+        bucket: testScript.bucket,
+        bucketKey: testScript.s3ObjectKey,
+      });
+      host.userData.addExecuteFileCommand({
+        filePath: localPath,
+      })
+    }
+  }
 }
 
 /**
@@ -87,24 +125,25 @@ export class ComputeTier extends cdk.Stack {
 
     this.healthMonitor = new HealthMonitor(this, 'HealthMonitor', {
       vpc: props.vpc,
+      vpcSubnets: {
+        subnetGroupName: Subnets.INFRASTRUCTURE.name,
+      },
       // TODO - Evaluate deletion protection for your own needs. This is set to false to
       // cleanly remove everything when this stack is destroyed. If you would like to ensure
       // that this resource is not accidentally deleted, you should set this to true.
       deletionProtection: false,
-      vpcSubnets: {
-        subnetGroupName: "WorkerFleet",
-      },
     });
 
     this.workerFleet = new WorkerInstanceFleet(this, 'WorkerFleet', {
       vpc: props.vpc,
+      vpcSubnets: {
+        subnetGroupName: Subnets.WORKERS.name,
+      },
       renderQueue: props.renderQueue,
       workerMachineImage: props.workerMachineImage,
       healthMonitor: this.healthMonitor,
       keyName: props.keyPairName,
-      vpcSubnets: {
-        subnetGroupName: "WorkerFleet",
-      },
+      userDataProvider: new UserDataProvider(this, 'UserDataProvider'),
     });
 
     // This is an optional feature that will set up your EC2 instances to be enabled for use with
@@ -115,49 +154,10 @@ export class ComputeTier extends cdk.Stack {
     if (props.usageBasedLicensing && props.licenses) {
       props.usageBasedLicensing.grantPortAccess(this.workerFleet, props.licenses);
     }
-    const fleet1 = new SpotEventPluginFleet(this, 'SpotEventPluginFleet1', {
-      vpc: props.vpc,
-      renderQueue: props.renderQueue,
-      deadlineGroups: [
-        'group_name1',
-      ],
-      instanceTypes: [
-        InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
-      ],
-      workerMachineImage: props.workerMachineImage,
-      maxCapacity: 5,
-      vpcSubnets: {
-        subnetGroupName: 'SpotFleet1',
-      },
-    });
 
-    const fleet2 = new SpotEventPluginFleet(this, 'SpotEventPluginFleet2', {
-      vpc: props.vpc,
-      renderQueue: props.renderQueue,
-      deadlineGroups: [
-        'group_name2',
-      ],
-      instanceTypes: [
-        InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
-      ],
-      workerMachineImage: props.workerMachineImage,
-      maxCapacity: 5,
-      vpcSubnets: {
-        subnetGroupName: 'SpotFleet2',
-      },
-    });
-
-    new ConfigureSpotEventPlugin(this, 'ConfigureSpotEventPlugin', {
-      vpc: props.vpc,
-      renderQueue: props.renderQueue,
-      spotFleets: [
-        fleet1,
-        fleet2,
-      ],
-      configuration: {
-        enableResourceTracker: true,
-      },
-    });
+    if (props.bastion) {
+      this.workerFleet.connections.allowFrom(props.bastion, Port.tcp(22));
+    }
   }
 }
 

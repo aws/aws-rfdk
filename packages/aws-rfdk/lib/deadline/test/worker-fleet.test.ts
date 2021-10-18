@@ -58,6 +58,7 @@ import {
   VersionQuery,
   WorkerInstanceConfiguration,
   WorkerInstanceFleet,
+  WorkerInstanceFleetProps,
 } from '../lib';
 import {
   CONFIG_WORKER_ASSET_LINUX,
@@ -1942,4 +1943,59 @@ test('worker fleet does not signal when zero minCapacity', () => {
   // [0] = warning about block devices. [2] = warning about no health monitor
   expect(fleet.node.metadataEntry[1].type).toMatch(ArtifactMetadataEntryType.WARN);
   expect(fleet.node.metadataEntry[1].data).toMatch(/Deploying with 0 minimum capacity./);
+});
+
+describe('secrets management enabled', () => {
+  let props: WorkerInstanceFleetProps;
+
+  // GIVEN
+  beforeEach(() => {
+    app = new App();
+    stack = new Stack(app, 'Stack');
+    vpc = new Vpc(stack, 'VPC');
+    rcsImage = ContainerImage.fromAsset(__dirname);
+    const version = new VersionQuery(stack, 'VersionQuery');
+    renderQueue = new RenderQueue(stack, 'RQ', {
+      vpc,
+      images: { remoteConnectionServer: rcsImage },
+      repository: new Repository(stack, 'Repository', {
+        vpc,
+        version,
+      }),
+      version,
+    });
+    wfstack = new Stack(app, 'workerFleetStack');
+    props = {
+      renderQueue,
+      vpc,
+      workerMachineImage: new GenericWindowsImage({}),
+    };
+  });
+
+  test('vpc subnets not specified => warns about dedicated subnets', () => {
+    // WHEN
+    const workerInstanceFleet = new WorkerInstanceFleet(wfstack, 'WorkerInstanceFleet', props);
+
+    // THEN
+    expect(workerInstanceFleet.node.metadataEntry).toContainEqual(expect.objectContaining({
+      type: 'aws:cdk:warning',
+      data: 'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
+    }));
+  });
+
+  test('vpc subnets specified => does not emit dedicated subnets warning', () => {
+    // WHEN
+    const workerInstanceFleet = new WorkerInstanceFleet(wfstack, 'WorkerInstanceFleet', {
+      ...props,
+      vpcSubnets: {
+        subnetType: SubnetType.PRIVATE,
+      },
+    });
+
+    // THEN
+    expect(workerInstanceFleet.node.metadataEntry).not.toContainEqual(expect.objectContaining({
+      type: 'aws:cdk:warning',
+      data: expect.stringMatching(/dedicated subnet/i),
+    }));
+  });
 });

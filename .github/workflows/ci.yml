@@ -5,9 +5,9 @@ name: CI
 
 on:
   push:
-    branches: [ mainline ]
+    branches: [ mainline, 'feature*' ]
   pull_request:
-    branches: [ mainline ]
+    branches: [ mainline, 'feature*' ]
 
 jobs:
   build:

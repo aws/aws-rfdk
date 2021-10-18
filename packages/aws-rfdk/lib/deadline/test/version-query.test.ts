@@ -11,10 +11,12 @@ import {
 } from '@aws-cdk/assert';
 import {
   App,
+  CustomResource,
   Stack,
 } from '@aws-cdk/core';
 
 import {
+  Installer,
   VersionQuery,
 } from '../lib';
 
@@ -90,4 +92,60 @@ test.each([
     versionString: version,
     forceRun: stringLike('*'),
   }));
+});
+
+describe('VersionQuery.linuxInstallers', () => {
+  let customResource: CustomResource;
+  let versionQuery: VersionQuery;
+  let stack: Stack;
+
+  beforeAll(() => {
+    // GIVEN
+    const app = new App();
+    stack = new Stack(app, 'Stack');
+    versionQuery = new VersionQuery(stack, 'VersionQuery');
+    customResource = versionQuery.node.findChild('DeadlineResource') as CustomResource;
+  });
+
+  describe('.repository', () => {
+    let repoInstaller: Installer;
+
+    beforeAll(() => {
+      // WHEN
+      repoInstaller = versionQuery.linuxInstallers.repository;
+    });
+
+    test('S3 bucket from Custom::RFDK_DEADLINE_INSTALLERS "S3Bucket" attribute', () => {
+      // THEN
+      expect(stack.resolve(repoInstaller.s3Bucket.bucketName))
+        .toEqual(stack.resolve(customResource.getAtt('S3Bucket')));
+    });
+
+    test('S3 object key from Custom::RFDK_DEADLINE_INSTALLERS "LinuxRepositoryInstaller" attribute', () => {
+      // THEN
+      expect(stack.resolve(repoInstaller.objectKey))
+        .toEqual(stack.resolve(customResource.getAtt('LinuxRepositoryInstaller')));
+    });
+  });
+
+  describe('.client', () => {
+    let clientInstaller: Installer;
+
+    beforeAll(() => {
+      // WHEN
+      clientInstaller = versionQuery.linuxInstallers.client;
+    });
+
+    test('S3 bucket from Custom::RFDK_DEADLINE_INSTALLERS "S3Bucket" attribute', () => {
+      // THEN
+      expect(stack.resolve(clientInstaller.s3Bucket.bucketName))
+        .toEqual(stack.resolve(customResource.getAtt('S3Bucket')));
+    });
+
+    test('S3 object key from Custom::RFDK_DEADLINE_INSTALLERS "LinuxClientInstaller" attribute', () => {
+      // THEN
+      expect(stack.resolve(clientInstaller.objectKey))
+        .toEqual(stack.resolve(customResource.getAtt('LinuxClientInstaller')));
+    });
+  });
 });

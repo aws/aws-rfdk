@@ -21,7 +21,7 @@ class AppConfig {
    *
    * See https://www.awsthinkbox.com/end-user-license-agreement for the terms of the agreement.
    */
-  public readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA;
+  public readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA;
 
   /**
    * Fill this in if you want to receive alarm emails when:
@@ -38,39 +38,46 @@ class AppConfig {
    * "10.1.12"
    * @default The latest available version of Deadline is used
    */
-  public readonly deadlineVersion?: string = '10.1.17.4';
+  public readonly deadlineVersion?: string;
 
   /**
-   * A map of regions to Deadline Client Linux AMIs. Currently using:
-   *   Deadline Worker Base Image Linux 2 10.1.17.4 with Houdini 18.0.287 and Mantra 18.0.287 2021-06-30T073302Z
+   * A map of regions to Deadline Client Linux AMIs. As an example, the Linux Deadline 10.1.15.2 AMI ID from us-west-2
+   * is filled in. It can be used as-is, added to, or replaced. Ideally the version here should match the version of
+   * Deadline used in any connected Deadline constructs.
    */
-  public readonly deadlineClientLinuxAmiMap: Record<string, string> = {['us-west-2']: 'ami-01bedc3d422729a29'};
+  public readonly deadlineClientLinuxAmiMap: Record<string, string> = {['us-west-2']: 'ami-0c8431fc72742c110'};
 
   /**
    * (Optional) A secret (in binary form) in SecretsManager that stores the UBL certificates in a .zip file.
    */
-  // public readonly ublCertificatesSecretArn?: string = 'arn:aws:secretsmanager:us-west-2:#:secret:Certificates-#';
-  public readonly ublCertificatesSecretArn?: string = 'arn:aws:secretsmanager:us-west-2:#:secret:UBLCertificates-#';
+  public readonly ublCertificatesSecretArn?: string;
 
   /**
    * (Optional) The UBL licenses to use.
    */
-  public readonly ublLicenses?: UsageBasedLicense[] = [ UsageBasedLicense.forHoudini(), UsageBasedLicense.forMantra() ];
-
-  public readonly deadlineInstallerBucketName: string = 'rfdk-secrets-management-deadline-installers';
-  public readonly deadlineInstallerObjectNameLinux: string = 'DeadlineClient-rev.10.1.18.2.31.g1ac1c7077-linux-x64-installer_rfdk-sm-1.run';
-  public readonly deadlineInstallerObjectNameWindows: string = 'DeadlineClient-rev.10.1.18.2.31.g1ac1c7077-windows-installer_rfdk-sm-1.exe';
+  public readonly ublLicenses?: UsageBasedLicense[];
 
   /**
    * (Optional) The name of the EC2 keypair to associate with instances.
    */
-  public readonly keyPairName?: string = '***';
+  public readonly keyPairName?: string;
 
   /**
    * Whether to use MongoDB to back the render farm.
    * If false, then we use Amazon DocumentDB to back the render farm.
    */
   public readonly deployMongoDB: boolean = false;
+
+  /**
+   * Whether to enable Deadline Secrets Management.
+   */ 
+  public readonly enableSecretsManagement: boolean = true;
+  
+  /**
+   * A Secret in AWS SecretsManager that stores the admin credentials for Deadline Secrets Management.
+   * If not defined and Secrets Management is enabled, an AWS Secret with admin credentials will be generated.
+   */
+  public readonly secretsManagementSecretArn?: string;
 
   /**
    * This is only relevant if deployMongoDB = true.

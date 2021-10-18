@@ -12,6 +12,11 @@ COMPONENT_ROOT="$1"
 COMPONENT_NAME=$(basename "$COMPONENT_ROOT")
 START_TIME=$SECONDS
 
+COMPONENT_E2E_ARG=""
+if [[ "${DEV_MODE:-false}" == "true" ]]; then
+  COMPONENT_E2E_ARG="--deploy-and-test-only"
+fi
+
 # Before changing directories, we determine the
 # asbolute path of INTEG_TEMP_DIR, since it is a relative
 # path
@@ -25,7 +30,7 @@ ensure_component_artifact_dir "${COMPONENT_NAME}"
 
 (
     set +e
-    ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME"
+    ../common/scripts/bash/component_e2e.sh "$COMPONENT_NAME" "$COMPONENT_E2E_ARG"
     exit_code=$?
     echo $exit_code > "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/exitcode"
     exit $exit_code

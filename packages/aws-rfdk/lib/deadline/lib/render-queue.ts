@@ -21,6 +21,7 @@ import {
   ISecurityGroup,
   IVpc,
   Port,
+  SubnetSelection,
   SubnetType,
 } from '@aws-cdk/aws-ec2';
 import {
@@ -71,9 +72,9 @@ import {
   RenderQueueHostNameProps,
   RenderQueueProps,
   RenderQueueSizeConstraints,
+  SubnetIdentityRegistrationSettingsProps,
   VersionQuery,
 } from '.';
-
 import {
   ConnectableApplicationEndpoint,
   ImportedAcmCertificate,
@@ -82,12 +83,17 @@ import {
   X509CertificatePem,
   X509CertificatePkcs12,
 } from '../../core';
+
+import { DeploymentInstance } from '../../core/lib/deployment-instance';
 import {
   tagConstruct,
 } from '../../core/lib/runtime-info';
 import {
   RenderQueueConnection,
 } from './rq-connection';
+import {
+  SecretsManagementIdentityRegistration,
+} from './secrets-management';
 import { Version } from './version';
 import {
   WaitForStableService,
@@ -97,6 +103,11 @@ import {
  * Interface for Deadline Render Queue.
  */
 export interface IRenderQueue extends IConstruct, IConnectable {
+  /**
+   * The Deadline Repository that the Render Queue services.
+   */
+  readonly repository: IRepository;
+
   /**
    * The endpoint used to connect to the Render Queue
    */
@@ -112,6 +123,23 @@ export interface IRenderQueue extends IConstruct, IConnectable {
    * Configure an Instance/Autoscaling group to connect to a RenderQueue
    */
   configureClientInstance(params: InstanceConnectOptions): void;
+
+  /**
+   * Configure a rule to automatically register all Deadline Secrets Management identities connecting from a given
+   * subnet to a specified role and status.
+   *
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-registration-settings-ref-label
+   * for details.
+   *
+   * All RFDK constructs that require Deadline Secrets Management identity registration call this method internally.
+   * End-users of RFDK should not need to use this method unless they have a special need and understand its inner
+   * workings.
+   *
+   * @param props Properties that specify the configuration to be applied to the Deadline Secrets Management identity
+   * registration settings. This specifies a VPC subnet and configures Deadline to automatically register identities of
+   * clients connecting from the subnet to a chosen Deadline Secrets Management role and status.
+   */
+  configureSecretsManagementAutoRegistration(props: SubnetIdentityRegistrationSettingsProps): void;
 }
 
 /**
@@ -155,6 +183,11 @@ abstract class RenderQueueBase extends Construct implements IRenderQueue {
   public abstract readonly connections: Connections;
 
   /**
+   * @inheritdoc
+   */
+  public abstract readonly repository: IRepository;
+
+  /**
    * Configures an ECS cluster to be able to connect to a RenderQueue
    * @returns An environment mapping that is used to configure the Docker Images
    */
@@ -164,6 +197,11 @@ abstract class RenderQueueBase extends Construct implements IRenderQueue {
    * Configure an Instance/Autoscaling group to connect to a RenderQueue
    */
   public abstract configureClientInstance(params: InstanceConnectOptions): void;
+
+  /**
+   * @inheritdoc
+   */
+  public abstract configureSecretsManagementAutoRegistration(props: SubnetIdentityRegistrationSettingsProps): void;
 }
 
 /**
@@ -209,6 +247,10 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   private static readonly DEFAULT_HOSTNAME = 'renderqueue';
 
   private static readonly DEFAULT_DOMAIN_NAME = 'aws-rfdk.com';
+
+  private static readonly DEFAULT_VPC_SUBNETS_ALB: SubnetSelection = { subnetType: SubnetType.PRIVATE, onePerAz: true };
+
+  private static readonly DEFAULT_VPC_SUBNETS_OTHER: SubnetSelection = { subnetType: SubnetType.PRIVATE };
 
   /**
   * The minimum Deadline version required for the Remote Connection Server to support load-balancing
@@ -268,6 +310,11 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   public readonly certChain?: ISecret;
 
   /**
+   * @inheritdoc
+   */
+  public readonly repository: IRepository;
+
+  /**
    * Whether SEP policies have been added
    */
   private haveAddedSEPPolicies: boolean = false;
@@ -318,9 +365,10 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    */
   private ecsServiceStabilized: WaitForStableService;
 
-  constructor(scope: Construct, id: string, props: RenderQueueProps) {
+  constructor(scope: Construct, id: string, private readonly props: RenderQueueProps) {
     super(scope, id);
 
+    this.repository = props.repository;
     this.renderQueueSize = props?.renderQueueSize ?? {min: 1, max: 1};
 
     if (props.version.isLessThan(RenderQueue.MINIMUM_LOAD_BALANCING_VERSION)) {
@@ -373,7 +421,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       throw new Error(`renderQueueSize.desired capacity cannot be more than ${maxCapacity}: got ${this.renderQueueSize.desired}`);
     }
     this.asg = this.cluster.addCapacity('RCS Capacity', {
-      vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
+      vpcSubnets: props.vpcSubnets ?? RenderQueue.DEFAULT_VPC_SUBNETS_OTHER,
       instanceType: props.instanceType ?? new InstanceType('c5.large'),
       minCapacity,
       desiredCapacity: this.renderQueueSize?.desired,
@@ -449,7 +497,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
 
     const loadBalancer = new ApplicationLoadBalancer(this, 'LB', {
       vpc: this.cluster.vpc,
-      vpcSubnets: props.vpcSubnetsAlb ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
+      vpcSubnets: props.vpcSubnetsAlb ?? RenderQueue.DEFAULT_VPC_SUBNETS_ALB,
       internetFacing: false,
       deletionProtection: props.deletionProtection ?? true,
       securityGroup: props.securityGroups?.frontend,
@@ -596,6 +644,18 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   public configureClientInstance(param: InstanceConnectOptions): void {
     this.addChildDependency(param.host);
     this.rqConnection.configureClientInstance(param);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public configureSecretsManagementAutoRegistration(props: SubnetIdentityRegistrationSettingsProps) {
+    if (!this.repository.secretsManagementSettings.enabled) {
+      // Secrets management is not enabled, so do nothing
+      return;
+    }
+
+    this.identityRegistrationSettings.addSubnetIdentityRegistrationSetting(props);
   }
 
   /**
@@ -886,5 +946,47 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       throw new Error(`Invalid RenderQueue hostname: ${hostname}`);
     }
     return `${hostname}.${zone.zoneName}`;
+  }
+
+  /**
+   * The instance that runs commands during the deployment.
+   */
+  private get deploymentInstance(): DeploymentInstance {
+    const CONFIGURE_REPOSITORY_CONSTRUCT_ID = 'ConfigureRepository';
+    const deploymentInstanceNode = this.node.tryFindChild(CONFIGURE_REPOSITORY_CONSTRUCT_ID);
+    if (deploymentInstanceNode === undefined) {
+      return new DeploymentInstance(this, CONFIGURE_REPOSITORY_CONSTRUCT_ID, {
+        vpc: this.props.vpc,
+        vpcSubnets: this.props.vpcSubnets ?? RenderQueue.DEFAULT_VPC_SUBNETS_OTHER,
+      });
+    } else if (deploymentInstanceNode instanceof DeploymentInstance) {
+      return deploymentInstanceNode;
+    } else {
+      throw new Error(`Unexpected type for ${deploymentInstanceNode.node.path}. Expected ${DeploymentInstance.name}, but found ${typeof(deploymentInstanceNode)}.`);
+    }
+  }
+
+  /**
+   * The construct that manages Deadline Secrets Management identity registration settings
+   */
+  private get identityRegistrationSettings(): SecretsManagementIdentityRegistration {
+    const IDENTITY_REGISTRATION_CONSTRUCT_ID = 'SecretsManagementIdentityRegistration';
+    const secretsManagementIdentityRegistration = this.node.tryFindChild(IDENTITY_REGISTRATION_CONSTRUCT_ID);
+    if (!secretsManagementIdentityRegistration) {
+      return new SecretsManagementIdentityRegistration(
+        this, IDENTITY_REGISTRATION_CONSTRUCT_ID, {
+          deploymentInstance: this.deploymentInstance,
+          repository: this.repository,
+          renderQueueSubnets: this.props.vpc.selectSubnets(
+            this.props.vpcSubnetsAlb ?? RenderQueue.DEFAULT_VPC_SUBNETS_ALB,
+          ),
+          version: this.props.version,
+        },
+      );
+    } else if (secretsManagementIdentityRegistration instanceof SecretsManagementIdentityRegistration) {
+      return secretsManagementIdentityRegistration;
+    } else {
+      throw new Error(`Unexpected type for ${secretsManagementIdentityRegistration.node.path}. Expected ${SecretsManagementIdentityRegistration.name}, but found ${typeof(secretsManagementIdentityRegistration)}.`);
+    }
   }
 }

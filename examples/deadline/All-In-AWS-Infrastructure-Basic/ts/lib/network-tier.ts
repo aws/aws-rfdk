@@ -20,6 +20,8 @@ import {
 } from '@aws-cdk/aws-route53';
 import * as cdk from '@aws-cdk/core';
 
+import { Subnets } from './subnets';
+
 /**
  * The network tier consists of all constructs that are required for the foundational
  * networking between the various components of the Deadline render farm.
@@ -71,31 +73,35 @@ export class NetworkTier extends cdk.Stack {
     this.vpc = new Vpc(this, 'Vpc', {
       maxAzs: 2,
       subnetConfiguration: [
-        {
-          name: 'Public',
-          subnetType: SubnetType.PUBLIC,
-          cidrMask: 28, // 14 IP addresses
-        },
-        {
-          name: 'Private',
-          subnetType: SubnetType.PRIVATE,
-          cidrMask: 20, // 4,094 IP addresses
-        },
-        {
-          name: 'WorkerFleet',
-          subnetType: SubnetType.PRIVATE,
-          cidrMask: 20, // 4,094 IP addresses
-        },
-        {
-          name: 'SpotFleet1',
-          subnetType: SubnetType.PRIVATE,
-          cidrMask: 20, // 4,094 IP addresses
-        },
-        {
-          name: 'SpotFleet2',
-          subnetType: SubnetType.PRIVATE,
-          cidrMask: 20, // 4,094 IP addresses
-        },
+        /**
+         * Subnets for undistinguished render farm back-end infrastructure
+         */
+        Subnets.INFRASTRUCTURE,
+        /**
+         * Subnets for publicly accessible infrastructure
+         */
+        Subnets.PUBLIC,
+        /**
+         * Subnets for the Render Queue Application Load Balancer (ALB).
+         *
+         * It is considered good practice to put a load blanacer in dedicated subnets. Additionally, the subnets must
+         * have a CIDR block with a bitmask of at least /27 and at least 8 free IP addresses per subnet. ALBs can scale
+         * up to a maximum of 100 IP addresses distributed across all subnets. Assuming only 2 AZs (the minimum) we
+         * should have 50 IPs per subnet = CIDR mask of /26
+         *
+         * See:
+         * - https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#subnets-load-balancer
+         * - https://github.com/aws/aws-rfdk/blob/release/packages/aws-rfdk/lib/deadline/README.md#render-queue-subnet-placement
+         */
+        Subnets.RENDER_QUEUE_ALB,
+        /**
+         * Subnets for Usage-Based Licensing
+         */
+        Subnets.USAGE_BASED_LICENSING,
+        /**
+         * Subnets for the Worker instances
+         */
+        Subnets.WORKERS,
       ],
       // VPC flow logs are a security best-practice as they allow us
       // to capture information about the traffic going in and out of
@@ -151,7 +157,7 @@ export class NetworkTier extends cdk.Stack {
 
     this.dnsZone = new PrivateHostedZone(this, 'DnsZone', {
       vpc: this.vpc,
-      zoneName: 'aws-rfdk.com',
+      zoneName: 'deadline-test.internal',
     });
   }
 }

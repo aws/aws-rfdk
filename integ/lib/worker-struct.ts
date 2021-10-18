@@ -6,7 +6,11 @@
 import { IMachineImage, MachineImage, Port, Vpc } from '@aws-cdk/aws-ec2';
 import { Construct, Stack } from '@aws-cdk/core';
 import { X509CertificatePem } from 'aws-rfdk';
-import { IWorkerFleet, RenderQueue, WorkerInstanceFleet } from 'aws-rfdk/deadline';
+import {
+  RenderQueue,
+  WorkerInstanceFleet,
+} from 'aws-rfdk/deadline';
+import { NetworkTier } from '../components/_infrastructure/lib/network-tier';
 import { RenderStruct } from './render-struct';
 
 export interface WorkerStructProps {
@@ -17,7 +21,7 @@ export interface WorkerStructProps {
 
 export class WorkerStruct extends Construct {
 
-  readonly workerFleet: Array<IWorkerFleet> = [];
+  readonly workerFleet: WorkerInstanceFleet[] = [];
   readonly renderQueue: RenderQueue;
   readonly cert?: X509CertificatePem;
 
@@ -46,9 +50,11 @@ export class WorkerStruct extends Construct {
       workerMachineImage = MachineImage.genericLinux(deadlineClientLinuxAmiMap);
     }
 
+    const workerSubnets = vpc.selectSubnets({ subnetGroupName: NetworkTier.subnetConfig.workerInstanceFleet.name });
     this.workerFleet.push(
       new WorkerInstanceFleet(this, 'Worker1', {
         vpc,
+        vpcSubnets: workerSubnets,
         renderQueue: this.renderQueue,
         workerMachineImage,
         logGroupProps: {
@@ -58,6 +64,7 @@ export class WorkerStruct extends Construct {
       }),
       new WorkerInstanceFleet(this, 'Worker2', {
         vpc,
+        vpcSubnets: workerSubnets,
         renderQueue: this.renderQueue,
         workerMachineImage,
         logGroupProps: {
@@ -67,6 +74,7 @@ export class WorkerStruct extends Construct {
       }),
       new WorkerInstanceFleet(this, 'Worker3', {
         vpc,
+        vpcSubnets: workerSubnets,
         renderQueue: this.renderQueue,
         workerMachineImage,
         logGroupProps: {

@@ -304,6 +304,12 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   public readonly connections: Connections;
 
   /**
+   * Indicates whether the subnets are the defaults. If `props.vpcSubnets` was passed in, this
+   * will be false.
+   */
+  public readonly defaultSubnets: boolean;
+
+  /**
    * The principal to grant permissions to. Granting permissions to this principal will grant
    * those permissions to the spot instance role.
    */
@@ -414,6 +420,8 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
 
   constructor(scope: Construct, id: string, props: SpotEventPluginFleetProps) {
     super(scope, id);
+
+    this.defaultSubnets = !props.vpcSubnets;
 
     this.deadlineGroups = props.deadlineGroups.map(group => group.toLocaleLowerCase());
     this.deadlinePools = props.deadlinePools?.map(pool => pool.toLocaleLowerCase());

@@ -5,20 +5,9 @@
  */
 
 import 'source-map-support/register';
-
-import {
-  InstanceClass,
-  InstanceSize,
-  InstanceType,
-  MachineImage,
-} from '@aws-cdk/aws-ec2';
-import * as cdk from '@aws-cdk/core';
-
 import { config } from './config';
-
-import { ComputeTier } from '../lib/compute-tier';
+import * as cdk from '@aws-cdk/core';
 import { NetworkTier } from '../lib/network-tier';
-import { SecurityTier } from '../lib/security-tier';
 import {
   ServiceTier,
 } from '../lib/service-tier';
@@ -27,9 +16,14 @@ import {
   StorageTierDocDB,
   StorageTierMongoDB,
 } from '../lib/storage-tier';
-import { SSMInstancePolicyAspect } from '../lib/ssm-policy-aspect';
-import { WorkstationTier } from '../lib/workstation-tier';
-
+import { SecurityTier } from '../lib/security-tier';
+import {
+  InstanceClass,
+  InstanceSize,
+  InstanceType,
+  MachineImage,
+} from '@aws-cdk/aws-ec2';
+import { ComputeTier } from '../lib/compute-tier';
 
   // ------------------------------ //
   // --- Validate Config Values --- //
@@ -49,6 +43,10 @@ import { WorkstationTier } from '../lib/workstation-tier';
 
   if (config.deadlineClientLinuxAmiMap === {['region']: 'ami-id'}) {
     throw new Error('Deadline Client Linux AMI map is required but was not specified.');
+  }
+
+  if (!config.enableSecretsManagement && config.secretsManagementSecretArn) {
+    console.warn('Deadline Secrets Management is disabled, so the admin credentials specified in the provided secret will not be used.');
   }
 
 // ------------------- //
@@ -114,6 +112,8 @@ const service = new ServiceTier(app, 'ServiceTier', {
   rootCa: security.rootCa,
   dnsZone: network.dnsZone,
   acceptAwsThinkboxEula: config.acceptAwsThinkboxEula,
+  enableSecretsManagement: config.enableSecretsManagement,
+  secretsManagementSecretArn: config.secretsManagementSecretArn
 });
 
 // -------------------- //
@@ -125,19 +125,7 @@ new ComputeTier(app, 'ComputeTier', {
   vpc: network.vpc,
   renderQueue: service.renderQueue,
   workerMachineImage: MachineImage.genericLinux(config.deadlineClientLinuxAmiMap),
-  keyPairName: config.keyPairName,
+  keyPairName: config.keyPairName ? config.keyPairName : undefined,
   usageBasedLicensing: service.ublLicensing,
   licenses: config.ublLicenses,
 });
-
-new WorkstationTier(app, 'WorkstationTier', {
-  env,
-  vpc: network.vpc,
-  renderQueue: service.renderQueue,
-  keyPairName: config.keyPairName,
-  deadlineInstallerBucketName: config.deadlineInstallerBucketName,
-  deadlineInstallerObjectNameLinux: config.deadlineInstallerObjectNameLinux,
-  deadlineInstallerObjectNameWindows: config.deadlineInstallerObjectNameWindows,
-});
-
-cdk.Aspects.of(app).add(new SSMInstancePolicyAspect());

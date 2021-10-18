@@ -34,6 +34,7 @@ import {
   CfnFileSystem,
   FileSystem as EfsFileSystem,
 } from '@aws-cdk/aws-efs';
+import { CfnRole } from '@aws-cdk/aws-iam';
 import { Bucket } from '@aws-cdk/aws-s3';
 import { Asset } from '@aws-cdk/aws-s3-assets';
 import { Secret } from '@aws-cdk/aws-secretsmanager';
@@ -61,6 +62,7 @@ import {
   Repository,
   VersionQuery,
   Version,
+  PlatformInstallers,
 } from '../lib';
 import {
   REPO_DC_ASSET,
@@ -99,20 +101,24 @@ beforeEach(() => {
   });
 
   class MockVersion extends Version implements IVersion {
-    readonly linuxInstallers = {
+    readonly linuxInstallers: PlatformInstallers = {
       patchVersion: 0,
       repository: {
         objectKey: 'testInstaller',
         s3Bucket: new Bucket(stack, 'LinuxInstallerBucket'),
       },
-    }
+      client: {
+        objectKey: 'testClientInstaller',
+        s3Bucket: new Bucket(stack, 'LinuxClientInstallerBucket'),
+      },
+    };
 
     public linuxFullVersionString() {
       return this.toString();
     }
   }
 
-  version = new MockVersion([10,1,19,0]);
+  version = new MockVersion([10,1,19,4]);
 });
 
 test('can create two repositories', () => {
@@ -931,6 +937,15 @@ test('repository configure client instance', () => {
     instanceType: new InstanceType('t3.small'),
     machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
   });
+  const instanceRole = (
+    instance
+      .node.findChild('InstanceRole')
+      .node.defaultChild
+  ) as CfnRole;
+  const db = (
+    repo
+      .node.findChild('DocumentDatabase')
+  ) as DatabaseCluster;
 
   // WHEN
   repo.configureClientInstance({
@@ -949,6 +964,23 @@ test('repository configure client instance', () => {
   // Make sure we call the configureRepositoryDirectConnect script with appropriate argument.
   const regex = new RegExp(escapeTokenRegex('\'/tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\' \\"/mnt/repository/DeadlineRepository\\"'));
   expect(userData).toMatch(regex);
+
+  // Assert the IAM instance profile is given read access to the database credentials secret
+  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+    PolicyDocument: {
+      Statement: arrayWith({
+        Action: [
+          'secretsmanager:GetSecretValue',
+          'secretsmanager:DescribeSecret',
+        ],
+        Effect: 'Allow',
+        Resource: stack.resolve(db.secret!.secretArn),
+      }),
+    },
+    Roles: [
+      stack.resolve(instanceRole.ref),
+    ],
+  }));
 });
 
 test('configureClientInstance uses singleton for repo config script', () => {
@@ -1352,4 +1384,35 @@ test('credentials are undefined when secrets management is disabled', () => {
 
   // THEN
   expect(repository.secretsManagementSettings.credentials).toBeUndefined();
+});
+
+
+test('throws an error if credentials are undefined and database is imported', () => {
+  // GIVEN
+  const sg = new SecurityGroup(stack, 'SG', {
+    vpc,
+  });
+  const secret = new Secret(stack, 'Secret');
+  const database = DatabaseCluster.fromDatabaseClusterAttributes(stack, 'DbCluster', {
+    clusterEndpointAddress: '1.2.3.4',
+    clusterIdentifier: 'foo',
+    instanceEndpointAddresses: [ '1.2.3.5' ],
+    instanceIdentifiers: [ 'i0' ],
+    port: 27001,
+    readerEndpointAddress: '1.2.3.6',
+    securityGroup: sg,
+  });
+  const databaseConnection = DatabaseConnection.forDocDB({database, login: secret});
+
+  // WHEN
+  function when() {
+    new Repository(stack, 'Repository', {
+      vpc,
+      version,
+      database: databaseConnection,
+    });
+  }
+
+  // THEN
+  expect(when).toThrow('Admin credentials for Deadline Secrets Management cannot be generated when using an imported database. For setting up your own credentials, please refer to https://github.com/aws/aws-rfdk/tree/mainline/packages/aws-rfdk/lib/deadline#configuring-deadline-secrets-management-on-the-repository.');
 });

@@ -12,6 +12,7 @@ import {
   stringLike,
 } from '@aws-cdk/assert';
 import { DockerImageAsset } from '@aws-cdk/aws-ecr-assets';
+import { Asset } from '@aws-cdk/aws-s3-assets';
 import {
   App,
   Stack,
@@ -24,6 +25,7 @@ import {
   Stage,
   StageProps,
   ThinkboxDockerRecipes,
+  Version,
 } from '../lib';
 
 describe('ThinkboxDockerRecipes', () => {
@@ -33,11 +35,20 @@ describe('ThinkboxDockerRecipes', () => {
 
   // GIVEN
   const STAGE_PATH = path.join(__dirname, 'assets');
+
+  const MAJOR_VERSION = 10;
+  const MINOR_VERSION = 1;
+  const RELEASE_VERSION = 9;
+  const PATCH_VERSION = 2;
+  const RELEASE_VERSION_STRING = `${MAJOR_VERSION}.${MINOR_VERSION}.${RELEASE_VERSION}`;
+  const FULL_VERSION_STRING = `${RELEASE_VERSION_STRING}.${PATCH_VERSION}`;
+
   const RCS_RECIPE_NAME = 'rcs';
   const RCS_RECIPE: Recipe = {
     description: 'rcs',
     title: 'rcs',
     buildArgs: {
+      DL_VERSION: FULL_VERSION_STRING,
       a: 'a',
       b: 'b',
     },
@@ -49,18 +60,12 @@ describe('ThinkboxDockerRecipes', () => {
     title: 'license-forwarder',
     description: 'license-forwarder',
     buildArgs: {
+      DL_VERSION: FULL_VERSION_STRING,
       c: 'c',
       d: 'd',
     },
     target: 'lf',
   };
-
-  const MAJOR_VERSION = 10;
-  const MINOR_VERSION = 1;
-  const RELEASE_VERSION = 9;
-  const PATCH_VERSION = 2;
-  const RELEASE_VERSION_STRING = `${MAJOR_VERSION}.${MINOR_VERSION}.${RELEASE_VERSION}`;
-  const FULL_VERSION_STRING = `${RELEASE_VERSION_STRING}.${PATCH_VERSION}`;
 
   beforeEach(() => {
     app = new App();
@@ -158,6 +163,86 @@ describe('ThinkboxDockerRecipes', () => {
       });
 
       expectCDK(stack).notTo(haveResource('Custom::RFDK_DEADLINE_INSTALLERS'));
+    });
+
+    test('.linuxInstallers.client creates an Asset using the client installer', () => {
+      // GIVEN
+      const recipes = new ThinkboxDockerRecipes(stack, 'Recipes', {
+        stage,
+      });
+
+      // WHEN
+      const clientInstaller = recipes.version.linuxInstallers.client;
+
+      // THEN
+      const asset = recipes.node.findChild('ClientInstallerAsset') as Asset;
+      expect(clientInstaller.s3Bucket).toEqual(asset.bucket);
+      expect(clientInstaller.objectKey).toEqual(asset.s3ObjectKey);
+    });
+
+    test('.linuxInstallers.client successive accesses return the same bucket/key', () => {
+      // GIVEN
+      const recipes = new ThinkboxDockerRecipes(stack, 'Recipes', {
+        stage,
+      });
+
+      // WHEN
+      const firstClientInstaller = recipes.version.linuxInstallers.client;
+      const secondClientInstaller = recipes.version.linuxInstallers.client;
+
+      // THEN
+      expect(firstClientInstaller.objectKey).toBe(secondClientInstaller.objectKey);
+      expect(firstClientInstaller.s3Bucket).toBe(secondClientInstaller.s3Bucket);
+    });
+
+    describe('.isLessThan()', () => {
+      let recipes: ThinkboxDockerRecipes;
+      beforeEach(() => {
+        // GIVEN
+        recipes = new ThinkboxDockerRecipes(stack, 'Recipes', {
+          stage,
+        });
+      });
+
+      test.each<[{ majorOffset?: number, minorOffset?: number, releaseOffset?: number }, boolean]>([
+        [{ majorOffset: -1 }, false],
+        [{ minorOffset: -1 }, false],
+        [{ releaseOffset: -1 }, false],
+        [{}, false],
+        [{ majorOffset: 1 }, true],
+        [{ minorOffset: 1 }, true],
+        [{ releaseOffset: 1 }, true],
+      ])('%s = %s', ({majorOffset, minorOffset, releaseOffset}, expectedResult) => {
+        // GIVEN
+        majorOffset = majorOffset ?? 0;
+        minorOffset = minorOffset ?? 0;
+        releaseOffset = releaseOffset ?? 0;
+        const other = new Version([
+          MAJOR_VERSION + majorOffset,
+          MINOR_VERSION + minorOffset,
+          RELEASE_VERSION + releaseOffset,
+          0,
+        ]);
+
+        // WHEN
+        const result = recipes.version.isLessThan(other);
+
+        // THEN
+        expect(result).toEqual(expectedResult);
+      });
+    });
+
+    test('.linuxfullVersionString matches the stage manifest version', () => {
+      // GIVEN
+      const recipes = new ThinkboxDockerRecipes(stack, 'Recipes', {
+        stage,
+      });
+
+      // WHEN
+      const linuxFullVersionString = recipes.version.linuxFullVersionString();
+
+      // THEN
+      expect(linuxFullVersionString).toEqual(FULL_VERSION_STRING);
     });
   });
 

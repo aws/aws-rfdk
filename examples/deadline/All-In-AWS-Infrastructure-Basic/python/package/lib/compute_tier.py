@@ -1,6 +1,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+import os
 from dataclasses import dataclass
 from typing import (
     List,
@@ -16,7 +17,8 @@ from aws_cdk.aws_ec2 import (
     BastionHostLinux,
     IMachineImage,
     IVpc,
-    Port
+    Port,
+    SubnetSelection
 )
 from aws_cdk.aws_s3_assets import (
   Asset
@@ -34,7 +36,8 @@ from aws_rfdk.deadline import (
     WorkerInstanceFleet,
 )
 
-import os
+
+from . import subnets
 
 @dataclass
 class ComputeTierProps(StackProps):
@@ -101,6 +104,9 @@ class ComputeTier(Stack):
             self,
             'HealthMonitor',
             vpc=props.vpc,
+            vpc_subnets=SubnetSelection(
+                subnet_group_name=subnets.INFRASTRUCTURE.name
+            ),
             # TODO - Evaluate deletion protection for your own needs. This is set to false to
             # cleanly remove everything when this stack is destroyed. If you would like to ensure
             # that this resource is not accidentally deleted, you should set this to true.
@@ -111,6 +117,9 @@ class ComputeTier(Stack):
             self,
             'WorkerFleet',
             vpc=props.vpc,
+            vpc_subnets=SubnetSelection(
+                subnet_group_name=subnets.WORKERS.name
+            ),
             render_queue=props.render_queue,
             worker_machine_image=props.worker_machine_image,
             health_monitor=self.health_monitor,
