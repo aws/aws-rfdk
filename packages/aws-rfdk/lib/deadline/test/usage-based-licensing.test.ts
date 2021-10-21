@@ -626,23 +626,37 @@ describe('UsageBasedLicensing', () => {
   });
 
   describe('configures render queue', () => {
-    test('adds ingress rule for asg', () => {
+    test('adds ingress rule from UsageBasedLicensing ASG to RenderQueue ASG', () => {
+      // GIVEN
+      const renderQueueSecurityGroup = renderQueue.connections.securityGroups[0];
+
       // WHEN
-      createUbl();
+      const ubl = createUbl();
+      const ublSecurityGroup = ubl.connections.securityGroups[0];
 
       expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
         IpProtocol: 'tcp',
         FromPort: 4433,
         ToPort: 4433,
-        GroupId: {
-          'Fn::ImportValue': stringLike(`${Stack.of(renderQueue).stackName}:ExportsOutputFnGetAttRQNonDefaultPortLBSecurityGroup*`),
-        },
-        SourceSecurityGroupId: {
-          'Fn::GetAtt': [
-            'UBLClusterASGInstanceSecurityGroupAA1A7A2D',
-            'GroupId',
-          ],
-        },
+        GroupId: stack.resolve(renderQueueSecurityGroup.securityGroupId),
+        SourceSecurityGroupId: stack.resolve(ublSecurityGroup.securityGroupId),
+      }));
+    });
+
+    test('adds ingress rule from RenderQueue ASG to UsageBasedLicensing ASG', () => {
+      // GIVEN
+      const renderQueueSecurityGroup = renderQueue.backendConnections.securityGroups[0];
+
+      // WHEN
+      const ubl = createUbl();
+      const ublSecurityGroup = ubl.connections.securityGroups[0];
+
+      expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+        IpProtocol: 'tcp',
+        FromPort: 17004,
+        ToPort: 17004,
+        GroupId: stack.resolve(ublSecurityGroup.securityGroupId),
+        SourceSecurityGroupId: stack.resolve(renderQueueSecurityGroup.securityGroupId),
       }));
     });
 

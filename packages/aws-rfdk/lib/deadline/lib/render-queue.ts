@@ -114,6 +114,11 @@ export interface IRenderQueue extends IConstruct, IConnectable {
   readonly endpoint: ConnectableApplicationEndpoint;
 
   /**
+   * A connections object for controlling access of the compute resources that host the render queue.
+   */
+  readonly backendConnections: Connections;
+
+  /**
    * Configures an ECS cluster to be able to connect to a RenderQueue
    * @returns An environment mapping that is used to configure the Docker Images
    */
@@ -186,6 +191,11 @@ abstract class RenderQueueBase extends Construct implements IRenderQueue {
    * @inheritdoc
    */
   public abstract readonly repository: IRepository;
+
+  /**
+   * @inheritdoc
+   */
+  public abstract readonly backendConnections: Connections;
 
   /**
    * Configures an ECS cluster to be able to connect to a RenderQueue
@@ -315,6 +325,11 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   public readonly repository: IRepository;
 
   /**
+   * @inheritdoc
+   */
+  public readonly backendConnections: Connections;
+
+  /**
    * Whether SEP policies have been added
    */
   private haveAddedSEPPolicies: boolean = false;
@@ -439,6 +454,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       // @ts-ignore
       securityGroup: props.securityGroups?.backend,
     });
+
+    this.backendConnections = this.asg.connections;
 
     /**
      * The ECS-optimized AMI that is defaulted to when adding capacity to a cluster does not include the awscli or unzip

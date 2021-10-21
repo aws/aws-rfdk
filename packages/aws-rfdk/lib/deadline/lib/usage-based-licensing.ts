@@ -444,9 +444,12 @@ export interface UsageBasedLicensingProps {
  *
  * The Deadline License Forwarder is set up to run within an AWS ECS task.
  *
- * Access to the running License Forwarder is gated by a security group that, by default, allows no ingress;
- * when a Deadline Worker requires access to licensing, then the RFDK constructs will grant that worker’s security group
- * ingress on TCP port 17004 as well as other ports as required by the specific licenses being used.
+ * Access to the running License Forwarder is gated by a security group that, by default, only allows ingress from the
+ * Render Queue (in order to register Workers for license forwarding).
+ *
+ * When a Deadline Worker requires access to licensing via `UsageBasedLicensing.grantPortAccess(...)`, then the RFDK
+ * constructs will grant that worker’s security group ingress on TCP port 17004 as well as other ports as required by
+ * the specific licenses being used.
  *
  * Note: This construct does not currently implement the Deadline License Forwarder's Web Forwarding functionality.
  * This construct is not usable in any China region.
@@ -616,6 +619,9 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
         vpcSubnets,
       });
     }
+
+    // Grant the render queue the ability to connect to the license forwarder to register workers
+    this.asg.connections.allowFrom(props.renderQueue.backendConnections, Port.tcp(UsageBasedLicensing.LF_PORT));
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
