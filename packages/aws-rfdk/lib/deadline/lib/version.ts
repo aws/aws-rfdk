@@ -18,6 +18,11 @@ export class Version implements IPatchVersion {
   public static readonly MINIMUM_SUPPORTED_DEADLINE_VERSION = new Version([10, 1, 9, 2]);
 
   /**
+   * The minimum Deadline version required to enable Deadline Secrets Management.
+   */
+  public static readonly MINIMUM_SECRETS_MANAGEMENT_VERSION = new Version([10, 1, 19, 0]);
+
+  /**
    * This method parses the input string and returns the version object.
    *
    * @param version version string to parse

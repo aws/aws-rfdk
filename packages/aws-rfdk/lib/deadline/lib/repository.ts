@@ -77,6 +77,7 @@ import {
 
 import { DatabaseConnection } from './database-connection';
 import { IHost } from './host-ref';
+import { Version } from './version';
 import { VersionQuery } from './version-query';
 import { IVersion } from './version-ref';
 
@@ -596,10 +597,17 @@ export class Repository extends Construct implements IRepository {
 
     this.version = props.version;
 
+    const meetsMinSecretsVersion = !this.version.isLessThan(Version.MINIMUM_SECRETS_MANAGEMENT_VERSION);
+    const secretsManagementIsEnabled = props.secretsManagementSettings?.enabled ?? meetsMinSecretsVersion;
+
+    if (secretsManagementIsEnabled && !meetsMinSecretsVersion) {
+      throw new Error(`The supplied Deadline version (${props.version.versionString}) does not support Deadline Secrets Management in RFDK. Either upgrade Deadline to the minimum required version (${Version.MINIMUM_SECRETS_MANAGEMENT_VERSION.versionString}) or disable the feature in the Repository's construct properties.`);
+    }
+
     this.secretsManagementSettings = {
-      enabled: props.secretsManagementSettings?.enabled ?? true,
+      enabled: secretsManagementIsEnabled,
       credentials: props.secretsManagementSettings?.credentials ??
-        ((props.secretsManagementSettings?.enabled ?? true) ? new Secret( props.database?.databaseConstruct ? Stack.of(props.database?.databaseConstruct) : this, 'SMAdminUser', {
+        (secretsManagementIsEnabled ? new Secret( props.database?.databaseConstruct ? Stack.of(props.database?.databaseConstruct) : this, 'SMAdminUser', {
           description: 'Admin credentials for Deadline Secrets Management',
           generateSecretString: {
             excludeCharacters: '\"$&\'()/<>[\\]\`{|}',

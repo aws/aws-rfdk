@@ -84,6 +84,7 @@ import {
   Repository,
   SecretsManagementRegistrationStatus,
   SecretsManagementRole,
+  Version,
   VersionQuery,
 } from '../lib';
 import { SecretsManagementIdentityRegistration } from '../lib/secrets-management';
@@ -2841,7 +2842,7 @@ describe('RenderQueue', () => {
 
         // THEN
         /* eslint-disable-next-line dot-notation */
-        .toThrowError(`The supplied Deadline version (${oldVersion.versionString}) is lower than the minimum required version: ${RenderQueue['MINIMUM_SECRETS_MANAGEMENT_VERSION'].toString()}`);
+        .toThrowError(`The supplied Deadline version (${oldVersion.versionString}) does not support Deadline Secrets Management in RFDK. Either upgrade Deadline to the minimum required version (${Version.MINIMUM_SECRETS_MANAGEMENT_VERSION.versionString}) or disable the feature in the Repository's construct properties.`);
     });
 
     test('grants read permissions to secrets management credentials', () => {
