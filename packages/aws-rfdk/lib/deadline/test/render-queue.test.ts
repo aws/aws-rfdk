@@ -2974,4 +2974,29 @@ describe('RenderQueue', () => {
       });
     });
   });
+
+  test('.backendConnections is associated with ASG security group rules', () => {
+    // GIVEN
+    const instance = new Instance(dependencyStack, 'BackendConnectionInstance', {
+      instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.MICRO),
+      machineImage: MachineImage.latestAmazonLinux(),
+      vpc,
+    });
+    const portNumber = 5555;
+    const port = Port.tcp(portNumber);
+    const asgSecurityGroup = renderQueueCommon.asg.connections.securityGroups[0];
+
+    // WHEN
+    renderQueueCommon.backendConnections.allowFrom(instance, port);
+
+    // THEN
+    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+      IpProtocol: 'tcp',
+      Description: `from ${instance.connections.securityGroups[0].uniqueId}:${portNumber}`,
+      GroupId: stack.resolve(asgSecurityGroup.securityGroupId),
+      SourceSecurityGroupId: stack.resolve(instance.connections.securityGroups[0].securityGroupId),
+      FromPort: portNumber,
+      ToPort: portNumber,
+    }));
+  });
 });
