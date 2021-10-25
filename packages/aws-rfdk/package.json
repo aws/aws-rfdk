@@ -1,6 +1,6 @@
 {
   "name": "aws-rfdk",
-  "version": "0.37.0",
+  "version": "0.38.0",
   "private": false,
   "description": "Package for core render farm constructs",
   "main": "lib/index.js",
@@ -68,15 +68,6 @@
   },
   "devDependencies": {
     "@aws-cdk/assert": "1.129.0",
-    "@types/aws-lambda": "^8.10.84",
-    "@types/jest": "^26.0.24",
-    "@types/sinon": "^10.0.4",
-    "aws-sdk": "^2.1012.0",
-    "aws-sdk-mock": "^5.4.0",
-    "cdk-build-tools": "0.37.0",
-    "dynalite": "^3.2.1",
-    "pkglint": "0.37.0",
-    "sinon": "^11.1.2",
     "@aws-cdk/assets": "1.129.0",
     "@aws-cdk/aws-apigateway": "1.129.0",
     "@aws-cdk/aws-apigatewayv2": "1.129.0",
@@ -143,7 +134,16 @@
     "@aws-cdk/lambda-layer-kubectl": "1.129.0",
     "@aws-cdk/lambda-layer-node-proxy-agent": "1.129.0",
     "@aws-cdk/region-info": "1.129.0",
-    "constructs": "^3.3.69"
+    "@types/aws-lambda": "^8.10.84",
+    "@types/jest": "^26.0.24",
+    "@types/sinon": "^10.0.4",
+    "aws-sdk": "^2.1012.0",
+    "aws-sdk-mock": "^5.4.0",
+    "cdk-build-tools": "0.38.0",
+    "constructs": "^3.3.69",
+    "dynalite": "^3.2.1",
+    "pkglint": "0.38.0",
+    "sinon": "^11.1.2"
   },
   "dependencies": {
     "@aws-cdk/assets": "1.129.0",

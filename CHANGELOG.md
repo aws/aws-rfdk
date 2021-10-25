@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.38.0](https://github.com/aws/aws-rfdk/compare/v0.37.0...v0.38.0) (2021-10-25)
+
+
+### Supported CDK Version
+
+* [1.129.0](https://github.com/aws/aws-cdk/releases/tag/v1.129.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.19.4](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **deadline:** add Deadline Secrets Management integration in the Render Queue ([#528](https://github.com/aws/aws-rfdk/issues/528)) ([48baa18](https://github.com/aws/aws-rfdk/commit/48baa185b274030cab29a235469536585822313f))
+* **deadline:** add Secret Management support for Repository ([#514](https://github.com/aws/aws-rfdk/issues/514)) ([8c7dda6](https://github.com/aws/aws-rfdk/commit/8c7dda6deaa826e2efec379c9bf67b30fce02a89))
+* **deadline:** configure identity registration settings for deadline clients ([#576](https://github.com/aws/aws-rfdk/issues/576)) ([b9082b2](https://github.com/aws/aws-rfdk/commit/b9082b2014d3817c9eb9b3ecba1d2aaa54382074))
+* **deadline:** validate minimum Deadline version for secrets management ([#573](https://github.com/aws/aws-rfdk/issues/573)) ([6d5950e](https://github.com/aws/aws-rfdk/commit/6d5950e892d2a83ab11db247d33f8a5de22d360c))
+* **examples:** add deadline secrets management options to basic example app ([#562](https://github.com/aws/aws-rfdk/issues/562)) ([bd31a8d](https://github.com/aws/aws-rfdk/commit/bd31a8d6b748d6a4e242a0528addd42a71d2d55f))
+* **examples:** use dedicated subnets in All-In-AWS-Infrastructure-Basic example ([#598](https://github.com/aws/aws-rfdk/issues/598)) ([7aaec14](https://github.com/aws/aws-rfdk/commit/7aaec14db8fe8a9055d3672493d314b3d4127d09))
+
+
+### Bug Fixes
+
+* **deadline:** allow traffic from RenderQueue to UsageBasedLicensing ([#617](https://github.com/aws/aws-rfdk/issues/617)) ([dfbf88f](https://github.com/aws/aws-rfdk/commit/dfbf88f6478c30e0dec2d0939473f02268f669d9))
+* **deadline:** fix issue in client TLS configuration for Deadline 10.1.18 ([#543](https://github.com/aws/aws-rfdk/issues/543)) ([05b14f9](https://github.com/aws/aws-rfdk/commit/05b14f9ed5810d876c3a3df0293cb81531e833f5))
+* **deadline:** reinstall repository even if version is not changed ([821bab2](https://github.com/aws/aws-rfdk/commit/821bab291da27b226f74d4a9c5a01f1189cfb5e4))
+
+
 ## [0.37.0](https://github.com/aws/aws-rfdk/compare/v0.36.0...v0.37.0) (2021-08-05)
 
 
@@ -241,7 +271,7 @@ our examples for an illustration of the code update required.
 
 ### Security Notice
 
-RFDK version 0.27.x and later include security enhancements.  We recommend you upgrade RFDK and Deadline to further restrict the permissions required for RFDK & Deadline to function. Please upgrade the version of RFDK used in your CDK application to 0.27.x, and configure your application to deploy Deadline 10.1.14.x or later to resolve the issue. 
+RFDK version 0.27.x and later include security enhancements.  We recommend you upgrade RFDK and Deadline to further restrict the permissions required for RFDK & Deadline to function. Please upgrade the version of RFDK used in your CDK application to 0.27.x, and configure your application to deploy Deadline 10.1.14.x or later to resolve the issue.
 
 If you have an existing deployment that was built with RFDK versions 0.26.x or earlier, you will need to upgrade to RFDK 0.27.x and Deadline 10.1.14.x or later before June 10, 2021 @ 1:00PM PST/ 3:00PM CST/ 4:00PM EST. Failure to upgrade by the above date may result in disruptions to your render farm. If you have any questions, please contact AWS Thinkbox Customer Support at https://support.thinkboxsoftware.com/.
 
