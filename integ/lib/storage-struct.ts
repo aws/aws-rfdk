@@ -55,6 +55,10 @@ export interface StorageStructProps {
   readonly integStackTag: string;
   readonly version: IVersion;
   readonly databaseType?: DatabaseType;
+  /**
+   * @default false
+   */
+  readonly enableSecretsManagement?: boolean;
 }
 
 export class StorageStruct extends Construct {
@@ -75,12 +79,33 @@ export class StorageStruct extends Construct {
     // Get farm VPC from lookup
     const vpc = Vpc.fromLookup(this, 'Vpc', { tags: { StackName: infrastructureStackName }}) as Vpc;
 
+    // Create EFS filesystem here since both MongoDB and DocDB will be backed by an EFS filesystem.
+    const deadlineEfs = new FileSystem(this, 'FileSystem', {
+      vpc,
+      vpcSubnets: {
+        subnetType: SubnetType.PRIVATE,
+        // We must limit the subnets to one per AZ to avoid creating duplicate EFS mount targets for the same AZ,
+        // causing the stack deployment to fail.
+        onePerAz: true,
+      },
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+    const accessPoint = new AccessPoint(this, 'AccessPoint', {
+      fileSystem: deadlineEfs,
+      posixUser: {
+        uid: '0',
+        gid: '0',
+      },
+    });
+    const deadlineMountableEfs = new MountableEfs(this, {
+      filesystem: deadlineEfs,
+      accessPoint,
+    });
+
     let cacert;
     let database;
     let databaseConnection;
     let databaseSecret: ISecret;
-    let deadlineEfs;
-    let deadlineMountableEfs;
 
     // Check if the test requires a DocDB or MongoDB to be created. If neither is provided, the Repository construct will create a DocDB itself.
     if (props.databaseType == DatabaseType.DocDB) {
@@ -108,23 +133,6 @@ export class StorageStruct extends Construct {
       databaseConnection = DatabaseConnection.forDocDB({
         database: database,
         login: databaseSecret,
-      });
-
-      // Create EFS file system
-      deadlineEfs = new FileSystem(this, 'FileSystem', {
-        vpc,
-        removalPolicy: RemovalPolicy.DESTROY,
-      });
-      const accessPoint = new AccessPoint(this, 'AccessPoint', {
-        fileSystem: deadlineEfs,
-        posixUser: {
-          uid: '0',
-          gid: '0',
-        },
-      });
-      deadlineMountableEfs = new MountableEfs(this, {
-        filesystem: deadlineEfs,
-        accessPoint,
       });
     }
     // If databaseType is MongoDB, a MongoDB instance is created in place of the DocDB
@@ -196,17 +204,11 @@ export class StorageStruct extends Construct {
         database,
         clientCertificate: clientPkcs12,
       });
-
-      // EFS for the mongoDB will be created by the repository
-      deadlineEfs = undefined;
-      deadlineMountableEfs = undefined;
     }
     else {
-      // Otherwise the repository installer will handle creating a DocDB and EFS
+      // Otherwise the repository installer will handle creating a DocDB
       database = undefined;
       databaseConnection = undefined;
-      deadlineEfs = undefined;
-      deadlineMountableEfs = undefined;
     }
 
     // Define properties for Deadline installer. A unique log group name is created so that logstreams are not assigned
@@ -223,6 +225,9 @@ export class StorageStruct extends Construct {
       removalPolicy: {
         database: RemovalPolicy.DESTROY,
         filesystem: RemovalPolicy.DESTROY,
+      },
+      secretsManagementSettings: {
+        enabled: props.enableSecretsManagement ?? false,
       },
     });
 

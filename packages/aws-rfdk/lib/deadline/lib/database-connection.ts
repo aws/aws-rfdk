@@ -15,6 +15,7 @@ import {
   ISecurityGroup,
   OperatingSystemType,
   Port,
+  Volume,
 } from '@aws-cdk/aws-ec2';
 import {
   IGrantable,
@@ -26,6 +27,7 @@ import {
 } from '@aws-cdk/aws-secretsmanager';
 import {
   Annotations,
+  Construct,
   IConstruct,
   Stack,
 } from '@aws-cdk/core';
@@ -38,7 +40,6 @@ import {
 import {
   IHost,
 } from './host-ref';
-
 
 /**
  * Options when constructing UserData for Linux
@@ -114,6 +115,11 @@ export abstract class DatabaseConnection {
   public abstract readonly containerEnvironment: { [name: string]: string };
 
   /**
+   * Holds the CDK Construct that contains the database, or undefined if the database was imported into this application.
+   */
+  public abstract readonly databaseConstruct?: Construct;
+
+  /**
    * Allow connections to the Database from the given connection peer
    */
   public abstract allowConnectionsFrom(other: IConnectable): void;
@@ -175,6 +181,11 @@ class DocDBDatabaseConnection extends DatabaseConnection {
    */
   public readonly containerEnvironment: { [name: string]: string };
 
+  /**
+   * @inheritdoc
+   */
+  public readonly databaseConstruct?: Construct;
+
   constructor(private readonly props: DocDBConnectionOptions) {
     super();
 
@@ -186,6 +197,10 @@ class DocDBDatabaseConnection extends DatabaseConnection {
       // The container must fetch the credentials from Secrets Manager
       DB_CREDENTIALS_URI: this.props.login.secretArn,
     };
+
+    if (props.database instanceof DatabaseCluster) {
+      this.databaseConstruct = props.database;
+    }
   }
 
   /**
@@ -335,7 +350,15 @@ class DocDBDatabaseConnection extends DatabaseConnection {
 class MongoDbInstanceDatabaseConnection extends DatabaseConnection {
   private static readonly DB_CERT_LOCATION: string = '/opt/Thinkbox/certs/mongo_client.pfx';
 
+  /**
+   * @inheritdoc
+   */
   public readonly containerEnvironment: { [name: string]: string };
+
+  /**
+   * @inheritdoc
+   */
+  public readonly databaseConstruct?: Construct;
 
   constructor(protected readonly props: MongoDbInstanceConnectionOptions) {
     super();
@@ -343,6 +366,12 @@ class MongoDbInstanceDatabaseConnection extends DatabaseConnection {
       DB_TLS_CLIENT_CERT_URI: props.clientCertificate.cert.secretArn,
       DB_TLS_CLIENT_CERT_PASSWORD_URI: props.clientCertificate.passphrase.secretArn,
     };
+
+    if (props.database instanceof MongoDbInstance) {
+      if (props.database.mongoDataVolume instanceof Volume) {
+        this.databaseConstruct = props.database.mongoDataVolume;
+      }
+    }
   }
 
   /**

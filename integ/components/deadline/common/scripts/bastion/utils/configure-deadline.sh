@@ -21,10 +21,10 @@ if [ -d "$CERT" ]; then
 
   # Set up client connection settings for TLS by altering ini file with deadlinecommand
   sudo $DEADLINE/deadlinecommand SetIniFileSetting ProxyUseSSL True
+  sudo $DEADLINE/deadlinecommand SetIniFileSetting ConnectionType Remote
   sudo $DEADLINE/deadlinecommand SetIniFileSetting ProxySSLCA "$CERT/ca-cert.crt"
   sudo $DEADLINE/deadlinecommand SetIniFileSetting ClientSSLAuthentication NotRequired
-  # Set Deadline to use repository connection validated by TLS; ChangeRepositorySkipValidation is a workaround that saves the values without testing them
-  sudo $DEADLINE/deadlinecommand ChangeRepositorySkipValidation Proxy $ENDPOINT "$CERT/ca-cert.crt" >/dev/null
+  sudo $DEADLINE/deadlinecommand SetIniFileSetting ProxyRoot $ENDPOINT
 
 else
   # Non-TLS connections can connect to the repository directly

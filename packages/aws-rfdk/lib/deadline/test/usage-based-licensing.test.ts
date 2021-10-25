@@ -14,6 +14,7 @@ import {
   GenericWindowsImage,
   IVpc,
   SecurityGroup,
+  SubnetSelection,
   SubnetType,
   Vpc,
 } from '@aws-cdk/aws-ec2';
@@ -21,6 +22,7 @@ import {
   DockerImageAsset,
 } from '@aws-cdk/aws-ecr-assets';
 import {
+  CfnService,
   ContainerImage,
 } from '@aws-cdk/aws-ecs';
 import {
@@ -44,9 +46,13 @@ import {
   IWorkerFleet,
   RenderQueue,
   Repository,
+  SecretsManagementRegistrationStatus,
+  SecretsManagementRole,
+  SubnetIdentityRegistrationSettingsProps,
   UsageBasedLicense,
   UsageBasedLicensing,
   UsageBasedLicensingImages,
+  UsageBasedLicensingProps,
   VersionQuery,
   WorkerInstanceFleet,
 } from '../lib';
@@ -66,6 +72,8 @@ let renderQueue: RenderQueue;
 let stack: Stack;
 let vpc: IVpc;
 let workerFleet: IWorkerFleet;
+
+const DEFAULT_CONSTRUCT_ID = 'UBL';
 
 describe('UsageBasedLicensing', () => {
   beforeEach(() => {
@@ -87,9 +95,9 @@ describe('UsageBasedLicensing', () => {
         vpc,
         version: versionedInstallers,
       }),
-      trafficEncryption: { externalTLS: { enabled: false } },
       version: versionedInstallers,
     });
+    jest.spyOn(renderQueue, 'configureSecretsManagementAutoRegistration');
 
     stack = new Stack(app, 'Stack', { env });
     certificateSecret = Secret.fromSecretArn(stack, 'CertSecret', 'arn:aws:secretsmanager:us-west-2:675872700355:secret:CertSecret-j1kiFz');
@@ -102,15 +110,92 @@ describe('UsageBasedLicensing', () => {
     licenses = [UsageBasedLicense.forMaya()];
   });
 
-  test('creates an ECS cluster', () => {
-    // WHEN
-    new UsageBasedLicensing(stack, 'UBL', {
+  function createUbl(props?: Partial<UsageBasedLicensingProps>): UsageBasedLicensing {
+    return new UsageBasedLicensing(stack, DEFAULT_CONSTRUCT_ID, {
       certificateSecret,
       images,
       licenses,
       renderQueue,
       vpc,
+      ...props,
     });
+  }
+
+  test('vpcSubnets specified => does not emit warnings', () => {
+    // GIVEN
+    const vpcSubnets: SubnetSelection = {
+      subnetType: SubnetType.PRIVATE,
+    };
+
+    // WHEN
+    const ubl = createUbl({
+      vpcSubnets,
+    });
+
+    // THEN
+    expect(ubl.node.metadataEntry).not.toContainEqual(expect.objectContaining({
+      type: 'aws:cdk:warning',
+      data: expect.stringMatching(/dedicated subnet/i),
+    }));
+  });
+
+  test('vpcSubnets not specified => emits warning about dedicated subnets', () => {
+    // WHEN
+    const ubl = createUbl();
+
+    // THEN
+    expect(ubl.node.metadataEntry).toContainEqual(expect.objectContaining({
+      type: 'aws:cdk:warning',
+      data: 'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
+    }));
+  });
+
+  describe('configures auto registration', () => {
+    test('default to private subnets', () => {
+      // WHEN
+      const ubl = createUbl();
+
+      // THEN
+      const expectedCall: SubnetIdentityRegistrationSettingsProps = {
+        dependent: ubl.service.node.defaultChild as CfnService,
+        registrationStatus: SecretsManagementRegistrationStatus.REGISTERED,
+        role: SecretsManagementRole.CLIENT,
+        vpc,
+        vpcSubnets: { subnetType: SubnetType.PRIVATE },
+      };
+
+      // THEN
+      expect(renderQueue.configureSecretsManagementAutoRegistration).toHaveBeenCalledWith(expectedCall);
+    });
+
+    test.each<[SubnetSelection]>([
+      [{
+        subnetType: SubnetType.PUBLIC,
+      }],
+    ])('%s', (vpcSubnets) => {
+      // WHEN
+      const ubl = createUbl({
+        vpcSubnets,
+      });
+
+      // THEN
+      const expectedCall: SubnetIdentityRegistrationSettingsProps = {
+        dependent: ubl.service.node.defaultChild as CfnService,
+        registrationStatus: SecretsManagementRegistrationStatus.REGISTERED,
+        role: SecretsManagementRole.CLIENT,
+        vpc,
+        vpcSubnets,
+      };
+
+      // THEN
+      expect(renderQueue.configureSecretsManagementAutoRegistration).toHaveBeenCalledWith(expectedCall);
+    });
+  });
+
+  test('creates an ECS cluster', () => {
+    // WHEN
+    createUbl();
+
     // THEN
     expectCDK(stack).to(haveResourceLike('AWS::ECS::Cluster'));
   });
@@ -118,13 +203,7 @@ describe('UsageBasedLicensing', () => {
   describe('creates an ASG', () => {
     test('defaults', () => {
       // WHEN
-      new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      createUbl();
 
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
@@ -143,13 +222,8 @@ describe('UsageBasedLicensing', () => {
 
     test('capacity can be specified', () => {
       // WHEN
-      new UsageBasedLicensing(stack, 'licenseForwarder', {
-        certificateSecret,
+      createUbl({
         desiredCount: 2,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
       });
 
       // THEN
@@ -161,16 +235,10 @@ describe('UsageBasedLicensing', () => {
 
     test('gives write access to log group', () => {
       // GIVEN
-      const ubl = new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      const ubl = createUbl();
 
       // WHEN
-      const logGroup = ubl.node.findChild('UBLLogGroup') as ILogGroup;
+      const logGroup = ubl.node.findChild(`${DEFAULT_CONSTRUCT_ID}LogGroup`) as ILogGroup;
       const asgRoleLogicalId = Stack.of(ubl).getLogicalId(ubl.asg.role.node.defaultChild as CfnElement);
 
       // THEN
@@ -195,18 +263,14 @@ describe('UsageBasedLicensing', () => {
     });
 
     test('uses the supplied security group', () => {
+      // GIVEN
       const securityGroup = new SecurityGroup(stack, 'UblSecurityGroup', {
         vpc,
       });
+
       // WHEN
-      new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-        securityGroup,
-      });
+      createUbl({ securityGroup });
+
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
         SecurityGroups: arrayWith(stack.resolve(securityGroup.securityGroupId)),
@@ -217,13 +281,7 @@ describe('UsageBasedLicensing', () => {
   describe('creates an ECS service', () => {
     test('associated with the cluster', () => {
       // WHEN
-      const ubl = new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      const ubl = createUbl();
 
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
@@ -234,13 +292,7 @@ describe('UsageBasedLicensing', () => {
     describe('DesiredCount', () => {
       test('defaults to 1', () => {
         // WHEN
-        new UsageBasedLicensing(stack, 'UBL', {
-          certificateSecret,
-          images,
-          licenses,
-          renderQueue,
-          vpc,
-        });
+        createUbl();
 
         // THEN
         expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
@@ -253,14 +305,7 @@ describe('UsageBasedLicensing', () => {
         const desiredCount = 2;
 
         // WHEN
-        new UsageBasedLicensing(stack, 'UBL', {
-          certificateSecret,
-          images,
-          licenses,
-          renderQueue,
-          vpc,
-          desiredCount,
-        });
+        createUbl({ desiredCount });
 
         // THEN
         expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
@@ -271,13 +316,7 @@ describe('UsageBasedLicensing', () => {
 
     test('sets launch type to EC2', () => {
       // WHEN
-      new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      createUbl();
 
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
@@ -287,13 +326,7 @@ describe('UsageBasedLicensing', () => {
 
     test('sets distinct instance placement constraint', () => {
       // WHEN
-      new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      createUbl();
 
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
@@ -305,13 +338,7 @@ describe('UsageBasedLicensing', () => {
 
     test('uses the task definition', () => {
       // WHEN
-      const ubl = new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      const ubl = createUbl();
 
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
@@ -321,13 +348,7 @@ describe('UsageBasedLicensing', () => {
 
     test('with the correct deployment configuration', () => {
       // WHEN
-      new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      createUbl();
 
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
@@ -342,13 +363,7 @@ describe('UsageBasedLicensing', () => {
   describe('creates a task definition', () => {
     test('container name is LicenseForwarderContainer', () => {
       // WHEN
-      new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      createUbl();
 
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
@@ -362,13 +377,7 @@ describe('UsageBasedLicensing', () => {
 
     test('container is marked essential', () => {
       // WHEN
-      new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      createUbl();
 
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
@@ -382,13 +391,7 @@ describe('UsageBasedLicensing', () => {
 
     test('with increased ulimits', () => {
       // WHEN
-      new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      createUbl();
 
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
@@ -413,13 +416,7 @@ describe('UsageBasedLicensing', () => {
 
     test('with awslogs log driver', () => {
       // WHEN
-      new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      createUbl();
 
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
@@ -440,13 +437,7 @@ describe('UsageBasedLicensing', () => {
 
     test('configures UBL certificates', () => {
       // GIVEN
-      const ubl = new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      const ubl = createUbl();
 
       // WHEN
       const taskRoleLogicalId = Stack.of(ubl).getLogicalId(ubl.service.taskDefinition.taskRole.node.defaultChild as CfnElement);
@@ -473,7 +464,7 @@ describe('UsageBasedLicensing', () => {
 
       expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
         PolicyDocument: {
-          Statement: [
+          Statement: arrayWith(
             {
               Action: [
                 'secretsmanager:GetSecretValue',
@@ -482,7 +473,7 @@ describe('UsageBasedLicensing', () => {
               Effect: 'Allow',
               Resource: certificateSecret.secretArn,
             },
-          ],
+          ),
           Version: '2012-10-17',
         },
         Roles: [
@@ -493,13 +484,7 @@ describe('UsageBasedLicensing', () => {
 
     test('uses host networking', () => {
       // WHEN
-      new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      createUbl();
 
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
@@ -509,13 +494,7 @@ describe('UsageBasedLicensing', () => {
 
     test('is marked EC2 compatible only', () => {
       // WHEN
-      new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      createUbl();
 
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
@@ -534,11 +513,7 @@ describe('UsageBasedLicensing', () => {
     });
 
     // WHEN
-    new UsageBasedLicensing(stack, 'licenseForwarder', {
-      certificateSecret,
-      images,
-      licenses,
-      renderQueue,
+    createUbl({
       vpc: vpcFromAttributes,
       vpcSubnets: { subnetType: SubnetType.PUBLIC },
     });
@@ -554,15 +529,10 @@ describe('UsageBasedLicensing', () => {
     '',
   ])('License Forwarder is created with correct LogGroup prefix %s', (testPrefix: string) => {
     // GIVEN
-    const id = 'licenseForwarder';
+    const id = DEFAULT_CONSTRUCT_ID;
 
     // WHEN
-    new UsageBasedLicensing(stack, id, {
-      certificateSecret,
-      images,
-      licenses,
-      renderQueue,
-      vpc,
+    createUbl({
       logGroupProps: {
         logGroupPrefix: testPrefix,
       },
@@ -577,11 +547,7 @@ describe('UsageBasedLicensing', () => {
   describe('license limits', () => {
     test('multiple licenses with limits', () => {
       // WHEN
-      new UsageBasedLicensing(stack, 'licenseForwarder', {
-        vpc,
-        images,
-        certificateSecret,
-        renderQueue,
+      createUbl({
         licenses: [
           UsageBasedLicense.forMaya(10),
           UsageBasedLicense.forVray(10),
@@ -622,13 +588,7 @@ describe('UsageBasedLicensing', () => {
       ['Yeti', UsageBasedLicense.forYeti(10), [5053, 7053]],
     ])('Test open port for license type %s', (_licenseName: string, license: UsageBasedLicense, ports: number[]) => {
       // GIVEN
-      const ubl = new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      const ubl = createUbl();
       const workerStack = new Stack(app, 'WorkerStack', { env });
       workerFleet = new WorkerInstanceFleet(workerStack, 'workerFleet', {
         vpc,
@@ -660,53 +620,49 @@ describe('UsageBasedLicensing', () => {
     test('requires one usage based license', () => {
       // Without any licenses
       expect(() => {
-        new UsageBasedLicensing(stack, 'licenseForwarder', {
-          vpc,
-          images,
-          certificateSecret: certificateSecret,
-          licenses: [],
-          renderQueue,
-        });
+        createUbl({ licenses: [] });
       }).toThrowError('Should be specified at least one license with defined limit.');
     });
   });
 
   describe('configures render queue', () => {
-    test('adds ingress rule for asg', () => {
+    test('adds ingress rule from UsageBasedLicensing ASG to RenderQueue ASG', () => {
+      // GIVEN
+      const renderQueueSecurityGroup = renderQueue.connections.securityGroups[0];
+
       // WHEN
-      new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      const ubl = createUbl();
+      const ublSecurityGroup = ubl.connections.securityGroups[0];
 
       expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
         IpProtocol: 'tcp',
-        FromPort: 8080,
-        ToPort: 8080,
-        GroupId: {
-          'Fn::ImportValue': stringLike(`${Stack.of(renderQueue).stackName}:ExportsOutputFnGetAttRQNonDefaultPortLBSecurityGroup*`),
-        },
-        SourceSecurityGroupId: {
-          'Fn::GetAtt': [
-            'UBLClusterASGInstanceSecurityGroupAA1A7A2D',
-            'GroupId',
-          ],
-        },
+        FromPort: 4433,
+        ToPort: 4433,
+        GroupId: stack.resolve(renderQueueSecurityGroup.securityGroupId),
+        SourceSecurityGroupId: stack.resolve(ublSecurityGroup.securityGroupId),
+      }));
+    });
+
+    test('adds ingress rule from RenderQueue ASG to UsageBasedLicensing ASG', () => {
+      // GIVEN
+      const renderQueueSecurityGroup = renderQueue.backendConnections.securityGroups[0];
+
+      // WHEN
+      const ubl = createUbl();
+      const ublSecurityGroup = ubl.connections.securityGroups[0];
+
+      expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+        IpProtocol: 'tcp',
+        FromPort: 17004,
+        ToPort: 17004,
+        GroupId: stack.resolve(ublSecurityGroup.securityGroupId),
+        SourceSecurityGroupId: stack.resolve(renderQueueSecurityGroup.securityGroupId),
       }));
     });
 
     test('sets RENDER_QUEUE_URI environment variable', () => {
       // WHEN
-      new UsageBasedLicensing(stack, 'UBL', {
-        certificateSecret,
-        images,
-        licenses,
-        renderQueue,
-        vpc,
-      });
+      createUbl();
 
       // THEN
       expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
@@ -715,18 +671,7 @@ describe('UsageBasedLicensing', () => {
             Environment: arrayWith(
               {
                 Name: 'RENDER_QUEUE_URI',
-                Value: {
-                  'Fn::Join': [
-                    '',
-                    [
-                      'http://',
-                      {
-                        'Fn::ImportValue': stringLike(`${Stack.of(renderQueue).stackName}:ExportsOutputFnGetAttRQNonDefaultPortLB*`),
-                      },
-                      ':8080',
-                    ],
-                  ],
-                },
+                Value: stack.resolve(`${renderQueue.endpoint.applicationProtocol.toLowerCase()}://${renderQueue.endpoint.socketAddress}`),
               },
             ),
           },
@@ -739,13 +684,7 @@ describe('UsageBasedLicensing', () => {
     testConstructTags({
       constructName: 'UsageBasedLicensing',
       createConstruct: () => {
-        new UsageBasedLicensing(stack, 'UBL', {
-          certificateSecret,
-          images,
-          licenses,
-          renderQueue,
-          vpc,
-        });
+        createUbl();
         return stack;
       },
       resourceTypeCounts: {

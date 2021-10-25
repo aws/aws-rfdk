@@ -21,6 +21,7 @@ import {
   ISecurityGroup,
   IVpc,
   Port,
+  SubnetSelection,
   SubnetType,
 } from '@aws-cdk/aws-ec2';
 import {
@@ -29,6 +30,7 @@ import {
   Ec2TaskDefinition,
   LogDriver,
   PlacementConstraint,
+  Scope,
   UlimitName,
 } from '@aws-cdk/aws-ecs';
 import {
@@ -70,9 +72,9 @@ import {
   RenderQueueHostNameProps,
   RenderQueueProps,
   RenderQueueSizeConstraints,
+  SubnetIdentityRegistrationSettingsProps,
   VersionQuery,
 } from '.';
-
 import {
   ConnectableApplicationEndpoint,
   ImportedAcmCertificate,
@@ -81,12 +83,17 @@ import {
   X509CertificatePem,
   X509CertificatePkcs12,
 } from '../../core';
+
+import { DeploymentInstance } from '../../core/lib/deployment-instance';
 import {
   tagConstruct,
 } from '../../core/lib/runtime-info';
 import {
   RenderQueueConnection,
 } from './rq-connection';
+import {
+  SecretsManagementIdentityRegistration,
+} from './secrets-management';
 import { Version } from './version';
 import {
   WaitForStableService,
@@ -97,9 +104,19 @@ import {
  */
 export interface IRenderQueue extends IConstruct, IConnectable {
   /**
+   * The Deadline Repository that the Render Queue services.
+   */
+  readonly repository: IRepository;
+
+  /**
    * The endpoint used to connect to the Render Queue
    */
   readonly endpoint: ConnectableApplicationEndpoint;
+
+  /**
+   * A connections object for controlling access of the compute resources that host the render queue.
+   */
+  readonly backendConnections: Connections;
 
   /**
    * Configures an ECS cluster to be able to connect to a RenderQueue
@@ -111,6 +128,23 @@ export interface IRenderQueue extends IConstruct, IConnectable {
    * Configure an Instance/Autoscaling group to connect to a RenderQueue
    */
   configureClientInstance(params: InstanceConnectOptions): void;
+
+  /**
+   * Configure a rule to automatically register all Deadline Secrets Management identities connecting from a given
+   * subnet to a specified role and status.
+   *
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-registration-settings-ref-label
+   * for details.
+   *
+   * All RFDK constructs that require Deadline Secrets Management identity registration call this method internally.
+   * End-users of RFDK should not need to use this method unless they have a special need and understand its inner
+   * workings.
+   *
+   * @param props Properties that specify the configuration to be applied to the Deadline Secrets Management identity
+   * registration settings. This specifies a VPC subnet and configures Deadline to automatically register identities of
+   * clients connecting from the subnet to a chosen Deadline Secrets Management role and status.
+   */
+  configureSecretsManagementAutoRegistration(props: SubnetIdentityRegistrationSettingsProps): void;
 }
 
 /**
@@ -154,6 +188,16 @@ abstract class RenderQueueBase extends Construct implements IRenderQueue {
   public abstract readonly connections: Connections;
 
   /**
+   * @inheritdoc
+   */
+  public abstract readonly repository: IRepository;
+
+  /**
+   * @inheritdoc
+   */
+  public abstract readonly backendConnections: Connections;
+
+  /**
    * Configures an ECS cluster to be able to connect to a RenderQueue
    * @returns An environment mapping that is used to configure the Docker Images
    */
@@ -163,6 +207,11 @@ abstract class RenderQueueBase extends Construct implements IRenderQueue {
    * Configure an Instance/Autoscaling group to connect to a RenderQueue
    */
   public abstract configureClientInstance(params: InstanceConnectOptions): void;
+
+  /**
+   * @inheritdoc
+   */
+  public abstract configureSecretsManagementAutoRegistration(props: SubnetIdentityRegistrationSettingsProps): void;
 }
 
 /**
@@ -209,6 +258,10 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
 
   private static readonly DEFAULT_DOMAIN_NAME = 'aws-rfdk.com';
 
+  private static readonly DEFAULT_VPC_SUBNETS_ALB: SubnetSelection = { subnetType: SubnetType.PRIVATE, onePerAz: true };
+
+  private static readonly DEFAULT_VPC_SUBNETS_OTHER: SubnetSelection = { subnetType: SubnetType.PRIVATE };
+
   /**
   * The minimum Deadline version required for the Remote Connection Server to support load-balancing
   */
@@ -220,9 +273,10 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   private static readonly RE_VALID_HOSTNAME = /^[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/i;
 
   /**
-   * UID/GID for the RCS user.
+   * Information for the RCS user.
    */
-  private static readonly RCS_USER = { uid: 1000, gid: 1000 };
+
+  private static readonly RCS_USER = { uid: 1000, gid: 1000, username: 'ec2-user' };
 
   /**
    * The principal to grant permissions to.
@@ -264,6 +318,16 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    * The secret containing the cert chain for external connections.
    */
   public readonly certChain?: ISecret;
+
+  /**
+   * @inheritdoc
+   */
+  public readonly repository: IRepository;
+
+  /**
+   * @inheritdoc
+   */
+  public readonly backendConnections: Connections;
 
   /**
    * Whether SEP policies have been added
@@ -316,9 +380,10 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    */
   private ecsServiceStabilized: WaitForStableService;
 
-  constructor(scope: Construct, id: string, props: RenderQueueProps) {
+  constructor(scope: Construct, id: string, private readonly props: RenderQueueProps) {
     super(scope, id);
 
+    this.repository = props.repository;
     this.renderQueueSize = props?.renderQueueSize ?? {min: 1, max: 1};
 
     if (props.version.isLessThan(RenderQueue.MINIMUM_LOAD_BALANCING_VERSION)) {
@@ -371,7 +436,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       throw new Error(`renderQueueSize.desired capacity cannot be more than ${maxCapacity}: got ${this.renderQueueSize.desired}`);
     }
     this.asg = this.cluster.addCapacity('RCS Capacity', {
-      vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
+      vpcSubnets: props.vpcSubnets ?? RenderQueue.DEFAULT_VPC_SUBNETS_OTHER,
       instanceType: props.instanceType ?? new InstanceType('c5.large'),
       minCapacity,
       desiredCapacity: this.renderQueueSize?.desired,
@@ -389,6 +454,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       // @ts-ignore
       securityGroup: props.securityGroups?.backend,
     });
+
+    this.backendConnections = this.asg.connections;
 
     /**
      * The ECS-optimized AMI that is defaulted to when adding capacity to a cluster does not include the awscli or unzip
@@ -412,12 +479,34 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     });
     this.logGroup.grantWrite(this.asg);
 
+    if (props.repository.secretsManagementSettings.enabled) {
+      const errors = [];
+      if (props.version.isLessThan(Version.MINIMUM_SECRETS_MANAGEMENT_VERSION)) {
+        errors.push(`The supplied Deadline version (${props.version.versionString}) does not support Deadline Secrets Management in RFDK. Either upgrade Deadline to the minimum required version (${Version.MINIMUM_SECRETS_MANAGEMENT_VERSION.versionString}) or disable the feature in the Repository's construct properties.`);
+      }
+      if (props.repository.secretsManagementSettings.credentials === undefined) {
+        errors.push('The Repository does not have Secrets Management credentials');
+      }
+      if (internalProtocol !== ApplicationProtocol.HTTPS) {
+        errors.push('The internal protocol on the Render Queue is not HTTPS.');
+      }
+      if (externalProtocol !== ApplicationProtocol.HTTPS) {
+        errors.push('External TLS on the Render Queue is not enabled.');
+      }
+      if (errors.length > 0) {
+        throw new Error(`Deadline Secrets Management is enabled on the supplied Repository but cannot be enabled on the Render Queue for the following reasons:\n${errors.join('\n')}`);
+      }
+    }
     const taskDefinition = this.createTaskDefinition({
       image: props.images.remoteConnectionServer,
       portNumber: internalPortNumber,
       protocol: internalProtocol,
       repository: props.repository,
       runAsUser: RenderQueue.RCS_USER,
+      secretsManagementOptions: props.repository.secretsManagementSettings.enabled ? {
+        credentials: props.repository.secretsManagementSettings.credentials!,
+        posixUsername: RenderQueue.RCS_USER.username,
+      } : undefined,
     });
     this.taskDefinition = taskDefinition;
 
@@ -425,7 +514,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
 
     const loadBalancer = new ApplicationLoadBalancer(this, 'LB', {
       vpc: this.cluster.vpc,
-      vpcSubnets: props.vpcSubnetsAlb ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
+      vpcSubnets: props.vpcSubnetsAlb ?? RenderQueue.DEFAULT_VPC_SUBNETS_ALB,
       internetFacing: false,
       deletionProtection: props.deletionProtection ?? true,
       securityGroup: props.securityGroups?.frontend,
@@ -530,6 +619,8 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       });
     }
 
+    props.repository.secretsManagementSettings.credentials?.grantRead(this);
+
     this.ecsServiceStabilized = new WaitForStableService(this, 'WaitForStableService', {
       service: this.pattern.service,
     });
@@ -570,6 +661,18 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   public configureClientInstance(param: InstanceConnectOptions): void {
     this.addChildDependency(param.host);
     this.rqConnection.configureClientInstance(param);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public configureSecretsManagementAutoRegistration(props: SubnetIdentityRegistrationSettingsProps) {
+    if (!this.repository.secretsManagementSettings.enabled) {
+      // Secrets management is not enabled, so do nothing
+      return;
+    }
+
+    this.identityRegistrationSettings.addSubnetIdentityRegistrationSetting(props);
   }
 
   /**
@@ -648,6 +751,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     protocol: ApplicationProtocol,
     repository: IRepository,
     runAsUser?: { uid: number, gid?: number },
+    secretsManagementOptions?: { credentials: ISecret, posixUsername: string },
   }) {
     const { image, portNumber, protocol, repository } = props;
 
@@ -685,6 +789,10 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       environment.RCS_TLS_REQUIRE_CLIENT_CERT = 'no';
     }
 
+    if (props.secretsManagementOptions !== undefined) {
+      environment.RCS_SM_CREDENTIALS_URI = props.secretsManagementOptions.credentials.secretArn;
+    }
+
     // We can ignore this in test coverage because we always use RenderQueue.RCS_USER
     /* istanbul ignore next */
     const user = props.runAsUser ? `${props.runAsUser.uid}:${props.runAsUser.gid}` : undefined;
@@ -700,6 +808,27 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     });
 
     containerDefinition.addMountPoints(connection.readWriteMountPoint);
+
+    if (props.secretsManagementOptions !== undefined) {
+      // Create volume to persist the RSA keypairs generated by Deadline between ECS tasks
+      // This makes it so subsequent ECS tasks use the same initial Secrets Management identity
+      const volumeName = 'deadline-user-keypairs';
+      taskDefinition.addVolume({
+        name: volumeName,
+        dockerVolumeConfiguration: {
+          scope: Scope.SHARED,
+          autoprovision: true,
+          driver: 'local',
+        },
+      });
+
+      // Mount the volume into the container at the location where Deadline expects it
+      containerDefinition.addMountPoints({
+        readOnly: false,
+        sourceVolume: volumeName,
+        containerPath: `/home/${props.secretsManagementOptions.posixUsername}/.config/.mono/keypairs`,
+      });
+    }
 
     // Increase ulimits
     containerDefinition.addUlimits(
@@ -834,5 +963,47 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
       throw new Error(`Invalid RenderQueue hostname: ${hostname}`);
     }
     return `${hostname}.${zone.zoneName}`;
+  }
+
+  /**
+   * The instance that runs commands during the deployment.
+   */
+  private get deploymentInstance(): DeploymentInstance {
+    const CONFIGURE_REPOSITORY_CONSTRUCT_ID = 'ConfigureRepository';
+    const deploymentInstanceNode = this.node.tryFindChild(CONFIGURE_REPOSITORY_CONSTRUCT_ID);
+    if (deploymentInstanceNode === undefined) {
+      return new DeploymentInstance(this, CONFIGURE_REPOSITORY_CONSTRUCT_ID, {
+        vpc: this.props.vpc,
+        vpcSubnets: this.props.vpcSubnets ?? RenderQueue.DEFAULT_VPC_SUBNETS_OTHER,
+      });
+    } else if (deploymentInstanceNode instanceof DeploymentInstance) {
+      return deploymentInstanceNode;
+    } else {
+      throw new Error(`Unexpected type for ${deploymentInstanceNode.node.path}. Expected ${DeploymentInstance.name}, but found ${typeof(deploymentInstanceNode)}.`);
+    }
+  }
+
+  /**
+   * The construct that manages Deadline Secrets Management identity registration settings
+   */
+  private get identityRegistrationSettings(): SecretsManagementIdentityRegistration {
+    const IDENTITY_REGISTRATION_CONSTRUCT_ID = 'SecretsManagementIdentityRegistration';
+    const secretsManagementIdentityRegistration = this.node.tryFindChild(IDENTITY_REGISTRATION_CONSTRUCT_ID);
+    if (!secretsManagementIdentityRegistration) {
+      return new SecretsManagementIdentityRegistration(
+        this, IDENTITY_REGISTRATION_CONSTRUCT_ID, {
+          deploymentInstance: this.deploymentInstance,
+          repository: this.repository,
+          renderQueueSubnets: this.props.vpc.selectSubnets(
+            this.props.vpcSubnetsAlb ?? RenderQueue.DEFAULT_VPC_SUBNETS_ALB,
+          ),
+          version: this.props.version,
+        },
+      );
+    } else if (secretsManagementIdentityRegistration instanceof SecretsManagementIdentityRegistration) {
+      return secretsManagementIdentityRegistration;
+    } else {
+      throw new Error(`Unexpected type for ${secretsManagementIdentityRegistration.node.path}. Expected ${SecretsManagementIdentityRegistration.name}, but found ${typeof(secretsManagementIdentityRegistration)}.`);
+    }
   }
 }

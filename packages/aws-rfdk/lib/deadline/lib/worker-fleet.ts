@@ -56,6 +56,10 @@ import {
 import {
   IRenderQueue,
 } from './render-queue';
+import {
+  SecretsManagementRegistrationStatus,
+  SecretsManagementRole,
+} from './secrets-management-ref';
 import { Version } from './version';
 import {
   IInstanceUserDataProvider,
@@ -456,15 +460,17 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
       Annotations.of(this).addWarning('Deploying with 0 minimum capacity. If there is an error in the EC2 UserData for this fleet, then your stack deployment will not fail. Watch for errors in your CloudWatch logs.');
     }
 
+    const vpcSubnets = props.vpcSubnets ? props.vpcSubnets : {
+      subnetType: SubnetType.PRIVATE,
+    };
+
     // Launching the fleet with deadline workers.
     this.fleet = new AutoScalingGroup(this, 'Default', {
       vpc: props.vpc,
       instanceType: (props.instanceType ? props.instanceType : InstanceType.of(InstanceClass.T2, InstanceSize.LARGE)),
       machineImage: props.workerMachineImage,
       keyName: props.keyName,
-      vpcSubnets: props.vpcSubnets ? props.vpcSubnets : {
-        subnetType: SubnetType.PRIVATE,
-      },
+      vpcSubnets,
       securityGroup: props.securityGroup,
       minCapacity,
       maxCapacity: props.maxCapacity,
@@ -523,6 +529,21 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
       workerConfig.listenerPort,
       workerConfig.listenerPort + WorkerInstanceFleet.MAX_WORKERS_PER_HOST,
     );
+
+    if (props.renderQueue.repository.secretsManagementSettings.enabled) {
+      if (!props.vpcSubnets) {
+        Annotations.of(this).addWarning(
+          'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
+        );
+      }
+      props.renderQueue.configureSecretsManagementAutoRegistration({
+        vpc: props.vpc,
+        vpcSubnets,
+        role: SecretsManagementRole.CLIENT,
+        registrationStatus: SecretsManagementRegistrationStatus.REGISTERED,
+        dependent: this.fleet,
+      });
+    }
 
     // Updating the user data with successful cfn-signal commands.
     if (signals) {

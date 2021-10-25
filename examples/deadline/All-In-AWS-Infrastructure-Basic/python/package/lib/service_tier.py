@@ -15,8 +15,7 @@ from aws_cdk.aws_ec2 import (
     BlockDevice,
     BlockDeviceVolume,
     IVpc,
-    SubnetSelection,
-    SubnetType
+    SubnetSelection
 )
 from aws_cdk.aws_elasticloadbalancingv2 import (
     ApplicationProtocol
@@ -42,11 +41,14 @@ from aws_rfdk.deadline import (
     RenderQueueTrafficEncryptionProps,
     RenderQueueExternalTLSProps,
     Repository,
+    SecretsManagementProps,
     ThinkboxDockerImages,
     UsageBasedLicense,
     UsageBasedLicensing,
     VersionQuery,
 )
+
+from . import subnets
 
 
 @dataclass
@@ -72,6 +74,10 @@ class ServiceTierProps(StackProps):
     deadline_version: str
     # Whether the AWS Thinkbox End-User License Agreement is accepted or not
     accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance
+    # Whether to enable Deadline Secrets Management.
+    enable_secrets_management: bool
+    # The ARN of the AWS Secret containing the admin credentials for Deadline Secrets Management.
+    secrets_management_secret_arn: typing.Optional[str]
 
 
 class ServiceTier(Stack):
@@ -99,7 +105,7 @@ class ServiceTier(Stack):
             'Bastion',
             vpc=props.vpc,
             subnet_selection=SubnetSelection(
-                subnet_type=SubnetType.PUBLIC
+                subnet_group_name=subnets.PUBLIC.name
             ),
             block_devices=[
                 BlockDevice(
@@ -122,15 +128,25 @@ class ServiceTier(Stack):
             version=props.deadline_version
         )
 
+        secrets_management_settings = SecretsManagementProps(
+            enabled = props.enable_secrets_management
+        )
+        if props.enable_secrets_management and props.secrets_management_secret_arn is not None:
+            secrets_management_settings["credentials"] = Secret.from_secret_arn(self, 'SMAdminUser', props.secrets_management_secret_arn)
+
         repository = Repository(
             self,
             'Repository',
             vpc=props.vpc,
+            vpc_subnets=SubnetSelection(
+                subnet_group_name=subnets.INFRASTRUCTURE.name
+            ),
             database=props.database,
             file_system=props.mountable_file_system,
             repository_installation_timeout=Duration.minutes(20),
             repository_installation_prefix='/',
-            version=self.version
+            version=self.version,
+            secrets_management_settings=secrets_management_settings
         )
 
         images = ThinkboxDockerImages(
@@ -155,6 +171,22 @@ class ServiceTier(Stack):
             self,
             'RenderQueue',
             vpc=props.vpc,
+            vpc_subnets=SubnetSelection(
+                subnet_group_name=subnets.INFRASTRUCTURE.name
+            ),
+            # It is considered good practice to put the Render Queue's load blanacer in dedicated subnets because:
+            #
+            # 1. Deadline Secrets Management identity registration settings will be scoped down to least-privilege
+            #
+            #    (see https://github.com/aws/aws-rfdk/blob/release/packages/aws-rfdk/lib/deadline/README.md#render-queue-subnet-placement)
+            #
+            # 2. The load balancer can scale to use IP addresses in the subnet without conflicts from other AWS
+            #    resources
+            #
+            #    (see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#subnets-load-balancer)
+            vpc_subnets_alb=SubnetSelection(
+                subnet_group_name=subnets.RENDER_QUEUE_ALB.name
+            ),
             images=images,
             repository=repository,
             hostname=RenderQueueHostNameProps(
@@ -195,6 +227,9 @@ class ServiceTier(Stack):
                 self,
                 'UsageBasedLicensing',
                 vpc=props.vpc,
+                vpc_subnets=SubnetSelection(
+                    subnet_group_name=subnets.USAGE_BASED_LICENSING.name
+                ),
                 images=images,
                 licenses=props.ubl_licenses,
                 render_queue=self.render_queue,

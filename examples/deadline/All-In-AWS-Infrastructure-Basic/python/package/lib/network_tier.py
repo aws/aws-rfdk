@@ -12,7 +12,6 @@ from aws_cdk.aws_ec2 import (
     GatewayVpcEndpointAwsService,
     InterfaceVpcEndpointAwsService,
     Vpc,
-    SubnetConfiguration,
     SubnetSelection,
     SubnetType
 )
@@ -20,6 +19,9 @@ from aws_cdk.aws_ec2 import (
 from aws_cdk.aws_route53 import (
     PrivateHostedZone
 )
+
+from . import subnets
+
 
 _INTERFACE_ENDPOINT_SERVICES = [
     {'name': 'CLOUDWATCH', 'service': InterfaceVpcEndpointAwsService.CLOUDWATCH},
@@ -61,16 +63,25 @@ class NetworkTier(Stack):
             'Vpc',
             max_azs=2,
             subnet_configuration=[
-                SubnetConfiguration(
-                    name='Public',
-                    subnet_type=SubnetType.PUBLIC,
-                    cidr_mask=28
-                ),
-                SubnetConfiguration(
-                    name='Private',
-                    subnet_type=SubnetType.PRIVATE,
-                    cidr_mask=18  # 16,382 IP addresses
-                )
+                # Subnets for undistinguished render farm back-end infrastructure
+                subnets.INFRASTRUCTURE,
+                # Subnets for publicly accessible infrastructure
+                subnets.PUBLIC,
+                # Subnets for the Render Queue Application Load Balancer (ALB).
+                #
+                # It is considered good practice to put a load blanacer in dedicated subnets. Additionally, the subnets
+                # must have a CIDR block with a bitmask of at least /27 and at least 8 free IP addresses per subnet.
+                # ALBs can scale up to a maximum of 100 IP addresses distributed across all subnets. Assuming only 2 AZs
+                # (the minimum) we should have 50 IPs per subnet = CIDR mask of /26
+                #
+                # See:
+                # - https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#subnets-load-balancer
+                # - https://github.com/aws/aws-rfdk/blob/release/packages/aws-rfdk/lib/deadline/README.md#render-queue-subnet-placement
+                subnets.RENDER_QUEUE_ALB,
+                # Subnets for Usage-Based Licensing
+                subnets.USAGE_BASED_LICENSING,
+                # Subnets for the Worker instances
+                subnets.WORKERS
             ]
         )
         # VPC flow logs are a security best-practice as they allow us

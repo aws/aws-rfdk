@@ -18,10 +18,14 @@ import {
   SynthUtils,
 } from '@aws-cdk/assert';
 import {
+  CfnLaunchConfiguration,
+} from '@aws-cdk/aws-autoscaling';
+import {
   Certificate,
 } from '@aws-cdk/aws-certificatemanager';
 import {
   AmazonLinuxGeneration,
+  AmazonLinuxImage,
   Instance,
   InstanceClass,
   InstanceSize,
@@ -30,11 +34,14 @@ import {
   Port,
   SecurityGroup,
   Subnet,
+  SubnetSelection,
+  SubnetType,
   Vpc,
   WindowsVersion,
 } from '@aws-cdk/aws-ec2';
 import {
   ContainerImage,
+  Ec2TaskDefinition,
   TaskDefinition,
 } from '@aws-cdk/aws-ecs';
 import {
@@ -50,7 +57,10 @@ import {
 import {
   Bucket,
 } from '@aws-cdk/aws-s3';
-import { Secret } from '@aws-cdk/aws-secretsmanager';
+import {
+  CfnSecret,
+  Secret,
+} from '@aws-cdk/aws-secretsmanager';
 import {
   App,
   CfnElement,
@@ -72,8 +82,12 @@ import {
   RenderQueueProps,
   RenderQueueSecurityGroups,
   Repository,
+  SecretsManagementRegistrationStatus,
+  SecretsManagementRole,
+  Version,
   VersionQuery,
 } from '../lib';
+import { SecretsManagementIdentityRegistration } from '../lib/secrets-management';
 import {
   RQ_CONNECTION_ASSET,
 } from './asset-constants';
@@ -638,9 +652,14 @@ describe('RenderQueue', () => {
       beforeEach(() => {
         // GIVEN
         isolatedStack = new Stack(app, 'IsolatedStack');
+        const nonSmRepository = new Repository(dependencyStack, 'NonSMRepository', {
+          vpc,
+          version,
+          secretsManagementSettings: { enabled: false },
+        });
         const props: RenderQueueProps = {
           images,
-          repository,
+          repository: nonSmRepository,
           version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           trafficEncryption: {
@@ -802,10 +821,15 @@ describe('RenderQueue', () => {
             },
             signingCertificate: caCert,
           });
+          const nonSmRepository = new Repository(dependencyStack, 'NonSMRepository', {
+            vpc,
+            version,
+            secretsManagementSettings: { enabled: false },
+          });
 
           const props: RenderQueueProps = {
             images,
-            repository,
+            repository: nonSmRepository,
             version: new VersionQuery(isolatedStack, 'Version'),
             vpc,
             trafficEncryption: {
@@ -1069,9 +1093,14 @@ describe('RenderQueue', () => {
           vpc,
           zoneName: ZONE_NAME,
         });
+        const nonSmRepository = new Repository(dependencyStack, 'NonSMRepository', {
+          vpc,
+          version,
+          secretsManagementSettings: { enabled: false },
+        });
         const props: RenderQueueProps = {
           images,
-          repository,
+          repository: nonSmRepository,
           version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
           hostname: {
@@ -1998,9 +2027,14 @@ describe('RenderQueue', () => {
       beforeEach(() => {
         // GIVEN
         isolatedStack = new Stack(app, 'IsolatedStack');
+        const nonSmRepository = new Repository(dependencyStack, 'NonSMRepository', {
+          vpc,
+          version,
+          secretsManagementSettings: { enabled: false },
+        });
         const props: RenderQueueProps = {
           images,
-          repository,
+          repository: nonSmRepository,
           trafficEncryption: { externalTLS: { enabled: false } },
           version: new VersionQuery(isolatedStack, 'Version'),
           vpc,
@@ -2099,9 +2133,14 @@ describe('RenderQueue', () => {
       });
       const hostname = 'testrq';
       const isolatedStack = new Stack(app, 'IsolatedStack');
+      const nonSmRepository = new Repository(dependencyStack, 'NonSMRepository', {
+        vpc,
+        version,
+        secretsManagementSettings: { enabled: false },
+      });
       const props: RenderQueueProps = {
         images,
-        repository,
+        repository: nonSmRepository,
         version: new VersionQuery(isolatedStack, 'Version'),
         vpc,
         hostname: {
@@ -2729,6 +2768,235 @@ describe('RenderQueue', () => {
       ContainerDefinitions: arrayWith(
         objectLike({ User: '1000:1000' }),
       ),
+    }));
+  });
+
+  describe('Secrets Management', () => {
+    let rqSecretsManagementProps: RenderQueueProps;
+
+    beforeEach(() => {
+      rqSecretsManagementProps = {
+        vpc,
+        images,
+        repository,
+        version: renderQueueVersion,
+        trafficEncryption: {
+          internalProtocol: ApplicationProtocol.HTTPS,
+          externalTLS: { enabled: true },
+        },
+      };
+    });
+
+    test('throws if internal protocol is not HTTPS', () => {
+      // WHEN
+      expect(() => new RenderQueue(stack, 'SecretsManagementRenderQueue', {
+        ...rqSecretsManagementProps,
+        trafficEncryption: {
+          internalProtocol: ApplicationProtocol.HTTP,
+        },
+      }))
+
+        // THEN
+        .toThrowError(/The internal protocol on the Render Queue is not HTTPS./);
+    });
+
+    test('throws if external TLS is not enabled', () => {
+      // WHEN
+      expect(() => new RenderQueue(stack, 'SecretsManagementRenderQueue', {
+        ...rqSecretsManagementProps,
+        trafficEncryption: {
+          externalTLS: { enabled: false },
+        },
+      }))
+
+        // THEN
+        .toThrowError(/External TLS on the Render Queue is not enabled./);
+    });
+
+    test('throws if repository does not have SM credentials', () => {
+      // WHEN
+      expect(() => new RenderQueue(stack, 'SecretsManagementRenderQueue', {
+        ...rqSecretsManagementProps,
+        repository: {
+          ...repository,
+          secretsManagementSettings: {
+            ...repository.secretsManagementSettings,
+            credentials: undefined,
+          },
+        } as Repository,
+      }))
+
+        // THEN
+        .toThrowError(/The Repository does not have Secrets Management credentials/);
+    });
+
+    test('throws if deadline version is too low', () => {
+      // GIVEN
+      const oldVersion = new VersionQuery(new Stack(app, 'OldDeadlineVersionStack'), 'OldDeadlineVersion', { version: '10.0.0.0' });
+
+      // WHEN
+      expect(() => new RenderQueue(stack, 'SecretsManagementRenderQueue', {
+        ...rqSecretsManagementProps,
+        version: oldVersion,
+      }))
+
+        // THEN
+        /* eslint-disable-next-line dot-notation */
+        .toThrowError(`The supplied Deadline version (${oldVersion.versionString}) does not support Deadline Secrets Management in RFDK. Either upgrade Deadline to the minimum required version (${Version.MINIMUM_SECRETS_MANAGEMENT_VERSION.versionString}) or disable the feature in the Repository's construct properties.`);
+    });
+
+    test('grants read permissions to secrets management credentials', () => {
+      // WHEN
+      const rq = new RenderQueue(stack, 'SecretsManagementRenderQueue', rqSecretsManagementProps);
+
+      // THEN
+      expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+        PolicyDocument: objectLike({
+          Statement: arrayWith({
+            Action: [
+              'secretsmanager:GetSecretValue',
+              'secretsmanager:DescribeSecret',
+            ],
+            Effect: 'Allow',
+            Resource: stack.resolve((repository.secretsManagementSettings.credentials!.node.defaultChild as CfnSecret).ref),
+          }),
+        }),
+        Roles: [stack.resolve((rq.node.tryFindChild('RCSTask') as Ec2TaskDefinition).taskRole.roleName)],
+      }));
+    });
+
+    test('defines secrets management credentials environment variable', () => {
+      // WHEN
+      new RenderQueue(stack, 'SecretsManagementRenderQueue', rqSecretsManagementProps);
+
+      // THEN
+      expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
+        ContainerDefinitions: arrayWith(objectLike({
+          Environment: arrayWith({
+            Name: 'RCS_SM_CREDENTIALS_URI',
+            Value: stack.resolve((repository.secretsManagementSettings.credentials!.node.defaultChild as CfnSecret).ref),
+          }),
+        })),
+      }));
+    });
+
+    test('creates and mounts docker volume for deadline key pairs', () => {
+      // WHEN
+      new RenderQueue(stack, 'SecretsManagementRenderQueue', rqSecretsManagementProps);
+
+      // THEN
+      expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
+        ContainerDefinitions: arrayWith(objectLike({
+          MountPoints: arrayWith({
+            ContainerPath: '/home/ec2-user/.config/.mono/keypairs',
+            ReadOnly: false,
+            SourceVolume: 'deadline-user-keypairs',
+          }),
+        })),
+        Volumes: arrayWith({
+          DockerVolumeConfiguration: {
+            Autoprovision: true,
+            Driver: 'local',
+            Scope: 'shared',
+          },
+          Name: 'deadline-user-keypairs',
+        }),
+      }));
+    });
+
+    describe('client calls .configureSecretsManagementAutoRegistration()', () => {
+      let callParams: any;
+      let clientInstance: Instance;
+      let identityRegistrationSettings: SecretsManagementIdentityRegistration;
+      let launchConfiguration: CfnLaunchConfiguration;
+      let rqVpcSubnets: SubnetSelection;
+      const RQ_SUBNET_IDS = ['SubnetID1', 'SubnetID2'];
+
+      beforeEach(() => {
+        // GIVEN
+        const subnets = [
+          Subnet.fromSubnetAttributes(dependencyStack, 'Subnet1', {
+            subnetId: RQ_SUBNET_IDS[0],
+            availabilityZone: 'us-west-2a',
+          }),
+          Subnet.fromSubnetAttributes(dependencyStack, 'Subnet2', {
+            subnetId: RQ_SUBNET_IDS[1],
+            availabilityZone: 'us-west-2b',
+          }),
+        ];
+        rqVpcSubnets = {
+          subnets,
+        };
+        const rq = new RenderQueue(stack, 'SecretsManagementRenderQueue', {
+          ...rqSecretsManagementProps,
+          vpcSubnets: rqVpcSubnets,
+        });
+
+        clientInstance = new Instance(stack, 'ClientInstance', {
+          instanceType: new InstanceType('t3.micro'),
+          machineImage: new AmazonLinuxImage(),
+          vpc,
+        });
+        callParams = {
+          dependent: clientInstance,
+          registrationStatus: SecretsManagementRegistrationStatus.REGISTERED,
+          role: SecretsManagementRole.CLIENT,
+          vpc,
+          vpcSubnets: { subnetType: SubnetType.PRIVATE },
+        };
+        launchConfiguration = (
+          // @ts-ignore
+          rq.deploymentInstance
+            .node.findChild('ASG')
+            .node.findChild('LaunchConfig')
+        ) as CfnLaunchConfiguration;
+        // @ts-ignore
+        identityRegistrationSettings = rq.identityRegistrationSettings;
+        jest.spyOn(identityRegistrationSettings, 'addSubnetIdentityRegistrationSetting');
+
+        // WHEN
+        rq.configureSecretsManagementAutoRegistration(callParams);
+      });
+
+      test('registration is delegated to SecretsManagementIdentityRegistration', () => {
+        // THEN
+        expect(identityRegistrationSettings.addSubnetIdentityRegistrationSetting).toHaveBeenCalledWith(callParams);
+      });
+
+      test('deployment instance is created using specified subnets', () => {
+        // THEN
+        expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+          LaunchConfigurationName: stack.resolve(launchConfiguration.ref),
+          VPCZoneIdentifier: arrayWith(
+            ...RQ_SUBNET_IDS,
+          ),
+        }));
+      });
+    });
+  });
+
+  test('.backendConnections is associated with ASG security group rules', () => {
+    // GIVEN
+    const instance = new Instance(dependencyStack, 'BackendConnectionInstance', {
+      instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.MICRO),
+      machineImage: MachineImage.latestAmazonLinux(),
+      vpc,
+    });
+    const portNumber = 5555;
+    const port = Port.tcp(portNumber);
+    const asgSecurityGroup = renderQueueCommon.asg.connections.securityGroups[0];
+
+    // WHEN
+    renderQueueCommon.backendConnections.allowFrom(instance, port);
+
+    // THEN
+    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+      IpProtocol: 'tcp',
+      Description: `from ${instance.connections.securityGroups[0].uniqueId}:${portNumber}`,
+      GroupId: stack.resolve(asgSecurityGroup.securityGroupId),
+      SourceSecurityGroupId: stack.resolve(instance.connections.securityGroups[0].securityGroupId),
+      FromPort: portNumber,
+      ToPort: portNumber,
     }));
   });
 });

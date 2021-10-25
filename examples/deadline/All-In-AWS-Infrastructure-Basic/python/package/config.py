@@ -40,10 +40,10 @@ class AppConfig:
         # to pin to. Some examples of pinned version values are "10", "10.1", or "10.1.12"
         self.deadline_version: Optional[str] = None
 
-        # A map of regions to Deadline Client Linux AMIs. As an example, the Linux Deadline 10.1.15.2 AMI ID
+        # A map of regions to Deadline Client Linux AMIs. As an example, the base Linux Deadline 10.1.19.4 AMI ID
         # from us-west-2 is filled in. It can be used as-is, added to, or replaced. Ideally the version here should match the version of
         # Deadline used in any connected Deadline constructs.
-        self.deadline_client_linux_ami_map: Mapping[str, str] = {'us-west-2': 'ami-0c8431fc72742c110'}
+        self.deadline_client_linux_ami_map: Mapping[str, str] = {'us-west-2': 'ami-04ae356533dc07fb5'}
 
         # A secret (in binary form) in SecretsManager that stores the UBL certificates in a .zip file.
         self.ubl_certificate_secret_arn: str =\
@@ -58,6 +58,13 @@ class AppConfig:
         # Whether to use MongoDB to back the render farm.
         # If false, then we use Amazon DocumentDB to back the render farm.
         self.deploy_mongo_db: bool = False
+
+        # Whether to enable Deadline Secrets Management.
+        self.enable_secrets_management: bool = True
+
+        # A Secret in AWS SecretsManager that stores the admin credentials for Deadline Secrets Management.
+        # If not defined and Secrets Management is enabled, an AWS Secret with admin credentials will be generated.
+        self.secrets_management_secret_arn: Optional[str] = None
 
         # This is only relevant if deploy_mongo_db is True.
         #

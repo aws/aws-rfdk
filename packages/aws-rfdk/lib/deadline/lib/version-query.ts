@@ -200,11 +200,17 @@ export class VersionQuery extends VersionQueryBase {
       customResourceAttribute: 'ReleaseVersion',
     });
 
+    const installerBucket = Bucket.fromBucketName(scope, 'InstallerBucket', this.deadlineResource.getAttString('S3Bucket'));
+
     this.linuxInstallers = {
       patchVersion: Token.asNumber(this.deadlineResource.getAtt('LinuxPatchVersion')),
       repository: {
         objectKey: this.deadlineResource.getAttString('LinuxRepositoryInstaller'),
-        s3Bucket: Bucket.fromBucketName(scope, 'InstallerBucket', this.deadlineResource.getAttString('S3Bucket')),
+        s3Bucket: installerBucket,
+      },
+      client: {
+        objectKey: this.deadlineResource.getAttString('LinuxClientInstaller'),
+        s3Bucket: installerBucket,
       },
     };
   }

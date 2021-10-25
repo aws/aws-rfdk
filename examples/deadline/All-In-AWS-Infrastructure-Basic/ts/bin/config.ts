@@ -41,11 +41,11 @@ class AppConfig {
   public readonly deadlineVersion?: string;
 
   /**
-   * A map of regions to Deadline Client Linux AMIs. As an example, the Linux Deadline 10.1.15.2 AMI ID from us-west-2
+   * A map of regions to Deadline Client Linux AMIs. As an example, the base Linux Deadline 10.1.19.4 AMI ID from us-west-2
    * is filled in. It can be used as-is, added to, or replaced. Ideally the version here should match the version of
    * Deadline used in any connected Deadline constructs.
    */
-  public readonly deadlineClientLinuxAmiMap: Record<string, string> = {['us-west-2']: 'ami-0c8431fc72742c110'};
+  public readonly deadlineClientLinuxAmiMap: Record<string, string> = {['us-west-2']: 'ami-04ae356533dc07fb5'};
 
   /**
    * (Optional) A secret (in binary form) in SecretsManager that stores the UBL certificates in a .zip file.
@@ -67,6 +67,17 @@ class AppConfig {
    * If false, then we use Amazon DocumentDB to back the render farm.
    */
   public readonly deployMongoDB: boolean = false;
+
+  /**
+   * Whether to enable Deadline Secrets Management.
+   */
+  public readonly enableSecretsManagement: boolean = true;
+
+  /**
+   * A Secret in AWS SecretsManager that stores the admin credentials for Deadline Secrets Management.
+   * If not defined and Secrets Management is enabled, an AWS Secret with admin credentials will be generated.
+   */
+  public readonly secretsManagementSecretArn?: string;
 
   /**
    * This is only relevant if deployMongoDB = true.

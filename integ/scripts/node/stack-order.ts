@@ -243,7 +243,7 @@ async function main() {
   let args: ProgramArguments;
   try {
     args = parseProgramArguments();
-  } catch(e) {
+  } catch(e: any) {
     console.error(e.toString());
     console.error(usage());
     process.exit(1);
@@ -254,7 +254,7 @@ async function main() {
   // Parse the JSON and cast to a Manifest
   try {
     manifest = JSON.parse(manifestRaw) as Manifest;
-  } catch (e) {
+  } catch (e: any) {
     throw new Error(`${args.manifestPath} is not a valid JSON file`);
   }
 
