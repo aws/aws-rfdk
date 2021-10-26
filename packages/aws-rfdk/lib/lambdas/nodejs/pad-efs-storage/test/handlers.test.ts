@@ -168,9 +168,9 @@ describe('Testing getDiskUsage behavior', () => {
     setDefaultFilesize(64);
 
     const execPromise = promisify(exec);
-    await execPromise(`/usr/bin/dd if=/dev/zero of=${join(tempDirectory, 'file1.tmp')} bs=32M count=2`);
+    await execPromise(`dd if=/dev/zero of=${join(tempDirectory, 'file1.tmp')} bs=32M count=2`);
     await fsp.mkdir(join(tempDirectory, 'subdir'));
-    await execPromise(`/usr/bin/dd if=/dev/zero of=${join(tempDirectory, 'subdir', 'file2.tmp')} bs=32M count=2`);
+    await execPromise(`dd if=/dev/zero of=${join(tempDirectory, 'subdir', 'file2.tmp')} bs=32M count=2`);
 
     // WHEN
     const usage = await getDiskUsage({
