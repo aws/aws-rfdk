@@ -413,7 +413,10 @@ export class ConfigureSpotEventPlugin extends Construct {
               actions: [
                 'ec2:CreateTags',
               ],
-              resources: ['arn:aws:ec2:*:*:spot-fleet-request/*'],
+              resources: [
+                'arn:aws:ec2:*:*:spot-fleet-request/*',
+                'arn:aws:ec2:*:*:volume/*',
+              ],
             }),
           ],
           roles: [

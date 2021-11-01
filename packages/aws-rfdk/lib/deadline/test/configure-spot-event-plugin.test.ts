@@ -290,7 +290,10 @@ describe('ConfigureSpotEventPlugin', () => {
             {
               Action: 'ec2:CreateTags',
               Effect: 'Allow',
-              Resource: 'arn:aws:ec2:*:*:spot-fleet-request/*',
+              Resource: [
+                'arn:aws:ec2:*:*:spot-fleet-request/*',
+                'arn:aws:ec2:*:*:volume/*',
+              ],
             },
           ],
         },

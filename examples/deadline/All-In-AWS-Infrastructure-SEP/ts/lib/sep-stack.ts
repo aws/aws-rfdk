@@ -160,7 +160,7 @@ export class SEPStack extends Stack {
 
     new ConfigureSpotEventPlugin(this, 'ConfigureSpotEventPlugin', {
       vpc,
-      renderQueue: renderQueue,
+      renderQueue,
       spotFleets: [
         fleet,
       ],
