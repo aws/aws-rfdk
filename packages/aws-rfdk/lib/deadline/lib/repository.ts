@@ -841,7 +841,7 @@ export class Repository extends Construct implements IRepository {
 
     // Add an explicit dependency on the Repository. This ensures that deployments of the Repository construct precede
     // deployments of the client and the repository is fully setup.
-    props.containers.taskDefinition.node.addDependency(this);
+    props.containers.taskDefinition.node.addDependency(this.installerGroup);
 
     // Configure a named volume in the task-definition that points to the container host's mount-point of the repository
     // file-system
@@ -875,7 +875,7 @@ export class Repository extends Construct implements IRepository {
   public configureClientInstance(props: InstanceDirectConnectProps): void {
     // Add an explicit dependency on the Repository. This ensures that deployments of the Repository construct precede
     // deployments of the client and the repository is fully setup.
-    props.host.node.addDependency(this);
+    props.host.node.addDependency(this.installerGroup);
 
     this.setupDirectConnect(props.host, props.mountPoint);
 
