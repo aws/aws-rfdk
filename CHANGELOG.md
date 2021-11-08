@@ -17,7 +17,7 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### ⚠ BREAKING CHANGES
 
-RFDK will configure Deadline Secrets Management automatically when using Deadline 10.1.19.x or higher. If your CDK app uses the `Repository` construct with an un-pinned [`VersionQuery`](https://docs.aws.amazon.com/rfdk/api/latest/docs/aws-rfdk.deadline.VersionQuery.html), then upgrading RFDK set up Deadline Secrets Management. Using Deadline Secrets Management is strongly encouraged for securing Deadline render farms, however it can potentially impact your workflows within Deadline. Please review the [Deadline Secrets Management documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) to learn about the feature.
+RFDK will configure Deadline Secrets Management automatically when using Deadline 10.1.19.x or higher. If your CDK app uses the `Repository` construct with an un-pinned [`VersionQuery`](https://docs.aws.amazon.com/rfdk/api/latest/docs/aws-rfdk.deadline.VersionQuery.html), then upgrading RFDK will set up Deadline Secrets Management. Using Deadline Secrets Management is strongly encouraged for securing Deadline render farms, however it can potentially impact your workflows within Deadline. Please review the [Deadline Secrets Management documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) to learn about the feature.
 
 See the [RFDK 0.38.x upgrade documentation](https://github.com/aws/aws-rfdk/blob/v0.38.0/packages/aws-rfdk/docs/upgrade/upgrading-0.38.md)
 for more details and guidance on how to upgrade.
