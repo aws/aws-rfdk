@@ -684,7 +684,7 @@ The `VersionQuery` construct encapsulates a version of Deadline and the location
 
 You can specify a Deadline version as follows:
 ```ts
-const version = new VersionQuery(stack, 'ExactVersion', {
+const version = new VersionQuery(stack, 'Version', {
   version: '1.2.3.4',
 });
 ```
