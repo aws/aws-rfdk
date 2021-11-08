@@ -15,6 +15,13 @@ All notable changes to this project will be documented in this file. See [standa
 * [10.1.9.2 to 10.1.19.4](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
 
 
+### ⚠ BREAKING CHANGES
+
+RFDK will configure Deadline Secrets Management automatically when using Deadline 10.1.19.x or higher. If your CDK app uses the `Repository` construct with an un-pinned [`VersionQuery`](https://docs.aws.amazon.com/rfdk/api/latest/docs/aws-rfdk.deadline.VersionQuery.html), then upgrading RFDK will set up Deadline Secrets Management. Using Deadline Secrets Management is strongly encouraged for securing Deadline render farms, however it can potentially impact your workflows within Deadline. Please review the [Deadline Secrets Management documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) to learn about the feature.
+
+See the [RFDK 0.38.x upgrade documentation](https://github.com/aws/aws-rfdk/blob/v0.38.0/packages/aws-rfdk/docs/upgrade/upgrading-0.38.md)
+for more details and guidance on how to upgrade.
+
 ### Features
 
 * **deadline:** add Deadline Secrets Management integration in the Render Queue ([#528](https://github.com/aws/aws-rfdk/issues/528)) ([48baa18](https://github.com/aws/aws-rfdk/commit/48baa185b274030cab29a235469536585822313f))
@@ -53,7 +60,7 @@ created with an imported EFS Access Point
 the Render Queue will be modified to have it enabled and using the
 default certificate and hosted zone. To keep external TLS disabled, the
 `enabled` flag on the `RenderQueueExternalTLSProps` can be set to false;
-however, we strongly encourage you to enable TLS. See the[RFDK 0.37.x upgrade documentation](https://github.com/aws/aws-rfdk/blob/v0.37.0/packages/aws-rfdk/docs/upgrade/upgrading-0.37.md)
+however, we strongly encourage you to enable TLS. See the [RFDK 0.37.x upgrade documentation](https://github.com/aws/aws-rfdk/blob/v0.37.0/packages/aws-rfdk/docs/upgrade/upgrading-0.37.md)
 for more details and guidance on how to upgrade.
 
 ### Features
