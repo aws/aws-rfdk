@@ -303,10 +303,7 @@ describe('SEPConfiguratorResource', () => {
       mockSpotEventPluginClient.saveServerData = mockSaveServerData;
 
       // WHEN
-      const promise = handler.doCreate('physicalId', {
-        connection: validSepConfiguration.connection,
-        spotFleetRequestConfigurations: validSepConfiguration.spotFleetRequestConfigurations,
-      });
+      const promise = handler.doCreate('physicalId', validSepConfiguration);
 
       // THEN
       await expect(promise)
@@ -320,10 +317,7 @@ describe('SEPConfiguratorResource', () => {
       mockSpotEventPluginClient.configureSpotEventPlugin = mockConfigureSpotEventPlugin;
 
       // WHEN
-      const promise = handler.doCreate('physicalId', {
-        connection: validSepConfiguration.connection,
-        spotPluginConfigurations: validSepConfiguration.spotPluginConfigurations,
-      });
+      const promise = handler.doCreate('physicalId', validSepConfiguration);
 
       // THEN
       await expect(promise)

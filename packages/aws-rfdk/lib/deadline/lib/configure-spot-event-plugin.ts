@@ -148,6 +148,12 @@ export interface SpotEventPluginSettings {
 
   /**
    * Determines whether the Deadline Resource Tracker should be used.
+   *
+   * In addition to this property, the Spot Instances deployed by the Spot Event Plugin must also be configured to be tracked by the Resource Tracker using the
+   * [`trackInstancesWithResourceTracker`](https://docs.aws.amazon.com/rfdk/api/latest/docs/aws-rfdk.deadline.SpotEventPluginFleet.html#trackinstanceswithresourcetracker)
+   * property of the `SpotEventPluginFleet` construct, which is `true` by default. You can set that property to `false` for fleets that you would like to opt out of the
+   * Resource Tracker.
+   *
    * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/resource-tracker-overview.html
    *
    * @default true

@@ -615,7 +615,7 @@ describe('validateLaunchTemplateConfigs', () => {
       .toThrowError(`${propertyName}[0].LaunchTemplateSpecification type is not valid.`);
   });
 
-  test('throws when LaunchTemplateSpecification is invalid', () => {
+  test('throws when Version is invalid', () => {
     // GIVEN
     const invalidValue = 123;
     const config: LaunchTemplateConfig = {

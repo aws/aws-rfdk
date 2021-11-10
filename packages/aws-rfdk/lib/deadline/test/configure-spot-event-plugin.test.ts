@@ -18,7 +18,6 @@ import {
   InstanceSize,
   InstanceType,
   SubnetType,
-  SecurityGroup,
   Vpc,
 } from '@aws-cdk/aws-ec2';
 import {
@@ -31,7 +30,6 @@ import {
   Duration,
   Expiration,
   Stack,
-  Tags,
 } from '@aws-cdk/core';
 import { X509CertificatePem } from '../../core';
 import { tagFields } from '../../core/lib/runtime-info';
@@ -410,66 +408,6 @@ describe('ConfigureSpotEventPlugin', () => {
           }),
         }),
       })));
-    });
-
-    test('adds multiple fleet security groups to launch template', () => {
-      // GIVEN
-      const securityGroups = [
-        new SecurityGroup(stack, 'NewFleetSecurityGroup1', { vpc }),
-        new SecurityGroup(stack, 'NewFleetSecurityGroup2', { vpc }),
-      ];
-      const fleet2 = new SpotEventPluginFleet(stack, 'SpotFleet2', {
-        vpc,
-        renderQueue,
-        deadlineGroups: ['group2'],
-        instanceTypes: [new InstanceType('t2.micro')],
-        workerMachineImage,
-        maxCapacity: 1,
-        securityGroups,
-      });
-
-      // WHEN
-      new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
-        vpc,
-        renderQueue,
-        spotFleets: [fleet2],
-      });
-
-      // THEN
-      cdkExpect(stack).to(haveResourceLike('AWS::EC2::LaunchTemplate', {
-        LaunchTemplateData: objectLike({
-          SecurityGroupIds: securityGroups.map(sg => stack.resolve(sg.securityGroupId)),
-        }),
-      }));
-    });
-
-    test('adds fleet tags to launch template', () => {
-      // GIVEN
-      const tag = {
-        key: 'mykey',
-        value: 'myvalue',
-      };
-      Tags.of(fleet).add(tag.key, tag.value);
-
-      // WHEN
-      new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
-        vpc,
-        renderQueue,
-        spotFleets: [fleet],
-      });
-
-      // THEN
-      cdkExpect(stack).to(haveResourceLike('AWS::EC2::LaunchTemplate', {
-        LaunchTemplateData: objectLike({
-          TagSpecifications: arrayWith({
-            ResourceType: SpotFleetResourceType.INSTANCE.toString(),
-            Tags: arrayWith({
-              Key: tag.key,
-              Value: tag.value,
-            }),
-          }),
-        }),
-      }));
     });
   });
 

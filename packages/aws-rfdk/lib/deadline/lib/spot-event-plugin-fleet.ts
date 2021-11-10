@@ -224,6 +224,10 @@ export interface SpotEventPluginFleetProps {
   /**
    * Whether the instances in the Spot Fleet should be tracked by Deadline Resource Tracker.
    *
+   * In addition to this property, the Spot Event Plugin must also be configured to use the Resource tracker by using the
+   * [`enableResourceTracker`](https://docs.aws.amazon.com/rfdk/api/latest/docs/aws-rfdk.deadline.SpotEventPluginSettings.html#enableresourcetracker)
+   * property of the `ConfigureSpotEventPlugin` construct, which is `true` by default.
+   *
    * @default true
    */
   readonly trackInstancesWithResourceTracker?: boolean;
@@ -365,11 +369,6 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   public readonly fleetRole: IRole;
 
   /**
-   * An id of the Worker AMI.
-   */
-  public readonly imageId: string;
-
-  /**
    * The Worker AMI.
    */
   public readonly machineImage: IMachineImage;
@@ -445,7 +444,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   /**
    * @internal
    */
-  public readonly _launchTemplateConfigs: any[];
+  public readonly _launchTemplateConfigs: LaunchTemplateConfig[];
 
   constructor(scope: Construct, id: string, props: SpotEventPluginFleetProps) {
     super(scope, id);
@@ -493,7 +492,6 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     const imageConfig = props.workerMachineImage.getImage(this);
     this.osType = imageConfig.osType;
     this.userData = props.userData ?? imageConfig.userData;
-    this.imageId = imageConfig.imageId;
     this.machineImage = props.workerMachineImage;
 
     const workerConfig = new WorkerInstanceConfiguration(this, id, {

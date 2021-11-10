@@ -62,6 +62,7 @@ import {
   VersionQuery,
   SpotEventPluginFleet,
   SpotFleetAllocationStrategy,
+  SpotFleetResourceType,
 } from '../lib';
 
 let app: App;
@@ -418,6 +419,64 @@ describe('SpotEventPluginFleet', () => {
         }),
       }));
     });
+
+    test('adds multiple fleet security groups to launch template', () => {
+      // GIVEN
+      const securityGroups = [
+        new SecurityGroup(stack, 'NewFleetSecurityGroup1', { vpc }),
+        new SecurityGroup(stack, 'NewFleetSecurityGroup2', { vpc }),
+      ];
+
+      // WHEN
+      new SpotEventPluginFleet(spotFleetStack, 'SpotFleet2', {
+        vpc,
+        renderQueue,
+        deadlineGroups: ['group2'],
+        instanceTypes: [new InstanceType('t2.micro')],
+        workerMachineImage,
+        maxCapacity: 1,
+        securityGroups,
+      });
+
+      // THEN
+      expectCDK(spotFleetStack).to(haveResourceLike('AWS::EC2::LaunchTemplate', {
+        LaunchTemplateData: objectLike({
+          SecurityGroupIds: securityGroups.map(sg => spotFleetStack.resolve(sg.securityGroupId)),
+        }),
+      }));
+    });
+
+    test('adds fleet tags to launch template', () => {
+      // GIVEN
+      const tag = {
+        key: 'mykey',
+        value: 'myvalue',
+      };
+      const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
+        vpc,
+        renderQueue,
+        instanceTypes,
+        deadlineGroups,
+        workerMachineImage,
+        maxCapacity,
+      });
+
+      // WHEN
+      Tags.of(fleet).add(tag.key, tag.value);
+
+      // THEN
+      expectCDK(spotFleetStack).to(haveResourceLike('AWS::EC2::LaunchTemplate', {
+        LaunchTemplateData: objectLike({
+          TagSpecifications: arrayWith({
+            ResourceType: SpotFleetResourceType.INSTANCE.toString(),
+            Tags: arrayWith({
+              Key: tag.key,
+              Value: tag.value,
+            }),
+          }),
+        }),
+      }));
+    });
   });
 
   describe('created with custom values', () => {
@@ -436,7 +495,6 @@ describe('SpotEventPluginFleet', () => {
       // THEN
       expect(fleet.deadlineGroups).toStrictEqual(deadlineGroups.map(group => group.toLocaleLowerCase()));
       expect(fleet.instanceTypes).toBe(instanceTypes);
-      expect(fleet.imageId).toBe(imageConfig.imageId);
       expect(fleet.osType).toBe(imageConfig.osType);
       expect(fleet.maxCapacity).toBe(maxCapacity);
     });
