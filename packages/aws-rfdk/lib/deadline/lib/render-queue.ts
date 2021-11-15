@@ -378,7 +378,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   /**
    * Depend on this to ensure that ECS Service is stable.
    */
-  private ecsServiceStabilized: WaitForStableService;
+  private readonly ecsServiceStabilized: WaitForStableService;
 
   constructor(scope: Construct, id: string, private readonly props: RenderQueueProps) {
     super(scope, id);
@@ -973,6 +973,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     const deploymentInstanceNode = this.node.tryFindChild(CONFIGURE_REPOSITORY_CONSTRUCT_ID);
     if (deploymentInstanceNode === undefined) {
       return new DeploymentInstance(this, CONFIGURE_REPOSITORY_CONSTRUCT_ID, {
+        securityGroup: this.backendConnections.securityGroups[0],
         vpc: this.props.vpc,
         vpcSubnets: this.props.vpcSubnets ?? RenderQueue.DEFAULT_VPC_SUBNETS_OTHER,
       });

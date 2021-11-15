@@ -9,12 +9,14 @@ import {
   UpdatePolicy,
 } from '@aws-cdk/aws-autoscaling';
 import {
+  AmazonLinuxGeneration,
   Connections,
   IConnectable,
   IMachineImage,
   InstanceClass,
   InstanceSize,
   InstanceType,
+  ISecurityGroup,
   IVpc,
   MachineImage,
   SubnetSelection,
@@ -93,6 +95,13 @@ export interface DeploymentInstanceProps {
   readonly machineImage?: IMachineImage;
 
   /**
+   * A security group to associate with the DeploymentInstance
+   *
+   * @default A new security group is created for the DeploymentInstance
+   */
+  readonly securityGroup?: ISecurityGroup;
+
+  /**
    * Whether the instance should self-terminate after the deployment succeeds
    *
    * @default true
@@ -164,17 +173,18 @@ export class DeploymentInstance extends Construct implements IScriptHost, IConne
     this.asg = new AutoScalingGroup(this, 'ASG', {
       instanceType: props.instanceType ?? InstanceType.of(InstanceClass.T3, InstanceSize.SMALL),
       keyName: props.keyName,
-      machineImage: props.machineImage ?? MachineImage.latestAmazonLinux(),
-      vpc: props.vpc,
-      vpcSubnets: props.vpcSubnets ?? {
-        subnetType: SubnetType.PRIVATE,
-      },
+      machineImage: props.machineImage ?? MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
       minCapacity: 1,
       maxCapacity: 1,
+      securityGroup: props.securityGroup,
       signals: Signals.waitForAll({
         timeout: props.executionTimeout ?? DeploymentInstance.DEFAULT_EXECUTION_TIMEOUT,
       }),
       updatePolicy: UpdatePolicy.replacingUpdate(),
+      vpc: props.vpc,
+      vpcSubnets: props.vpcSubnets ?? {
+        subnetType: SubnetType.PRIVATE,
+      },
     });
     this.node.defaultChild = this.asg;
 

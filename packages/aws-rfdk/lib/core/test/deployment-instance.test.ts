@@ -13,6 +13,7 @@ import {
 } from '@aws-cdk/assert';
 import { CfnLaunchConfiguration } from '@aws-cdk/aws-autoscaling';
 import {
+  AmazonLinuxGeneration,
   AmazonLinuxImage,
   ExecuteFileOptions,
   InstanceType,
@@ -167,7 +168,7 @@ describe('DeploymentInstance', () => {
 
       test('uses latest Amazon Linux machine image', () => {
         // GIVEN
-        const amazonLinux = MachineImage.latestAmazonLinux();
+        const amazonLinux = MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 });
         const imageId: { Ref: string } = stack.resolve(amazonLinux.getImage(stack)).imageId;
 
         // THEN
@@ -656,6 +657,26 @@ describe('DeploymentInstance', () => {
     // THEN
     expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
       InstanceType: instanceType.toString(),
+    }));
+  });
+
+  test('uses specified security group', () => {
+    // GIVEN
+    const securityGroupId = 'securityGroupId';
+    const securityGroup = SecurityGroup.fromSecurityGroupId(depStack, 'SecurityGroup', securityGroupId);
+    stack = new cdk.Stack(app, 'SecurityGroupStack');
+
+    // WHEN
+    new DeploymentInstance(stack, DEFAULT_CONSTRUCT_ID, {
+      vpc,
+      securityGroup,
+    });
+
+    // THEN
+    expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+      SecurityGroups: arrayWith(
+        securityGroupId,
+      ),
     }));
   });
 
