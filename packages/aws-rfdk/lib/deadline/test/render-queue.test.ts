@@ -2494,9 +2494,9 @@ describe('RenderQueue', () => {
       resourceTypeCounts: {
         'AWS::ECS::Cluster': 1,
         'AWS::EC2::SecurityGroup': 2,
-        'AWS::IAM::Role': 10,
+        'AWS::IAM::Role': 14,
         'AWS::AutoScaling::AutoScalingGroup': 1,
-        'AWS::Lambda::Function': 6,
+        'AWS::Lambda::Function': 10,
         'AWS::SNS::Topic': 1,
         'AWS::ECS::TaskDefinition': 1,
         'AWS::DynamoDB::Table': 5,

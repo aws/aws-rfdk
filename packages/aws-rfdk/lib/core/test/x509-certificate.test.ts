@@ -151,6 +151,7 @@ test('Generate cert, all options set', () => {
     encryptionKey,
     signingCertificate,
     validFor: 3000,
+    alarmEmailAddress: 'test@amazon.com',
   });
 
   const certPassphraseID = stack.getLogicalId(cert.passphrase.node.defaultChild as CfnSecret);
@@ -324,10 +325,85 @@ test('Generate cert, all options set', () => {
       ],
     },
   }));
+  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+    PolicyDocument: {
+      Statement: [
+        {
+          Action: 'secretsmanager:GetSecretValue',
+          Condition: {
+            StringEquals: {
+              'secretsmanager:ResourceTag/X509SecretGrant-B2B09A60': 'b2b09a6086e87fe14005f4e0b800e4f0',
+            },
+          },
+        },
+        {
+          Action: 'secretsmanager:ListSecrets',
+        },
+        {
+          Action: 'cloudwatch:PutMetricData',
+          Condition: {
+            StringEquals: {
+              'cloudwatch:namespace': 'AWS/RFDK',
+            },
+          },
+        },
+      ],
+    },
+  }));
   // Expect Lambda for doing the cert generation to use the generate() handler
   expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function', {
     Handler: 'x509-certificate.generate',
   }));
+  // Expect Lambda for validating the cert experation period
+  expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function', {
+    Handler: 'cert-rotation-monitor.handler',
+  }));
+  expectCDK(stack).to(haveResourceLike('AWS::CloudWatch::Alarm', {
+    ComparisonOperator: 'LessThanThreshold',
+    EvaluationPeriods: 1,
+    Dimensions: [
+      {
+        Name: 'Certificate Metrics',
+        Value: 'b2b09a6086e87fe14005f4e0b800e4f0',
+      },
+    ],
+    MetricName: 'DaysToExpiry',
+    Namespace: 'AWS/RFDK',
+    Period: 86400,
+    TreatMissingData: 'notBreaching',
+    Threshold: 15,
+    ActionsEnabled: true,
+  }));
+  expectCDK(stack).to(haveResourceLike('AWS::SNS::Subscription', {
+    Protocol: 'email',
+    Endpoint: 'test@amazon.com',
+  }));
+});
+
+test('Certificate alarm without action', () => {
+  const stack = new Stack();
+  const subject = { cn: 'testCN' };
+
+  new X509CertificatePem(stack, 'Cert', {
+    subject,
+  });
+  expectCDK(stack).to(haveResourceLike('AWS::CloudWatch::Alarm', {
+    ComparisonOperator: 'LessThanThreshold',
+    EvaluationPeriods: 1,
+    Dimensions: [
+      {
+        Name: 'Certificate Metrics',
+        Value: 'b2b09a6086e87fe14005f4e0b800e4f0',
+      },
+    ],
+    MetricName: 'DaysToExpiry',
+    Namespace: 'AWS/RFDK',
+    Period: 86400,
+    TreatMissingData: 'notBreaching',
+    Threshold: 15,
+    ActionsEnabled: false,
+  }));
+  expectCDK(stack).notTo(haveResourceLike('AWS::SNS::Subscription'));
 });
 
 test('Grant cert read', () => {

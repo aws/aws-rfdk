@@ -6,12 +6,21 @@
 import * as crypto from 'crypto';
 import { join } from 'path';
 
+import { ComparisonOperator, Metric, TreatMissingData } from '@aws-cdk/aws-cloudwatch';
+import { SnsAction } from '@aws-cdk/aws-cloudwatch-actions';
 import {
   AttributeType,
   BillingMode,
   Table,
   TableEncryption,
 } from '@aws-cdk/aws-dynamodb';
+import {
+  Rule,
+  Schedule,
+} from '@aws-cdk/aws-events';
+import {
+  LambdaFunction as LambdaFunctionTask,
+} from '@aws-cdk/aws-events-targets';
 import {
   Grant,
   IGrantable,
@@ -21,11 +30,14 @@ import { IKey } from '@aws-cdk/aws-kms';
 import {
   Code,
   Function as LambdaFunction,
+  ILayerVersion,
   LayerVersion,
   Runtime,
 } from '@aws-cdk/aws-lambda';
 import { RetentionDays } from '@aws-cdk/aws-logs';
 import { ISecret, Secret } from '@aws-cdk/aws-secretsmanager';
+import { Topic } from '@aws-cdk/aws-sns';
+import { EmailSubscription } from '@aws-cdk/aws-sns-subscriptions';
 import {
   Annotations,
   Construct,
@@ -98,6 +110,17 @@ export interface X509CertificatePemProps {
    * @default 1095 days (3 years)
    */
   readonly validFor?: number;
+
+  /**
+   * Fill this in if you want to receive alarm emails when:
+   * 1) The certificate is about to expire.
+   *
+   * Note: When deploying, you will be sent an email asking to authorize these emails. If you do not authorize,
+   * then you will receive no alarm emails.
+   *
+   * @default: None. No notification will be sent.
+   */
+  readonly alarmEmailAddress?: string;
 }
 
 /**
@@ -144,7 +167,23 @@ interface X509CertificateBaseProps {
   readonly lambdaCode: Code;
   readonly lambdaHandler: string;
   readonly encryptionKey?: IKey;
+  readonly alarmEmailAddress?: string;
 }
+
+interface LambdaMonitorFunctionProps {
+  readonly uniqueValue: string;
+  readonly lambdaLayers: ILayerVersion[];
+  readonly lambdaCode: Code;
+  readonly tagCondition?: {
+    [key: string]: any;
+  };
+}
+
+interface X509CertValidationProps {
+  readonly uniqueValue: string;
+  readonly alarmEmailAddress?: string;
+}
+
 
 abstract class X509CertificateBase extends Construct {
   /**
@@ -156,6 +195,8 @@ abstract class X509CertificateBase extends Construct {
   protected database: Table;
   // The Lambda that backs the CustomResource.
   protected lambdaFunc: LambdaFunction;
+  // The Lambda that monitor certificate expiration date.
+  protected lambdaMonitor: LambdaFunction;
 
   protected uniqueTag: Tag;
 
@@ -230,6 +271,91 @@ abstract class X509CertificateBase extends Construct {
         StringEquals: tagCondition,
       },
     }));
+
+    this.lambdaMonitor = this.addLabmdaMonitorFunction({
+      uniqueValue,
+      lambdaLayers: [openSslLayer],
+      lambdaCode: props.lambdaCode,
+      tagCondition,
+    });
+    this.addExpDateValidation({
+      uniqueValue,
+      alarmEmailAddress: props.alarmEmailAddress,
+    });
+  }
+
+  private addLabmdaMonitorFunction(props: LambdaMonitorFunctionProps): LambdaFunction{
+    const lambdaMonitor = new LambdaFunction(this, 'MonitoringExpDate', {
+      description: `Used by a X509Certificate ${Names.uniqueId(this)} to monitor certificate expiration date.`,
+      code: props.lambdaCode,
+      environment: {
+        UNIQUEID: props.uniqueValue,
+      },
+      runtime: Runtime.NODEJS_12_X,
+      layers: props.lambdaLayers,
+      handler: 'cert-rotation-monitor.handler',
+      timeout: Duration.seconds(90),
+      logRetention: RetentionDays.ONE_WEEK,
+    });
+    lambdaMonitor.addToRolePolicy(new PolicyStatement({
+      actions: [
+        'secretsmanager:GetSecretValue',
+      ],
+      resources: ['*'],
+      conditions: {
+        StringEquals: props.tagCondition,
+      },
+    }));
+    lambdaMonitor.addToRolePolicy(new PolicyStatement({
+      actions: [
+        'secretsmanager:ListSecrets',
+      ],
+      resources: ['*'],
+    }));
+    lambdaMonitor.addToRolePolicy(new PolicyStatement({
+      actions: [
+        'cloudwatch:PutMetricData',
+      ],
+      resources: ['*'],
+      conditions: {
+        StringEquals: { 'cloudwatch:namespace': 'AWS/RFDK' },
+      },
+    }));
+    return lambdaMonitor;
+  }
+
+  private addExpDateValidation(props: X509CertValidationProps){
+    const certMetric = new Metric({
+      metricName: 'DaysToExpiry',
+      namespace: 'AWS/RFDK',
+      dimensions: {
+        'Certificate Metrics': props.uniqueValue,
+      },
+      // One 99-th percentile data point hour
+      period: Duration.days(1),
+      statistic: 'p99',
+    });
+
+    const alarm = certMetric.createAlarm(this, 'CertificateExpiryAlarm', {
+      evaluationPeriods: 1,
+      threshold: 15,
+      comparisonOperator: ComparisonOperator.LESS_THAN_THRESHOLD,
+      treatMissingData: TreatMissingData.NOT_BREACHING,
+      actionsEnabled: props.alarmEmailAddress ? true : false,
+    });
+
+    if (props.alarmEmailAddress) {
+      const snsTopic = new Topic(this, 'CertificateExpiryTopic');
+      snsTopic.addSubscription(new EmailSubscription(props.alarmEmailAddress));
+      const alarmAction = new SnsAction(snsTopic);
+      alarm.addAlarmAction(alarmAction);
+    }
+
+    new Rule(this, 'ScheduleSecretMonitoring', {
+      description: `Used for monitoring X509Certificate ${Names.uniqueId(this)} expiration date`,
+      schedule: Schedule.rate(Duration.days(1)),
+      targets: [ new LambdaFunctionTask(this.lambdaMonitor) ],
+    });
   }
 }
 
@@ -273,6 +399,7 @@ export class X509CertificatePem extends X509CertificateBase implements IX509Cert
       lambdaCode: Code.fromAsset(join(__dirname, '..', '..', 'lambdas', 'nodejs')),
       lambdaHandler: 'x509-certificate.generate',
       encryptionKey: props.encryptionKey,
+      alarmEmailAddress: props.alarmEmailAddress,
     });
 
     if ((props.validFor ?? 1) < 1 && !Token.isUnresolved(props.validFor)) {

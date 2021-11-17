@@ -90,6 +90,40 @@ export class Certificate implements ICertificate {
     }
   }
 
+  public static async getExpDate(
+    certificate: string,
+  ): Promise<Date | undefined> {
+    const tmpDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'tmp.'));
+    try {
+      const certificateFile: string = path.join(tmpDir, 'crt');
+      await writeAsciiFile(certificateFile, certificate);
+      const cmd =
+        'openssl x509 ' +
+        '-enddate -noout ' +
+        `-in ${certificateFile} ` +
+        '| cut -d= -f2';
+
+      console.debug(`Running: ${cmd}`);
+      const result = await exec(cmd, { env: { PATH: process.env.PATH } });
+      console.debug(`stderr: ${result.stderr}`);
+      console.debug(`stdout: ${result.stdout}`);
+
+      if (result.stdout) {
+        return new Date(result.stdout);
+      }
+
+      return undefined;
+    } finally {
+      const unlinks: Array<Promise<void>> = [];
+      const filenames: string[] = await fs.promises.readdir(tmpDir);
+      for (const file of filenames) {
+        unlinks.push(fs.promises.unlink(path.join(tmpDir, file)));
+      }
+      await Promise.all(unlinks);
+      await fs.promises.rmdir(tmpDir);
+    }
+  }
+
   private static async generateSelfSigned(
     tmpDir: string,
     subject: DistinguishedName,
