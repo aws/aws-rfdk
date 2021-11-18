@@ -134,7 +134,6 @@ export class SecretsManagementIdentityRegistration extends Construct {
     });
 
     // Install python dependencies
-    this.preparePythonEnvironment(props);
     const localScriptFile = this.preparePythonScript(props);
     this.runPythonScript(props, localScriptFile);
 
@@ -284,14 +283,6 @@ export class SecretsManagementIdentityRegistration extends Construct {
         '--restartstalled', 'true',
         '--autoupdateoverride', 'False',
       ].join(' '),
-    );
-  }
-
-  private preparePythonEnvironment(props: SecretsManagementIdentityRegistrationProps) {
-    // The script must run as ec2-user because Repository.configureClientInstance(...) used above will store the
-    // credentials in a per-user credential store that is only available to "ec2-user".
-    props.deploymentInstance.userData.addCommands(
-      'sudo -u ec2-user python3 -m pip install --user boto3',
     );
   }
 }

@@ -2904,6 +2904,36 @@ describe('RenderQueue', () => {
       }));
     });
 
+    test('DeploymentInstance uses specified backend security group', () => {
+      // GIVEN
+      const backendSecurityGroupId = 'backend-sg-id';
+      const backendSecurityGroup = SecurityGroup.fromSecurityGroupId(stack, 'BackendSG', backendSecurityGroupId);
+      rqSecretsManagementProps = {
+        ...rqSecretsManagementProps,
+        securityGroups: {
+          backend: backendSecurityGroup,
+        },
+      };
+
+      // WHEN
+      const renderQueue = new RenderQueue(stack, 'SecretsManagementRenderQueue', rqSecretsManagementProps);
+
+      // THEN
+      // eslint-disable-next-line dot-notation
+      expect(renderQueue['deploymentInstance'].connections.securityGroups[0].securityGroupId).toEqual(backendSecurityGroupId);
+    });
+
+    test('DeploymentInstance uses implicitly created backend security group', () => {
+      // WHEN
+      const renderQueue = new RenderQueue(stack, 'SecretsManagementRenderQueue', rqSecretsManagementProps);
+
+      // THEN
+      // eslint-disable-next-line dot-notation
+      expect(renderQueue['deploymentInstance'].connections.securityGroups[0]).toBe(renderQueue.backendConnections.securityGroups[0]);
+      // eslint-disable-next-line dot-notation
+      expect(renderQueue['deploymentInstance'].connections.securityGroups[0]).toBe(renderQueue.asg.connections.securityGroups[0]);
+    });
+
     describe('client calls .configureSecretsManagementAutoRegistration()', () => {
       let callParams: any;
       let clientInstance: Instance;

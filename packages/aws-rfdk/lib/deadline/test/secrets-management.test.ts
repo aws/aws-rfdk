@@ -249,17 +249,6 @@ describe('SecretsManagementIdentityRegistration', () => {
       }));
     });
 
-    test('sets up Python environment', () => {
-      // WHEN
-      createTarget();
-
-      // THEN
-      // The script requires boto3 to query the subnets CIDR. This script runs
-      // as the ec2-user so we install this into the user's package directory
-      expect(deploymentInstance.userData.addCommands)
-        .toHaveBeenCalledWith('sudo -u ec2-user python3 -m pip install --user boto3');
-    });
-
     test('configures direct repository connection', () => {
       // WHEN
       createTarget();

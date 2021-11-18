@@ -7,7 +7,6 @@ Configures Deadline Secrets Management identity registration settings
 """
 
 import argparse
-import base64
 import io
 import ipaddress
 import json
@@ -18,8 +17,6 @@ import subprocess
 import sys
 
 from typing import Dict, Iterable, List, NamedTuple, Match
-
-import boto3
 
 # Regex's for validating and splitting arguments
 SECRET_ARN_RE = re.compile(r'''
@@ -60,7 +57,7 @@ SOURCE_SUBNET_RE = re.compile(r"""
 RE_CAMEL_HUMP_SUB = re.compile(r'[A-Z]?[a-z]+|[A-Z]{2,}(?=[A-Z][a-z]|\d|\W|$)|\d+|[A-Z]{2,}|[A-Z]$')
 
 # Constants for the naming convention of RFDK-managed identity registration settings
-RFDK_IDENTITY_REGISTRATION_SETTING_NAME_PREFIX = f'RfdkSubnet'
+RFDK_IDENTITY_REGISTRATION_SETTING_NAME_PREFIX = 'RfdkSubnet'
 RFDK_IDENTITY_REGISTRATION_SETTING_NAME_SEP = '|'
 RFDK_IDENTITY_REGISTRATION_SETTING_NAME_RE = re.compile(rf"""
     ^
@@ -223,29 +220,82 @@ def validate_config(config):
 ####################################
 
 
-def fetch_secret(secret, binary=False):
+def aws_cli(args: List[str]):
+    """
+    Run an AWS CLI command and return JSON parsed output
+    """
+
+    try:
+        text_output = subprocess.check_output(['aws'] + args, text=True)
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"failed to call AWS CLI ({e.returncode}): \n{e.stdout}\n\n{e.stderr}") from e
+
+    try:
+        json_obj = json.loads(text_output)
+    except json.JSONDecodeError as e:
+        raise Exception(f"AWS CLI did not output JSON as expected ({e.msg}). Output was:\n{text_output}") from e
+
+    return json_obj
+
+
+def fetch_secret(secret):
     """
     Fetch a secret from AWS
 
     :return: returns the contents of the secret
     """
     if isinstance(secret, AwsSecret):
-        secrets_client = boto3.client('secretsmanager', region_name=secret.region)
-        secret_value = secrets_client.get_secret_value(SecretId=secret.arn)
-        if binary:
-            return base64.b64decode(secret_value.get('SecretBinary'))
-        else:
-            return secret_value.get('SecretString')
+        result = aws_cli([
+            'secretsmanager',
+            '--region', secret.region,
+            'get-secret-value',
+            '--secret-id', secret.arn
+        ])
+
+        """
+        Result will be of the form:
+        {
+            ...
+            "SecretString": "{\n  \"username\":\"david\",\n  \"password\":\"BnQw&XDWgaEeT9XGTT29\"\n}\n",
+            ...
+        }
+
+        See https://docs.aws.amazon.com/cli/latest/reference/secretsmanager/get-secret-value.html
+        """
+        return result['SecretString']
     else:
         raise TypeError('Unknown Secret type.')
 
 
 def get_subnet_cidrs(region: str, subnet_ids: Iterable[str]) -> Dict[str, str]:
-    ec2 = boto3.resource('ec2', region_name=region)
+    filters = f'Name=subnet-id,Values={",".join(subnet_ids)}'
 
+    result = aws_cli([
+        '--region', region,
+        'ec2',
+        'describe-subnets',
+        '--filters', filters
+    ])
+
+    """
+    Result will be of the form:
+    {
+        "Subnets": [
+            {
+                ...,
+                "CidrBlock": "172.31.80.0/20",
+                "SubnetId": "subnet-0bb1c79de3EXAMPLE",
+                ...
+            },
+            ...
+        ]
+    }
+
+    See https://docs.aws.amazon.com/cli/latest/reference/ec2/describe-subnets.html
+    """
     return {
-        subnet.subnet_id: subnet.cidr_block
-        for subnet in ec2.subnets.filter(SubnetIds=list(subnet_ids))
+        subnet["SubnetId"]: subnet["CidrBlock"]
+        for subnet in result["Subnets"]
     }
 
 
