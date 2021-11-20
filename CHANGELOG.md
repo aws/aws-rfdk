@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.39.0](https://github.com/aws/aws-rfdk/compare/v0.38.0...v0.39.0) (2021-11-20)
+
+
+### Supported CDK Version
+
+* [1.129.0](https://github.com/aws/aws-cdk/releases/tag/v1.129.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.19.4](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Bug Fixes
+
+* **deadline:** change dependency when configuring repository clients to its auto scaling group ([#626](https://github.com/aws/aws-rfdk/issues/626)) ([6464f40](https://github.com/aws/aws-rfdk/commit/6464f40a88236797c3e2df5caf5420421e8f7936))
+* **deadline:** configure identity registration settings using RenderQueue backend security group ([#633](https://github.com/aws/aws-rfdk/issues/633)) ([35bb326](https://github.com/aws/aws-rfdk/commit/35bb326e6d6ec6e8f02d0210c2caada74f369062)), closes [#632](https://github.com/aws/aws-rfdk/issues/632)
+
 ## [0.38.0](https://github.com/aws/aws-rfdk/compare/v0.37.0...v0.38.0) (2021-10-25)
 
 
