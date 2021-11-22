@@ -49,6 +49,11 @@ export interface SEPStackProps extends StackProps {
    * The {@link IMachineImage} to use for Workers (needs Deadline Client installed).
    */
   readonly workerMachineImage: IMachineImage;
+
+  /**
+   * Whether the DeadlineResourceTracker stack and supporting resources already exist or not.
+   */
+  readonly createResourceTrackerRole: boolean;
 }
 
 export class SEPStack extends Stack {
@@ -126,15 +131,16 @@ export class SEPStack extends Stack {
       trafficEncryption,
     });
 
-    // Creates the Resource Tracker Access role. This role is required to exist in your account so the resource tracker will work properly
-    // Note: If you already have a Resource Tracker IAM role in your account you can remove this code.
-    new Role(this, 'ResourceTrackerRole', {
-      assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
-      managedPolicies: [
-        ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAccessPolicy'),
-      ],
-      roleName: 'DeadlineResourceTrackerAccessRole',
-    });
+    if (props.createResourceTrackerRole) {
+      // Creates the Resource Tracker Access role. This role is required to exist in your account so the resource tracker will work properly
+      new Role(this, 'ResourceTrackerRole', {
+        assumedBy: new ServicePrincipal('lambda.amazonaws.com'),
+        managedPolicies: [
+          ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAccessPolicy'),
+        ],
+        roleName: 'DeadlineResourceTrackerAccessRole',
+      });
+    }
 
     const fleet = new SpotEventPluginFleet(this, 'SpotEventPluginFleet', {
       vpc,
@@ -154,7 +160,7 @@ export class SEPStack extends Stack {
 
     new ConfigureSpotEventPlugin(this, 'ConfigureSpotEventPlugin', {
       vpc,
-      renderQueue: renderQueue,
+      renderQueue,
       spotFleets: [
         fleet,
       ],

@@ -6,24 +6,24 @@
 import {
   convertSpotEventPluginSettings,
   convertToBoolean,
-  convertToBooleanOptional,
   convertToInt,
-  convertToIntOptional,
-  isValidDeviceMapping,
-  isValidInstanceProfile,
-  isValidSecurityGroup,
   isValidTagSpecification,
   validateArray,
+  validateLaunchTemplateConfigs,
+  validateLaunchTemplateOverrides,
+  validateLaunchTemplateSpecification,
   validateProperty,
   validateString,
   validateStringOptional,
 } from '../conversion';
 import {
+  LaunchTemplateConfig,
+  LaunchTemplateOverrides,
+  LaunchTemplateSpecification,
   PluginSettings,
-  SpotFleetSecurityGroupId,
-  BlockDeviceMappingProperty,
-  SpotFleetInstanceProfile,
 } from '../types';
+
+const propertyName = 'propertyName';
 
 describe('convertSpotEventPluginSettings()', () => {
   test('does not convert properties with correct types', () => {
@@ -123,43 +123,12 @@ describe('convertToInt()', () => {
     undefined,
   ])('throws an error with %p', input => {
     // WHEN
-    const propertyName = 'propertyName';
     function callingConvertToInt() {
       convertToInt(input, propertyName);
     }
 
     // THEN
     expect(callingConvertToInt).toThrowError(`The value of ${propertyName} should be an integer. Received: ${input}`);
-  });
-});
-
-describe('convertToIntOptional()', () => {
-  test.each<[any, number | undefined]>([
-    ['10', 10],
-    [10, 10],
-    [undefined, undefined],
-  ])('correctly converts %p to %p', (input: any, expected: number | undefined) => {
-    // WHEN
-    const returnValue = convertToIntOptional(input, 'propertyName');
-
-    // THEN
-    expect(returnValue).toBe(expected);
-  });
-
-  test.each([
-    10.6,
-    [],
-    {},
-    'string',
-  ])('throws an error with %p', input => {
-    // WHEN
-    const propertyName = 'propertyName';
-    function callingConvertToIntOptional() {
-      convertToIntOptional(input, propertyName);
-    }
-
-    // THEN
-    expect(callingConvertToIntOptional).toThrowError(`The value of ${propertyName} should be an integer. Received: ${input}`);
   });
 });
 
@@ -185,45 +154,12 @@ describe('convertToBoolean()', () => {
     undefined,
   ])('throws an error with %p', input => {
     // WHEN
-    const propertyName = 'propertyName';
     function callingConvertToBoolean() {
       convertToBoolean(input, propertyName);
     }
 
     // THEN
     expect(callingConvertToBoolean).toThrowError(`The value of ${propertyName} should be a boolean. Received: ${input}`);
-  });
-});
-
-describe('convertToBooleanOptional()', () => {
-  test.each<[any, boolean | undefined]>([
-    [true, true],
-    ['true', true],
-    [false, false],
-    ['false', false],
-    [undefined, undefined],
-  ])('correctly converts %p to %p', (input: any, expected: boolean | undefined) => {
-    // WHEN
-    const returnValue = convertToBooleanOptional(input, 'property');
-
-    // THEN
-    expect(returnValue).toBe(expected);
-  });
-
-  test.each([
-    10.6,
-    [],
-    {},
-    'string',
-  ])('throws an error with %p', input => {
-    // WHEN
-    const propertyName = 'propertyName';
-    function callingConvertToBooleanOptional() {
-      convertToBooleanOptional(input, propertyName);
-    }
-
-    // THEN
-    expect(callingConvertToBooleanOptional).toThrowError(`The value of ${propertyName} should be a boolean. Received: ${input}`);
   });
 });
 
@@ -247,7 +183,6 @@ describe('validateString()', () => {
     undefined,
   ])('throws an error with %p', input => {
     // WHEN
-    const propertyName = 'propertyName';
     function callingValidateString() {
       validateString(input, propertyName);
     }
@@ -277,7 +212,6 @@ describe('validateStringOptional()', () => {
     {},
   ])('throws an error with %p', input => {
     // WHEN
-    const propertyName = 'propertyName';
     function callingValidateStringOptional() {
       validateStringOptional(input, propertyName);
     }
@@ -294,7 +228,6 @@ describe('validateArray', () => {
     [],
   ])('throws with invalid input %p', (invalidInput: any) => {
     // WHEN
-    const propertyName = 'propertyName';
     function callingValidateArray() {
       validateArray(invalidInput, propertyName);
     }
@@ -314,42 +247,6 @@ describe('validateArray', () => {
 
     // THEN
     expect(callingValidateArray).not.toThrowError();
-  });
-});
-
-describe('isValidSecurityGroup', () => {
-  // Valid security groups
-  const validSecurityGroup: SpotFleetSecurityGroupId = {
-    GroupId: 'groupId',
-  };
-
-  // Invalid security groups
-  const groupIdNotString = {
-    GroupId: 10,
-  };
-  const noGroupId = {
-  };
-
-  test.each([
-    undefined,
-    [],
-    '',
-    groupIdNotString,
-    noGroupId,
-  ])('returns false with invalid input %p', (invalidInput: any) => {
-    // WHEN
-    const result = isValidSecurityGroup(invalidInput);
-
-    // THEN
-    expect(result).toBeFalsy();
-  });
-
-  test('returns true with a valid input', () => {
-    // WHEN
-    const result = isValidSecurityGroup(validSecurityGroup);
-
-    // THEN
-    expect(result).toBeTruthy();
   });
 });
 
@@ -440,71 +337,9 @@ describe('isValidTagSpecification', () => {
   });
 });
 
-describe('isValidDeviceMapping', () => {
-  test.each([
-    undefined,
-    [],
-    '',
-  ])('returns false with invalid input %p', (invalidInput: any) => {
-    // WHEN
-    const result = isValidDeviceMapping(invalidInput);
-
-    // THEN
-    expect(result).toBeFalsy();
-  });
-
-  test('returns true with a valid input', () => {
-    // GIVEN
-    const anyObject = {} as unknown;
-
-    // WHEN
-    const result = isValidDeviceMapping(anyObject as BlockDeviceMappingProperty);
-
-    // THEN
-    expect(result).toBeTruthy();
-  });
-});
-
-describe('isValidInstanceProfile', () => {
-  // Valid instance profiles
-  const validInstanceProfile: SpotFleetInstanceProfile = {
-    Arn: 'arn',
-  };
-
-  // Invalid instance profiles
-  const noArn = {
-  };
-  const arnNotString = {
-    Arn: 10,
-  };
-
-  test.each([
-    undefined,
-    [],
-    '',
-    noArn,
-    arnNotString,
-  ])('returns false with invalid input %p', (invalidInput: any) => {
-    // WHEN
-    const result = isValidInstanceProfile(invalidInput);
-
-    // THEN
-    expect(result).toBeFalsy();
-  });
-
-  test('returns true with a valid input', () => {
-    // WHEN
-    const result = isValidInstanceProfile(validInstanceProfile);
-
-    // THEN
-    expect(result).toBeTruthy();
-  });
-});
-
 describe('validateProperty', () => {
   test('throws with invalid input', () => {
     // WHEN
-    const propertyName = 'propertyName';
     function returnFalse(_input: any) {
       return false;
     }
@@ -527,5 +362,308 @@ describe('validateProperty', () => {
 
     // THEN
     expect(callingValidateProperty).not.toThrowError();
+  });
+});
+
+describe('validateLaunchTemplateSpecification', () => {
+  test('accepts launch template specification with id', () => {
+    // GIVEN
+    const spec: LaunchTemplateSpecification = {
+      Version: '1',
+      LaunchTemplateId: 'id',
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateSpecification(spec, propertyName))
+
+      // THEN
+      .not.toThrow();
+  });
+
+  test('accepts launch template specification with name', () => {
+    // GIVEN
+    const spec: LaunchTemplateSpecification = {
+      Version: '1',
+      LaunchTemplateName: 'name',
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateSpecification(spec, propertyName))
+
+      // THEN
+      .not.toThrow();
+  });
+
+  test('throws if both id and name are specified', () => {
+    // GIVEN
+    const id = 'id';
+    const name = 'name';
+    const spec: LaunchTemplateSpecification = {
+      Version: '1',
+      LaunchTemplateId: id,
+      LaunchTemplateName: name,
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateSpecification(spec, propertyName))
+
+      // THEN
+      .toThrowError(`Exactly one of ${propertyName}.LaunchTemplateId or ${propertyName}.LaunchTemplateName must be specified, but got: ${id} and ${name} respectively`);
+  });
+
+  test('throws if neither id or name are specified', () => {
+    // GIVEN
+    const spec: LaunchTemplateSpecification = {
+      Version: '1',
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateSpecification(spec, propertyName))
+
+      // THEN
+      .toThrowError(`Exactly one of ${propertyName}.LaunchTemplateId or ${propertyName}.LaunchTemplateName must be specified, but got: ${undefined} and ${undefined} respectively`);
+  });
+
+  test('throws if id is invalid', () => {
+    // GIVEN
+    const invalidValue = 123;
+    const spec: LaunchTemplateSpecification = {
+      Version: '1',
+      // @ts-ignore
+      LaunchTemplateId: invalidValue,
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateSpecification(spec, propertyName))
+
+      // THEN
+      .toThrowError(new RegExp(`The value of ${propertyName}.LaunchTemplateId should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
+  });
+
+  test('throws if name is invalid', () => {
+    // GIVEN
+    const invalidValue = 123;
+    const spec: LaunchTemplateSpecification = {
+      Version: '1',
+      // @ts-ignore
+      LaunchTemplateName: invalidValue,
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateSpecification(spec, propertyName))
+
+      // THEN
+      .toThrowError(new RegExp(`The value of ${propertyName}.LaunchTemplateName should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
+  });
+
+  test('throws if version is invalid', () => {
+    // GIVEN
+    const invalidValue = 123;
+    const spec: LaunchTemplateSpecification = {
+      LaunchTemplateId: '',
+      // @ts-ignore
+      Version: invalidValue,
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateSpecification(spec, propertyName))
+
+      // THEN
+      .toThrowError(`The value of ${propertyName}.Version should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`);
+  });
+});
+
+describe('validateLaunchTemplateOverrides', () => {
+  test('accepts valid overrides', () => {
+    // GIVEN
+    const overrides: LaunchTemplateOverrides = {
+      AvailabilityZone: 'AvailabilityZone',
+      InstanceType: 'InstanceType',
+      SpotPrice: 'SpotPrice',
+      SubnetId: 'SubnetId',
+      WeightedCapacity: 123,
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
+
+      // THEN
+      .not.toThrow();
+  });
+
+  test('throws if AvailabilityZone is invalid', () => {
+    // GIVEN
+    const invalidValue = 123;
+    const overrides: LaunchTemplateOverrides = {
+      // @ts-ignore
+      AvailabilityZone: invalidValue,
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
+
+      // THEN
+      .toThrowError(new RegExp(`The value of ${propertyName}.AvailabilityZone should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
+  });
+
+  test('throws if InstanceType is invalid', () => {
+    // GIVEN
+    const invalidValue = 123;
+    const overrides: LaunchTemplateOverrides = {
+      // @ts-ignore
+      InstanceType: invalidValue,
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
+
+      // THEN
+      .toThrowError(new RegExp(`The value of ${propertyName}.InstanceType should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
+  });
+
+  test('throws if SpotPrice is invalid', () => {
+    // GIVEN
+    const invalidValue = 123;
+    const overrides: LaunchTemplateOverrides = {
+      // @ts-ignore
+      SpotPrice: invalidValue,
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
+
+      // THEN
+      .toThrowError(new RegExp(`The value of ${propertyName}.SpotPrice should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
+  });
+
+  test('throws if SubnetId is invalid', () => {
+    // GIVEN
+    const invalidValue = 123;
+    const overrides: LaunchTemplateOverrides = {
+      // @ts-ignore
+      SubnetId: invalidValue,
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
+
+      // THEN
+      .toThrowError(new RegExp(`The value of ${propertyName}.SubnetId should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
+  });
+
+  test('throws if WeightedCapacity is invalid', () => {
+    // GIVEN
+    const invalidValue = 'WeightedCapacity';
+    const overrides: LaunchTemplateOverrides = {
+      // @ts-ignore
+      WeightedCapacity: invalidValue,
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
+
+      // THEN
+      .toThrowError(`${propertyName}.WeightedCapacity type is not valid.`);
+  });
+});
+
+describe('validateLaunchTemplateConfigs', () => {
+  const LaunchTemplateSpec: LaunchTemplateSpecification = {
+    Version: '1',
+    LaunchTemplateId: 'id',
+  };
+  const Overrides: LaunchTemplateOverrides[] = [];
+
+  test('accepts valid LaunchTemplateConfig', () => {
+    // GIVEN
+    const config: LaunchTemplateConfig = {
+      LaunchTemplateSpecification: LaunchTemplateSpec,
+      Overrides,
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateConfigs([config], propertyName))
+
+      // THEN
+      .not.toThrow();
+  });
+
+  test('throws when not given an array of LaunchTemplateConfigs', () => {
+    // WHEN
+    expect(() => {
+      // @ts-ignore
+      validateLaunchTemplateConfigs({}, propertyName);
+    })
+
+      // THEN
+      .toThrowError(`${propertyName} should be an array with at least one element.`);
+  });
+
+  test('throws when LaunchTemplateSpecification is the wrong type', () => {
+    // GIVEN
+    const invalidValue = 123;
+    const config: LaunchTemplateConfig = {
+      // @ts-ignore
+      LaunchTemplateSpecification: invalidValue,
+      Overrides,
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateConfigs([config], propertyName))
+
+      // THEN
+      .toThrowError(`${propertyName}[0].LaunchTemplateSpecification type is not valid.`);
+  });
+
+  test('throws when Version is invalid', () => {
+    // GIVEN
+    const invalidValue = 123;
+    const config: LaunchTemplateConfig = {
+      LaunchTemplateSpecification: {
+        LaunchTemplateId: '',
+        // @ts-ignore
+        Version: invalidValue,
+      },
+      Overrides,
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateConfigs([config], propertyName))
+
+      // THEN
+      .toThrowError(`The value of ${propertyName}[0].LaunchTemplateSpecification.Version should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`);
+  });
+
+  test('throws when Overrides is not an array', () => {
+    // GIVEN
+    const config: LaunchTemplateConfig = {
+      LaunchTemplateSpecification: LaunchTemplateSpec,
+      // @ts-ignore
+      Overrides: 123,
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateConfigs([config], propertyName))
+
+      // THEN
+      .toThrowError(`${propertyName}[0].Overrides type is not valid.`);
+  });
+
+  test('throws when a LaunchTemplateOverride is invalid', () => {
+    // GIVEN
+    const invalidValue = 123;
+    const config: LaunchTemplateConfig = {
+      LaunchTemplateSpecification: LaunchTemplateSpec,
+      Overrides: [{
+        // @ts-ignore
+        AvailabilityZone: invalidValue,
+      }],
+    };
+
+    // WHEN
+    expect(() => validateLaunchTemplateConfigs([config], propertyName))
+
+      // THEN
+      .toThrowError(`The value of ${propertyName}[0].Overrides[0].AvailabilityZone should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`);
   });
 });

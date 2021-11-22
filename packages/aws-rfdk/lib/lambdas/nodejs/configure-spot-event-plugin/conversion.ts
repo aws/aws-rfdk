@@ -4,15 +4,13 @@
  */
 
 import {
-  BlockDeviceMappingProperty,
-  BlockDeviceProperty,
   PluginSettings,
-  SpotFleetInstanceProfile,
   SpotFleetRequestConfiguration,
-  LaunchSpecification,
   SpotFleetRequestProps,
-  SpotFleetSecurityGroupId,
   SpotFleetTagSpecification,
+  LaunchTemplateConfig,
+  LaunchTemplateSpecification,
+  LaunchTemplateOverrides,
 } from './types';
 
 /**
@@ -27,7 +25,9 @@ export function convertSpotFleetRequestConfiguration(spotFleetRequestConfigs: Sp
     const convertedSpotFleetRequestProps: SpotFleetRequestProps = {
       AllocationStrategy: validateString(sfrConfigs.AllocationStrategy, `${group_name}.AllocationStrategy`),
       IamFleetRole: validateString(sfrConfigs.IamFleetRole, `${group_name}.IamFleetRole`),
-      LaunchSpecifications: convertLaunchSpecifications(sfrConfigs.LaunchSpecifications, `${group_name}.LaunchSpecifications`),
+      // Empty array needed for compatibility with SEP since it expects an array for the LaunchSpecifications property
+      LaunchSpecifications: [],
+      LaunchTemplateConfigs: sfrConfigs.LaunchTemplateConfigs ? validateLaunchTemplateConfigs(sfrConfigs.LaunchTemplateConfigs, `${group_name}.LaunchTemplateConfigs`) : undefined,
       ReplaceUnhealthyInstances: convertToBoolean(sfrConfigs.ReplaceUnhealthyInstances, `${group_name}.ReplaceUnhealthyInstances`),
       TargetCapacity: convertToInt(sfrConfigs.TargetCapacity, `${group_name}.TargetCapacity`),
       TerminateInstancesWithExpiration: convertToBoolean(sfrConfigs.TerminateInstancesWithExpiration, `${group_name}.TerminateInstancesWithExpiration`),
@@ -73,27 +73,6 @@ export function validateProperty(isValid: (input: any) => boolean, property: any
   }
 }
 
-export function isValidSecurityGroup(securityGroup: SpotFleetSecurityGroupId): boolean {
-  if (!securityGroup || typeof(securityGroup) !== 'object'  || Array.isArray(securityGroup)) { return false; }
-  // We also verify groupId with validateString later
-  if (!securityGroup.GroupId || typeof(securityGroup.GroupId) !== 'string') { return false; }
-  return true;
-}
-
-export function convertSecurityGroups(securityGroups: SpotFleetSecurityGroupId[], propertyName: string): SpotFleetSecurityGroupId[] {
-  validateArray(securityGroups, propertyName);
-
-  const convertedSecurityGroups: SpotFleetSecurityGroupId[] = securityGroups.map(securityGroup => {
-    validateProperty(isValidSecurityGroup, securityGroup, propertyName);
-    const convertedSecurityGroup: SpotFleetSecurityGroupId = {
-      GroupId: validateString(securityGroup.GroupId, `${propertyName}.GroupId`),
-    };
-    return convertedSecurityGroup;
-  });
-
-  return convertedSecurityGroups;
-}
-
 export function isValidTagSpecification(tagSpecification: SpotFleetTagSpecification): boolean {
   if (!tagSpecification || typeof(tagSpecification) !== 'object' || Array.isArray(tagSpecification)) { return false; }
   // We also verify resourceType with validateString later
@@ -122,79 +101,36 @@ export function convertTagSpecifications(tagSpecifications: SpotFleetTagSpecific
   return convertedTagSpecifications;
 }
 
-export function isValidDeviceMapping(deviceMapping: BlockDeviceMappingProperty): boolean {
-  if (!deviceMapping || typeof(deviceMapping) !== 'object' || Array.isArray(deviceMapping)) { return false; }
-  // We validate the rest properties when convert them.
-  return true;
+export function validateLaunchTemplateSpecification(launchTemplateSpecification: LaunchTemplateSpecification, propertyName: string): void {
+  const id = validateStringOptional(launchTemplateSpecification.LaunchTemplateId, `${propertyName}.LaunchTemplateId`);
+  const name = validateStringOptional(launchTemplateSpecification.LaunchTemplateName, `${propertyName}.LaunchTemplateName`);
+  if ((id === undefined && name === undefined) || (id !== undefined && name !== undefined)) {
+    throw new Error(`Exactly one of ${propertyName}.LaunchTemplateId or ${propertyName}.LaunchTemplateName must be specified, but got: ${id} and ${name} respectively`);
+  }
+  validateString(launchTemplateSpecification.Version, `${propertyName}.Version`);
 }
 
-export function convertEbs(ebs: BlockDeviceProperty, propertyName: string): BlockDeviceProperty {
-  const convertedEbs: BlockDeviceProperty = {
-    DeleteOnTermination: convertToBooleanOptional(ebs.DeleteOnTermination, `${propertyName}.DeleteOnTermination`),
-    Encrypted: convertToBooleanOptional(ebs.Encrypted, `${propertyName}.Encrypted`),
-    Iops: convertToIntOptional(ebs.Iops, `${propertyName}.Iops`),
-    SnapshotId: validateStringOptional(ebs.SnapshotId, `${propertyName}.SnapshotId`),
-    VolumeSize: convertToIntOptional(ebs.VolumeSize, `${propertyName}.VolumeSize`),
-    VolumeType: validateStringOptional(ebs.VolumeType, `${propertyName}.VolumeType`),
-  };
-  return convertedEbs;
+export function validateLaunchTemplateOverrides(launchTemplateOverrides: LaunchTemplateOverrides, propertyName: string) {
+  validateStringOptional(launchTemplateOverrides.AvailabilityZone, `${propertyName}.AvailabilityZone`);
+  validateStringOptional(launchTemplateOverrides.InstanceType, `${propertyName}.InstanceType`);
+  validateStringOptional(launchTemplateOverrides.SpotPrice, `${propertyName}.SpotPrice`);
+  validateStringOptional(launchTemplateOverrides.SubnetId, `${propertyName}.SubnetId`);
+  validateProperty(num => num === undefined || typeof num === 'number', launchTemplateOverrides.WeightedCapacity, `${propertyName}.WeightedCapacity`);
 }
 
-export function convertBlockDeviceMapping(blockDeviceMappings: BlockDeviceMappingProperty[], propertyName: string): BlockDeviceMappingProperty[] {
-  validateArray(blockDeviceMappings, propertyName);
-  const convertedBlockDeviceMappings: BlockDeviceMappingProperty[] = blockDeviceMappings.map(deviceMapping => {
-    validateProperty(isValidDeviceMapping, deviceMapping, propertyName);
+export function validateLaunchTemplateConfigs(launchTemplateConfigs: LaunchTemplateConfig[], propertyName: string): LaunchTemplateConfig[] {
+  validateArray(launchTemplateConfigs, propertyName);
 
-    const convertedDeviceMapping: BlockDeviceMappingProperty = {
-      DeviceName: validateString(deviceMapping.DeviceName, `${propertyName}.DeviceName`),
-      Ebs: deviceMapping.Ebs ? convertEbs(deviceMapping.Ebs, `${propertyName}.Ebs`) : undefined,
-      NoDevice: validateStringOptional(deviceMapping.NoDevice, `${propertyName}.NoDevice`),
-      VirtualName: validateStringOptional(deviceMapping.VirtualName, `${propertyName}.VirtualName`),
-    };
-    return convertedDeviceMapping;
+  launchTemplateConfigs.forEach((ltc, i) => {
+    const ltcPropertyName = `${propertyName}[${i}]`;
+    validateProperty(input => typeof input === 'object' && !Array.isArray(input), ltc.LaunchTemplateSpecification, `${ltcPropertyName}.LaunchTemplateSpecification`);
+    validateLaunchTemplateSpecification(ltc.LaunchTemplateSpecification, `${ltcPropertyName}.LaunchTemplateSpecification`);
+
+    validateProperty(input => Array.isArray(input), ltc.Overrides, `${ltcPropertyName}.Overrides`);
+    ltc.Overrides.forEach((override, idx) => validateLaunchTemplateOverrides(override, `${ltcPropertyName}.Overrides[${idx}]`));
   });
-  return convertedBlockDeviceMappings;
-}
 
-export function isValidInstanceProfile(instanceProfile: SpotFleetInstanceProfile): boolean {
-  if (!instanceProfile || typeof(instanceProfile) !== 'object' || Array.isArray(instanceProfile)) { return false; }
-  // We also verify arn with validateString later
-  if (!instanceProfile.Arn || typeof(instanceProfile.Arn) !== 'string') { return false; }
-  return true;
-}
-
-export function convertInstanceProfile(instanceProfile: SpotFleetInstanceProfile, propertyName: string): SpotFleetInstanceProfile {
-  validateProperty(isValidInstanceProfile, instanceProfile, propertyName);
-  const convertedInstanceProfile: SpotFleetInstanceProfile = {
-    Arn: validateString(instanceProfile.Arn, `${propertyName}.Arn`),
-  };
-  return convertedInstanceProfile;
-}
-
-export function convertLaunchSpecifications(launchSpecifications: LaunchSpecification[], propertyName: string): LaunchSpecification[] {
-  validateArray(launchSpecifications, propertyName);
-
-  const convertedLaunchSpecifications: LaunchSpecification[] = [];
-  launchSpecifications.map(launchSpecification => {
-    const SecurityGroups = convertSecurityGroups(launchSpecification.SecurityGroups, `${propertyName}.SecurityGroups`);
-    const TagSpecifications = convertTagSpecifications(launchSpecification.TagSpecifications, `${propertyName}.TagSpecifications`);
-    const BlockDeviceMappings = launchSpecification.BlockDeviceMappings ?
-      convertBlockDeviceMapping(launchSpecification.BlockDeviceMappings, `${propertyName}.BlockDeviceMappings`) : undefined;
-
-    const convertedLaunchSpecification: LaunchSpecification = {
-      BlockDeviceMappings,
-      IamInstanceProfile: convertInstanceProfile(launchSpecification.IamInstanceProfile, `${propertyName}.IamInstanceProfile`),
-      ImageId: validateString(launchSpecification.ImageId, `${propertyName}.ImageId`),
-      KeyName: validateStringOptional(launchSpecification.KeyName, `${propertyName}.KeyName`),
-      SecurityGroups,
-      SubnetId: validateStringOptional(launchSpecification.SubnetId, `${propertyName}.SubnetId`),
-      TagSpecifications,
-      UserData: validateString(launchSpecification.UserData, `${propertyName}.UserData`),
-      InstanceType: validateString(launchSpecification.InstanceType, `${propertyName}.InstanceType`),
-    };
-    convertedLaunchSpecifications.push(convertedLaunchSpecification);
-  });
-  return convertedLaunchSpecifications;
+  return launchTemplateConfigs;
 }
 
 export function convertToInt(value: any, propertyName: string): number {
@@ -214,13 +150,6 @@ export function convertToInt(value: any, propertyName: string): number {
   throw new Error(`The value of ${propertyName} should be an integer. Received: ${value} of type ${typeof(value)}`);
 }
 
-export function convertToIntOptional(value: any, propertyName: string): number | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  return convertToInt(value, propertyName);
-}
-
 export function convertToBoolean(value: any, propertyName: string): boolean {
   if (typeof(value) === 'boolean') {
     return value;
@@ -232,13 +161,6 @@ export function convertToBoolean(value: any, propertyName: string): boolean {
   }
 
   throw new Error(`The value of ${propertyName} should be a boolean. Received: ${value} of type ${typeof(value)}`);
-}
-
-export function convertToBooleanOptional(value: any, propertyName: string): boolean | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  return convertToBoolean(value, propertyName);
 }
 
 export function validateString(value: any, propertyName: string): string {

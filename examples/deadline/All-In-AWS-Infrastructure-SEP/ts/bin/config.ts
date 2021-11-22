@@ -16,6 +16,16 @@ class AppConfig {
    * is filled in. It can be used as-is, added to, or replaced.
    */
   public readonly deadlineClientLinuxAmiMap: Record<string, string> = {['us-west-2']: 'ami-04ae356533dc07fb5'};
+
+  /**
+   * Whether the DeadlineResourceTrackerAccessRole IAM role required by Deadline's Resource Tracker should be created in this CDK app.
+   *
+   * If you have previously used this same AWS account with either Deadline's AWS Portal feature or Spot Event Plugin and had used the
+   * Deadline Resource Tracker, then you likely have this IAM role in your account already unless you have removed it.
+   *
+   * Note: Deadline's Resource Tracker only supports being used by a single Deadline Repository per AWS account.
+   */
+  public readonly createResourceTrackerRole: boolean = true;
 }
 
 export const config = new AppConfig();
