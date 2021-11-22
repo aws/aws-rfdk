@@ -69,15 +69,15 @@ test('generate self-signed', async () => {
   expect(certificate.passphrase).toBe(passphrase);
   expect(certificate.certChain).toEqual('');
 
-  expect(certVerification).toContain('Issuer: CN=TestCN, O=TestO, OU=TestOU');
-  expect(certVerification).toContain('Subject: CN=TestCN, O=TestO, OU=TestOU');
+  expect(certVerification).toMatch(/Issuer: CN\s*=\s*TestCN, O\s*=\s*TestO, OU\s*=\s*TestOU/);
+  expect(certVerification).toMatch(/Subject: CN\s*=\s*TestCN, O\s*=\s*TestO, OU\s*=\s*TestOU/);
   expect(certVerification).toContain('Version: 3 (0x2)');
   expect(certVerification).toContain('Public-Key: (2048 bit)');
   // ex: Not After : May 22 22:13:24 2023 GMT
   expect(certVerification).toMatch(new RegExp(`Not After.*${expiryDate.getFullYear()} GMT`));
 
   expect(keyVerification).toContain('RSA key ok');
-  expect(keyVerification).toContain('Private-Key: (2048 bit)');
+  expect(keyVerification).toMatch(/Private-Key: \(2048 bit(, \d+ primes)?\)/);
 });
 
 test('generate self-signed with expiry', async () => {
@@ -157,18 +157,18 @@ test('generate signed certificate', async () => {
   expect(certificate.key).toContain('-----END ENCRYPTED PRIVATE KEY-----');
   expect(certificate.passphrase).toBe(passphrase);
 
-  expect(certVerification).toContain('Issuer: CN=TestCN, O=TestO, OU=TestOU');
-  expect(certVerification).toContain('Subject: CN=CertCN, O=CertO, OU=CertOU');
+  expect(certVerification).toMatch(/Issuer: CN\s*=\s*TestCN, O\s*=\s*TestO, OU\s*=\s*TestOU/);
+  expect(certVerification).toMatch(/Subject: CN\s*=\s*CertCN, O\s*=\s*CertO, OU\s*=\s*CertOU/);
   expect(certVerification).toContain('Public-Key: (2048 bit)');
   // ex: Not After : May 22 22:13:24 2023 GMT
   expect(certVerification).toMatch(new RegExp(`Not After.*${expiryDate.getFullYear()} GMT`));
 
-  expect(certChainVerification).toContain('Issuer: CN=TestCN, O=TestO, OU=TestOU');
-  expect(certChainVerification).toContain('Subject: CN=TestCN, O=TestO, OU=TestOU');
+  expect(certChainVerification).toMatch(/Issuer: CN\s*=\s*TestCN, O\s*=\s*TestO, OU\s*=\s*TestOU/);
+  expect(certChainVerification).toMatch(/Subject: CN\s*=\s*TestCN, O\s*=\s*TestO, OU\s*=\s*TestOU/);
   expect(certChainVerification).toContain('Public-Key: (2048 bit)');
 
   expect(keyVerification).toContain('RSA key ok');
-  expect(keyVerification).toContain('Private-Key: (2048 bit)');
+  expect(keyVerification).toMatch(/Private-Key: \(2048 bit(, \d+ primes)?\)/);
 });
 
 test('generate signed certificate with expiry', async () => {
@@ -228,18 +228,20 @@ test('convert to PKCS #12', async () => {
   const pkcs12Data: Buffer = await certificate.toPkcs12(pkcs12Passphrase);
   const fileName = path.join(tmpDir, 'cert.p12');
   await writeBinaryFile(fileName, pkcs12Data);
-  const pkcs12Validation = await exec(
+  let pkcs12Validation: { stdout: string, stderr: string} | undefined;
+  // If the PKCS12 passphrase does not match, openssl will return a non-zero exit code and fail the test
+  // This was tested for both OpenSSL 1.0.x and 1.1.x.
+  pkcs12Validation = await exec(
     `openssl pkcs12 -in ${fileName} -info -nodes -passin env:PW`,
     { env: { PATH: process.env.PATH, PW: pkcs12Passphrase } },
   );
   const validationOut = pkcs12Validation.stdout;
 
   // THEN
-  expect(pkcs12Validation.stderr).toContain('MAC verified OK');
   // Must have the certificate's cert
-  expect(validationOut).toContain('subject=/CN=CertCN/O=CertO/OU=CertOU\nissuer=/CN=TestCN/O=TestO/OU=TestOU\n-----BEGIN CERTIFICATE-----');
+  expect(validationOut).toMatch(/subject=\/?CN\s*=\s*CertCN[/,]\s*O\s*=\s*CertO[/,]\s*OU\s*=\s*CertOU\n{1,2}issuer=\/?CN\s*=\s*TestCN[/,]\s*O\s*=\s*TestO[/,]\s*OU\s*=\s*TestOU\n{1,2}-----BEGIN CERTIFICATE-----/);
   // Must have the CA cert
-  expect(validationOut).toContain('subject=/CN=TestCN/O=TestO/OU=TestOU\nissuer=/CN=TestCN/O=TestO/OU=TestOU\n-----BEGIN CERTIFICATE-----');
+  expect(validationOut).toMatch(/subject=\/?CN\s*=\s*TestCN[/,]\s*O\s*=\s*TestO[/,]\s*OU\s*=\s*TestOU\n{1,2}issuer=\/?CN\s*=\s*TestCN[/,]\s*O\s*=\s*TestO[/,]\s*OU\s*=\s*TestOU\n{1,2}-----BEGIN CERTIFICATE-----/);
   // Must have the decrypted private key
   expect(validationOut).toContain('-----BEGIN PRIVATE KEY-----');
 });

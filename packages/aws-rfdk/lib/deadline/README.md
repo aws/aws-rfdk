@@ -196,7 +196,9 @@ The `RenderQueue` construct sets up the RCS and configures it to communicate wit
 The following example outlines how to construct a `RenderQueue`:
 
 ```ts
-const version = VersionQuery.exactString(stack, 'Version', '1.2.3.4');
+const version = new VersionQuery(stack, 'Version', {
+  version: '1.2.3.4',
+});
 const images = new ThinkboxDockerImages(stack, 'Images', {
   version: version,
   // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
@@ -307,7 +309,9 @@ You can create a `Repository` like this:
 ```ts
 const repository = new Repository(stack, 'Repository', {
   vpc: props.vpc,
-  version: VersionQuery.exactString(stack, 'Version', '1.2.3.4')
+  version: new VersionQuery(stack, 'Version', {
+    version: '1.2.3.4',
+  }),
 });
 ```
 
@@ -680,11 +684,8 @@ The `VersionQuery` construct encapsulates a version of Deadline and the location
 
 You can specify a Deadline version as follows:
 ```ts
-const version = VersionQuery.exact(stack, 'ExactVersion', {
-  majorVersion: '1',
-  minorVersion: '2',
-  releaseVersion: '3',
-  patchVersion: '4'
+const version = new VersionQuery(stack, 'Version', {
+  version: '1.2.3.4',
 });
 ```
 

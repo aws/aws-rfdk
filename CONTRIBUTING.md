@@ -75,10 +75,10 @@ The developers actively use Linux for development, but macOS and the Windows Sub
 
 To build, we use the [jsii/superchain docker container](https://hub.docker.com/r/jsii/superchain).
 
-1. Acquire the latest `jsii/superchain:node14` docker image, if you do not already have it.
+1. Acquire the latest `jsii/superchain:1-buster-slim-node14` docker image, if you do not already have it.
 
     ```bash
-    docker pull jsii/superchain:node14
+    docker pull jsii/superchain:1-buster-slim-node14
     ```
 
 2. Enter the docker container

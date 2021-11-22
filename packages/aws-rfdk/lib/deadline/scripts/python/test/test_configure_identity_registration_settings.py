@@ -6,9 +6,12 @@
 Tests for configure_identity_registration_settings.py
 """
 
+import json
+import re
+import subprocess
 import sys
 import unittest
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock, Mock, patch
 
 sys.modules['boto3'] = Mock()
 
@@ -489,6 +492,147 @@ class TestConfigureIdentityRegistrationSettingsCRUD(unittest.TestCase):
 
         # THEN
         self.dl_secrets.run_str.assert_not_called()
+
+
+class TestAwsInteraction(unittest.TestCase):
+    def test_aws_cli_success(self):
+        """
+        Tests that the aws_cli function creates a subprocess using the supplied arguments, decodes the JSON output and
+        returns the result.
+        """
+        # GIVEN
+        args = ['foo', 'bar']
+        expected = { "foo": 1 }
+        return_val = json.dumps(expected)
+
+        with patch.object(subject.subprocess, 'check_output', return_value=return_val) as check_output_mock:
+            # WHEN
+            result = subject.aws_cli(args)
+        
+            # THEN
+            check_output_mock.assert_called_once_with(['aws'] + args, text=True)
+            self.assertDictEqual(expected, result)
+
+    def test_aws_cli_error(self):
+        """
+        Tests that when the subprocess fails with a non-zero exit code, that the aws_cli function raises a user-friendly
+        error message that includes the exit code, standard output contents, and standard error contents.
+        """
+        # GIVEN
+        args = ['foo', 'bar']
+        exception = subprocess.CalledProcessError(
+            cmd=['aws'] + args,
+            output='output',
+            stderr='stderr',
+            returncode=-1
+        )
+
+        with patch.object(subject.subprocess, 'check_output', side_effect=exception) as check_output_mock:
+            # THEN
+            with self.assertRaises(Exception, msg=f'failed to call AWS CLI ({exception.returncode}): \n{exception.output}\n\n{exception.stderr}') as raise_assertion:
+                # WHEN
+                subject.aws_cli(args)
+
+            # Assert that the exception thrown from subprocess.check_output is chained to the thrown exception
+            chained_exception = raise_assertion.exception.__cause__
+            self.assertIs(chained_exception, exception)
+
+            # Assert that subprocess.check_output was called with the supplied arguments
+            check_output_mock.assert_called_once_with(['aws'] + args, text=True)
+
+    def test_aws_cli_non_json(self):
+        """
+        Tests that when the AWS CLI subprocess returns output that is not valid JSON, that aws_cli raises a new
+        exception with a more user-friendly error message.
+        """
+        # GIVEN
+        args = ['foo', 'bar']
+        aws_cli_output = 'not valid JSON'
+
+        with patch.object(subject.subprocess, 'check_output', return_value=aws_cli_output):
+            # THEN
+            with self.assertRaises(Exception) as raises_assertion:
+                # WHEN
+                subject.aws_cli(args)
+
+            msg = raises_assertion.exception.args[0]
+
+            # Assert that the exception thrown has a chained JSONDecodeError exception
+            chained_exception = raises_assertion.exception.__cause__
+            self.assertIsInstance(chained_exception, json.JSONDecodeError)
+            json_exception_msg = chained_exception.msg
+
+            self.assertRegexpMatches(msg, f'^AWS CLI did not output JSON as expected \\({re.escape(json_exception_msg)}\\). Output was:\n{re.escape(aws_cli_output)}')
+
+    def test_fetch_secret(self):
+        """
+        Tests that the fetch_secret function calls the aws_cli function with expected arguments, and returns the
+        contents of the "SecretString" field of the returned JSON object.
+        """
+        # GIVEN
+        arn = 'arn'
+        region = 'region'
+        secret_string = 'abc'
+        secret = {
+            "SecretString": secret_string
+        }
+        with patch.object(subject, 'aws_cli', return_value=secret) as mock_aws_cli:
+            # WHEN
+            result = subject.fetch_secret(subject.AwsSecret(
+                arn='arn',
+                region='region'
+            ))
+
+            # THEN
+            self.assertEqual(secret_string, result)
+            mock_aws_cli.assert_called_with([
+                'secretsmanager',
+                '--region', region,
+                'get-secret-value',
+                '--secret-id', arn
+            ])
+
+    def test_get_subnet_cidrs(self):
+        """
+        Tests that the get_subnet_cidrs function calls the aws_cli function with expected arguments, and transforms the
+        JSON output into the expected subnet ID -> subnet CIDR mapping
+        """
+
+        # GIVEN
+        subnet_id_1 = 'aaa'
+        subnet_id_2 = 'bbb'
+        subnet_ids = [subnet_id_1, subnet_id_2]
+        subnets = [
+            {
+                'SubnetId': subnet_id_1,
+                'CidrBlock': '1.2.3.4'
+            },
+            {
+                'SubnetId': subnet_id_2,
+                'CidrBlock': '2.3.4.5'
+            }
+        ]
+        aws_cli_result = {
+            'Subnets': subnets
+        }
+        expected_mapping = {
+            entry['SubnetId']: entry['CidrBlock']
+            for entry in subnets
+        }
+        region = 'region'
+        with patch.object(subject, 'aws_cli', return_value=aws_cli_result) as mock_aws_cli:
+            # WHEN
+            result = subject.get_subnet_cidrs(region, subnet_ids)
+
+            # THEN
+            self.assertEqual(result, expected_mapping)
+            mock_aws_cli.assert_called_with([
+                '--region', region,
+                'ec2',
+                'describe-subnets',
+                '--filters',
+                f'Name=subnet-id,Values={",".join(subnet_ids)}'
+            ])
 
 
 if __name__ == '__main__':
