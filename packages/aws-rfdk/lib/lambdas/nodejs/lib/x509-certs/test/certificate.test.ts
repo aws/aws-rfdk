@@ -275,3 +275,22 @@ test('decrypt private key', async () => {
   // Must have the decrypted private key
   expect(decryptedKey).toContain('-----BEGIN RSA PRIVATE KEY-----');
 });
+
+test('get expiration date', async () => {
+  // GIVEN
+  const name: DistinguishedName = new DistinguishedName({
+    CN: 'TestCN',
+    O: 'TestO',
+    OU: 'TestOU',
+  });
+  const passphrase = 'test_passphrase';
+  const validFor = 100;
+  const certificate = await Certificate.fromGenerated(name, passphrase, validFor);
+
+  // WHEN
+  const expDate = await Certificate.getExpDate(certificate.cert);
+
+  // THEN
+  expect(expDate).toBeDefined();
+  expect(Math.ceil((expDate!.getTime() - (new Date()).getTime())/(1000 * 3600 * 24))).toEqual(validFor);
+});

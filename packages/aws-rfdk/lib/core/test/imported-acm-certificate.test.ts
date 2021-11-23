@@ -18,6 +18,7 @@ import {
 import { Table } from '@aws-cdk/aws-dynamodb';
 import { CfnSecret } from '@aws-cdk/aws-secretsmanager';
 import { RemovalPolicy, Stack } from '@aws-cdk/core';
+import { METRIC_NAME } from '../../lambdas/nodejs/cert-rotation-monitor';
 
 import { ImportedAcmCertificate } from '../lib/imported-acm-certificate';
 import { X509CertificatePem } from '../lib/x509-certificate';
@@ -263,7 +264,7 @@ describe('ImportedAcmCertificate', () => {
 
     test('uses correct metric', () => {
       // THEN
-      expect(metricExpiry.metricName).toEqual('DaysToExpiry');
+      expect(metricExpiry.metricName).toEqual(METRIC_NAME);
       expect(metricExpiry.namespace).toEqual('AWS/CertificateManager');
       expect(metricExpiry.statistic).toEqual(Statistic.MINIMUM);
     });

@@ -18,11 +18,11 @@ import { Key } from '@aws-cdk/aws-kms';
 import { CfnSecret } from '@aws-cdk/aws-secretsmanager';
 import { Stack } from '@aws-cdk/core';
 
+import { METRIC_DIMENSION, METRIC_NAME, METRIC_NAMESPACE } from '../../lambdas/nodejs/cert-rotation-monitor';
 import {
   X509CertificatePem,
   X509CertificatePkcs12,
 } from '../lib/x509-certificate';
-
 
 test('Generate cert', () => {
   const stack = new Stack(undefined, 'Stack', { env: { region: 'us-west-2' } });
@@ -343,7 +343,7 @@ test('Generate cert, all options set', () => {
           Action: 'cloudwatch:PutMetricData',
           Condition: {
             StringEquals: {
-              'cloudwatch:namespace': 'AWS/RFDK',
+              'cloudwatch:namespace': METRIC_NAMESPACE,
             },
           },
         },
@@ -363,15 +363,16 @@ test('Generate cert, all options set', () => {
     EvaluationPeriods: 1,
     Dimensions: [
       {
-        Name: 'Certificate Metrics',
+        Name: METRIC_DIMENSION,
         Value: 'b2b09a6086e87fe14005f4e0b800e4f0',
       },
     ],
-    MetricName: 'DaysToExpiry',
-    Namespace: 'AWS/RFDK',
+    MetricName: METRIC_NAME,
+    Namespace: METRIC_NAMESPACE,
     Period: 86400,
     TreatMissingData: 'notBreaching',
     Threshold: 15,
+    Statistic: 'Minimum',
     ActionsEnabled: true,
   }));
   expectCDK(stack).to(haveResourceLike('AWS::SNS::Subscription', {
@@ -392,16 +393,17 @@ test('Certificate alarm without action', () => {
     EvaluationPeriods: 1,
     Dimensions: [
       {
-        Name: 'Certificate Metrics',
+        Name: METRIC_DIMENSION,
         Value: 'b2b09a6086e87fe14005f4e0b800e4f0',
       },
     ],
-    MetricName: 'DaysToExpiry',
-    Namespace: 'AWS/RFDK',
+    MetricName: METRIC_NAME,
+    Namespace: METRIC_NAMESPACE,
     Period: 86400,
     TreatMissingData: 'notBreaching',
     Threshold: 15,
     ActionsEnabled: false,
+    Statistic: 'Minimum',
   }));
   expectCDK(stack).notTo(haveResourceLike('AWS::SNS::Subscription'));
 });

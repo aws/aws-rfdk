@@ -13,6 +13,10 @@ import { Certificate } from '../lib/x509-certs';
 
 const SECRETS_MANAGER_VERSION = '2017-10-17';
 
+export const METRIC_NAME = 'DaysToExpiry';
+export const METRIC_NAMESPACE = 'AWS/RFDK';
+export const METRIC_DIMENSION = 'Certificate Metrics';
+
 async function getSecretsByTag(secretsManager: SecretsManager, uniqueID: string): Promise<SecretsManager.SecretListType | undefined> {
   console.debug(`getSecretsByTag for secrets with tag ${uniqueID}`);
   // Looking for all certificates that contain tags with uniqueID.
@@ -31,22 +35,22 @@ async function getSecretsByTag(secretsManager: SecretsManager, uniqueID: string)
   }
 }
 
-function putValueToMetric(value: number){
+function putValueToMetric(value: number, uniqueID: string){
   const metric = {
     MetricData: [
       {
-        MetricName: 'DaysToExpiry',
+        MetricName: METRIC_NAME,
         Dimensions: [
           {
-            Name: 'Certificate Metrics',
-            Value: process.env.UNIQUEID!,
+            Name: METRIC_DIMENSION,
+            Value: uniqueID,
           },
         ],
         Unit: 'None',
         Value: value,
       },
     ],
-    Namespace: 'AWS/RFDK',
+    Namespace: METRIC_NAMESPACE,
   };
   const cloudwatch = new CloudWatch();
   cloudwatch.putMetricData(metric, (err) => {
@@ -73,7 +77,7 @@ export async function handler(): Promise<void> {
         if (expDate){
           const daysToExpiry = Math.ceil((expDate.getTime() - (new Date()).getTime())/(1000 * 3600 * 24));
           console.log(`Certificate '$${secret.ARN!}' has ${daysToExpiry} days before expire.`);
-          putValueToMetric(daysToExpiry);
+          putValueToMetric(daysToExpiry, process.env.UNIQUEID!);
         }
       }
     }

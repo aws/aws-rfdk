@@ -52,6 +52,7 @@ import {
 } from '@aws-cdk/core';
 
 import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
+import { METRIC_DIMENSION, METRIC_NAME, METRIC_NAMESPACE } from '../../lambdas/nodejs/cert-rotation-monitor';
 import { IX509CertificateEncodePkcs12, IX509CertificateGenerate } from '../../lambdas/nodejs/x509-certificate';
 
 /**
@@ -166,6 +167,7 @@ export interface IX509CertificatePem extends IConstruct {
 interface X509CertificateBaseProps {
   readonly lambdaCode: Code;
   readonly lambdaHandler: string;
+  readonly lambdaMonitorHandler: string;
   readonly encryptionKey?: IKey;
   readonly alarmEmailAddress?: string;
 }
@@ -174,6 +176,7 @@ interface LambdaMonitorFunctionProps {
   readonly uniqueValue: string;
   readonly lambdaLayers: ILayerVersion[];
   readonly lambdaCode: Code;
+  readonly lambdaMonitorHandler: string;
   readonly tagCondition?: {
     [key: string]: any;
   };
@@ -272,11 +275,12 @@ abstract class X509CertificateBase extends Construct {
       },
     }));
 
-    this.lambdaMonitor = this.addLabmdaMonitorFunction({
+    this.lambdaMonitor = this.addLambdaMonitorFunction({
       uniqueValue,
       lambdaLayers: [openSslLayer],
       lambdaCode: props.lambdaCode,
       tagCondition,
+      lambdaMonitorHandler: props.lambdaMonitorHandler,
     });
     this.addExpDateValidation({
       uniqueValue,
@@ -284,16 +288,16 @@ abstract class X509CertificateBase extends Construct {
     });
   }
 
-  private addLabmdaMonitorFunction(props: LambdaMonitorFunctionProps): LambdaFunction{
+  private addLambdaMonitorFunction(props: LambdaMonitorFunctionProps): LambdaFunction{
     const lambdaMonitor = new LambdaFunction(this, 'MonitoringExpDate', {
       description: `Used by a X509Certificate ${Names.uniqueId(this)} to monitor certificate expiration date.`,
       code: props.lambdaCode,
       environment: {
         UNIQUEID: props.uniqueValue,
       },
-      runtime: Runtime.NODEJS_12_X,
+      runtime: Runtime.NODEJS_14_X,
       layers: props.lambdaLayers,
-      handler: 'cert-rotation-monitor.handler',
+      handler: props.lambdaMonitorHandler,
       timeout: Duration.seconds(90),
       logRetention: RetentionDays.ONE_WEEK,
     });
@@ -318,7 +322,7 @@ abstract class X509CertificateBase extends Construct {
       ],
       resources: ['*'],
       conditions: {
-        StringEquals: { 'cloudwatch:namespace': 'AWS/RFDK' },
+        StringEquals: { 'cloudwatch:namespace': METRIC_NAMESPACE },
       },
     }));
     return lambdaMonitor;
@@ -326,15 +330,15 @@ abstract class X509CertificateBase extends Construct {
 
   private addExpDateValidation(props: X509CertValidationProps){
     const certMetric = new Metric({
-      metricName: 'DaysToExpiry',
-      namespace: 'AWS/RFDK',
-      dimensions: {
-        'Certificate Metrics': props.uniqueValue,
-      },
-      // One 99-th percentile data point hour
+      metricName: METRIC_NAME,
+      namespace: METRIC_NAMESPACE,
+      dimensions: {},
+      // Minimum data point daily
       period: Duration.days(1),
-      statistic: 'p99',
+      statistic: 'Minimum',
     });
+
+    certMetric.dimensions![METRIC_DIMENSION] = props.uniqueValue;
 
     const alarm = certMetric.createAlarm(this, 'CertificateExpiryAlarm', {
       evaluationPeriods: 1,
@@ -398,6 +402,7 @@ export class X509CertificatePem extends X509CertificateBase implements IX509Cert
     super(scope, id, {
       lambdaCode: Code.fromAsset(join(__dirname, '..', '..', 'lambdas', 'nodejs')),
       lambdaHandler: 'x509-certificate.generate',
+      lambdaMonitorHandler: 'cert-rotation-monitor.handler',
       encryptionKey: props.encryptionKey,
       alarmEmailAddress: props.alarmEmailAddress,
     });
@@ -557,6 +562,7 @@ export class X509CertificatePkcs12 extends X509CertificateBase implements IX509C
     super(scope, id, {
       lambdaCode: Code.fromAsset(join(__dirname, '..', '..', 'lambdas', 'nodejs')),
       lambdaHandler: 'x509-certificate.convert',
+      lambdaMonitorHandler: 'cert-rotation-monitor.handler',
       encryptionKey: props.encryptionKey,
     });
 
