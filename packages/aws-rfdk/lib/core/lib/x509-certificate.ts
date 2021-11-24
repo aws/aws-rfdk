@@ -52,7 +52,7 @@ import {
 } from '@aws-cdk/core';
 
 import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
-import { METRIC_DIMENSION, METRIC_NAME, METRIC_NAMESPACE } from '../../lambdas/nodejs/cert-rotation-monitor';
+import { CertificateRotationMonitor } from '../../lambdas/nodejs/cert-rotation-monitor/handler';
 import { IX509CertificateEncodePkcs12, IX509CertificateGenerate } from '../../lambdas/nodejs/x509-certificate';
 
 /**
@@ -243,7 +243,7 @@ abstract class X509CertificateBase extends Construct {
         DATABASE: this.database.tableName,
         DEBUG: 'false',
       },
-      runtime: Runtime.NODEJS_12_X,
+      runtime: Runtime.NODEJS_14_X,
       layers: [ openSslLayer ],
       handler: props.lambdaHandler,
       timeout: Duration.seconds(90),
@@ -322,7 +322,7 @@ abstract class X509CertificateBase extends Construct {
       ],
       resources: ['*'],
       conditions: {
-        StringEquals: { 'cloudwatch:namespace': METRIC_NAMESPACE },
+        StringEquals: { 'cloudwatch:namespace': CertificateRotationMonitor.METRIC_NAMESPACE },
       },
     }));
     return lambdaMonitor;
@@ -330,15 +330,16 @@ abstract class X509CertificateBase extends Construct {
 
   private addExpDateValidation(props: X509CertValidationProps){
     const certMetric = new Metric({
-      metricName: METRIC_NAME,
-      namespace: METRIC_NAMESPACE,
+      metricName: CertificateRotationMonitor.METRIC_NAME,
+      namespace: CertificateRotationMonitor.METRIC_NAMESPACE,
       dimensions: {},
-      // Minimum data point daily
+      // We're looking at the minimum value reported by the Lambda in a day, which should
+      // be the only value, since it runs once daily.
       period: Duration.days(1),
       statistic: 'Minimum',
     });
 
-    certMetric.dimensions![METRIC_DIMENSION] = props.uniqueValue;
+    certMetric.dimensions![CertificateRotationMonitor.METRIC_DIMENSION] = props.uniqueValue;
 
     const alarm = certMetric.createAlarm(this, 'CertificateExpiryAlarm', {
       evaluationPeriods: 1,
@@ -381,10 +382,11 @@ abstract class X509CertificateBase extends Construct {
  * - DynamoDB Table - Used for tracking resources created by the Custom Resource.
  * - Secrets - 4 in total, for the certificate, it's private key, the passphrase to the key, and the cert chain.
  * - Lambda Function, with role - Used to create/update/delete the Custom Resource
+ * - Lambda Function, Metric and Alarm for monitoring and alarm about expiration date.
  *
  * Security Considerations
  * ------------------------
- * - The AWS Lambda that is deployed through this construct will be created from a deployment package
+ * - The AWS Lambdas that are deployed through this construct will be created from a deployment package
  *   that is uploaded to your CDK bootstrap bucket during deployment. You must limit write access to
  *   your CDK bootstrap bucket to prevent an attacker from modifying the actions performed by this Lambda.
  *   We strongly recommend that you either enable Amazon S3 server access logging on your CDK bootstrap bucket,
@@ -542,10 +544,11 @@ export interface IX509CertificatePkcs12 extends IConstruct {
  * - DynamoDB Table - Used for tracking resources created by the CustomResource.
  * - Secrets - 2 in total, The binary of the PKCS #12 certificate and its passphrase.
  * - Lambda Function, with role - Used to create/update/delete the CustomResource.
+ * - Lambda Function, Metric and Alarm for monitoring and alarm about expiration date.
  *
  * Security Considerations
  * ------------------------
- * - The AWS Lambda that is deployed through this construct will be created from a deployment package
+ * - The AWS Lambdas that are deployed through this construct will be created from a deployment package
  *   that is uploaded to your CDK bootstrap bucket during deployment. You must limit write access to
  *   your CDK bootstrap bucket to prevent an attacker from modifying the actions performed by this Lambda.
  *   We strongly recommend that you either enable Amazon S3 server access logging on your CDK bootstrap bucket,

@@ -18,7 +18,7 @@ import { Key } from '@aws-cdk/aws-kms';
 import { CfnSecret } from '@aws-cdk/aws-secretsmanager';
 import { Stack } from '@aws-cdk/core';
 
-import { METRIC_DIMENSION, METRIC_NAME, METRIC_NAMESPACE } from '../../lambdas/nodejs/cert-rotation-monitor';
+import { CertificateRotationMonitor } from '../../lambdas/nodejs/cert-rotation-monitor/handler';
 import {
   X509CertificatePem,
   X509CertificatePkcs12,
@@ -343,7 +343,7 @@ test('Generate cert, all options set', () => {
           Action: 'cloudwatch:PutMetricData',
           Condition: {
             StringEquals: {
-              'cloudwatch:namespace': METRIC_NAMESPACE,
+              'cloudwatch:namespace': CertificateRotationMonitor.METRIC_NAMESPACE,
             },
           },
         },
@@ -363,12 +363,12 @@ test('Generate cert, all options set', () => {
     EvaluationPeriods: 1,
     Dimensions: [
       {
-        Name: METRIC_DIMENSION,
+        Name: CertificateRotationMonitor.METRIC_DIMENSION,
         Value: 'b2b09a6086e87fe14005f4e0b800e4f0',
       },
     ],
-    MetricName: METRIC_NAME,
-    Namespace: METRIC_NAMESPACE,
+    MetricName: CertificateRotationMonitor.METRIC_NAME,
+    Namespace: CertificateRotationMonitor.METRIC_NAMESPACE,
     Period: 86400,
     TreatMissingData: 'notBreaching',
     Threshold: 15,
@@ -393,12 +393,12 @@ test('Certificate alarm without action', () => {
     EvaluationPeriods: 1,
     Dimensions: [
       {
-        Name: METRIC_DIMENSION,
+        Name: CertificateRotationMonitor.METRIC_DIMENSION,
         Value: 'b2b09a6086e87fe14005f4e0b800e4f0',
       },
     ],
-    MetricName: METRIC_NAME,
-    Namespace: METRIC_NAMESPACE,
+    MetricName: CertificateRotationMonitor.METRIC_NAME,
+    Namespace: CertificateRotationMonitor.METRIC_NAMESPACE,
     Period: 86400,
     TreatMissingData: 'notBreaching',
     Threshold: 15,
