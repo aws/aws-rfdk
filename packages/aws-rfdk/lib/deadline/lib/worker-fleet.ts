@@ -38,9 +38,7 @@ import {
   Annotations,
   Construct,
   Duration,
-  IResource,
-  ResourceEnvironment,
-  Stack,
+  IConstruct,
 } from '@aws-cdk/core';
 
 import {
@@ -49,7 +47,6 @@ import {
   IHealthMonitor,
   IMonitorableFleet,
   LogGroupFactoryProps,
-  Resource as RfdkResource,
   ScriptAsset,
 } from '../../core';
 import {
@@ -72,7 +69,7 @@ import {
 /**
  * Interface for Deadline Worker Fleet.
  */
-export interface IWorkerFleet extends IResource, IConnectable, IGrantable {
+export interface IWorkerFleet extends IConnectable, IConstruct, IGrantable {
   /**
    * Allow access to the worker's remote command listener port (configured as a part of the
    * WorkerConfiguration) for an IConnectable that is either in this stack, or in a stack that
@@ -237,7 +234,7 @@ export interface WorkerInstanceFleetProps extends WorkerSettings {
 /**
  *  A new or imported Deadline Worker Fleet.
  */
-abstract class WorkerInstanceFleetBase extends RfdkResource implements IWorkerFleet, IMonitorableFleet {
+abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet, IMonitorableFleet {
 
   /**
    * The security groups/rules used to allow network connections to the file system.
@@ -385,16 +382,6 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
   public readonly grantPrincipal: IPrincipal;
 
   /**
-   * @inheritdoc
-   */
-  public readonly stack: Stack;
-
-  /**
-   * @inheritdoc
-   */
-  public readonly env: ResourceEnvironment;
-
-  /**
    * The port workers listen on to share their logs.
    */
   public readonly listeningPorts: Port;
@@ -436,11 +423,6 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
 
   constructor(scope: Construct, id: string, props: WorkerInstanceFleetProps) {
     super(scope, id);
-    this.stack = Stack.of(scope);
-    this.env = {
-      account: this.stack.account,
-      region: this.stack.region,
-    };
 
     this.validateProps(props);
 

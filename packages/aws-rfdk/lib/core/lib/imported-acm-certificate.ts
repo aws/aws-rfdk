@@ -44,8 +44,6 @@ import {
 import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
 import { IAcmImportCertProps } from '../../lambdas/nodejs/x509-certificate';
 
-import { Resource as RfdkResource } from './resource';
-
 /**
  * Properties for importing a Certificate from Secrets into ACM.
  */
@@ -104,7 +102,7 @@ export interface ImportedAcmCertificateProps {
  *   in AWS Certificate Manager. You should not grant any additional actors/principals the ability to modify or
  *   execute this Lambda.
  */
-export class ImportedAcmCertificate extends RfdkResource implements ICertificate {
+export class ImportedAcmCertificate extends Construct implements ICertificate {
   private static IMPORTER_UUID = '2d20d8f2-7b84-444e-b738-c75b499a9eaa';
   private static CERT_LOOKUP_CONSTRUCT_ID = 'CertificateLookup';
 
@@ -128,6 +126,8 @@ export class ImportedAcmCertificate extends RfdkResource implements ICertificate
    */
   protected readonly database: Table;
 
+  protected readonly resource: CustomResource;
+
   /**
    * A unique tag that is applied to this certificate that can be used to grant permissions to it.
    */
@@ -135,7 +135,6 @@ export class ImportedAcmCertificate extends RfdkResource implements ICertificate
 
   constructor(scope: Construct, id: string, props: ImportedAcmCertificateProps) {
     super(scope, id);
-
     this.stack = Stack.of(this);
     this.env = {
       account: this.stack.account,
@@ -228,15 +227,21 @@ export class ImportedAcmCertificate extends RfdkResource implements ICertificate
       ],
     };
 
-    const resource = new CustomResource(this, 'Default', {
+    this.resource = new CustomResource(this, 'Default', {
       serviceToken: lambda.functionArn,
       properties,
       resourceType: 'Custom::RFDK_AcmImportedCertificate',
     });
 
-    this.certificateArn = Token.asString(resource.getAtt('CertificateArn'));
+    this.certificateArn = Token.asString(this.resource.getAtt('CertificateArn'));
   }
 
+  /**
+   * Apply a removal policy to the custom resource that represents the certificate imported into ACM
+   */
+  public applyRemovalPolicy(policy: RemovalPolicy) {
+    this.resource.applyRemovalPolicy(policy);
+  }
   /**
    * @inheritdoc
    */
