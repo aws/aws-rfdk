@@ -98,7 +98,7 @@ class TestMonitorableFleet extends Construct implements IMonitorableFleet {
     this.targetCapacityMetric = new Metric({
       namespace: 'AWS/AutoScaling',
       metricName: 'GroupDesiredCapacity',
-      dimensions: {
+      dimensionsMap: {
         AutoScalingGroupName: fleet.autoScalingGroupName,
       },
       label: 'GroupDesiredCapacity',
@@ -135,7 +135,23 @@ describe('HealthMonitor', () => {
       KeyPolicy: {
         Statement: [
           {
-            Action: 'kms:*',
+            Action: [
+              'kms:Create*',
+              'kms:Describe*',
+              'kms:Enable*',
+              'kms:List*',
+              'kms:Put*',
+              'kms:Update*',
+              'kms:Revoke*',
+              'kms:Disable*',
+              'kms:Get*',
+              'kms:Delete*',
+              'kms:ScheduleKeyDeletion',
+              'kms:CancelKeyDeletion',
+              'kms:GenerateDataKey',
+              'kms:TagResource',
+              'kms:UntagResource',
+            ],
             Effect: 'Allow',
             Principal: {
               AWS: {

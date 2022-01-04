@@ -179,7 +179,7 @@ class StorageTier(Stack):
         # render farm may become unstable.
         # 2) Uses RFDK's PadEfsStorage construct to add data to the EFS for the purpose of increasing the amount
         # of stored data to increase the baseline throughput.
-        # 
+        #
         # See: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html
         # for more information on AWS CloudWatch Alarms.
         # See: https://docs.aws.amazon.com/efs/latest/ug/performance.html#throughput-modes
@@ -227,7 +227,7 @@ class StorageTier(Stack):
         # ====================
         # 1) KMS key to use to encrypt events within the SNS Topic. The Key is optional
         key = Key(
-            self, 
+            self,
             'SNSEncryptionKey',
             description='Used to encrypt the SNS Topic for sending EFS Burst Credit alerts',
             enable_key_rotation=True,
@@ -252,14 +252,14 @@ class StorageTier(Stack):
         burst_credits_metric = Metric(
             metric_name='BurstCreditBalance',
             namespace='AWS/EFS',
-            dimensions={
+            dimensions_map={
                 "FileSystemId": filesystem.file_system_id
             },
             # One 99-th percentile data point sample every hour
             period=Duration.hours(1),
             statistic='p99'
         )
-        
+
         # 2) Create the alarms
         thresholds = [
             {
@@ -342,7 +342,7 @@ class StorageTierDocDB(StorageTier):
                 subnet_group_name=subnets.INFRASTRUCTURE.name
             ),
             instance_type=props.database_instance_type,
-            # TODO - For cost considerations this example only uses 1 Database instance. 
+            # TODO - For cost considerations this example only uses 1 Database instance.
             # It is recommended that when creating your render farm you use at least 2 instances for redundancy.
             instances=1,
             master_user=Login(username='adminuser'),

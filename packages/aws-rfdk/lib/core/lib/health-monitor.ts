@@ -38,7 +38,9 @@ import {
   ResourceEnvironment,
   Stack,
 } from '@aws-cdk/core';
+
 import {LoadBalancerFactory} from './load-balancer-manager';
+import { Resource as RfdkResource } from './resource';
 import {tagConstruct} from './runtime-info';
 
 /**
@@ -224,17 +226,7 @@ export interface HealthMonitorProps {
 /**
  *  A new or imported Health Monitor.
  */
-abstract class HealthMonitorBase extends Construct implements IHealthMonitor {
-  /**
-   * The stack in which this Health Monitor is defined.
-   */
-  public abstract readonly stack: Stack;
-
-  /**
-   * The environment this resource belongs to.
-   */
-  public abstract readonly env: ResourceEnvironment;
-
+abstract class HealthMonitorBase extends RfdkResource implements IHealthMonitor {
   /**
    * Attaches the load-balancing target to the ELB for instance-level
    * monitoring.
@@ -364,12 +356,12 @@ export class HealthMonitor extends HealthMonitorBase {
   private static readonly DEFAULT_UNHEALTHY_FLEET_ALARM_PERIOD_THRESHOLD_GRACE: number = 8;
 
   /**
-   * The stack in which this Health Monitor is defined.
+   * @inheritdoc
    */
   public readonly stack: Stack;
 
   /**
-   * The environment this resource belongs to.
+   * @inheritdoc
    */
   public readonly env: ResourceEnvironment;
 
@@ -404,7 +396,6 @@ export class HealthMonitor extends HealthMonitorBase {
       description: `This key is used to encrypt SNS messages for ${Names.uniqueId(this)}.`,
       enableKeyRotation: true,
       removalPolicy: RemovalPolicy.DESTROY,
-      trustAccountIdentities: true,
     });
 
     // allow cloudwatch service to send encrypted messages

@@ -12,10 +12,10 @@ import 'source-map-support/register';
  */
 class AppConfig {
   /**
-   * A map of regions to Deadline Client Linux AMIs. As an example, the base Linux Deadline 10.1.19.4 AMI ID from us-west-2
+   * A map of regions to Deadline Client Linux AMIs. As an example, the base Linux Deadline 10.1.20.2 AMI ID from us-west-2
    * is filled in. It can be used as-is, added to, or replaced.
    */
-  public readonly deadlineClientLinuxAmiMap: Record<string, string> = {['us-west-2']: 'ami-04ae356533dc07fb5'};
+  public readonly deadlineClientLinuxAmiMap: Record<string, string> = {['us-west-2']: 'ami-0814954855da0e4c3'};
 
   /**
    * Whether the DeadlineResourceTrackerAccessRole IAM role required by Deadline's Resource Tracker should be created in this CDK app.

@@ -18,6 +18,7 @@ export * from './mountable-efs';
 export * from './mountable-fsx-lustre';
 export * from './mountable-filesystem';
 export * from './pad-efs-storage';
+export * from './resource';
 export { RFDK_VERSION } from './runtime-info';
 export * from './script-assets';
 export * from './session-manager-helper';

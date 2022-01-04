@@ -60,6 +60,7 @@ import {
 import {
   Construct,
   IConstruct,
+  ResourceEnvironment,
   Stack,
 } from '@aws-cdk/core';
 
@@ -79,6 +80,7 @@ import {
   ConnectableApplicationEndpoint,
   ImportedAcmCertificate,
   LogGroupFactory,
+  Resource as RfdkResource,
   ScriptAsset,
   X509CertificatePem,
   X509CertificatePkcs12,
@@ -176,7 +178,7 @@ interface TlsInfo {
 /**
  * Base class for Render Queue providers
  */
-abstract class RenderQueueBase extends Construct implements IRenderQueue {
+abstract class RenderQueueBase extends RfdkResource implements IRenderQueue {
   /**
    * The endpoint that Deadline clients can use to connect to the Render Queue
    */
@@ -277,6 +279,16 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
    */
 
   private static readonly RCS_USER = { uid: 1000, gid: 1000, username: 'ec2-user' };
+
+  /**
+   * @inheritdoc
+   */
+  public readonly stack: Stack;
+
+  /**
+  * @inheritdoc
+  */
+  public readonly env: ResourceEnvironment;
 
   /**
    * The principal to grant permissions to.
@@ -382,6 +394,11 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
 
   constructor(scope: Construct, id: string, private readonly props: RenderQueueProps) {
     super(scope, id);
+    this.stack = Stack.of(scope);
+    this.env = {
+      account: this.stack.account,
+      region: this.stack.region,
+    };
 
     this.repository = props.repository;
     this.renderQueueSize = props?.renderQueueSize ?? {min: 1, max: 1};

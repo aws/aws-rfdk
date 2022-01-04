@@ -84,7 +84,7 @@ describe('CloudWatchAgent', () => {
 
     // THEN
     // Find an asset created by the CloudWatchAgentConfigResource
-    const asset = stack.node.metadata.find(m => m.type === 'aws:cdk:asset');
+    const asset = stack.node.metadataEntry.find(m => m.type === 'aws:cdk:asset');
     expect(asset).toBeDefined();
   });
 

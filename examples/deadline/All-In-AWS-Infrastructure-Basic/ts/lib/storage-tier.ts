@@ -159,7 +159,7 @@ export abstract class StorageTier extends cdk.Stack {
     // render farm may become unstable.
     // 2) Uses RFDK's PadEfsStorage construct to add data to the EFS for the purpose of increasing the amount
     // of stored data to increase the baseline throughput.
-    // 
+    //
     // See: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html
     // for more information on AWS CloudWatch Alarms.
     // See: https://docs.aws.amazon.com/efs/latest/ug/performance.html#throughput-modes
@@ -209,7 +209,6 @@ export abstract class StorageTier extends cdk.Stack {
       description: 'Used to encrypt the SNS Topic for sending EFS Burst Credit alerts',
       enableKeyRotation: true,
       removalPolicy: RemovalPolicy.DESTROY,
-      trustAccountIdentities: true,
     });
     key.grant(new ServicePrincipal('cloudwatch.amazonaws.com'), 'kms:Decrypt', 'kms:GenerateDataKey');
 
@@ -227,14 +226,14 @@ export abstract class StorageTier extends cdk.Stack {
     const burstCreditsMetric = new Metric({
       metricName: 'BurstCreditBalance',
       namespace: 'AWS/EFS',
-      dimensions: {
+      dimensionsMap: {
         FileSystemId: filesystem.fileSystemId,
       },
       // One 99-th percentile data point hour
       period: Duration.hours(1),
       statistic: 'p99',
     });
-    
+
     // 2) Create the alarms
     const thresholds = [
       {
@@ -319,7 +318,7 @@ export class StorageTierDocDB extends StorageTier {
         subnetGroupName: Subnets.INFRASTRUCTURE.name,
       },
       instanceType: props.databaseInstanceType,
-      // TODO - For cost considerations this example only uses 1 Database instance. 
+      // TODO - For cost considerations this example only uses 1 Database instance.
       // It is recommended that when creating your render farm you use at least 2 instances for redundancy.
       instances: 1,
       masterUser: {

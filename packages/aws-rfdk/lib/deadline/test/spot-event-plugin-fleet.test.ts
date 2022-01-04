@@ -1171,8 +1171,8 @@ describe('SpotEventPluginFleet', () => {
         });
 
         // THEN
-        expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.ERROR);
-        expect(fleet.node.metadata[0].data).toMatch(/Did not find any subnets matching/);
+        expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.ERROR);
+        expect(fleet.node.metadataEntry[0].data).toMatch(/Did not find any subnets matching/);
       });
     });
 
@@ -1296,8 +1296,8 @@ describe('SpotEventPluginFleet', () => {
         });
 
         // THEN
-        expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-        expect(fleet.node.metadata[0].data).toMatch('being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
+        expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+        expect(fleet.node.metadataEntry[0].data).toMatch('being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
       });
 
       test('No Warnings if Encrypted BlockDevices Provided', () => {
@@ -1318,7 +1318,7 @@ describe('SpotEventPluginFleet', () => {
         });
 
         //THEN
-        expect(fleet.node.metadata).toHaveLength(0);
+        expect(fleet.node.metadataEntry).toHaveLength(0);
       });
 
       test('Warnings if non-Encrypted BlockDevices Provided', () => {
@@ -1341,8 +1341,8 @@ describe('SpotEventPluginFleet', () => {
         });
 
         //THEN
-        expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-        expect(fleet.node.metadata[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the spot-fleet ${id} is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
+        expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+        expect(fleet.node.metadataEntry[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the spot-fleet ${id} is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
       });
 
       test('Warnings for BlockDevices without encryption specified', () => {
@@ -1365,8 +1365,8 @@ describe('SpotEventPluginFleet', () => {
         });
 
         //THEN
-        expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-        expect(fleet.node.metadata[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the spot-fleet ${id} is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
+        expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+        expect(fleet.node.metadataEntry[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the spot-fleet ${id} is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
       });
 
       test('No warnings for Ephemeral blockDeviceVolumes', () => {
@@ -1387,7 +1387,7 @@ describe('SpotEventPluginFleet', () => {
         });
 
         //THEN
-        expect(fleet.node.metadata).toHaveLength(0);
+        expect(fleet.node.metadataEntry).toHaveLength(0);
       });
 
       test('No warnings for Suppressed blockDeviceVolumes', () => {
@@ -1408,7 +1408,7 @@ describe('SpotEventPluginFleet', () => {
         });
 
         //THEN
-        expect(fleet.node.metadata).toHaveLength(0);
+        expect(fleet.node.metadataEntry).toHaveLength(0);
       });
 
       test('throws if block devices without iops and wrong volume type', () => {
@@ -1472,8 +1472,8 @@ describe('SpotEventPluginFleet', () => {
         });
 
         // THEN
-        expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-        expect(fleet.node.metadata[0].data).toMatch('iops will be ignored without volumeType: EbsDeviceVolumeType.IO1');
+        expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+        expect(fleet.node.metadataEntry[0].data).toMatch('iops will be ignored without volumeType: EbsDeviceVolumeType.IO1');
       });
     });
   });

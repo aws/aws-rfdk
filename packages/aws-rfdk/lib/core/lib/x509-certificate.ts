@@ -10,6 +10,7 @@ import {
   AttributeType,
   BillingMode,
   Table,
+  TableEncryption,
 } from '@aws-cdk/aws-dynamodb';
 import {
   Grant,
@@ -165,7 +166,7 @@ abstract class X509CertificateBase extends Construct {
       partitionKey: { name: 'PhysicalId', type: AttributeType.STRING },
       sortKey: { name: 'CustomResource', type: AttributeType.STRING },
       removalPolicy: RemovalPolicy.DESTROY,
-      serverSideEncryption: true,
+      encryption: TableEncryption.AWS_MANAGED,
       billingMode: BillingMode.PAY_PER_REQUEST,
     });
 
@@ -323,11 +324,11 @@ export class X509CertificatePem extends X509CertificateBase implements IX509Cert
     }
 
     this.cert = Secret.fromSecretAttributes(this, 'Cert', {
-      secretArn: Token.asString(resource.getAtt('Cert')),
+      secretCompleteArn: Token.asString(resource.getAtt('Cert')),
       encryptionKey: props.encryptionKey,
     });
     this.key = Secret.fromSecretAttributes(this, 'Key', {
-      secretArn: Token.asString(resource.getAtt('Key')),
+      secretCompleteArn: Token.asString(resource.getAtt('Key')),
       encryptionKey: props.encryptionKey,
     });
     // We'll only have a chain if we used a ca to sign this cert. We cannot check for certChainResource being an empty
@@ -336,7 +337,7 @@ export class X509CertificatePem extends X509CertificateBase implements IX509Cert
       const certChainResource = resource.getAtt('CertChain');
       this.certChain = certChainResource
         ? Secret.fromSecretAttributes(this, 'CertChain', {
-          secretArn: Token.asString(certChainResource),
+          secretCompleteArn: Token.asString(certChainResource),
           encryptionKey: props.encryptionKey,
         })
         : undefined;
@@ -462,7 +463,7 @@ export class X509CertificatePkcs12 extends X509CertificateBase implements IX509C
     });
 
     this.cert = Secret.fromSecretAttributes(this, 'Cert', {
-      secretArn: Token.asString(resource.getAtt('Cert')),
+      secretCompleteArn: Token.asString(resource.getAtt('Cert')),
       encryptionKey: props.encryptionKey,
     });
   }

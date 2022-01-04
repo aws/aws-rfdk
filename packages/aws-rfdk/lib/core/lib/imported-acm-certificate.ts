@@ -18,6 +18,7 @@ import {
   AttributeType,
   BillingMode,
   Table,
+  TableEncryption,
 } from '@aws-cdk/aws-dynamodb';
 import { PolicyStatement } from '@aws-cdk/aws-iam';
 import { IKey } from '@aws-cdk/aws-kms';
@@ -42,6 +43,8 @@ import {
 
 import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
 import { IAcmImportCertProps } from '../../lambdas/nodejs/x509-certificate';
+
+import { Resource as RfdkResource } from './resource';
 
 /**
  * Properties for importing a Certificate from Secrets into ACM.
@@ -101,7 +104,7 @@ export interface ImportedAcmCertificateProps {
  *   in AWS Certificate Manager. You should not grant any additional actors/principals the ability to modify or
  *   execute this Lambda.
  */
-export class ImportedAcmCertificate extends Construct implements ICertificate {
+export class ImportedAcmCertificate extends RfdkResource implements ICertificate {
   private static IMPORTER_UUID = '2d20d8f2-7b84-444e-b738-c75b499a9eaa';
   private static CERT_LOOKUP_CONSTRUCT_ID = 'CertificateLookup';
 
@@ -109,10 +112,25 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
    * The ARN for the Certificate that was imported into ACM
    */
   public readonly certificateArn: string;
+
+  /**
+   * @inheritdoc
+   */
   public readonly stack: Stack;
+
+  /**
+   * @inheritdoc
+   */
   public readonly env: ResourceEnvironment;
-  // The DynamoDB Table that is used as a backing store for the CustomResource utilized in this construct.
+
+  /**
+   * The DynamoDB Table that is used as a backing store for the CustomResource utilized in this construct.
+   */
   protected readonly database: Table;
+
+  /**
+   * A unique tag that is applied to this certificate that can be used to grant permissions to it.
+   */
   protected readonly uniqueTag: Tag;
 
   constructor(scope: Construct, id: string, props: ImportedAcmCertificateProps) {
@@ -128,7 +146,7 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
       partitionKey: { name: 'PhysicalId', type: AttributeType.STRING },
       sortKey: { name: 'CustomResource', type: AttributeType.STRING },
       removalPolicy: RemovalPolicy.DESTROY,
-      serverSideEncryption: true,
+      encryption: TableEncryption.AWS_MANAGED,
       billingMode: BillingMode.PAY_PER_REQUEST,
     });
 

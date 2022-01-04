@@ -30,7 +30,7 @@ import {
 
 jest.mock('../../lib/secrets-manager/read-certificate');
 
-const secretArn: string = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/Cert';
+const secretPartialArn: string = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/Cert';
 
 describe('SEPConfiguratorResource', () => {
   const deadlineGroup = 'group_name';
@@ -63,7 +63,7 @@ describe('SEPConfiguratorResource', () => {
         hostname: 'internal-hostname.com',
         protocol: 'HTTPS',
         port: '4433',
-        caCertificateArn: secretArn,
+        caCertificateArn: secretPartialArn,
       },
       spotFleetRequestConfigurations: {
         [deadlineGroup]: {
@@ -410,7 +410,7 @@ describe('SEPConfiguratorResource', () => {
     const noPortConnection = {
       hostname: 'internal-hostname.us-east-1.elb.amazonaws.com',
       protocol: 'HTTPS',
-      caCertificateArn: secretArn,
+      caCertificateArn: secretPartialArn,
     };
     const invalidHostnameConnection = {
       hostname: 10,
@@ -503,7 +503,7 @@ describe('SEPConfiguratorResource', () => {
   describe('.isSecretArnOrUndefined()', () => {
     describe('should return true if', () => {
       test.each<string | undefined>([
-        secretArn,
+        secretPartialArn,
         undefined,
       ])('{input=%s}', async (input: string | undefined) => {
         // WHEN
@@ -554,7 +554,7 @@ describe('SEPConfiguratorResource', () => {
         hostname: 'internal-hostname.com',
         protocol: 'HTTP',
         port: '8080',
-        caCertificateArn: secretArn,
+        caCertificateArn: secretPartialArn,
       };
 
       // WHEN

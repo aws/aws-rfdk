@@ -290,7 +290,7 @@ describe('Test PadEfsStorage', () => {
     });
 
     // THEN
-    expect(pad.node.metadata).toEqual(
+    expect(pad.node.metadataEntry).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           type: 'aws:cdk:error',

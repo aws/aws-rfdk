@@ -42,12 +42,14 @@ import {
   ResourceEnvironment,
   Stack,
 } from '@aws-cdk/core';
+
 import {
   HealthCheckConfig,
   HealthMonitor,
   IHealthMonitor,
   IMonitorableFleet,
   LogGroupFactoryProps,
+  Resource as RfdkResource,
   ScriptAsset,
 } from '../../core';
 import {
@@ -235,7 +237,7 @@ export interface WorkerInstanceFleetProps extends WorkerSettings {
 /**
  *  A new or imported Deadline Worker Fleet.
  */
-abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet, IMonitorableFleet {
+abstract class WorkerInstanceFleetBase extends RfdkResource implements IWorkerFleet, IMonitorableFleet {
 
   /**
    * The security groups/rules used to allow network connections to the file system.
@@ -246,16 +248,6 @@ abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet
    * The principal to grant permissions to.
    */
   public abstract readonly grantPrincipal: IPrincipal;
-
-  /**
-   * The stack in which this worker fleet is defined.
-   */
-  public abstract readonly stack: Stack;
-
-  /**
-   * The environment this resource belongs to.
-   */
-  public abstract readonly env: ResourceEnvironment;
 
   /**
    * The ASG object created by the construct.
@@ -393,12 +385,12 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
   public readonly grantPrincipal: IPrincipal;
 
   /**
-   * The stack in which this worker fleet is defined.
+   * @inheritdoc
    */
   public readonly stack: Stack;
 
   /**
-   * The environment this resource belongs to.
+   * @inheritdoc
    */
   public readonly env: ResourceEnvironment;
 
@@ -490,7 +482,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
     this.targetCapacityMetric = new Metric({
       namespace: 'AWS/AutoScaling',
       metricName: 'GroupDesiredCapacity',
-      dimensions: {
+      dimensionsMap: {
         AutoScalingGroupName: this.fleet.autoScalingGroupName,
       },
       label: 'GroupDesiredCapacity',
@@ -593,7 +585,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
 
   private validateRegion(region: string | undefined, regex: RegExp) {
     if (region && !regex.test(region)) {
-      throw new Error(`Invalid value: ${region} for property 'region'. Valid characters are A-Z, a-z, 0-9, - and _. ‘All’, ‘none’ and ‘unrecognized’ are reserved names that cannot be used.`);
+      throw new Error(`Invalid value: ${region} for property 'region'. Valid characters are A-Z, a-z, 0-9, - and _. 'All', 'none' and 'unrecognized' are reserved names that cannot be used.`);
     }
   }
 

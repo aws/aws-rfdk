@@ -132,7 +132,7 @@ test('Generate cert', () => {
   }));
 
   // Should not be any errors.
-  expect(cert.node.metadata.length).toBe(0);
+  expect(cert.node.metadataEntry.length).toBe(0);
 });
 
 test('Generate cert, all options set', () => {
@@ -480,7 +480,7 @@ test('Validating expiry', () => {
   });
 
   // THEN
-  expect(cert.node.metadata.length).toBe(1);
+  expect(cert.node.metadataEntry.length).toBe(1);
 });
 
 test('Validating expiry with token', () => {
@@ -497,7 +497,7 @@ test('Validating expiry with token', () => {
   });
 
   // THEN
-  expect(cert.node.metadata.length).toBe(0);
+  expect(cert.node.metadataEntry.length).toBe(0);
 });
 
 test('Convert to PKCS #12', () => {
