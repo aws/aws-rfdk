@@ -378,6 +378,7 @@ export class HealthMonitor extends HealthMonitorBase {
       description: `This key is used to encrypt SNS messages for ${Names.uniqueId(this)}.`,
       enableKeyRotation: true,
       removalPolicy: RemovalPolicy.DESTROY,
+      trustAccountIdentities: true,
     });
 
     // allow cloudwatch service to send encrypted messages

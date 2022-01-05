@@ -209,6 +209,7 @@ export abstract class StorageTier extends cdk.Stack {
       description: 'Used to encrypt the SNS Topic for sending EFS Burst Credit alerts',
       enableKeyRotation: true,
       removalPolicy: RemovalPolicy.DESTROY,
+      trustAccountIdentities: true,
     });
     key.grant(new ServicePrincipal('cloudwatch.amazonaws.com'), 'kms:Decrypt', 'kms:GenerateDataKey');
 
