@@ -12,7 +12,7 @@ import { MongoDbConfigure } from '../handler';
 
 jest.mock('../../lib/secrets-manager/read-certificate');
 
-const secretArn: string = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/Cert';
+const secretPartialArn: string = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/Cert';
 
 // @ts-ignore
 async function successRequestMock(request: { [key: string]: string}, returnValue: any): Promise<{ [key: string]: any }> {
@@ -28,7 +28,7 @@ describe('readCertificateData', () => {
 
     // WHEN
     // tslint:disable-next-line: no-string-literal
-    const data = await handler['readCertificateData'](secretArn);
+    const data = await handler['readCertificateData'](secretPartialArn);
 
     // THEN
     expect(data).toStrictEqual(certData);
@@ -43,7 +43,7 @@ describe('readCertificateData', () => {
 
     // THEN
     // tslint:disable-next-line: no-string-literal
-    await expect(handler['readCertificateData'](secretArn)).rejects.toThrowError(/must contain a Certificate in PEM format/);
+    await expect(handler['readCertificateData'](secretPartialArn)).rejects.toThrowError(/must contain a Certificate in PEM format/);
   });
 });
 
@@ -71,7 +71,7 @@ describe('readLoginCredentials', () => {
 
     // WHEN
     // tslint:disable-next-line: no-string-literal
-    const data = await handler['readLoginCredentials'](secretArn);
+    const data = await handler['readLoginCredentials'](secretPartialArn);
 
     // THEN
     expect(data).toStrictEqual(loginData);
@@ -89,7 +89,7 @@ describe('readLoginCredentials', () => {
 
     // THEN
     // tslint:disable-next-line: no-string-literal
-    await expect(handler['readLoginCredentials'](secretArn)).rejects.toThrowError(/must be a JSON encoded string/);
+    await expect(handler['readLoginCredentials'](secretPartialArn)).rejects.toThrowError(/must be a JSON encoded string/);
   });
 
   test.each([
@@ -117,7 +117,7 @@ describe('readLoginCredentials', () => {
 
     // THEN
     // tslint:disable-next-line: no-string-literal
-    await expect(handler['readLoginCredentials'](secretArn)).rejects.toThrowError(expected);
+    await expect(handler['readLoginCredentials'](secretPartialArn)).rejects.toThrowError(expected);
   });
 });
 
@@ -203,7 +203,7 @@ describe('readPasswordAuthUserInfo', () => {
 
     // WHEN
     // tslint:disable-next-line: no-string-literal
-    const data = await handler['readPasswordAuthUserInfo'](secretArn);
+    const data = await handler['readPasswordAuthUserInfo'](secretPartialArn);
 
     // THEN
     expect(data).toStrictEqual(userData);
@@ -221,7 +221,7 @@ describe('readPasswordAuthUserInfo', () => {
 
     // THEN
     // tslint:disable-next-line: no-string-literal
-    await expect(handler['readPasswordAuthUserInfo'](secretArn)).rejects.toThrowError(/must be a JSON encoded string/);
+    await expect(handler['readPasswordAuthUserInfo'](secretPartialArn)).rejects.toThrowError(/must be a JSON encoded string/);
   });
 
   test.each([
@@ -258,7 +258,7 @@ describe('readPasswordAuthUserInfo', () => {
 
     // THEN
     // tslint:disable-next-line: no-string-literal
-    await expect(handler['readPasswordAuthUserInfo'](secretArn)).rejects.toThrowError(expected);
+    await expect(handler['readPasswordAuthUserInfo'](secretPartialArn)).rejects.toThrowError(expected);
   });
 });
 
@@ -470,7 +470,7 @@ describe('createPasswordAuthUser', () => {
 
     // WHEN
     // tslint:disable-next-line: no-string-literal
-    const result = await handler['createPasswordAuthUser'](mockDb, secretArn);
+    const result = await handler['createPasswordAuthUser'](mockDb, secretPartialArn);
 
     expect(result).toStrictEqual(true);
     expect(mockDb.command.mock.calls.length).toBe(2);
@@ -517,7 +517,7 @@ describe('createPasswordAuthUser', () => {
 
     // WHEN
     // tslint:disable-next-line: no-string-literal
-    const result = await handler['createPasswordAuthUser'](mockDb, secretArn);
+    const result = await handler['createPasswordAuthUser'](mockDb, secretPartialArn);
 
     expect(result).toStrictEqual(false);
     expect(mockDb.command.mock.calls.length).toBe(1);
@@ -597,7 +597,7 @@ describe('createX509AuthUser', () => {
       // tslint:disable-next-line: no-string-literal
       handler['retrieveRfc2253Subject'] = mockRfc2253;
       const userData = {
-        certificate: secretArn,
+        certificate: secretPartialArn,
         roles,
       };
       const userToCreate = {

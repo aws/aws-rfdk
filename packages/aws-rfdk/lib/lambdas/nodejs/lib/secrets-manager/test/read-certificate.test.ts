@@ -7,7 +7,7 @@ import * as AWS from 'aws-sdk';
 import { mock, restore, setSDKInstance } from 'aws-sdk-mock';
 import { readCertificateData } from '../read-certificate';
 
-const secretArn: string = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/Cert';
+const secretPartialArn: string = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/Cert';
 
 // @ts-ignore
 async function successRequestMock(request: { [key: string]: string}, returnValue: any): Promise<{ [key: string]: any }> {
@@ -34,7 +34,7 @@ describe('readCertificateData', () => {
     const client = new AWS.SecretsManager();
 
     // WHEN
-    const data = await readCertificateData(secretArn, client);
+    const data = await readCertificateData(secretPartialArn, client);
 
     // THEN
     expect(data).toStrictEqual(certData);
@@ -51,7 +51,7 @@ describe('readCertificateData', () => {
     const client = new AWS.SecretsManager();
 
     // WHEN
-    const promise = readCertificateData(secretArn, client);
+    const promise = readCertificateData(secretPartialArn, client);
 
     // THEN
     await expect(promise).rejects.toThrowError(/must contain a Certificate in PEM format/);
@@ -68,7 +68,7 @@ describe('readCertificateData', () => {
     const client = new AWS.SecretsManager();
 
     // WHEN
-    const promise = readCertificateData(secretArn, client);
+    const promise = readCertificateData(secretPartialArn, client);
 
     // THEN
     await expect(promise).rejects.toThrowError(/must contain a Certificate in PEM format/);

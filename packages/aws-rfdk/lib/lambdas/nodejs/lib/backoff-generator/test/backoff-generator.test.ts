@@ -10,7 +10,12 @@ describe('BackoffGenerator', () => {
   const base = 100;
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    // Jest fake timers were upgraded from v26 to v27 and lots of our tests break.
+    // Moving from the legacy timers to the modern ones breaks most of these tests, so for now
+    // we're forcing the use of the old ones.
+    jest.useFakeTimers('legacy');
+
+    jest.spyOn(global, 'setTimeout');
   });
 
   afterAll(() => {

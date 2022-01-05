@@ -8,6 +8,7 @@ import {
   expect as expectCDK,
   haveResourceLike,
   objectLike,
+  ResourcePart,
   stringLike,
 } from '@aws-cdk/assert';
 import {
@@ -16,7 +17,7 @@ import {
 } from '@aws-cdk/aws-cloudwatch';
 import { Table } from '@aws-cdk/aws-dynamodb';
 import { CfnSecret } from '@aws-cdk/aws-secretsmanager';
-import { Stack } from '@aws-cdk/core';
+import { RemovalPolicy, Stack } from '@aws-cdk/core';
 
 import { ImportedAcmCertificate } from '../lib/imported-acm-certificate';
 import { X509CertificatePem } from '../lib/x509-certificate';
@@ -227,6 +228,23 @@ describe('ImportedAcmCertificate', () => {
           }),
         },
       }));
+    });
+  });
+
+  describe('applyRemovalPolicy', () => {
+    test('default RemovalPolicy is Delete', () => {
+      expectCDK(stack).to(haveResourceLike('Custom::RFDK_AcmImportedCertificate', {
+        DeletionPolicy: 'Delete',
+        UpdateReplacePolicy: 'Delete',
+      }, ResourcePart.CompleteDefinition));
+    });
+
+    test('Different policy can be applied', () => {
+      importedAcmCertificate.applyRemovalPolicy(RemovalPolicy.RETAIN);
+      expectCDK(stack).to(haveResourceLike('Custom::RFDK_AcmImportedCertificate', {
+        DeletionPolicy: 'Retain',
+        UpdateReplacePolicy: 'Retain',
+      }, ResourcePart.CompleteDefinition));
     });
   });
 
