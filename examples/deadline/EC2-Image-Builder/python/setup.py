@@ -22,7 +22,7 @@ setuptools.setup(
         "aws-cdk.aws-ec2==1.137.0",
         "aws-cdk.aws-s3-assets==1.137.0",
         "aws-cdk.core==1.137.0",
-        "aws-rfdk==0.39.0",
+        "aws-rfdk==0.40.0",
     ],
 
     python_requires=">=3.7",

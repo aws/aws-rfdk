@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.40.0](https://github.com/aws/aws-rfdk/compare/v0.39.0...v0.40.0) (2022-01-06)
+
+
+### Supported CDK Version
+
+* [1.137.0](https://github.com/aws/aws-cdk/releases/tag/v1.137.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.20.2](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### ⚠ BREAKING CHANGES
+
+See the
+[RFDK 0.40.x upgrade documentation](https://github.com/aws/aws-rfdk/blob/v0.40.0/packages/aws-rfdk/docs/upgrade/upgrading-0.40.md)
+for more details and guidance on addressing these breaking changes.
+
+* The IHealthMonitor and IWorkerFleet interfaces now
+extend IConstruct rather than IResource and the stack and env properties
+on the HealthMonitor and WorkerInstanceFleet constructs were removed.
+* **deadline:** SpotEventPluginFleet now uses EC2 Launch Templates instead of Launch Specifications.
+
+
+### Features
+
+* **deadline:** change SEP construct to use launch templates instead of launch specifications ([#513](https://github.com/aws/aws-rfdk/issues/513)) ([7c61c18](https://github.com/aws/aws-rfdk/commit/7c61c18be213d42a9ff08a227688c759b843a7d8))
+
+
 ## [0.39.0](https://github.com/aws/aws-rfdk/compare/v0.38.0...v0.39.0) (2021-11-20)
 
 
