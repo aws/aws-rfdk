@@ -60,6 +60,8 @@ class SEPStackProps(StackProps):
     docker_recipes_stage_path: str
     # The IMachineImage to use for Workers (needs Deadline Client installed).
     worker_machine_image: IMachineImage
+    # Whether the DeadlineResourceTrackerAccessRole IAM role required by Deadline's Resource Tracker should be created in this CDK app.
+    create_resource_tracker_role: bool
 
 
 class SEPStack(Stack):
@@ -159,15 +161,15 @@ class SEPStack(Stack):
             ),
         )
 
-        # Creates the Resource Tracker Access role. This role is required to exist in your account so the resource tracker will work properly
-        # Note: If you already have a Resource Tracker IAM role in your account you can remove this code.
-        Role(
-            self,
-            'ResourceTrackerRole',
-            assumed_by=ServicePrincipal('lambda.amazonaws.com'),
-            managed_policies= [ManagedPolicy.from_aws_managed_policy_name('AWSThinkboxDeadlineResourceTrackerAccessPolicy')],
-            role_name= 'DeadlineResourceTrackerAccessRole',
-        )
+        if props.create_resource_tracker_role:
+            # Creates the Resource Tracker Access role. This role is required to exist in your account so the resource tracker will work properly
+            Role(
+                self,
+                'ResourceTrackerRole',
+                assumed_by=ServicePrincipal('lambda.amazonaws.com'),
+                managed_policies= [ManagedPolicy.from_aws_managed_policy_name('AWSThinkboxDeadlineResourceTrackerAccessPolicy')],
+                role_name= 'DeadlineResourceTrackerAccessRole',
+            )
 
         fleet = SpotEventPluginFleet(
             self,

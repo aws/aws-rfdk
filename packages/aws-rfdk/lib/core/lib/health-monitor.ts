@@ -32,12 +32,11 @@ import {LambdaSubscription} from '@aws-cdk/aws-sns-subscriptions';
 import {
   Construct,
   Duration,
-  IResource,
+  IConstruct,
   Names,
   RemovalPolicy,
-  ResourceEnvironment,
-  Stack,
 } from '@aws-cdk/core';
+
 import {LoadBalancerFactory} from './load-balancer-manager';
 import {tagConstruct} from './runtime-info';
 
@@ -118,7 +117,7 @@ export interface IMonitorableFleet extends IConnectable {
 /**
  * Interface for the Health Monitor.
  */
-export interface IHealthMonitor extends IResource {
+export interface IHealthMonitor extends IConstruct {
   /**
    * Attaches the load-balancing target to the ELB for instance-level
    * monitoring.
@@ -225,16 +224,6 @@ export interface HealthMonitorProps {
  *  A new or imported Health Monitor.
  */
 abstract class HealthMonitorBase extends Construct implements IHealthMonitor {
-  /**
-   * The stack in which this Health Monitor is defined.
-   */
-  public abstract readonly stack: Stack;
-
-  /**
-   * The environment this resource belongs to.
-   */
-  public abstract readonly env: ResourceEnvironment;
-
   /**
    * Attaches the load-balancing target to the ELB for instance-level
    * monitoring.
@@ -364,16 +353,6 @@ export class HealthMonitor extends HealthMonitorBase {
   private static readonly DEFAULT_UNHEALTHY_FLEET_ALARM_PERIOD_THRESHOLD_GRACE: number = 8;
 
   /**
-   * The stack in which this Health Monitor is defined.
-   */
-  public readonly stack: Stack;
-
-  /**
-   * The environment this resource belongs to.
-   */
-  public readonly env: ResourceEnvironment;
-
-  /**
    * SNS topic for all unhealthy fleet notifications. This is triggered by
    * the grace period and hard terminations alarms for the registered fleets.
    *
@@ -391,11 +370,6 @@ export class HealthMonitor extends HealthMonitorBase {
 
   constructor(scope: Construct, id: string, props: HealthMonitorProps) {
     super(scope, id);
-    this.stack = Stack.of(scope);
-    this.env = {
-      account: this.stack.account,
-      region: this.stack.region,
-    };
     this.props = props;
 
     this.lbFactory = new LoadBalancerFactory(this, props.vpc);

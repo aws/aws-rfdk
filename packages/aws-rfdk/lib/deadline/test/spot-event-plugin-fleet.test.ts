@@ -52,6 +52,7 @@ import { tagFields } from '../../core/lib/runtime-info';
 import {
   escapeTokenRegex,
 } from '../../core/test/token-regex-helpers';
+import { LaunchTemplateConfig } from '../../lambdas/nodejs/configure-spot-event-plugin';
 import {
   IHost,
   InstanceUserDataProvider,
@@ -61,6 +62,7 @@ import {
   VersionQuery,
   SpotEventPluginFleet,
   SpotFleetAllocationStrategy,
+  SpotFleetResourceType,
 } from '../lib';
 
 let app: App;
@@ -347,19 +349,133 @@ describe('SpotEventPluginFleet', () => {
       expect(fleet.keyName).toBeUndefined();
     });
 
-    test('.defaultSubnets is true', () => {
+    test('creates launch template configs for each instance type', () => {
       // WHEN
+      const moreInstanceTypes: InstanceType[] = [
+        new InstanceType('t2.small'),
+        new InstanceType('c5.large'),
+      ];
       const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
         vpc,
         renderQueue,
         deadlineGroups,
+        workerMachineImage,
+        maxCapacity,
+        instanceTypes: moreInstanceTypes,
+      });
+
+      // THEN
+      expect(fleet._launchTemplateConfigs.length).toBeGreaterThanOrEqual(moreInstanceTypes.length);
+      moreInstanceTypes.forEach(instanceType => {
+        expect(fleet._launchTemplateConfigs.some(ltc => {
+          return (ltc as LaunchTemplateConfig).Overrides.some(override => override.InstanceType === instanceType.toString());
+        })).toBeTruthy();
+      });
+    });
+
+    test('creates launch template configs for each subnet id', () => {
+      // WHEN
+      const subnets = vpc.selectSubnets({ subnetType: SubnetType.PRIVATE });
+      const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
+        vpc,
+        renderQueue,
         instanceTypes,
+        deadlineGroups,
+        workerMachineImage,
+        maxCapacity,
+        vpcSubnets: subnets,
+      });
+
+      // THEN
+      expect(fleet._launchTemplateConfigs.length).toBeGreaterThanOrEqual(subnets.subnets.length);
+      subnets.subnetIds.forEach(subnetId => {
+        expect(fleet._launchTemplateConfigs.some(ltc => {
+          return (ltc as LaunchTemplateConfig).Overrides.some(override => override.SubnetId === subnetId);
+        })).toBeTruthy();
+      });
+    });
+
+    test('add tag indicating resource tracker is enabled', () => {
+      // WHEN
+      new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
+        vpc,
+        renderQueue,
+        instanceTypes,
+        deadlineGroups,
         workerMachineImage,
         maxCapacity,
       });
 
       // THEN
-      expect(fleet.defaultSubnets).toBeTruthy();
+      expectCDK(spotFleetStack).to(haveResourceLike('AWS::EC2::LaunchTemplate', {
+        LaunchTemplateData: objectLike({
+          TagSpecifications: arrayWith({
+            ResourceType: 'instance',
+            Tags: arrayWith({
+              Key: 'DeadlineTrackedAWSResource',
+              Value: 'SpotEventPlugin',
+            }),
+          }),
+        }),
+      }));
+    });
+
+    test('adds multiple fleet security groups to launch template', () => {
+      // GIVEN
+      const securityGroups = [
+        new SecurityGroup(stack, 'NewFleetSecurityGroup1', { vpc }),
+        new SecurityGroup(stack, 'NewFleetSecurityGroup2', { vpc }),
+      ];
+
+      // WHEN
+      new SpotEventPluginFleet(spotFleetStack, 'SpotFleet2', {
+        vpc,
+        renderQueue,
+        deadlineGroups: ['group2'],
+        instanceTypes: [new InstanceType('t2.micro')],
+        workerMachineImage,
+        maxCapacity: 1,
+        securityGroups,
+      });
+
+      // THEN
+      expectCDK(spotFleetStack).to(haveResourceLike('AWS::EC2::LaunchTemplate', {
+        LaunchTemplateData: objectLike({
+          SecurityGroupIds: securityGroups.map(sg => spotFleetStack.resolve(sg.securityGroupId)),
+        }),
+      }));
+    });
+
+    test('adds fleet tags to launch template', () => {
+      // GIVEN
+      const tag = {
+        key: 'mykey',
+        value: 'myvalue',
+      };
+      const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
+        vpc,
+        renderQueue,
+        instanceTypes,
+        deadlineGroups,
+        workerMachineImage,
+        maxCapacity,
+      });
+
+      // WHEN
+      Tags.of(fleet).add(tag.key, tag.value);
+
+      // THEN
+      expectCDK(spotFleetStack).to(haveResourceLike('AWS::EC2::LaunchTemplate', {
+        LaunchTemplateData: objectLike({
+          TagSpecifications: arrayWith({
+            ResourceType: SpotFleetResourceType.INSTANCE.toString(),
+            Tags: arrayWith({
+              Key: tag.key,
+              Value: tag.value,
+            }),
+          }),
+        }),
+      }));
     });
   });
 
@@ -379,7 +495,6 @@ describe('SpotEventPluginFleet', () => {
       // THEN
       expect(fleet.deadlineGroups).toStrictEqual(deadlineGroups.map(group => group.toLocaleLowerCase()));
       expect(fleet.instanceTypes).toBe(instanceTypes);
-      expect(fleet.imageId).toBe(imageConfig.imageId);
       expect(fleet.osType).toBe(imageConfig.osType);
       expect(fleet.maxCapacity).toBe(maxCapacity);
     });
@@ -785,6 +900,32 @@ describe('SpotEventPluginFleet', () => {
         LogGroupName: testPrefix + id,
       }));
     });
+
+    test('adds tag indicating resource tracker is not enabled', () => {
+      // WHEN
+      new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
+        vpc,
+        renderQueue,
+        instanceTypes,
+        deadlineGroups,
+        workerMachineImage,
+        maxCapacity,
+        trackInstancesWithResourceTracker: false,
+      });
+
+      // THEN
+      expectCDK(spotFleetStack).to(haveResourceLike('AWS::EC2::LaunchTemplate', {
+        LaunchTemplateData: objectLike({
+          TagSpecifications: arrayWith({
+            ResourceType: 'instance',
+            Tags: arrayWith({
+              Key: 'DeadlineResourceTracker',
+              Value: 'SpotEventPlugin',
+            }),
+          }),
+        }),
+      }));
+    });
   });
 
   describe('allowing remote control', () => {
@@ -1030,8 +1171,8 @@ describe('SpotEventPluginFleet', () => {
         });
 
         // THEN
-        expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.ERROR);
-        expect(fleet.node.metadata[0].data).toMatch(/Did not find any subnets matching/);
+        expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.ERROR);
+        expect(fleet.node.metadataEntry[0].data).toMatch(/Did not find any subnets matching/);
       });
     });
 
@@ -1155,8 +1296,8 @@ describe('SpotEventPluginFleet', () => {
         });
 
         // THEN
-        expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-        expect(fleet.node.metadata[0].data).toMatch('being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
+        expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+        expect(fleet.node.metadataEntry[0].data).toMatch('being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
       });
 
       test('No Warnings if Encrypted BlockDevices Provided', () => {
@@ -1177,7 +1318,7 @@ describe('SpotEventPluginFleet', () => {
         });
 
         //THEN
-        expect(fleet.node.metadata).toHaveLength(0);
+        expect(fleet.node.metadataEntry).toHaveLength(0);
       });
 
       test('Warnings if non-Encrypted BlockDevices Provided', () => {
@@ -1200,8 +1341,8 @@ describe('SpotEventPluginFleet', () => {
         });
 
         //THEN
-        expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-        expect(fleet.node.metadata[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the spot-fleet ${id} is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
+        expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+        expect(fleet.node.metadataEntry[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the spot-fleet ${id} is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
       });
 
       test('Warnings for BlockDevices without encryption specified', () => {
@@ -1224,8 +1365,8 @@ describe('SpotEventPluginFleet', () => {
         });
 
         //THEN
-        expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-        expect(fleet.node.metadata[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the spot-fleet ${id} is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
+        expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+        expect(fleet.node.metadataEntry[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the spot-fleet ${id} is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
       });
 
       test('No warnings for Ephemeral blockDeviceVolumes', () => {
@@ -1246,7 +1387,7 @@ describe('SpotEventPluginFleet', () => {
         });
 
         //THEN
-        expect(fleet.node.metadata).toHaveLength(0);
+        expect(fleet.node.metadataEntry).toHaveLength(0);
       });
 
       test('No warnings for Suppressed blockDeviceVolumes', () => {
@@ -1267,7 +1408,7 @@ describe('SpotEventPluginFleet', () => {
         });
 
         //THEN
-        expect(fleet.node.metadata).toHaveLength(0);
+        expect(fleet.node.metadataEntry).toHaveLength(0);
       });
 
       test('throws if block devices without iops and wrong volume type', () => {
@@ -1331,8 +1472,8 @@ describe('SpotEventPluginFleet', () => {
         });
 
         // THEN
-        expect(fleet.node.metadata[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-        expect(fleet.node.metadata[0].data).toMatch('iops will be ignored without volumeType: EbsDeviceVolumeType.IO1');
+        expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
+        expect(fleet.node.metadataEntry[0].data).toMatch('iops will be ignored without volumeType: EbsDeviceVolumeType.IO1');
       });
     });
   });

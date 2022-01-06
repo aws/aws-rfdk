@@ -507,7 +507,7 @@ test('repository warns if removal policy for filesystem when filesystem provided
   });
 
   // THEN
-  expect(repo.node.metadata).toEqual(
+  expect(repo.node.metadataEntry).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
         type: 'aws:cdk:warning',
@@ -545,7 +545,7 @@ test('repository warns if removal policy for database when database provided', (
   });
 
   // THEN
-  expect(repo.node.metadata).toEqual(
+  expect(repo.node.metadataEntry).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
         type: 'aws:cdk:warning',
@@ -654,7 +654,7 @@ test('repository warns if databaseAuditLogging defined and database is specified
     'Please ensure that the Database provided is configured correctly.';
 
   // THEN
-  expect(repo.node.metadata).toEqual(
+  expect(repo.node.metadataEntry).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
         type: 'aws:cdk:warning',
@@ -765,7 +765,7 @@ test('warns if both retention period and database provided', () => {
   });
 
   // THEN
-  expect(repo.node.metadata).toEqual(
+  expect(repo.node.metadataEntry).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
         type: 'aws:cdk:warning',

@@ -20,8 +20,6 @@ import {
 import {
   IGrantable,
 } from '@aws-cdk/aws-iam';
-// import {Bucket} from '@aws-cdk/aws-s3';
-// import {Asset} from '@aws-cdk/aws-s3-assets';
 import {
   ISecret,
 } from '@aws-cdk/aws-secretsmanager';

@@ -13,9 +13,6 @@ import {
   ABSENT,
 } from '@aws-cdk/assert';
 import {
-  BlockDeviceVolume, EbsDeviceVolumeType,
-} from '@aws-cdk/aws-autoscaling';
-import {
   GenericWindowsImage,
   InstanceClass,
   InstanceSize,
@@ -32,7 +29,6 @@ import {
   App,
   Duration,
   Expiration,
-  Fn,
   Stack,
 } from '@aws-cdk/core';
 import { X509CertificatePem } from '../../core';
@@ -226,56 +222,33 @@ describe('ConfigureSpotEventPlugin', () => {
       const rfdkTag = tagFields(fleet);
 
       // THEN
-      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-        spotFleetRequestConfigurations: objectLike({
-          [groupName]: objectLike({
-            AllocationStrategy: fleet.allocationStrategy.toString(),
+      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', {
+        spotFleetRequestConfigurations: {
+          [groupName]: {
+            AllocationStrategy: 'lowestPrice',
             IamFleetRole: stack.resolve(fleet.fleetRole.roleArn),
-            LaunchSpecifications: arrayWith(
-              objectLike({
-                IamInstanceProfile: {
-                  Arn: stack.resolve(fleet.instanceProfile.attrArn),
+            LaunchTemplateConfigs: [
+              {
+                LaunchTemplateSpecification: {
+                  Version: '$Latest',
+                  LaunchTemplateId: stack.resolve(fleet.launchTemplate.launchTemplateId),
                 },
-                ImageId: fleet.imageId,
-                SecurityGroups: arrayWith(
-                  objectLike({
-                    GroupId: stack.resolve(fleet.securityGroups[0].securityGroupId),
-                  }),
-                ),
-                SubnetId: stack.resolve(Fn.join('', [vpc.privateSubnets[0].subnetId, ',', vpc.privateSubnets[1].subnetId])),
-                TagSpecifications: arrayWith(
-                  objectLike({
-                    ResourceType: 'instance',
-                    Tags: arrayWith(
-                      objectLike({
-                        Key: rfdkTag.name,
-                        Value: rfdkTag.value,
-                      }),
-                    ),
-                  }),
-                ),
-                UserData: stack.resolve(Fn.base64(fleet.userData.render())),
-                InstanceType: fleet.instanceTypes[0].toString(),
-              }),
-            ),
-            ReplaceUnhealthyInstances: true,
-            TargetCapacity: fleet.maxCapacity,
-            TerminateInstancesWithExpiration: true,
-            Type: 'maintain',
+              },
+            ],
             TagSpecifications: arrayWith(
               objectLike({
                 ResourceType: 'spot-fleet-request',
                 Tags: arrayWith(
-                  objectLike({
+                  {
                     Key: rfdkTag.name,
                     Value: rfdkTag.value,
-                  }),
+                  },
                 ),
               }),
             ),
-          }),
-        }),
-      })));
+          },
+        },
+      }));
     });
 
     test('adds policies to the render queue', () => {
@@ -315,7 +288,10 @@ describe('ConfigureSpotEventPlugin', () => {
             {
               Action: 'ec2:CreateTags',
               Effect: 'Allow',
-              Resource: 'arn:aws:ec2:*:*:spot-fleet-request/*',
+              Resource: [
+                'arn:aws:ec2:*:*:spot-fleet-request/*',
+                'arn:aws:ec2:*:*:volume/*',
+              ],
             },
           ],
         },
@@ -429,228 +405,6 @@ describe('ConfigureSpotEventPlugin', () => {
         spotFleetRequestConfigurations: objectLike({
           [groupName]: objectLike({
             ValidUntil: validUntil.date.toISOString(),
-          }),
-        }),
-      })));
-    });
-
-    test('fleet with block devices', () => {
-      // GIVEN
-      const deviceName = '/dev/xvda';
-      const volumeSize = 50;
-      const encrypted = true;
-      const deleteOnTermination = true;
-      const iops = 100;
-      const volumeType = EbsDeviceVolumeType.STANDARD;
-
-      const fleetWithCustomProps = new SpotEventPluginFleet(stack, 'SpotEventPluginFleet', {
-        vpc,
-        renderQueue,
-        deadlineGroups: [
-          groupName,
-        ],
-        instanceTypes: [
-          InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
-        ],
-        workerMachineImage,
-        maxCapacity: 1,
-        blockDevices: [{
-          deviceName,
-          volume: BlockDeviceVolume.ebs(volumeSize, {
-            encrypted,
-            deleteOnTermination,
-            iops,
-            volumeType,
-          }),
-        }],
-      });
-
-      // WHEN
-      new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
-        vpc,
-        renderQueue: renderQueue,
-        spotFleets: [
-          fleetWithCustomProps,
-        ],
-      });
-
-      // THEN
-      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-        spotFleetRequestConfigurations: objectLike({
-          [groupName]: objectLike({
-            LaunchSpecifications: arrayWith(objectLike({
-              BlockDeviceMappings: arrayWith(objectLike({
-                DeviceName: deviceName,
-                Ebs: objectLike({
-                  DeleteOnTermination: deleteOnTermination,
-                  Iops: iops,
-                  VolumeSize: volumeSize,
-                  VolumeType: volumeType,
-                  Encrypted: encrypted,
-                }),
-              })),
-            })),
-          }),
-        }),
-      })));
-    });
-
-    test('fleet with block devices with custom volume', () => {
-      // GIVEN
-      const deviceName = '/dev/xvda';
-      const virtualName = 'name';
-      const snapshotId = 'snapshotId';
-      const volumeSize = 50;
-      const deleteOnTermination = true;
-      const iops = 100;
-      const volumeType = EbsDeviceVolumeType.STANDARD;
-
-      const fleetWithCustomProps = new SpotEventPluginFleet(stack, 'SpotEventPluginFleet', {
-        vpc,
-        renderQueue,
-        deadlineGroups: [
-          groupName,
-        ],
-        instanceTypes: [
-          InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
-        ],
-        workerMachineImage,
-        maxCapacity: 1,
-        blockDevices: [{
-          deviceName: deviceName,
-          volume: {
-            ebsDevice: {
-              deleteOnTermination,
-              iops,
-              volumeSize,
-              volumeType,
-              snapshotId,
-            },
-            virtualName,
-          },
-        }],
-      });
-
-      // WHEN
-      new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
-        vpc,
-        renderQueue: renderQueue,
-        spotFleets: [
-          fleetWithCustomProps,
-        ],
-      });
-
-      // THEN
-      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-        spotFleetRequestConfigurations: objectLike({
-          [groupName]: objectLike({
-            LaunchSpecifications: arrayWith(objectLike({
-              BlockDeviceMappings: arrayWith(objectLike({
-                DeviceName: deviceName,
-                Ebs: objectLike({
-                  SnapshotId: snapshotId,
-                  DeleteOnTermination: deleteOnTermination,
-                  Iops: iops,
-                  VolumeSize: volumeSize,
-                  VolumeType: volumeType,
-                  Encrypted: ABSENT,
-                }),
-                VirtualName: virtualName,
-              })),
-            })),
-          }),
-        }),
-      })));
-    });
-
-    test('fleet with block devices with no device', () => {
-      // GIVEN
-      const deviceName = '/dev/xvda';
-      const volume = BlockDeviceVolume.noDevice();
-
-      const fleetWithCustomProps = new SpotEventPluginFleet(stack, 'SpotEventPluginFleet', {
-        vpc,
-        renderQueue,
-        deadlineGroups: [
-          groupName,
-        ],
-        instanceTypes: [
-          InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
-        ],
-        workerMachineImage,
-        maxCapacity: 1,
-        blockDevices: [{
-          deviceName: deviceName,
-          volume,
-        }],
-      });
-
-      // WHEN
-      new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
-        vpc,
-        renderQueue: renderQueue,
-        spotFleets: [
-          fleetWithCustomProps,
-        ],
-      });
-
-      // THEN
-      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-        spotFleetRequestConfigurations: objectLike({
-          [groupName]: objectLike({
-            LaunchSpecifications: arrayWith(objectLike({
-              BlockDeviceMappings: arrayWith(objectLike({
-                DeviceName: deviceName,
-                NoDevice: '',
-              })),
-            })),
-          }),
-        }),
-      })));
-    });
-
-    test('fleet with deprecated mappingEnabled', () => {
-      // GIVEN
-      const deviceName = '/dev/xvda';
-      const mappingEnabled = false;
-
-      const fleetWithCustomProps = new SpotEventPluginFleet(stack, 'SpotEventPluginFleet', {
-        vpc,
-        renderQueue,
-        deadlineGroups: [
-          groupName,
-        ],
-        instanceTypes: [
-          InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
-        ],
-        workerMachineImage,
-        maxCapacity: 1,
-        blockDevices: [{
-          deviceName: deviceName,
-          volume: BlockDeviceVolume.ebs(50),
-          mappingEnabled,
-        }],
-      });
-
-      // WHEN
-      new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
-        vpc,
-        renderQueue: renderQueue,
-        spotFleets: [
-          fleetWithCustomProps,
-        ],
-      });
-
-      // THEN
-      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-        spotFleetRequestConfigurations: objectLike({
-          [groupName]: objectLike({
-            LaunchSpecifications: arrayWith(objectLike({
-              BlockDeviceMappings: arrayWith(objectLike({
-                DeviceName: deviceName,
-                NoDevice: '',
-              })),
-            })),
           }),
         }),
       })));
@@ -860,12 +614,20 @@ describe('ConfigureSpotEventPlugin', () => {
   test('throws with the same group name', () => {
     // WHEN
     function createConfigureSpotEventPlugin() {
+      const duplicateFleet = new SpotEventPluginFleet(stack, 'DuplicateSpotFleet', {
+        vpc,
+        renderQueue,
+        workerMachineImage: fleet.machineImage,
+        instanceTypes: fleet.instanceTypes,
+        maxCapacity: fleet.maxCapacity,
+        deadlineGroups: fleet.deadlineGroups,
+      });
       new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
         vpc,
         renderQueue: renderQueue,
         spotFleets: [
           fleet,
-          fleet,
+          duplicateFleet,
         ],
       });
     }

@@ -439,4 +439,36 @@ describe('SpotEventPluginClient', () => {
       );
     }
   });
+
+  test('does not add groups when groups were not retrieved successfully', async () => {
+    // GIVEN
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].GetRequest = jest.fn().mockResolvedValue(undefined);
+
+    // WHEN
+    const added = await spotEventPluginClient.addGroups(['group']);
+
+    // THEN
+    // eslint-disable-next-line dot-notation
+    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(1);
+    // eslint-disable-next-line dot-notation
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).not.toBeCalled();
+    expect(added).toBe(false);
+  });
+
+  test('does not add pools when pools were not retrieved successfully', async () => {
+    // GIVEN
+    // eslint-disable-next-line dot-notation
+    spotEventPluginClient['deadlineClient'].GetRequest = jest.fn().mockResolvedValue(undefined);
+
+    // WHEN
+    const added = await spotEventPluginClient.addPools(['pool']);
+
+    // THEN
+    // eslint-disable-next-line dot-notation
+    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(1);
+    // eslint-disable-next-line dot-notation
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).not.toBeCalled();
+    expect(added).toBe(false);
+  });
 });

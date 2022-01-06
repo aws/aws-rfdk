@@ -36,7 +36,7 @@ async function main() {
     throw new Error(`nodeunit tests are no longer supported but ${nuTestFiles.length} were found: ${nuTestFiles.map(f => f.filename)}`);
   }
 
-  await shell([args.jest], defaultShellOptions);
+  await shell([args.jest, '--silent'], defaultShellOptions);
 
   // Run integration test if the package has integ test files
   if (await hasIntegTests()) {

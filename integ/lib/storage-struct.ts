@@ -228,6 +228,7 @@ export class StorageStruct extends Construct {
       },
       secretsManagementSettings: {
         enabled: props.enableSecretsManagement ?? false,
+        credentialsRemovalPolicy: RemovalPolicy.DESTROY,
       },
     });
 

@@ -18,6 +18,7 @@ import {
   AttributeType,
   BillingMode,
   Table,
+  TableEncryption,
 } from '@aws-cdk/aws-dynamodb';
 import { PolicyStatement } from '@aws-cdk/aws-iam';
 import { IKey } from '@aws-cdk/aws-kms';
@@ -109,15 +110,31 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
    * The ARN for the Certificate that was imported into ACM
    */
   public readonly certificateArn: string;
+
+  /**
+   * @inheritdoc
+   */
   public readonly stack: Stack;
+
+  /**
+   * @inheritdoc
+   */
   public readonly env: ResourceEnvironment;
-  // The DynamoDB Table that is used as a backing store for the CustomResource utilized in this construct.
+
+  /**
+   * The DynamoDB Table that is used as a backing store for the CustomResource utilized in this construct.
+   */
   protected readonly database: Table;
+
+  protected readonly resource: CustomResource;
+
+  /**
+   * A unique tag that is applied to this certificate that can be used to grant permissions to it.
+   */
   protected readonly uniqueTag: Tag;
 
   constructor(scope: Construct, id: string, props: ImportedAcmCertificateProps) {
     super(scope, id);
-
     this.stack = Stack.of(this);
     this.env = {
       account: this.stack.account,
@@ -128,7 +145,7 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
       partitionKey: { name: 'PhysicalId', type: AttributeType.STRING },
       sortKey: { name: 'CustomResource', type: AttributeType.STRING },
       removalPolicy: RemovalPolicy.DESTROY,
-      serverSideEncryption: true,
+      encryption: TableEncryption.AWS_MANAGED,
       billingMode: BillingMode.PAY_PER_REQUEST,
     });
 
@@ -210,15 +227,21 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
       ],
     };
 
-    const resource = new CustomResource(this, 'Default', {
+    this.resource = new CustomResource(this, 'Default', {
       serviceToken: lambda.functionArn,
       properties,
       resourceType: 'Custom::RFDK_AcmImportedCertificate',
     });
 
-    this.certificateArn = Token.asString(resource.getAtt('CertificateArn'));
+    this.certificateArn = Token.asString(this.resource.getAtt('CertificateArn'));
   }
 
+  /**
+   * Apply a removal policy to the custom resource that represents the certificate imported into ACM
+   */
+  public applyRemovalPolicy(policy: RemovalPolicy) {
+    this.resource.applyRemovalPolicy(policy);
+  }
   /**
    * @inheritdoc
    */

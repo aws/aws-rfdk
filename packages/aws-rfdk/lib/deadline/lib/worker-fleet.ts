@@ -38,10 +38,9 @@ import {
   Annotations,
   Construct,
   Duration,
-  IResource,
-  ResourceEnvironment,
-  Stack,
+  IConstruct,
 } from '@aws-cdk/core';
+
 import {
   HealthCheckConfig,
   HealthMonitor,
@@ -70,7 +69,7 @@ import {
 /**
  * Interface for Deadline Worker Fleet.
  */
-export interface IWorkerFleet extends IResource, IConnectable, IGrantable {
+export interface IWorkerFleet extends IConnectable, IConstruct, IGrantable {
   /**
    * Allow access to the worker's remote command listener port (configured as a part of the
    * WorkerConfiguration) for an IConnectable that is either in this stack, or in a stack that
@@ -248,16 +247,6 @@ abstract class WorkerInstanceFleetBase extends Construct implements IWorkerFleet
   public abstract readonly grantPrincipal: IPrincipal;
 
   /**
-   * The stack in which this worker fleet is defined.
-   */
-  public abstract readonly stack: Stack;
-
-  /**
-   * The environment this resource belongs to.
-   */
-  public abstract readonly env: ResourceEnvironment;
-
-  /**
    * The ASG object created by the construct.
    */
   public abstract readonly fleet: AutoScalingGroup;
@@ -393,16 +382,6 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
   public readonly grantPrincipal: IPrincipal;
 
   /**
-   * The stack in which this worker fleet is defined.
-   */
-  public readonly stack: Stack;
-
-  /**
-   * The environment this resource belongs to.
-   */
-  public readonly env: ResourceEnvironment;
-
-  /**
    * The port workers listen on to share their logs.
    */
   public readonly listeningPorts: Port;
@@ -444,11 +423,6 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
 
   constructor(scope: Construct, id: string, props: WorkerInstanceFleetProps) {
     super(scope, id);
-    this.stack = Stack.of(scope);
-    this.env = {
-      account: this.stack.account,
-      region: this.stack.region,
-    };
 
     this.validateProps(props);
 
@@ -490,7 +464,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
     this.targetCapacityMetric = new Metric({
       namespace: 'AWS/AutoScaling',
       metricName: 'GroupDesiredCapacity',
-      dimensions: {
+      dimensionsMap: {
         AutoScalingGroupName: this.fleet.autoScalingGroupName,
       },
       label: 'GroupDesiredCapacity',
@@ -593,7 +567,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
 
   private validateRegion(region: string | undefined, regex: RegExp) {
     if (region && !regex.test(region)) {
-      throw new Error(`Invalid value: ${region} for property 'region'. Valid characters are A-Z, a-z, 0-9, - and _. ‘All’, ‘none’ and ‘unrecognized’ are reserved names that cannot be used.`);
+      throw new Error(`Invalid value: ${region} for property 'region'. Valid characters are A-Z, a-z, 0-9, - and _. 'All', 'none' and 'unrecognized' are reserved names that cannot be used.`);
     }
   }
 

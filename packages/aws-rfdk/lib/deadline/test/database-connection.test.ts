@@ -43,6 +43,7 @@ import {
 import {
   Construct,
   Duration,
+  Resource,
   ResourceEnvironment,
   Stack,
 } from '@aws-cdk/core';
@@ -275,7 +276,7 @@ describe('DocumentDB', () => {
 
   test('adds warning annotation when a security group cannot be added due to unsupported IDatabaseCluster implementation', () => {
     // GIVEN
-    class FakeDatabaseCluster extends Construct implements IDatabaseCluster {
+    class FakeDatabaseCluster extends Resource implements IDatabaseCluster {
       public readonly clusterIdentifier: string = '';
       public readonly instanceIdentifiers: string[] = [];
       public readonly clusterEndpoint: Endpoint = new Endpoint('address', 123);
@@ -305,7 +306,7 @@ describe('DocumentDB', () => {
     connection.addSecurityGroup(securityGroup);
 
     // THEN
-    expect(fakeDatabase.node.metadata).toEqual(expect.arrayContaining([
+    expect(fakeDatabase.node.metadataEntry).toEqual(expect.arrayContaining([
       expect.objectContaining({
         type: 'aws:cdk:warning',
         data: expect.stringMatching(new RegExp(`Failed to add the following security groups to ${fakeDatabase.node.id}: .*\\. ` +
@@ -328,7 +329,7 @@ describe('DocumentDB', () => {
     connection.addSecurityGroup(securityGroup);
 
     // THEN
-    expect(database.node.metadata).toEqual(expect.arrayContaining([
+    expect(database.node.metadataEntry).toEqual(expect.arrayContaining([
       expect.objectContaining({
         type: 'aws:cdk:warning',
         data: expect.stringMatching(new RegExp(`Failed to add the following security groups to ${database.node.id}: .*\\. ` +
@@ -379,7 +380,7 @@ describe('DocumentDB Version Checks', () => {
     DatabaseConnection.forDocDB({database, login: database.secret!});
 
     // THEN
-    expect(database.node.metadata.length).toBe(0);
+    expect(database.node.metadataEntry.length).toBe(0);
   });
 
   test('When from attributes', () => {
@@ -402,7 +403,7 @@ describe('DocumentDB Version Checks', () => {
     const databaseConnection = DatabaseConnection.forDocDB({database, login: secret});
 
     // THEN
-    expect(database.node.metadata.length).toBe(0);
+    expect(database.node.metadataEntry.length).toBe(0);
     expect(databaseConnection.databaseConstruct).toBeUndefined();
   });
 
@@ -430,7 +431,7 @@ describe('DocumentDB Version Checks', () => {
     DatabaseConnection.forDocDB({database, login: database.secret!});
 
     // THEN
-    expect(database.node.metadata).toEqual(
+    expect(database.node.metadataEntry).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           type: 'aws:cdk:error',
@@ -465,7 +466,7 @@ describe('DocumentDB Version Checks', () => {
     DatabaseConnection.forDocDB({database, login: database.secret!});
 
     // THEN
-    expect(database.node.metadata).toEqual(
+    expect(database.node.metadataEntry).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           type: 'aws:cdk:error',

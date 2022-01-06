@@ -148,8 +148,15 @@ export interface SpotFleetRequestProps {
 
   /**
    * The launch specifications for the Spot Fleet request.
+   *
+   * @deprecated This property is ignored. Use `LaunchTemplateConfigs` instead.
    */
-  readonly LaunchSpecifications: LaunchSpecification[];
+  readonly LaunchSpecifications?: any[];
+
+  /**
+   * The launch templates for the Spot Fleet request.
+   */
+  readonly LaunchTemplateConfigs?: LaunchTemplateConfig[];
 
   /**
    * Indicates whether Spot Fleet should replace unhealthy instances.
@@ -187,61 +194,67 @@ export interface SpotFleetRequestProps {
 }
 
 /**
- * Describes the launch specification for one or more Spot Instances.
+ * Interface for `FleetLaunchTemplateSpecification` used in the `RequestSpotFleet` API invoked by SEP.
+ * @see https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RequestSpotFleet.html
+ * @see https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_FleetLaunchTemplateSpecification.html
  */
-export interface LaunchSpecification
-{
+export interface LaunchTemplateSpecification {
   /**
-   * One or more block devices that are mapped to the Spot Instances.
-   *
-   * @default - Property not used.
+   * The ID of the launch template. This is mutually exclusive with `LaunchTemplateName`.
    */
-  readonly BlockDeviceMappings?: BlockDeviceMappingProperty[];
-
+  readonly LaunchTemplateId?: string;
   /**
-   * The IAM instance profile.
+   * The name of the launch template. This is mutually exclusive with `LaunchTemplateId`.
    */
-  readonly IamInstanceProfile: SpotFleetInstanceProfile;
-
+  readonly LaunchTemplateName?: string;
   /**
-   * The ID of the AMI.
+   * The version of the launch template to use.
    */
-  readonly ImageId: string;
+  readonly Version: string;
+}
 
+/**
+ * Interface for `LaunchTemplateOverrides` used in the `RequestSpotFleet` API invoked by SEP.
+ * @see https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RequestSpotFleet.html
+ * @see https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_LaunchTemplateOverrides.html
+ */
+export interface LaunchTemplateOverrides {
   /**
-   * One or more security groups.
+   * The Availability Zone in which to launch the instances.
    */
-  readonly SecurityGroups: SpotFleetSecurityGroupId[];
-
-  /**
-   * The IDs of the subnets in which to launch the instances.
-   * To specify multiple subnets, separate them using commas.
-   *
-   * @default - Property not used.
-   */
-  readonly SubnetId?: string;
-
-  /**
-   * The tags to apply to the instance during creation.
-   */
-  readonly TagSpecifications: SpotFleetTagSpecification[];
-
-  /**
-   * The Base64-encoded user data that instances use when starting up.
-   */
-  readonly UserData: string;
-
+  readonly AvailabilityZone?: string,
   /**
    * The instance type.
    */
-  readonly InstanceType: string;
-
+  readonly InstanceType?: string,
   /**
-   * The name of the key pair.
-   *
-   * @default - Property not used.
+   * The maximum price per unit hour you are willing to pay for a Spot Instance.
    */
-  readonly KeyName?: string;
+  readonly SpotPrice?: string,
+  /**
+   * The ID of the subnet in which to launch the instances.
+   */
+  readonly SubnetId?: string,
+  /**
+   * The number of units provided by the specified instance type.
+   */
+  readonly WeightedCapacity?: number,
+}
+
+/**
+ * Interface for `LaunchTemplateConfig` used in the `RequestSpotFleet` API invoked by SEP.
+ * @see https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RequestSpotFleet.html
+ * @see https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_LaunchTemplateConfig.html
+ */
+export interface LaunchTemplateConfig {
+  /**
+   * The launch template.
+   */
+  readonly LaunchTemplateSpecification: LaunchTemplateSpecification;
+  /**
+   * Any parameters that you specify override the same parameters in the launch template.
+   */
+  readonly Overrides: LaunchTemplateOverrides[];
 }
 
 /**

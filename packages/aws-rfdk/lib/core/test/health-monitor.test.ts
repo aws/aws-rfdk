@@ -98,7 +98,7 @@ class TestMonitorableFleet extends Construct implements IMonitorableFleet {
     this.targetCapacityMetric = new Metric({
       namespace: 'AWS/AutoScaling',
       metricName: 'GroupDesiredCapacity',
-      dimensions: {
+      dimensionsMap: {
         AutoScalingGroupName: fleet.autoScalingGroupName,
       },
       label: 'GroupDesiredCapacity',
