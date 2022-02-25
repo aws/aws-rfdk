@@ -110,12 +110,14 @@
     "typescript": "~4.5.4"
   },
   "resolutions-ansi-regex": "Unable to resolve at this time. ansi-regex > 2.1.1, < 5.0.1 has security vulnerabilities, but resolving to >=5.0.1 causes build errors related to strip-ansi",
+  "resolutions-colors": "transitive dep from awslint@1.137.0->jsii-reflect@1.49.0, aws-cdk@1.140.0 -> cloudformation-diff, jsii@1.50.0",
   "resolutions-node-gyp": "transitive dep from lerna@4.0.0. tar < 6.1.2 has sec vuln and node-gyp@7.1.2 is on tar@4.4.13. This old version of tar cannot be substituted by >= 6.1.2.",
   "resolutions-set-value": "transitive dep from jest@26.6.3. set-value < 4.0.1 has security vulnerabilities",
   "resolutions-tar": "transative dep from lerna@4.0.0. tar < 6.1.2 has security vulnerabilities and there are multiple packages in lerna pulling it in",
   "resolutions-tmpl": "tmpl < 1.0.4 has security vulnerabilities",
   "resolutions-vm2": "transitive dep from aws-cdk@1.128.0. vm2 < 3.9.4 has security vulnerabilities",
   "resolutions": {
+    "colors": "1.4.0",
     "node-gyp": ">=8.2.0",
     "set-value": ">=4.0.1",
     "tar": ">=6.1.2",
