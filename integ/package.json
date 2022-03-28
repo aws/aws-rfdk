@@ -87,7 +87,7 @@
     "@aws-cdk/aws-secretsmanager": "1.138.0",
     "@aws-cdk/core": "1.138.0",
     "aws-rfdk": "0.40.0",
-    "aws-sdk": "^2.1049.0"
+    "aws-sdk": "^2.1102.0"
   },
   "peerDependencies": {
     "@aws-cdk/aws-autoscaling": "1.138.0",
