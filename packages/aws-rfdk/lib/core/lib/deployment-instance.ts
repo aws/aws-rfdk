@@ -183,7 +183,7 @@ export class DeploymentInstance extends Construct implements IScriptHost, IConne
       updatePolicy: UpdatePolicy.replacingUpdate(),
       vpc: props.vpc,
       vpcSubnets: props.vpcSubnets ?? {
-        subnetType: SubnetType.PRIVATE,
+        subnetType: SubnetType.PRIVATE_WITH_NAT,
       },
     });
     this.node.defaultChild = this.asg;

@@ -303,7 +303,7 @@ Options:
 
     --verbose
         Increases the verbosity of the output
-  `.trimLeft());
+  `.trimStart());
   exitAndCleanup(errorCode);
 }
 

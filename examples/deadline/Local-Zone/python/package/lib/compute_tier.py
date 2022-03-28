@@ -79,7 +79,7 @@ class ComputeTier(Stack):
         # We can put the health monitor and worker fleet in all of the local zones we're using
         subnets = SubnetSelection(
             availability_zones=props.availability_zones,
-            subnet_type=SubnetType.PRIVATE,
+            subnet_type=SubnetType.PRIVATE_WITH_NAT,
             one_per_az=True
         )
 

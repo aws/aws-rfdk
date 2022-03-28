@@ -120,7 +120,7 @@ const vpc = new Vpc(this, 'Vpc', {
     // Provide a subnet configuration for the SpotEventPluginFleet subnet group
     {
       name: 'SpotEventPluginFleetSubnets',
-      subnetType: SubnetType.PRIVATE,
+      subnetType: SubnetType.PRIVATE_WITH_NAT,
       cidrMask: 20,
     },
 
@@ -265,7 +265,7 @@ const vpc = new Vpc(this, 'Vpc', {
     // Provide a subnet configuration for the Render Queue subnet group
     {
       name: 'RenderQueueALBSubnets',
-      subnetType: SubnetType.PRIVATE,
+      subnetType: SubnetType.PRIVATE_WITH_NAT,
       cidrMask: 27,
     },
 
@@ -766,7 +766,7 @@ const vpc = new Vpc(this, 'Vpc', {
     // Provide a subnet configuration for the WorkerInstanceFleet subnet group
     {
       name: 'WorkerInstanceFleetSubnets',
-      subnetType: SubnetType.PRIVATE,
+      subnetType: SubnetType.PRIVATE_WITH_NAT,
       cidrMask: 20,
     },
 

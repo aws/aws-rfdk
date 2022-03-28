@@ -179,7 +179,7 @@ export class MongoDbPostInstallSetup extends Construct {
 
     const lamdbaFunc = new LambdaFunction(this, 'Lambda', {
       vpc: props.vpc,
-      vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
+      vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_NAT },
       description: `Used by a MongoDbPostInstallSetup ${Names.uniqueId(this)} to perform post-installation setup on a MongoDB`,
       code: Code.fromAsset(path.join(__dirname, '..', '..', 'lambdas', 'nodejs'), {
         // Exclude commented out, for now, as a work-around for a CDK bug with at least CDK v1.49.1.

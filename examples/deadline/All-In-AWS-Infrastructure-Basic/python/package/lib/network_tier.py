@@ -119,7 +119,7 @@ class NetworkTier(Stack):
         #     traffic=AclTraffic.tcp_port(22),
         #     rule_number=1
         # )
-        endpoint_subnets = SubnetSelection(subnet_type=SubnetType.PRIVATE)
+        endpoint_subnets = SubnetSelection(subnet_type=SubnetType.PRIVATE_WITH_NAT)
 
         # Add interface endpoints
         for idx, service_info in enumerate(_INTERFACE_ENDPOINT_SERVICES):
