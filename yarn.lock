@@ -2488,10 +2488,10 @@
   dependencies:
     "@babel/types" "^7.3.0"
 
-"@types/fs-extra@^8.1.2":
-  version "8.1.2"
-  resolved "https://registry.yarnpkg.com/@types/fs-extra/-/fs-extra-8.1.2.tgz#7125cc2e4bdd9bd2fc83005ffdb1d0ba00cca61f"
-  integrity sha512-SvSrYXfWSc7R4eqnOzbQF4TZmfpNSM9FrSWLU3EUnWBuyZqNBOrv1B1JA3byUDPUl9z4Ab3jeZG2eDdySlgNMg==
+"@types/fs-extra@^9.0.13":
+  version "9.0.13"
+  resolved "https://registry.yarnpkg.com/@types/fs-extra/-/fs-extra-9.0.13.tgz#7594fbae04fe7f1918ce8b3d213f74ff44ac1f45"
+  integrity sha512-nEnwB++1u5lVDM2UI4c1+5R+FYaKfaAzS4OococimjVm3nQw3TuzH5UNsocrcTBbhnerblyHj4A49qXbIiZdpA==
   dependencies:
     "@types/node" "*"
 
@@ -2565,25 +2565,15 @@
   resolved "https://registry.yarnpkg.com/@types/minimist/-/minimist-1.2.2.tgz#ee771e2ba4b3dc5b372935d549fd9617bf345b8c"
   integrity sha512-jhuKLIRrhvCPLqwPcx6INqmKeiA5EWrsCOPhrlFSrbrmU4ZMPjj5Ul/oLCMDO98XRUIwVm78xICz4EPCektzeQ==
 
-"@types/node@*":
-  version "16.11.3"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-16.11.3.tgz#fad0b069ec205b0e81429c805d306d2c12e26be1"
-  integrity sha512-aIYL9Eemcecs1y77XzFGiSc+FdfN58k4J23UEe6+hynf4Wd9g4DzQPwIKL080vSMuubFqy2hWwOzCtJdc6vFKw==
+"@types/node@*", "@types/node@^17.0.2", "@types/node@^17.0.7":
+  version "17.0.7"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.7.tgz#4a53d8332bb65a45470a2f9e2611f1ced637a5cb"
+  integrity sha512-1QUk+WAUD4t8iR+Oj+UgI8oJa6yyxaB8a8pHaC8uqM6RrS1qbL7bf3Pwl5rHv0psm2CuDErgho6v5N+G+5fwtQ==
 
 "@types/node@^10.17.60":
   version "10.17.60"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.17.60.tgz#35f3d6213daed95da7f0f73e75bcc6980e90597b"
   integrity sha512-F0KIgDJfy2nA3zMLmWGKxcH2ZVEtCZXHHdOQs2gSaQ27+lNeEfGxzkIw90aXswATX7AZ33tahPbzy6KAfUreVw==
-
-"@types/node@^17.0.2":
-  version "17.0.2"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.2.tgz#a4c07d47ff737e8ee7e586fe636ff0e1ddff070a"
-  integrity sha512-JepeIUPFDARgIs0zD/SKPgFsJEAF0X5/qO80llx59gOxFTboS9Amv3S+QfB7lqBId5sFXJ99BN0J6zFRvL9dDA==
-
-"@types/node@^17.0.7":
-  version "17.0.7"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-17.0.7.tgz#4a53d8332bb65a45470a2f9e2611f1ced637a5cb"
-  integrity sha512-1QUk+WAUD4t8iR+Oj+UgI8oJa6yyxaB8a8pHaC8uqM6RrS1qbL7bf3Pwl5rHv0psm2CuDErgho6v5N+G+5fwtQ==
 
 "@types/normalize-package-data@^2.4.0":
   version "2.4.1"
@@ -3447,7 +3437,7 @@ cacache@^15.0.5, cacache@^15.2.0:
     tar "^6.0.2"
     unique-filename "^1.1.1"
 
-cacache@^16.0.0:
+cacache@^16.0.2:
   version "16.0.3"
   resolved "https://registry.yarnpkg.com/cacache/-/cacache-16.0.3.tgz#0b6314bde969bd4098b03a5f90a351e8a1483f48"
   integrity sha512-eC7wYodNCVb97kuHGk5P+xZsvUJHkhSEOyNwkenqQPAsOtrTjvWOE5vSPNBpz9d8X3acIf6w2Ub5s4rvOCTs4g==
@@ -6982,7 +6972,7 @@ lru-cache@^6.0.0:
   dependencies:
     yallist "^4.0.0"
 
-lru-cache@^7.5.1, lru-cache@^7.7.1:
+lru-cache@^7.7.1:
   version "7.7.1"
   resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-7.7.1.tgz#03d2846b1ad2dcc7931a9340b8711d9798fcb0c6"
   integrity sha512-cRffBiTW8s73eH4aTXqBcTLU0xQnwGV3/imttRHGWCrbergmnK4D6JXQd8qin5z43HnDwRI+o7mVW0LEB+tpAw==
@@ -7020,17 +7010,17 @@ make-error@1.x:
   integrity sha512-s8UhlNe7vPKomQhC1qFelMokr/Sc3AgNbso3n74mVPA5LTZwkB9NlXf4XPamLxJE8h0gh73rM94xvwRT2CVInw==
 
 make-fetch-happen@^10.0.3:
-  version "10.0.6"
-  resolved "https://registry.yarnpkg.com/make-fetch-happen/-/make-fetch-happen-10.0.6.tgz#671269de09cc51208413460898efb7b36adf5534"
-  integrity sha512-4Gfh6lV3TLXmj7qz79hBFuvVqjYSMW6v2+sxtdX4LFQU0rK3V/txRjE0DoZb7X0IF3t9f8NO3CxPSWlvdckhVA==
+  version "10.1.0"
+  resolved "https://registry.yarnpkg.com/make-fetch-happen/-/make-fetch-happen-10.1.0.tgz#7232ef7002a635c04d4deac325df144f21871408"
+  integrity sha512-HeP4QlkadP/Op+hE+Une1070kcyN85FshQObku3/rmzRh4zDcKXA19d2L3AQR6UoaX3uZmhSOpTLH15b1vOFvQ==
   dependencies:
     agentkeepalive "^4.2.1"
-    cacache "^16.0.0"
+    cacache "^16.0.2"
     http-cache-semantics "^4.1.0"
     http-proxy-agent "^5.0.0"
     https-proxy-agent "^5.0.0"
     is-lambda "^1.0.1"
-    lru-cache "^7.5.1"
+    lru-cache "^7.7.1"
     minipass "^3.1.6"
     minipass-collect "^1.0.2"
     minipass-fetch "^2.0.3"
@@ -7243,9 +7233,9 @@ minipass-fetch@^1.3.0, minipass-fetch@^1.3.2:
     encoding "^0.1.12"
 
 minipass-fetch@^2.0.3:
-  version "2.0.3"
-  resolved "https://registry.yarnpkg.com/minipass-fetch/-/minipass-fetch-2.0.3.tgz#688bbd0c2b019642778dc808b6950dd908d192b3"
-  integrity sha512-VA+eiiUtaIvpQJXISwE3OiMvQwAWrgKb97F0aXlCS1Ahikr8fEQq8m3Hf7Kv9KT3nokuHigJKsDMB6atU04olQ==
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/minipass-fetch/-/minipass-fetch-2.1.0.tgz#ca1754a5f857a3be99a9271277246ac0b44c3ff8"
+  integrity sha512-H9U4UVBGXEyyWJnqYDCLp1PwD8XIkJ4akNHp1aGVI+2Ym7wQMlxDKi4IB4JbmyU+pl9pEs/cVrK6cOuvmbK4Sg==
   dependencies:
     minipass "^3.1.6"
     minipass-sized "^1.0.3"
