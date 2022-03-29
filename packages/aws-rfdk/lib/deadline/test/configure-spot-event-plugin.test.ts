@@ -792,7 +792,7 @@ describe('ConfigureSpotEventPlugin', () => {
       fleet = new SpotEventPluginFleet(stack, 'SpotFleetWithSubnets', {
         vpc,
         vpcSubnets: {
-          subnetType: SubnetType.PRIVATE,
+          subnetType: SubnetType.PRIVATE_WITH_NAT,
         },
         renderQueue: renderQueue,
         deadlineGroups: [

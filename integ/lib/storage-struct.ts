@@ -83,7 +83,7 @@ export class StorageStruct extends Construct {
     const deadlineEfs = new FileSystem(this, 'FileSystem', {
       vpc,
       vpcSubnets: {
-        subnetType: SubnetType.PRIVATE,
+        subnetType: SubnetType.PRIVATE_WITH_NAT,
         // We must limit the subnets to one per AZ to avoid creating duplicate EFS mount targets for the same AZ,
         // causing the stack deployment to fail.
         onePerAz: true,
@@ -116,7 +116,7 @@ export class StorageStruct extends Construct {
         vpc,
         vpcSubnets: {
           onePerAz: true,
-          subnetType: SubnetType.PRIVATE,
+          subnetType: SubnetType.PRIVATE_WITH_NAT,
         },
         masterUser: {
           username: 'DocDBUser',
@@ -188,7 +188,7 @@ export class StorageStruct extends Construct {
 
       new MongoDbPostInstallSetup(this, 'MongoDbPostInstall', {
         vpc,
-        vpcSubnets: { subnetType: SubnetType.PRIVATE },
+        vpcSubnets: { subnetType: SubnetType.PRIVATE_WITH_NAT },
         mongoDb: database,
         users: {
           x509AuthUsers: [

@@ -624,7 +624,7 @@ export class Repository extends Construct implements IRepository {
     this.fileSystem = props.fileSystem ?? (() => {
       const fs = new EfsFileSystem(this, 'FileSystem', {
         vpc: props.vpc,
-        vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
+        vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_NAT },
         encrypted: true,
         lifecyclePolicy: EfsLifecyclePolicy.AFTER_14_DAYS,
         removalPolicy: props.removalPolicy?.filesystem ?? RemovalPolicy.RETAIN,
@@ -642,7 +642,7 @@ export class Repository extends Construct implements IRepository {
 
       new PadEfsStorage(this, 'PadEfsStorage', {
         vpc: props.vpc,
-        vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE },
+        vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_NAT },
         accessPoint: paddingAccess,
         desiredPadding: Size.gibibytes(40),
       });
@@ -690,7 +690,7 @@ export class Repository extends Construct implements IRepository {
         engineVersion: '3.6.0',
         instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
         vpc: props.vpc,
-        vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE, onePerAz: true },
+        vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_NAT, onePerAz: true },
         securityGroup: props.securityGroupsOptions?.database,
         instances,
         backup: {
@@ -736,7 +736,7 @@ export class Repository extends Construct implements IRepository {
       }),
       vpc: props.vpc,
       vpcSubnets: props.vpcSubnets ?? {
-        subnetType: SubnetType.PRIVATE,
+        subnetType: SubnetType.PRIVATE_WITH_NAT,
       },
       minCapacity: 1,
       maxCapacity: 1,

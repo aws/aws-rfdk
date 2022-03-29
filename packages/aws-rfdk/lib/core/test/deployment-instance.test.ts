@@ -102,7 +102,7 @@ describe('DeploymentInstance', () => {
 
       test('uses private subnets', () => {
         // GIVEN
-        const privateSubnetIDs = vpc.selectSubnets({ subnetType: SubnetType.PRIVATE }).subnetIds;
+        const privateSubnetIDs = vpc.selectSubnets({ subnetType: SubnetType.PRIVATE_WITH_NAT }).subnetIds;
 
         // THEN
         expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {

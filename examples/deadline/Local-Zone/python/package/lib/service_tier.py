@@ -88,7 +88,7 @@ class ServiceTier(Stack):
         # EFS filesystem and DocDB cluster, both of which aren't available in any local zones at this time.
         repository_subnets = SubnetSelection(
             availability_zones=props.availability_zones,
-            subnet_type=SubnetType.PRIVATE
+            subnet_type=SubnetType.PRIVATE_WITH_NAT
         )
         repository = Repository(
             self,
@@ -126,11 +126,11 @@ class ServiceTier(Stack):
         # all the standard zones we're using.
         render_queue_subnets = SubnetSelection(
             availability_zones=[props.availability_zones[0]],
-            subnet_type=SubnetType.PRIVATE
+            subnet_type=SubnetType.PRIVATE_WITH_NAT
         )
         render_queue_alb_subnets = SubnetSelection(
             availability_zones=props.availability_zones,
-            subnet_type=SubnetType.PRIVATE,
+            subnet_type=SubnetType.PRIVATE_WITH_NAT,
             one_per_az=True,
         )
         self.render_queue = RenderQueue(

@@ -100,7 +100,7 @@ describe('UsageBasedLicensing', () => {
     jest.spyOn(renderQueue, 'configureSecretsManagementAutoRegistration');
 
     stack = new Stack(app, 'Stack', { env });
-    certificateSecret = Secret.fromSecretArn(stack, 'CertSecret', 'arn:aws:secretsmanager:us-west-2:675872700355:secret:CertSecret-j1kiFz');
+    certificateSecret = Secret.fromSecretCompleteArn(stack, 'CertSecret', 'arn:aws:secretsmanager:us-west-2:675872700355:secret:CertSecret-j1kiFz');
     dockerContainer = new  DockerImageAsset(stack, 'license-forwarder', {
       directory: __dirname,
     });
@@ -124,7 +124,7 @@ describe('UsageBasedLicensing', () => {
   test('vpcSubnets specified => does not emit warnings', () => {
     // GIVEN
     const vpcSubnets: SubnetSelection = {
-      subnetType: SubnetType.PRIVATE,
+      subnetType: SubnetType.PRIVATE_WITH_NAT,
     };
 
     // WHEN
@@ -161,7 +161,7 @@ describe('UsageBasedLicensing', () => {
         registrationStatus: SecretsManagementRegistrationStatus.REGISTERED,
         role: SecretsManagementRole.CLIENT,
         vpc,
-        vpcSubnets: { subnetType: SubnetType.PRIVATE },
+        vpcSubnets: { subnetType: SubnetType.PRIVATE_WITH_NAT },
       };
 
       // THEN

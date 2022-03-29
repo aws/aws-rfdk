@@ -17,6 +17,7 @@ module.exports = {
     'import',
     'license-header',
     'jest',
+    "deprecation"
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
@@ -195,6 +196,9 @@ module.exports = {
     // to `import '@aws-cdk/assert/jest';`
     "jest/expect-expect": "off",
 
-    "license-header/header": [ "error", "./license-header.js" ]
+    "license-header/header": [ "error", "./license-header.js" ],
+
+    // Warn on usage of deprecated APIs like the CDK v1 APIs that will be removed in CDK v2.
+    'deprecation/deprecation': "warn",
   }
 }
