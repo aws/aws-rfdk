@@ -11,8 +11,6 @@ echo "$(timestamp) [infrastructure] destroy started"
 INFRASTRUCTURE_APP="$INTEG_ROOT/components/_infrastructure"
 cd "$INFRASTRUCTURE_APP"
 
-run_aws_interaction_hook "$(timestamp) [infrastructure]"
-
 mkdir -p "${INTEG_TEMP_DIR}/infrastructure"
 
 # Hide the destroy log unless something goes wrong (save the scrollback buffer)

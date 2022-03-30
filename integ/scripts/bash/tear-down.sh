@@ -49,8 +49,6 @@ for COMPONENT in **/cdk.json; do
     fi
 done
 
-run_aws_interaction_hook "$(timestamp) [infrastructure]"
-
 cd "$INFRASTRUCTURE_APP" && npx cdk destroy "*" -f
 
 cd "$INTEG_ROOT" && yarn run clean
