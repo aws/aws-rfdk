@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as CloudFormation from 'aws-sdk/clients/cloudformation';
-import awaitSsmCommand from '../../common/functions/awaitSsmCommand';
+import { CloudFormation } from '@aws-sdk/client-cloudformation';
+import { ssmCommand } from '../../common/functions/awaitSsmCommand';
 
 // Name of testing stack is derived from env variable to ensure uniqueness
 const testingStackName = 'RFDKInteg-WF-TestingTier' + process.env.INTEG_STACK_TAG?.toString();
 
-const cloudformation = new CloudFormation();
+const cloudformation = new CloudFormation({});
 
 const bastionRegex = /bastionId/;
 const rqRegex = /renderQueueEndpointWF(\d)/;
@@ -21,36 +21,27 @@ const testCases: Array<Array<any>> = [
 let bastionId: any;
 let renderQueueEndpoints: Array<string> = [];
 
-beforeAll( () => {
+beforeAll( async () => {
   // Query the TestingStack and await its outputs to use as test inputs
-  return new Promise<void>( (res,rej) => {
-    var params = {
-      StackName: testingStackName,
-    };
-    cloudformation.describeStacks(params, (err, data) => {
-      if (err) {
-        rej(err);
-      }
-      else {
-        var stackOutput = data.Stacks![0].Outputs!;
-        stackOutput.forEach( output => {
-          var outputKey = output.OutputKey!;
-          var outputValue = output.OutputValue!;
-          switch(true){
-            case bastionRegex.test(outputKey):
-              bastionId = outputValue;
-              break;
-            case rqRegex.test(outputKey):
-              var testId = rqRegex.exec(outputKey)![1];
-              renderQueueEndpoints[+testId] = outputValue;
-              break;
-            default:
-              break;
-          }
-        });
-        res();
-      }
-    });
+  var params = {
+    StackName: testingStackName,
+  };
+  var data = await cloudformation.describeStacks(params);
+  var stackOutput = data.Stacks![0].Outputs!;
+  stackOutput.forEach( output => {
+    var outputKey = output.OutputKey!;
+    var outputValue = output.OutputValue!;
+    switch(true){
+      case bastionRegex.test(outputKey):
+        bastionId = outputValue;
+        break;
+      case rqRegex.test(outputKey):
+        var testId = rqRegex.exec(outputKey)![1];
+        renderQueueEndpoints[+testId] = outputValue;
+        break;
+      default:
+        break;
+    }
   });
 });
 
@@ -58,7 +49,7 @@ describe.each(testCases)('Deadline WorkerFleet tests (%s)', (_, id) => {
   describe('Worker node tests', () => {
 
     // Before testing the render queue, send a command to configure the Deadline client to use that endpoint
-    beforeAll( () => {
+    beforeAll( async () => {
       var params = {
         DocumentName: 'AWS-RunShellScript',
         Comment: 'Execute Test Script configure-deadline.sh',
@@ -72,7 +63,7 @@ describe.each(testCases)('Deadline WorkerFleet tests (%s)', (_, id) => {
           ],
         },
       };
-      return awaitSsmCommand(bastionId, params);
+      return await ssmCommand(bastionId, params);
     });
 
     test(`WF-${id}-1: Workers can be attached to the Render Queue`, async () => {
@@ -95,10 +86,9 @@ describe.each(testCases)('Deadline WorkerFleet tests (%s)', (_, id) => {
           ],
         },
       };
-      return awaitSsmCommand(bastionId, params).then( response => {
-        var responseOutput = response.output;
-        expect(responseOutput).toMatch(/ip-.*/);
-      });
+      var response = await ssmCommand(bastionId, params);
+      var responseOutput = response.output;
+      expect(responseOutput).toMatch(/ip-.*/);
     });
 
     test(`WF-${id}-2: Workers can be added to groups, pools and regions`, async () => {
@@ -121,11 +111,10 @@ describe.each(testCases)('Deadline WorkerFleet tests (%s)', (_, id) => {
           ],
         },
       };
-      return awaitSsmCommand(bastionId, params).then( response => {
-        var responseOutput = response.output;
-        // Starting Deadline 10.1.11 regions that wasn't added do not apply to worker and returned as unrecognized.
-        expect(responseOutput).toMatch(/testpool\ntestgroup\n(?:unrecognized|testregion)/);
-      });
+      var response = await ssmCommand(bastionId, params);
+      var responseOutput = response.output;
+      // Starting Deadline 10.1.11 regions that wasn't added do not apply to worker and returned as unrecognized.
+      expect(responseOutput).toMatch(/testpool\ntestgroup\n(?:unrecognized|testregion)/);
     });
 
     const setConfigs: Array<Array<any>> = [
@@ -154,10 +143,9 @@ describe.each(testCases)('Deadline WorkerFleet tests (%s)', (_, id) => {
           ],
         },
       };
-      return awaitSsmCommand(bastionId, params).then( response => {
-        var responseOutput = response.output;
-        expect(+responseOutput).toBe(1);
-      });
+      var response = await ssmCommand(bastionId, params);
+      var responseOutput = response.output;
+      expect(+responseOutput).toBe(1);
     });
   });
 });

@@ -6,12 +6,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { App, Stack, Aspects } from '@aws-cdk/core';
+import { SecretsManager, ResourceNotFoundException } from '@aws-sdk/client-secrets-manager';
 import {
   Stage,
   ThinkboxDockerRecipes,
   UsageBasedLicense,
 } from 'aws-rfdk/deadline';
-import * as AWS from 'aws-sdk';
 import {
   RenderStruct,
   RenderStructUsageBasedLicensingProps,
@@ -118,12 +118,12 @@ async function getUsageBasedLicensingProperties(): Promise<RenderStructUsageBase
     };
   } else {
     // Default to a dummy secret and license limits
-    const secrets = new AWS.SecretsManager({ apiVersion: '2017-10-17' });
+    const secrets = new SecretsManager({ apiVersion: '2017-10-17' });
     const secretName = 'RFDKInteg-DummyUblCertificateSecret';
 
     let putSecret: (data: Buffer) => Promise<string>;
     try {
-      const describeSecretResponse = await secrets.describeSecret({ SecretId: secretName }).promise();
+      const describeSecretResponse = await secrets.describeSecret({ SecretId: secretName });
 
       if (!describeSecretResponse.DeletedDate) {
         // Secret exists and is not scheduled for deletion, just return it.
@@ -134,14 +134,13 @@ async function getUsageBasedLicensingProperties(): Promise<RenderStructUsageBase
       } else {
         // Secret exists but is marked for deletion, so we need to restore the secret then update its value
         putSecret = async data => {
-          await secrets.restoreSecret({ SecretId: secretName }).promise();
-          const updateSecretResponse = await secrets.updateSecret({ SecretId: secretName, SecretBinary: data }).promise();
+          await secrets.restoreSecret({ SecretId: secretName });
+          const updateSecretResponse = await secrets.updateSecret({ SecretId: secretName, SecretBinary: data });
           return updateSecretResponse.ARN!;
         };
       }
     } catch (e) {
-      const awsError = e as AWS.AWSError;
-      if (awsError.code === 'ResourceNotFoundException') {
+      if (e instanceof ResourceNotFoundException) {
         // eslint-disable-next-line
         console.log(`UBL secret with name ${secretName} not found.`);
 
@@ -151,7 +150,7 @@ async function getUsageBasedLicensingProperties(): Promise<RenderStructUsageBase
             Name: secretName,
             Description: 'Dummy UBL certificate bundle for RFDK integration tests',
             SecretBinary: data,
-          }).promise();
+          });
           return createSecretResponse.ARN!;
         };
       } else {

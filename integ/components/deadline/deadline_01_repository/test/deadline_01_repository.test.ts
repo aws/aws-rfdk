@@ -3,17 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as CloudFormation from 'aws-sdk/clients/cloudformation';
-import * as CloudWatchLogs from 'aws-sdk/clients/cloudwatchlogs';
-import * as AWS from 'aws-sdk/global';
-import awaitSsmCommand from '../../common/functions/awaitSsmCommand';
+import { CloudFormation } from '@aws-sdk/client-cloudformation';
+import { CloudWatchLogs } from '@aws-sdk/client-cloudwatch-logs';
+import { ssmCommand } from '../../common/functions/awaitSsmCommand';
 
 // Name of testing stack is derived from env variable to ensure uniqueness
 const testingStackName = 'RFDKInteg-DL-TestingTier' + process.env.INTEG_STACK_TAG?.toString();
 const deadlineVersion = process.env.DEADLINE_VERSION?.toString();
 
-const cloudformation = new CloudFormation();
-const logs = new CloudWatchLogs();
+const cloudformation = new CloudFormation({});
+const logs = new CloudWatchLogs({});
 
 const bastionRegex = /bastionId/;
 const dbRegex = /DatabaseSecretARNDL(\d)/;
@@ -31,44 +30,35 @@ let logGroupNames: Array<any> = [];
 let certSecretARNs: Array<any> = [];
 
 
-beforeAll( () => {
+beforeAll( async () => {
   // Query the TestingStack and await its outputs to use as test inputs
-  return new Promise<void>( (res,rej) => {
-    var params = {
-      StackName: testingStackName,
-    };
-    cloudformation.describeStacks(params, (err, data) => {
-      if (err) {
-        rej(err);
-      }
-      else {
-        var stackOutput = data.Stacks![0].Outputs!;
-        stackOutput.forEach( output => {
-          var outputKey = output.OutputKey!;
-          var outputValue = output.OutputValue!;
-          switch(true){
-            case bastionRegex.test(outputKey):
-              bastionId = outputValue;
-              break;
-            case dbRegex.test(outputKey):
-              var testId = dbRegex.exec(outputKey)![1];
-              dbSecretARNs[+testId] = outputValue;
-              break;
-            case logRegex.test(outputKey):
-              var testId = logRegex.exec(outputKey)![1];
-              logGroupNames[+testId] = outputValue;
-              break;
-            case certRegex.test(outputKey):
-              var testId = certRegex.exec(outputKey)![1];
-              certSecretARNs[+testId] = outputValue;
-              break;
-            default:
-              break;
-          }
-        });
-        res();
-      }
-    });
+  var params = {
+    StackName: testingStackName,
+  };
+  var data = await cloudformation.describeStacks(params);
+  var stackOutput = data.Stacks![0].Outputs!;
+  stackOutput.forEach( output => {
+    var outputKey = output.OutputKey!;
+    var outputValue = output.OutputValue!;
+    switch(true){
+      case bastionRegex.test(outputKey):
+        bastionId = outputValue;
+        break;
+      case dbRegex.test(outputKey):
+        var testId = dbRegex.exec(outputKey)![1];
+        dbSecretARNs[+testId] = outputValue;
+        break;
+      case logRegex.test(outputKey):
+        var testId = logRegex.exec(outputKey)![1];
+        logGroupNames[+testId] = outputValue;
+        break;
+      case certRegex.test(outputKey):
+        var testId = certRegex.exec(outputKey)![1];
+        certSecretARNs[+testId] = outputValue;
+        break;
+      default:
+        break;
+    }
   });
 });
 
@@ -76,9 +66,10 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
 
   describe('DocumentDB tests', () => {
 
-    beforeAll( () => {
+    beforeAll( async () => {
       if( certSecretARNs[id]) {
         //If the secretARN has been provided for the auth certificate, this command will fetch it to the instance before continuing the tests
+        const region = await cloudformation.config.region();
         var params = {
           DocumentName: 'AWS-RunShellScript',
           Comment: 'Execute Test Script fetch-cert.sh',
@@ -88,11 +79,11 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
               'sudo -i',
               'su - ec2-user >/dev/null',
               'cd ~ec2-user',
-              './utilScripts/fetch-cert.sh \'' + AWS.config.region + '\' \'' + certSecretARNs[id] + '\'',
+              './utilScripts/fetch-cert.sh \'' + region + '\' \'' + certSecretARNs[id] + '\'',
             ],
           },
         };
-        return awaitSsmCommand(bastionId, params);
+        return await ssmCommand(bastionId, params);
       }
       else {
         return;
@@ -100,7 +91,7 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
     });
 
     // This removes the certification file used to authenticate to the render queue
-    afterAll( () => {
+    afterAll( async () => {
       var params = {
         DocumentName: 'AWS-RunShellScript',
         Comment: 'Execute Test Script cleanup-cert.sh',
@@ -114,7 +105,7 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
           ],
         },
       };
-      return awaitSsmCommand(bastionId, params);
+      return await ssmCommand(bastionId, params);
     });
 
     test(`DL-${id}-1: Deadline DB is initialized`, async () => {
@@ -124,6 +115,7 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
        * Input:           Output from mongo CLI "listDatabases" call delivered via SSM command
        * Expected result: Database list returned from bastion contains "deadline10db"
       **********************************************************************************************************/
+      const region = await cloudformation.config.region();
       var params = {
         DocumentName: 'AWS-RunShellScript',
         Comment: 'Execute Test Script DL-read-docdb-response.sh',
@@ -133,15 +125,14 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
             'sudo -i',
             'su - ec2-user >/dev/null',
             'cd ~ec2-user',
-            './testScripts/DL-read-docdb-response.sh \'' + AWS.config.region + '\' \'' + dbSecretARNs[id] + '\' \'' + certSecretARNs[id] + '\'',
+            './testScripts/DL-read-docdb-response.sh \'' + region + '\' \'' + dbSecretARNs[id] + '\' \'' + certSecretARNs[id] + '\'',
           ],
         },
       };
-      return awaitSsmCommand(bastionId, params).then( response => {
-        var output = response.output;
-        var json = JSON.parse(<string> output);
-        expect(json.databases[0].name).toBe('deadline10db');
-      });
+      var response = await ssmCommand(bastionId, params);
+      var output = response.output;
+      var json = JSON.parse(<string> output);
+      expect(json.databases[0].name).toBe('deadline10db');
     });
   });
 
@@ -150,7 +141,7 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
     let responseCode: number;
     let output: string;
 
-    beforeAll( () => {
+    beforeAll( async () => {
       var params = {
         DocumentName: 'AWS-RunShellScript',
         Comment: 'Execute Test Script DL-read-repository-settings.sh',
@@ -164,10 +155,9 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
           ],
         },
       };
-      return awaitSsmCommand(bastionId, params).then( response => {
-        responseCode = response.responseCode;
-        output = response.output;
-      });
+      var response = await ssmCommand(bastionId, params);
+      responseCode = response.responseCode;
+      output = response.output;
     });
 
     test(`DL-${id}-2: EFS is initialized`, () => {
@@ -209,31 +199,22 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
     let cloudInitLogName: string;
     let deadlineLogName: string;
 
-    beforeAll( () => {
+    beforeAll( async () => {
 
       var params = {
         logGroupName: logGroupNames[id],
       };
-      return new Promise<void>( (res,rej) => {
-        logs.describeLogStreams(params, (err, data) => {
-          if (err) {
-            rej(err);
-          }
-          else {
-            var logStreams = data.logStreams!;
-            logStreamCount = logStreams.length;
-            logStreams.forEach( logStream => {
-              var logStreamName = logStream.logStreamName!;
-              if(/cloud-init-output/.test(logStreamName)) {
-                cloudInitLogName = logStreamName;
-              }
-              else if( /deadlineRepositoryInstallationLogs/.test(logStreamName)) {
-                deadlineLogName = logStreamName;
-              }
-            });
-          }
-          res();
-        });
+      var data = await logs.describeLogStreams(params);
+      var logStreams = data.logStreams!;
+      logStreamCount = logStreams.length;
+      logStreams.forEach( logStream => {
+        var logStreamName = logStream.logStreamName!;
+        if(/cloud-init-output/.test(logStreamName)) {
+          cloudInitLogName = logStreamName;
+        }
+        else if( /deadlineRepositoryInstallationLogs/.test(logStreamName)) {
+          deadlineLogName = logStreamName;
+        }
       });
     });
 
@@ -251,22 +232,13 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
 
       let logEvents: Object;
 
-      beforeAll( () => {
-        return new Promise<void>( (res, rej) => {
-          var params = {
-            logGroupName: logGroupNames[id],
-            logStreamName: cloudInitLogName,
-          };
-          logs.getLogEvents(params, (err,data) => {
-            if (err) {
-              rej(err);
-            }
-            else {
-              logEvents = data.events!;
-            }
-            res();
-          });
-        });
+      beforeAll( async () => {
+        var params = {
+          logGroupName: logGroupNames[id],
+          logStreamName: cloudInitLogName,
+        };
+        var data = await logs.getLogEvents(params);
+        logEvents = data.events!;
       });
 
       test(`DL-${id}-5: cloud-init-output is initialized`, () => {
@@ -309,22 +281,13 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
 
       let logEvents: Object;
 
-      beforeAll( () => {
-        return new Promise<void>( (res, rej) => {
-          var params = {
-            logGroupName: logGroupNames[id],
-            logStreamName: deadlineLogName,
-          };
-          logs.getLogEvents(params, (err,data) => {
-            if (err) {
-              rej(err);
-            }
-            else {
-              logEvents = data.events!;
-            }
-            res();
-          });
-        });
+      beforeAll( async () => {
+        var params = {
+          logGroupName: logGroupNames[id],
+          logStreamName: deadlineLogName,
+        };
+        var data = await logs.getLogEvents(params);
+        logEvents = data.events!;
       });
 
       test(`DL-${id}-7: DeadlineRepositoryInstallationLogs is initialized`, () => {
