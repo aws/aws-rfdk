@@ -27,7 +27,7 @@ export class NetworkTier extends Stack {
     testRunner: {
       name: 'TestRunnerSubnets',
       subnetType: SubnetType.PRIVATE_WITH_NAT,
-      cidrMask: 28,
+      cidrMask: 26, // 2^(32-26)-2 = 62 IP addresses
     },
     renderQueueAlb: {
       name: 'RenderQueueAlbSubnets',
@@ -40,9 +40,11 @@ export class NetworkTier extends Stack {
       // 7 total
       // If we choose a CIDR mask of 25, we get 2^(32-25)-2 = 126 IP addresses
       // 126/7 = 18 IP addresses per RenderQueue
-      // Recommended addresses is 30 per subnet with a minimum of 8, so /25 gives us a little room before we hit the minimum. Refer to:
+      // Recommended addresses is 30 per subnet with a minimum of 8, so a /25 would give us us a little room before
+      // we hit the maximum. No reason to shave it so thin, though, so we'll give ourselves 8x that.
+      // Refer to:
       // https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#subnets-load-balancer
-      cidrMask: 25, // 2^(32-25)-2 = 126 IP addresses
+      cidrMask: 22, // 2^(32-22)-2 = 1022 IP addresses
     },
     sepFleet: {
       name: 'SepFleetSubnets',

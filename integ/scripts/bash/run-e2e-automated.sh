@@ -15,34 +15,46 @@
 
 set -euo pipefail
 
-refreshcreds() {
-    echo "${1:-} Refreshing credentials"
-    unset AWS_ACCESS_KEY_ID
-    unset AWS_SECRET_ACCESS_KEY
-    unset AWS_SESSION_TOKEN
-
-    # Save new credentials into an env var and then parse that env var to set up the 3 required env
-    # vars for authenticated calls using AWS SDK/CDK
-    export CREDS="$(AWS_STS_REGIONAL_ENDPOINTS=regional aws sts assume-role \
-        --role-arn $ROLE_ARN \
-        --role-session-name $ROLE_SESSION_NAME \
-        --external-id $ROLE_EXTERNAL_ID)"
-    export AWS_ACCESS_KEY_ID="$(printenv CREDS | grep "AccessKeyId" | cut -d'"' -f 4)"
-    export AWS_SECRET_ACCESS_KEY="$(printenv CREDS | grep "SecretAccessKey" | cut -d'"' -f 4)"
-    export AWS_SESSION_TOKEN="$(printenv CREDS | grep "SessionToken" | cut -d'"' -f 4)"
-    # Clean up the env var
-    unset CREDS
-}
-
 if [ ! -z ${ROLE_ARN+x} ] && \
    [ ! -z ${ROLE_SESSION_NAME+x} ] && \
    [ ! -z ${ROLE_EXTERNAL_ID+x} ]; then
-  # Setup the hook that runs before any interactions with AWS to refresh the credentials being used.
-  # There is a 1 hour timeout on these credentials that cannot be adjusted.
-  export -f refreshcreds
-  export PRE_AWS_INTERACTION_HOOK=refreshcreds
 
-  refreshcreds
+  unset AWS_ACCESS_KEY_ID
+  unset AWS_SECRET_ACCESS_KEY
+  unset AWS_SESSION_TOKEN
+
+  TEST_PROFILE_NAME=integtestrunner
+  # Set up the default profile to dynamically assume-role to the given ROLE_ARN whenever the credentials
+  # need to be refreshed.
+  # Reference: https://docs.aws.amazon.com/cli/latest/topic/config-vars.html#using-aws-iam-roles
+  aws configure --profile ${TEST_PROFILE_NAME} set role_arn ${ROLE_ARN}
+  aws configure --profile ${TEST_PROFILE_NAME} set external_id ${ROLE_EXTERNAL_ID}
+  aws configure --profile ${TEST_PROFILE_NAME} set role_session_name ${ROLE_SESSION_NAME}
+
+  if [ ! -z ${CODEBUILD_BUILD_NUMBER} ]
+  then
+    # Running in a CodeBuild container.
+    # ref: https://docs.aws.amazon.com/codebuild/latest/userguide/build-env-ref-env-vars.html
+    echo "Running in ECS"
+    aws configure --profile ${TEST_PROFILE_NAME} set credential_source EcsContainer
+  elif curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 5" 2> /dev/null >& /dev/null
+  then
+    # Running on an EC2 instance
+    echo "Running on EC2"
+    aws configure --profile ${TEST_PROFILE_NAME} set credential_source Ec2InstanceMetadata
+  else
+    # Not a container or EC2 instance. Use the AWS_PROFILE profile for the source credentials
+    # for the assume-role; default to the 'default' profile is there is no AWS_PROFILE defined.
+    echo "Non-AWS local run environment"
+    aws configure --profile ${TEST_PROFILE_NAME} set source_profile ${AWS_PROFILE:-default}
+  fi
+
+  # Work around a CDK bug: https://github.com/aws/aws-cdk/issues/3396#issuecomment-990609132
+  touch ~/.aws/credentials
+
+  # Must be the last thing that we do in this code path.
+  export AWS_PROFILE=${TEST_PROFILE_NAME}
+  export AWS_STS_REGIONAL_ENDPOINTS=regional
 fi
 
 # Basic integ test configuration
@@ -53,3 +65,4 @@ export SKIP_TEST_CONFIG=true
 unset AWS_ACCESS_KEY_ID
 unset AWS_SECRET_ACCESS_KEY
 unset AWS_SESSION_TOKEN
+unset AWS_PROFILE

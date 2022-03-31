@@ -7,10 +7,9 @@ import {
   CidrBlock,
   NetworkUtils,
 } from '@aws-cdk/aws-ec2/lib/network-util';
-import * as CloudFormation from 'aws-sdk/clients/cloudformation';
-import * as SecretsManager from 'aws-sdk/clients/secretsmanager';
-import * as AWS from 'aws-sdk/global';
-import awaitSsmCommand from '../../common/functions/awaitSsmCommand';
+import { CloudFormation } from '@aws-sdk/client-cloudformation';
+import { SecretsManager } from '@aws-sdk/client-secrets-manager';
+import { ssmCommand } from '../../common/functions/awaitSsmCommand';
 
 // Name of testing stack is derived from env variable to ensure uniqueness
 const testingStackName = 'RFDKInteg-SM-TestingTier' + process.env.INTEG_STACK_TAG?.toString();
@@ -48,7 +47,7 @@ const workerInstanceFleetSubnetCidrBlocks: string[] = [];
 
 beforeAll(async () => {
   // Query the TestingStack and await its outputs to use as test inputs
-  const describeStacksResponse = await cloudformation.describeStacks({ StackName: testingStackName }).promise();
+  const describeStacksResponse = await cloudformation.describeStacks({ StackName: testingStackName });
   let stackOutput = describeStacksResponse.Stacks![0].Outputs!;
   stackOutput.forEach(output => {
     let outputKey = output.OutputKey!;
@@ -127,22 +126,23 @@ describe('Deadline Secrets Management tests', () => {
      * Expected result: List of admin users which shows that the user created by RFDK is registered
     **********************************************************************************************************/
     // GIVEN
+    const region = await cloudformation.config.region();
     const params = {
       DocumentName: 'AWS-RunShellScript',
       Comment: 'Execute ListAllAdminUsers via test script SM-run-secrets-command.sh',
       InstanceIds: [bastionId],
       Parameters: {
         commands: [
-          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArn}' ListAllAdminUsers`,
+          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${region}' '${smSecretArn}' ListAllAdminUsers`,
         ],
       },
     };
-    const secret = await secretsManager.getSecretValue({ SecretId: smSecretArn }).promise();
+    const secret = await secretsManager.getSecretValue({ SecretId: smSecretArn });
     const smCreds = JSON.parse(secret.SecretString!);
     const adminUserRegex = new RegExp(`${smCreds.username}\\s+Registered`);
 
     // WHEN
-    const response = await awaitSsmCommand(bastionId, params);
+    const response = await ssmCommand(bastionId, params);
 
     // THEN
     expect(response.output).toMatch(adminUserRegex);
@@ -157,19 +157,20 @@ describe('Deadline Secrets Management tests', () => {
      *                  the Server role assigned to it
     **********************************************************************************************************/
     // GIVEN
+    const region = await cloudformation.config.region();
     const params = {
       DocumentName: 'AWS-RunShellScript',
       Comment: 'Execute ListAllMachines via test script SM-run-secrets-command.sh',
       InstanceIds: [bastionId],
       Parameters: {
         commands: [
-          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArn}' ListAllMachines "*" Server`,
+          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${region}' '${smSecretArn}' ListAllMachines "*" Server`,
         ],
       },
     };
 
     // WHEN
-    const response = await awaitSsmCommand(bastionId, params);
+    const response = await ssmCommand(bastionId, params);
 
     // THEN
     // Assert there is exactly one Server identity (the RCS)
@@ -189,13 +190,14 @@ describe('Deadline Secrets Management tests', () => {
      *                  machine's subnet and it has the Client role assigned to it
     **********************************************************************************************************/
     // GIVEN
+    const region = await cloudformation.config.region();
     const params = {
       DocumentName: 'AWS-RunShellScript',
       Comment: 'Execute GetLoadBalancerIdentityRegistrationSettings via test script SM-run-secrets-command.sh',
       InstanceIds: [bastionId],
       Parameters: {
         commands: [
-          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArn}' GetLoadBalancerIdentityRegistrationSettings`,
+          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${region}' '${smSecretArn}' GetLoadBalancerIdentityRegistrationSettings`,
         ],
       },
     };
@@ -211,7 +213,7 @@ describe('Deadline Secrets Management tests', () => {
     });
 
     // WHEN
-    const response = await awaitSsmCommand(bastionId, params);
+    const response = await ssmCommand(bastionId, params);
 
     // Parse the output into connection and source subnet ID pairs
     const result = JSON.parse(response.output) as any[];
@@ -245,13 +247,14 @@ describe('Deadline Secrets Management tests', () => {
      *                  Also assert that this entry shows the Deadline client is registered as a Client role.
     **********************************************************************************************************/
     // GIVEN
+    const region = await cloudformation.config.region();
     const params = {
       DocumentName: 'AWS-RunShellScript',
       Comment: 'Execute ListAllMachines via test script SM-run-secrets-command.sh',
       InstanceIds: [bastionId],
       Parameters: {
         commands: [
-          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${AWS.config.region}' '${smSecretArn}' ListAllMachines "*" Client`,
+          `sudo -u ec2-user ~ec2-user/testScripts/SM-run-secrets-command.sh '${region}' '${smSecretArn}' ListAllMachines "*" Client`,
         ],
       },
     };
@@ -267,7 +270,7 @@ describe('Deadline Secrets Management tests', () => {
     });
 
     // WHEN
-    const response = await awaitSsmCommand(bastionId, params);
+    const response = await ssmCommand(bastionId, params);
 
     // Parse the output into connection and source subnet ID pairs
     const lines = response.output.split('\n').slice(2);

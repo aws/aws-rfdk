@@ -88,7 +88,10 @@
     "@aws-cdk/aws-secretsmanager": "1.149.0",
     "@aws-cdk/core": "1.149.0",
     "aws-rfdk": "0.40.0",
-    "aws-sdk": "^2.1101.0"
+    "@aws-sdk/client-ssm": "^3.57.0",
+    "@aws-sdk/client-cloudformation": "^3.57.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.57.0",
+    "@aws-sdk/client-secrets-manager": "^3.57.0"
   },
   "peerDependencies": {
     "@aws-cdk/aws-autoscaling": "1.149.0",
