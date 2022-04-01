@@ -111,7 +111,7 @@
     "nyc": "^15.1.0",
     "standard-version": "^9.3.2",
     "ts-jest": "^27.1.4",
-    "typescript": "~4.5.4"
+    "typescript": "~4.6.3"
   },
   "resolutions-node-gyp": "transitive dep from lerna@4.0.0. tar < 6.1.2 has sec vuln and node-gyp@7.1.2 is on tar@4.4.13. This old version of tar cannot be substituted by >= 6.1.2.",
   "resolutions": {
