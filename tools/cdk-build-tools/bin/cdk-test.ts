@@ -27,10 +27,6 @@ async function main() {
     await shell(options.test, defaultShellOptions);
   }
 
-  if (options.jest !== true) {
-    process.stderr.write('Support for nodeunit has been deprecated. Only Jest tests will run.\n');
-  }
-
   const nuTestFiles = await nodeunitTestFiles();
   if (nuTestFiles.length > 0) {
     throw new Error(`nodeunit tests are no longer supported but ${nuTestFiles.length} were found: ${nuTestFiles.map(f => f.filename)}`);

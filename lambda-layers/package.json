@@ -1,6 +1,6 @@
 {
   "name": "lambda-layers",
-  "version": "0.40.0",
+  "version": "0.41.0",
   "private": false,
   "description": "Package containing scripts for building and publishing Lambda Layers",
   "main": "lib/index.js",
@@ -33,6 +33,6 @@
     "typescript": "~4.5.4"
   },
   "dependencies": {
-    "aws-sdk": "^2.1048.0"
+    "aws-sdk": "^2.1101.0"
   }
 }

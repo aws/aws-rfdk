@@ -25,7 +25,7 @@ export class SessionManagerHelper {
    * Grants the permissions required to enable Session Manager for the provided IGrantable.
    */
   public static grantPermissionsTo(grantable: IGrantable): void {
-    grantable.grantPrincipal.addToPolicy(new PolicyStatement({
+    grantable.grantPrincipal.addToPrincipalPolicy(new PolicyStatement({
       actions: [
         'ssmmessages:CreateControlChannel',
         'ssmmessages:CreateDataChannel',

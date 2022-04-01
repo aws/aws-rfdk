@@ -3,14 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as CloudFormation from 'aws-sdk/clients/cloudformation';
-import * as AWS from 'aws-sdk/global';
-import awaitSsmCommand from '../../common/functions/awaitSsmCommand';
+import { CloudFormation } from '@aws-sdk/client-cloudformation';
+import { ssmCommand } from '../../common/functions/awaitSsmCommand';
 
 // Name of testing stack is derived from env variable to ensure uniqueness
 const testingStackName = 'RFDKInteg-RQ-TestingTier' + process.env.INTEG_STACK_TAG?.toString();
 
-const cloudformation = new CloudFormation();
+const cloudformation = new CloudFormation({});
 
 const bastionRegex = /bastionId/;
 const rqRegex = /renderQueueEndpointRQ(\d)/;
@@ -24,48 +23,40 @@ let bastionId: any;
 let renderQueueEndpoints: Array<string> = [];
 let secretARNs: Array<string> = [];
 
-beforeAll( () => {
+beforeAll( async () => {
   // Query the TestingStack and await its outputs to use as test inputs
-  return new Promise<void>( (res,rej) => {
-    var params = {
-      StackName: testingStackName,
-    };
-    cloudformation.describeStacks(params, (err, data) => {
-      if (err) {
-        rej(err);
-      }
-      else {
-        var stackOutput = data.Stacks![0].Outputs!;
-        stackOutput.forEach( output => {
-          var outputKey = output.OutputKey!;
-          var outputValue = output.OutputValue!;
-          switch(true){
-            case bastionRegex.test(outputKey):
-              bastionId = outputValue;
-              break;
-            case rqRegex.test(outputKey):
-              var testId = rqRegex.exec(outputKey)![1];
-              renderQueueEndpoints[+testId] = outputValue;
-              break;
-            case certRegex.test(outputKey):
-              var testId = certRegex.exec(outputKey)![1];
-              secretARNs[+testId] = outputValue;
-              break;
-            default:
-              break;
-          }
-        });
-        res();
-      }
-    });
+  var params = {
+    StackName: testingStackName,
+  };
+  var data = await cloudformation.describeStacks(params);
+  var stackOutput = data.Stacks![0].Outputs!;
+  stackOutput.forEach( output => {
+    var outputKey = output.OutputKey!;
+    var outputValue = output.OutputValue!;
+    switch(true){
+      case bastionRegex.test(outputKey):
+        bastionId = outputValue;
+        break;
+      case rqRegex.test(outputKey):
+        var testId = rqRegex.exec(outputKey)![1];
+        renderQueueEndpoints[+testId] = outputValue;
+        break;
+      case certRegex.test(outputKey):
+        var testId = certRegex.exec(outputKey)![1];
+        secretARNs[+testId] = outputValue;
+        break;
+      default:
+        break;
+    }
   });
 });
 
 describe.each(testCases)('Deadline RenderQueue tests (%s)', (_, id) => {
 
-  beforeAll( () => {
+  beforeAll( async () => {
     if(secretARNs[id]) {
       //If the secretARN has been provided for the auth certificate, this command will fetch it to the instance before continuing the tests
+      const region = await cloudformation.config.region();
       var params = {
         DocumentName: 'AWS-RunShellScript',
         Comment: 'Execute Test Script fetch-cert.sh',
@@ -75,11 +66,11 @@ describe.each(testCases)('Deadline RenderQueue tests (%s)', (_, id) => {
             'sudo -i',
             'su - ec2-user >/dev/null',
             'cd ~ec2-user',
-            './utilScripts/fetch-cert.sh \'' + AWS.config.region + '\' \'' + secretARNs[id] + '\'',
+            './utilScripts/fetch-cert.sh \'' + region + '\' \'' + secretARNs[id] + '\'',
           ],
         },
       };
-      return awaitSsmCommand(bastionId, params);
+      return await ssmCommand(bastionId, params);
     }
     else {
       return;
@@ -87,7 +78,7 @@ describe.each(testCases)('Deadline RenderQueue tests (%s)', (_, id) => {
   });
 
   // This removes the certification file used to authenticate to the render queue
-  afterAll( () => {
+  afterAll( async () => {
     var params = {
       DocumentName: 'AWS-RunShellScript',
       Comment: 'Execute Test Script cleanup-cert.sh',
@@ -101,7 +92,7 @@ describe.each(testCases)('Deadline RenderQueue tests (%s)', (_, id) => {
         ],
       },
     };
-    return awaitSsmCommand(bastionId, params);
+    return await ssmCommand(bastionId, params);
   });
 
   describe('Connection tests', () => {
@@ -126,17 +117,16 @@ describe.each(testCases)('Deadline RenderQueue tests (%s)', (_, id) => {
           ],
         },
       };
-      return awaitSsmCommand(bastionId, params).then( response => {
-        var responseCode = response.responseCode;
-        expect(responseCode).toEqual(0);
-      });
+      var response = await ssmCommand(bastionId, params);
+      var responseCode = response.responseCode;
+      expect(responseCode).toEqual(0);
     });
   });
 
   describe('deadlinecommand tests', () => {
 
     // Before testing the render queue, send a command to configure the Deadline client to use that endpoint
-    beforeAll( () => {
+    beforeAll( async () => {
       var params = {
         DocumentName: 'AWS-RunShellScript',
         Comment: 'Execute Test Script configure-deadline.sh',
@@ -150,7 +140,7 @@ describe.each(testCases)('Deadline RenderQueue tests (%s)', (_, id) => {
           ],
         },
       };
-      return awaitSsmCommand(bastionId, params);
+      return await ssmCommand(bastionId, params);
     });
 
     test(`RQ-${id}-2: Farm can accept Deadline commands`, async () => {
@@ -173,10 +163,9 @@ describe.each(testCases)('Deadline RenderQueue tests (%s)', (_, id) => {
           ],
         },
       };
-      return awaitSsmCommand(bastionId, params).then( response => {
-        var responseCode = response.responseCode;
-        expect(responseCode).toEqual(0);
-      });
+      var response = await ssmCommand(bastionId, params);
+      var responseCode = response.responseCode;
+      expect(responseCode).toEqual(0);
     });
 
     test(`RQ-${id}-3: Farm can fetch settings file from repository`, async () => {
@@ -199,10 +188,9 @@ describe.each(testCases)('Deadline RenderQueue tests (%s)', (_, id) => {
           ],
         },
       };
-      return awaitSsmCommand(bastionId, params).then( response => {
-        var responseCode = response.responseCode;
-        expect(responseCode).toEqual(0);
-      });
+      var response = await ssmCommand(bastionId, params);
+      var responseCode = response.responseCode;
+      expect(responseCode).toEqual(0);
     });
 
     test(`RQ-${id}-4: Farm can accept sample Deadline job`, async () => {
@@ -225,10 +213,9 @@ describe.each(testCases)('Deadline RenderQueue tests (%s)', (_, id) => {
           ],
         },
       };
-      return awaitSsmCommand(bastionId, params).then( response => {
-        var responseCode = response.responseCode;
-        expect(responseCode).toEqual(0);
-      });
+      var response = await ssmCommand(bastionId, params);
+      var responseCode = response.responseCode;
+      expect(responseCode).toEqual(0);
     });
 
     test(`RQ-${id}-5: RCS not running as root`, async () => {
@@ -251,11 +238,10 @@ describe.each(testCases)('Deadline RenderQueue tests (%s)', (_, id) => {
           ],
         },
       };
-      return awaitSsmCommand(bastionId, params).then( response => {
-        const user = response.output;
-        expect(user).not.toHaveLength(0);
-        expect(user).not.toEqual('root');
-      });
+      var response = await ssmCommand(bastionId, params);
+      const user = response.output;
+      expect(user).not.toHaveLength(0);
+      expect(user).not.toEqual('root');
     });
   });
 });

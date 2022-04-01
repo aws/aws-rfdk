@@ -113,6 +113,15 @@ export interface PadEfsStorageProps {
  * farm may begin to exhibit failure mode behaviors such as the RenderQueue dropping or refusing connections,
  * or becoming unresponsive.
  *
+ * If you find that your Amazon EFS is depleting its burst credits and would like to increase the
+ * amount of padding that has been added to it then you can either:
+ * - Modify the value of the desired padding property of this construct and redeploy your infrastructure
+ *   to force an update; or
+ * - Manually invoke the AWS Step Function that has been created by this construct by finding it
+ *   in your AWS Console (its name will be prefixed with "<id of this construct>StateMachine"), and
+ *   then start an execution of the state machine with the following JSON document as input:
+ *   { "desiredPadding": <number of GiB you want to store> }
+ *
  * Warning: The implementation of this construct creates and starts an AWS Step Function to add the files
  * to the filesystem. The execution of this Step Function occurs asynchronously from your deployment. We recommend
  * verifying that the step function completed successfully via your Step Functions console.
@@ -192,7 +201,7 @@ export class PadEfsStorage extends Construct {
       // Required for access point...
       vpc: props.vpc,
       vpcSubnets: props.vpcSubnets ?? {
-        subnetType: SubnetType.PRIVATE,
+        subnetType: SubnetType.PRIVATE_WITH_NAT,
       },
       securityGroups: [ securityGroup ],
       filesystem: LambdaFilesystem.fromEfsAccessPoint(props.accessPoint, efsMountPoint),

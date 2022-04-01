@@ -511,8 +511,8 @@ For examples of the roles list, see the MongoDB user creation documentation, lik
 We will later create these these 2 *password-authenticated users* in the admin database:
 
 ```ts
-const pwUser1 = Secret.fromSecretArn(/* ... */);
-const pwUser2 = Secret.fromSecretArn(/* ... */);
+const pwUser1 = Secret.fromSecretCompleteArn(/* ... */);
+const pwUser2 = Secret.fromSecretCompleteArn(/* ... */);
 ```
 
 ### X509-Authenticated Users
@@ -521,11 +521,11 @@ To create an *X.509-authenticated user* you need to provide a `certificate` of t
 
 ```ts
 const x509User1 = {
-  certificate: Secret.fromSecretArn(/* ... */),
+  certificate: Secret.fromSecretCompleteArn(/* ... */),
   roles: JSON.stringify([ { role: 'readWrite', db: 'testdb1' } ]),
 };
 const x509User2 = {
-  certificate: Secret.fromSecretArn(/* ... */),
+  certificate: Secret.fromSecretCompleteArn(/* ... */),
   roles: JSON.stringify([ { role: 'readWrite', db: 'testdb2' } ]),
 };
 ```

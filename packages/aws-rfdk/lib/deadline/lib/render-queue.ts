@@ -258,9 +258,9 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
 
   private static readonly DEFAULT_DOMAIN_NAME = 'aws-rfdk.com';
 
-  private static readonly DEFAULT_VPC_SUBNETS_ALB: SubnetSelection = { subnetType: SubnetType.PRIVATE, onePerAz: true };
+  private static readonly DEFAULT_VPC_SUBNETS_ALB: SubnetSelection = { subnetType: SubnetType.PRIVATE_WITH_NAT, onePerAz: true };
 
-  private static readonly DEFAULT_VPC_SUBNETS_OTHER: SubnetSelection = { subnetType: SubnetType.PRIVATE };
+  private static readonly DEFAULT_VPC_SUBNETS_OTHER: SubnetSelection = { subnetType: SubnetType.PRIVATE_WITH_NAT };
 
   /**
   * The minimum Deadline version required for the Remote Connection Server to support load-balancing

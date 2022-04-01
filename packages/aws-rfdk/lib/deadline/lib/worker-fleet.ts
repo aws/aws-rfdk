@@ -435,7 +435,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
     }
 
     const vpcSubnets = props.vpcSubnets ? props.vpcSubnets : {
-      subnetType: SubnetType.PRIVATE,
+      subnetType: SubnetType.PRIVATE_WITH_NAT,
     };
 
     // Launching the fleet with deadline workers.

@@ -96,7 +96,7 @@ describe('ThinkboxDockerRecipes', () => {
    * create the correct {@link DockerImageAsset} instances using the build arguments,
    * and target from the supplied manifest.
    *
-   * This is done by comparing the `sourceHash` property of the expected vs actual
+   * This is done by comparing the `assetHash` property of the expected vs actual
    * DockerImageAsset instances.
    */
   test.each<[string, () => DockerImageAsset, (recipes: ThinkboxDockerRecipes) => DockerImageAsset]>([
@@ -137,7 +137,7 @@ describe('ThinkboxDockerRecipes', () => {
     const actualImage = getActual(recipes);
 
     // THEN
-    expect(actualImage.sourceHash).toEqual(expectedImage.sourceHash);
+    expect(actualImage.assetHash).toEqual(expectedImage.assetHash);
   });
 
   describe('.version', () => {

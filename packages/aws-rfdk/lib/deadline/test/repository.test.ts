@@ -91,11 +91,11 @@ beforeEach(() => {
       },
       {
         name: 'Private',
-        subnetType: SubnetType.PRIVATE,
+        subnetType: SubnetType.PRIVATE_WITH_NAT,
       },
       {
         name: 'Isolated',
-        subnetType: SubnetType.ISOLATED,
+        subnetType: SubnetType.PRIVATE_ISOLATED,
       },
     ],
   });
@@ -213,7 +213,7 @@ test('repository installer honors vpcSubnet', () => {
   new Repository(stack, 'repositoryInstaller', {
     vpc: attrVpc,
     version,
-    vpcSubnets: { subnetType: SubnetType.ISOLATED },
+    vpcSubnets: { subnetType: SubnetType.PRIVATE_ISOLATED },
   });
 
   // THEN
@@ -530,7 +530,7 @@ test('repository warns if removal policy for database when database provided', (
     vpc,
     vpcSubnets: {
       onePerAz: true,
-      subnetType: SubnetType.PRIVATE,
+      subnetType: SubnetType.PRIVATE_WITH_NAT,
     },
   });
 
@@ -635,7 +635,7 @@ test('repository warns if databaseAuditLogging defined and database is specified
     vpc,
     vpcSubnets: {
       onePerAz: true,
-      subnetType: SubnetType.PRIVATE,
+      subnetType: SubnetType.PRIVATE_WITH_NAT,
     },
   });
 
@@ -750,7 +750,7 @@ test('warns if both retention period and database provided', () => {
     vpc,
     vpcSubnets: {
       onePerAz: true,
-      subnetType: SubnetType.PRIVATE,
+      subnetType: SubnetType.PRIVATE_WITH_NAT,
     },
   });
 
@@ -788,7 +788,7 @@ test('repository creates filesystem if none provided', () => {
     vpc,
     vpcSubnets: {
       onePerAz: true,
-      subnetType: SubnetType.PRIVATE,
+      subnetType: SubnetType.PRIVATE_WITH_NAT,
     },
     backup: {
       retention: Duration.days(15),
@@ -896,11 +896,11 @@ test('validate instance self-termination', () => {
     repositoryInstallationTimeout: Duration.minutes(30),
     version,
   });
-  const asgLogicalId = stack.getLogicalId(repo.node.defaultChild!.node.defaultChild as CfnElement);
 
   // THEN
   const regionToken = escapeTokenRegex('${Token[AWS.Region.\\d+]}');
-  const expectedString = `function exitTrap\\(\\)\\{\nexitCode=\\$\\?\nsleep 1m\nTOKEN=\\$\\(curl -X PUT "http:\\/\\/169\\.254\\.169\\.254\\/latest\\/api\\/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 30" 2> \\/dev\\/null\\)\nINSTANCE="\\$\\(curl -s -H "X-aws-ec2-metadata-token: \\$TOKEN" http:\\/\\/169\\.254\\.169\\.254\\/latest\\/meta-data\\/instance-id  2> \\/dev\\/null\\)"\nASG="\\$\\(aws --region ${regionToken} ec2 describe-tags --filters "Name=resource-id,Values=\\$\\{INSTANCE\\}" "Name=key,Values=aws:autoscaling:groupName" --query "Tags\\[0\\]\\.Value" --output text\\)"\naws --region ${regionToken} autoscaling update-auto-scaling-group --auto-scaling-group-name \\$\\{ASG\\} --min-size 0 --max-size 0 --desired-capacity 0\n\\/opt\\/aws\\/bin\\/cfn-signal --stack ${stack.stackName} --resource ${asgLogicalId} --region ${regionToken} -e \\$exitCode \\|\\| echo 'Failed to send Cloudformation Signal'\n\\}`;
+  const asgLogicalIdToken = escapeTokenRegex('${Token[Stack.repositoryInstaller.Installer.ASG.LogicalID.\\d+]}');
+  const expectedString = `function exitTrap\\(\\)\\{\nexitCode=\\$\\?\nsleep 1m\nTOKEN=\\$\\(curl -X PUT "http:\\/\\/169\\.254\\.169\\.254\\/latest\\/api\\/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 30" 2> \\/dev\\/null\\)\nINSTANCE="\\$\\(curl -s -H "X-aws-ec2-metadata-token: \\$TOKEN" http:\\/\\/169\\.254\\.169\\.254\\/latest\\/meta-data\\/instance-id  2> \\/dev\\/null\\)"\nASG="\\$\\(aws --region ${regionToken} ec2 describe-tags --filters "Name=resource-id,Values=\\$\\{INSTANCE\\}" "Name=key,Values=aws:autoscaling:groupName" --query "Tags\\[0\\]\\.Value" --output text\\)"\naws --region ${regionToken} autoscaling update-auto-scaling-group --auto-scaling-group-name \\$\\{ASG\\} --min-size 0 --max-size 0 --desired-capacity 0\n\\/opt\\/aws\\/bin\\/cfn-signal --stack ${stack.stackName} --resource ${asgLogicalIdToken} --region ${regionToken} -e \\$exitCode \\|\\| echo 'Failed to send Cloudformation Signal'\n\\}`;
   expect((repo.node.defaultChild as AutoScalingGroup).userData.render()).toMatch(new RegExp(expectedString));
   expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
     PolicyDocument: {

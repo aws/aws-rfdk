@@ -752,7 +752,7 @@ describe('RenderQueue', () => {
           trafficEncryption: {
             externalTLS: {
               acmCertificate: Certificate.fromCertificateArn(stack, 'Cert', 'certArn'),
-              acmCertificateChain: Secret.fromSecretArn(stack, 'CA_Cert2', CA_ARN),
+              acmCertificateChain: Secret.fromSecretPartialArn(stack, 'CA_Cert2', CA_ARN),
             },
           },
         };
@@ -780,7 +780,7 @@ describe('RenderQueue', () => {
           trafficEncryption: {
             externalTLS: {
               acmCertificate: Certificate.fromCertificateArn(stack, 'Cert', 'certArn'),
-              acmCertificateChain: Secret.fromSecretArn(stack, 'CA_Cert2', CA_ARN),
+              acmCertificateChain: Secret.fromSecretPartialArn(stack, 'CA_Cert2', CA_ARN),
             },
           },
           hostname: { zone },
@@ -1025,7 +1025,7 @@ describe('RenderQueue', () => {
         trafficEncryption: {
           externalTLS: {
             acmCertificate: Certificate.fromCertificateArn(isolatedStack, 'Certificate', CERT_ARN),
-            acmCertificateChain: Secret.fromSecretArn(isolatedStack, 'CA_Cert', CA_ARN),
+            acmCertificateChain: Secret.fromSecretPartialArn(isolatedStack, 'CA_Cert', CA_ARN),
             rfdkCertificate: serverCert,
           },
         },
@@ -1527,7 +1527,7 @@ describe('RenderQueue', () => {
           trafficEncryption: {
             externalTLS: {
               acmCertificate: Certificate.fromCertificateArn(stack, 'Certificate', CERT_ARN),
-              acmCertificateChain: Secret.fromSecretArn(stack, 'CA_Cert', CA_ARN),
+              acmCertificateChain: Secret.fromSecretPartialArn(stack, 'CA_Cert', CA_ARN),
             },
           },
         };
@@ -2972,7 +2972,7 @@ describe('RenderQueue', () => {
           registrationStatus: SecretsManagementRegistrationStatus.REGISTERED,
           role: SecretsManagementRole.CLIENT,
           vpc,
-          vpcSubnets: { subnetType: SubnetType.PRIVATE },
+          vpcSubnets: { subnetType: SubnetType.PRIVATE_WITH_NAT },
         };
         launchConfiguration = (
           // @ts-ignore

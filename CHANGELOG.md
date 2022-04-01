@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.41.0](https://github.com/aws/aws-rfdk/compare/v0.40.0...v0.41.0) (2022-04-01)
+
+
+### Supported CDK Version
+
+* [1.149.0](https://github.com/aws/aws-cdk/releases/tag/v1.149.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.20.3](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
 ## [0.40.0](https://github.com/aws/aws-rfdk/compare/v0.39.0...v0.40.0) (2022-01-06)
 
 

@@ -137,7 +137,7 @@ export class NetworkTier extends cdk.Stack {
     // Add the required VPC Endpoints
     // -------------
     // Subnets to add the VPC endpoints to
-    const endpointSubnets: SubnetSelection = { subnetType: SubnetType.PRIVATE };
+    const endpointSubnets: SubnetSelection = { subnetType: SubnetType.PRIVATE_WITH_NAT };
 
     // Add interface endpoints
     NetworkTier.INTERFACE_ENDPOINT_SERVICES.forEach((serviceInfo, idx) => {
