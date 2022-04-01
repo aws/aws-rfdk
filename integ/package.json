@@ -1,6 +1,6 @@
 {
   "name": "integ",
-  "version": "0.40.0",
+  "version": "0.41.0",
   "private": false,
   "description": "Integration tests for RFDK constructs",
   "bin": {
@@ -64,11 +64,11 @@
     "eslint": "^8.6.0",
     "eslint-import-resolver-node": "^0.3.6",
     "eslint-import-resolver-typescript": "^2.5.0",
+    "eslint-plugin-deprecation": "^1.3.2",
     "eslint-plugin-import": "^2.25.4",
     "eslint-plugin-license-header": "^0.3.0",
-    "eslint-plugin-deprecation": "^1.3.2",
     "jest": "^27.4.5",
-    "pkglint": "0.40.0",
+    "pkglint": "0.41.0",
     "ts-jest": "^27.1.4",
     "typescript": "~4.5.4"
   },
@@ -87,11 +87,11 @@
     "@aws-cdk/aws-s3-assets": "1.149.0",
     "@aws-cdk/aws-secretsmanager": "1.149.0",
     "@aws-cdk/core": "1.149.0",
-    "aws-rfdk": "0.40.0",
-    "@aws-sdk/client-ssm": "^3.57.0",
     "@aws-sdk/client-cloudformation": "^3.57.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.57.0",
-    "@aws-sdk/client-secrets-manager": "^3.57.0"
+    "@aws-sdk/client-secrets-manager": "^3.57.0",
+    "@aws-sdk/client-ssm": "^3.57.0",
+    "aws-rfdk": "0.41.0"
   },
   "peerDependencies": {
     "@aws-cdk/aws-autoscaling": "1.149.0",
@@ -108,7 +108,7 @@
     "@aws-cdk/aws-s3-assets": "1.149.0",
     "@aws-cdk/aws-secretsmanager": "1.149.0",
     "@aws-cdk/core": "1.149.0",
-    "aws-rfdk": "0.40.0"
+    "aws-rfdk": "0.41.0"
   },
   "engines": {
     "node": ">= 12.18.3 <13 || >=13.7.0"
