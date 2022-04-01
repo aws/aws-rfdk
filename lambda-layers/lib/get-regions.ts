@@ -9,6 +9,7 @@ import { SSM } from 'aws-sdk';
 const REGION_DENY_LIST = [
   'af-south-1',
   'ap-east-1',
+  'ap-southeast-3',
   'eu-south-1',
   'me-south-1',
 ];
