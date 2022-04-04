@@ -134,7 +134,7 @@
     "@aws-cdk/region-info": "1.149.0",
     "@types/aws-lambda": "^8.10.88",
     "@types/jest": "^27.0.3",
-    "@types/sinon": "^10.0.6",
+    "@types/sinon": "^10.0.11",
     "aws-sdk": "^2.1101.0",
     "aws-sdk-mock": "^5.5.0",
     "cdk-build-tools": "0.41.0",
