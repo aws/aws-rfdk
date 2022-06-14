@@ -132,7 +132,7 @@
     "@aws-cdk/lambda-layer-kubectl": "1.149.0",
     "@aws-cdk/lambda-layer-node-proxy-agent": "1.149.0",
     "@aws-cdk/region-info": "1.149.0",
-    "@types/aws-lambda": "^8.10.88",
+    "@types/aws-lambda": "^8.10.100",
     "@types/jest": "^27.0.3",
     "@types/sinon": "^10.0.6",
     "aws-sdk": "^2.1101.0",
