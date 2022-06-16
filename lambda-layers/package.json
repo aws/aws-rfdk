@@ -24,15 +24,15 @@
     "watch": "tsc -w"
   },
   "engines": {
-    "node": ">= 12.18.3 <13 || >=13.7.0"
+    "node": ">= 14.15.0"
   },
   "stability": "stable",
   "maturity": "stable",
   "devDependencies": {
-    "@types/node": "^17.0.2",
-    "typescript": "~4.5.4"
+    "@types/node": "^18.0.0",
+    "typescript": "~4.7.3"
   },
   "dependencies": {
-    "aws-sdk": "^2.1101.0"
+    "aws-sdk": "^2.1156.0"
   }
 }
