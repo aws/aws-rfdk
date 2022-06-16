@@ -14,6 +14,7 @@ import {
 } from '@aws-cdk/aws-ec2';
 import { ApplicationProtocol } from '@aws-cdk/aws-elasticloadbalancingv2';
 import {
+  Lazy,
   Stack,
   Token,
 } from '@aws-cdk/core';
@@ -23,9 +24,6 @@ import {
   ConnectableApplicationEndpoint,
   Endpoint,
 } from '../lib';
-
-// A numeric CDK token (see: https://docs.aws.amazon.com/cdk/latest/guide/tokens.html#tokens_number)
-const CDK_NUMERIC_TOKEN = -1.8881545897087626e+289;
 
 function escapeTokenRegex(s: string): string {
   // A CDK Token looks like: ${Token[TOKEN.12]}
@@ -37,7 +35,7 @@ function escapeTokenRegex(s: string): string {
 describe('Endpoint', () => {
   test('accepts tokens for the port value', () => {
     // GIVEN
-    const token = CDK_NUMERIC_TOKEN;
+    const token = Lazy.number({ produce: () => 123 });
 
     // WHEN
     const endpoint = new Endpoint({
@@ -124,7 +122,7 @@ describe('Endpoint', () => {
   describe('.portAsString()', () => {
     test('converts port tokens to string tokens', () => {
       // GIVEN
-      const port = CDK_NUMERIC_TOKEN;
+      const port = Lazy.number({ produce: () => 123 });
       const endpoint = new Endpoint({
         address: '127.0.0.1',
         port,

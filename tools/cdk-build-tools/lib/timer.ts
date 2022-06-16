@@ -50,7 +50,7 @@ export class Timers {
       const x = operation();
       timer.end();
       return x;
-    } catch (e) {
+    } catch (e: any) {
       timer.end();
       throw e;
     }
@@ -62,7 +62,7 @@ export class Timers {
       const x = await operation();
       timer.end();
       return x;
-    } catch (e) {
+    } catch (e: any) {
       timer.end();
       throw e;
     }
