@@ -196,7 +196,7 @@ export class PadEfsStorage extends Construct {
 
     const lambdaProps: any = {
       code: Code.fromAsset(path.join(__dirname, '..', '..', 'lambdas', 'nodejs')),
-      runtime: Runtime.NODEJS_14_X,
+      runtime: Runtime.NODEJS_16_X,
       logRetention: RetentionDays.ONE_WEEK,
       // Required for access point...
       vpc: props.vpc,

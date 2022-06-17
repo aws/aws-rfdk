@@ -199,7 +199,7 @@ abstract class X509CertificateBase extends Construct {
         DATABASE: this.database.tableName,
         DEBUG: 'false',
       },
-      runtime: Runtime.NODEJS_12_X,
+      runtime: Runtime.NODEJS_16_X,
       layers: [ openSslLayer ],
       handler: props.lambdaHandler,
       timeout: Duration.seconds(90),

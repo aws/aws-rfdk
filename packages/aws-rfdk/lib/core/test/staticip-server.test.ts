@@ -88,7 +88,7 @@ describe('Test StaticIpServer', () => {
 
     cdkExpect(stack).to(haveResourceLike('AWS::Lambda::Function', {
       Handler: 'index.handler',
-      Runtime: 'nodejs12.x',
+      Runtime: 'nodejs16.x',
       Description: 'Created by RFDK StaticPrivateIpServer to process instance launch lifecycle events in stack \'StackName\'. This lambda attaches an ENI to newly launched instances.',
     }));
 
