@@ -24,9 +24,6 @@ changed to Node.js 14
 
 * **lambda-layers:** add ap-southeast-3 to region deny list ([#685](https://github.com/aws/aws-rfdk/issues/685)) ([6806951](https://github.com/aws/aws-rfdk/commit/6806951ae664840f3baf9ea250617da82d31df9d))
 
-
-* **deps:** bumping cdk from 1.149.0 to 1.160.0 ([#701](https://github.com/aws/aws-rfdk/issues/701)) ([4659b20](https://github.com/aws/aws-rfdk/commit/4659b20bb3cea3feb0dcd3fa849ee120999989b0))
-
 ## [0.41.0](https://github.com/aws/aws-rfdk/compare/v0.40.0...v0.41.0) (2022-04-01)
 
 
