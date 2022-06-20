@@ -376,11 +376,11 @@ export class NodeCompatibility extends ValidationRule {
 
   public validate(pkg: PackageJson): void {
     const atTypesNode = pkg.getDevDependency('@types/node');
-    if (atTypesNode && !atTypesNode.startsWith('^12.')) {
+    if (atTypesNode && !atTypesNode.startsWith('^14.')) {
       pkg.report({
         ruleName: this.name,
-        message: `packages must support node version 12 and up, but ${atTypesNode} is declared`,
-        fix: () => pkg.addDevDependency('@types/node', '^12.18.3'),
+        message: `packages must support node version 14 and up, but ${atTypesNode} is declared`,
+        fix: () => pkg.addDevDependency('@types/node', '^14.14.31'),
       });
     }
   }
@@ -629,7 +629,7 @@ export class MustHaveNodeEnginesDeclaration extends ValidationRule {
   public readonly name = 'package-info/engines';
 
   public validate(pkg: PackageJson): void {
-    expectJSON(this.name, pkg, 'engines.node', '>= 12.18.3 <13 || >=13.7.0');
+    expectJSON(this.name, pkg, 'engines.node', '>= 14.15.0');
   }
 }
 

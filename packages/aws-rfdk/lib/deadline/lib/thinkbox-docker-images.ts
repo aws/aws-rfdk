@@ -195,7 +195,7 @@ AWS Thinkbox EULA.
       uuid: '08553416-1fc9-4be9-a818-609a31ae1b5b',
       description: 'Used by the ThinkboxDockerImages construct to look up the ECR repositories where AWS Thinkbox publishes Deadline container images.',
       code: lambdaCode,
-      runtime: Runtime.NODEJS_12_X,
+      runtime: Runtime.NODEJS_16_X,
       handler: 'ecr-provider.handler',
       timeout: Duration.seconds(30),
       logRetention: RetentionDays.ONE_WEEK,

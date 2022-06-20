@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.42.0](https://github.com/aws/aws-rfdk/compare/v0.41.0...v0.42.0) (2022-06-18)
+
+
+### Supported CDK Version
+
+* [1.160.0](https://github.com/aws/aws-cdk/releases/tag/v1.160.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.21.4](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** The minimum supported version of Node.js has been
+changed to Node.js 14
+
+### Bug Fixes
+
+* **lambda-layers:** add ap-southeast-3 to region deny list ([#685](https://github.com/aws/aws-rfdk/issues/685)) ([6806951](https://github.com/aws/aws-rfdk/commit/6806951ae664840f3baf9ea250617da82d31df9d))
+
 ## [0.41.0](https://github.com/aws/aws-rfdk/compare/v0.40.0...v0.41.0) (2022-04-01)
 
 

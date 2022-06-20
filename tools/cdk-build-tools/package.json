@@ -1,7 +1,7 @@
 {
   "name": "cdk-build-tools",
   "private": true,
-  "version": "0.41.0",
+  "version": "0.42.0",
   "description": "Tools package with shared build scripts for CDK packages",
   "main": "lib/index.js",
   "repository": {
@@ -35,33 +35,33 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/fs-extra": "^8.1.2",
-    "@types/jest": "^27.4.0",
+    "@types/jest": "^27.5.2",
     "@types/semver": "^7.3.9",
     "@types/yargs": "^15.0.14",
-    "pkglint": "0.41.0"
+    "pkglint": "0.42.0"
   },
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
-    "awslint": "1.149.0",
+    "awslint": "1.160.0",
     "colors": "1.4.0",
     "eslint": "^7.32.0",
     "eslint-import-resolver-node": "^0.3.6",
-    "eslint-import-resolver-typescript": "^2.5.0",
+    "eslint-import-resolver-typescript": "^2.7.1",
     "eslint-plugin-deprecation": "^1.3.2",
-    "eslint-plugin-import": "^2.25.4",
-    "eslint-plugin-jest": "^26.1.3",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-jest": "^24.7.0",
     "fs-extra": "^9.1.0",
-    "jest": "^27.4.5",
-    "jest-junit": "^13.0.0",
-    "jsii": "^1.50.0",
-    "jsii-pacmak": "^1.50.0",
-    "jsii-reflect": "^1.50.0",
+    "jest": "^27.5.1",
+    "jest-junit": "^13.2.0",
+    "jsii": "^1.60.0",
+    "jsii-pacmak": "^1.60.0",
+    "jsii-reflect": "^1.60.0",
     "nyc": "^15.1.0",
-    "semver": "^7.3.5",
-    "ts-jest": "^27.1.4",
-    "typescript": "~4.3.5",
-    "yargs": "^17.4.0"
+    "semver": "^7.3.7",
+    "ts-jest": "^27.1.5",
+    "typescript": "~4.7.3",
+    "yargs": "^16.2.0"
   },
   "keywords": [
     "aws",
@@ -69,7 +69,7 @@
   ],
   "homepage": "https://github.com/aws/aws-cdk",
   "engines": {
-    "node": ">= 12.18.3 <13 || >=13.7.0"
+    "node": ">= 14.15.0"
   },
   "pkglint": {
     "exclude": [

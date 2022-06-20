@@ -1,6 +1,6 @@
 {
   "name": "all-in-farm-local-zone",
-  "version": "0.41.0",
+  "version": "0.42.0",
   "bin": {
     "app": "bin/app.js"
   },
@@ -13,17 +13,17 @@
     "watch": "tsc -w"
   },
   "devDependencies": {
-    "@types/node": "^17.0.2",
-    "aws-cdk": "1.149.0",
-    "ts-node": "^10.4.0",
-    "typescript": "~4.5.4"
+    "@types/node": "^18.0.0",
+    "aws-cdk": "1.160.0",
+    "ts-node": "^10.8.1",
+    "typescript": "~4.7.3"
   },
   "dependencies": {
-    "@aws-cdk/aws-ec2": "1.149.0",
-    "@aws-cdk/aws-elasticloadbalancingv2": "1.149.0",
-    "@aws-cdk/aws-route53": "1.149.0",
-    "@aws-cdk/core": "1.149.0",
-    "aws-rfdk": "0.41.0",
+    "@aws-cdk/aws-ec2": "1.160.0",
+    "@aws-cdk/aws-elasticloadbalancingv2": "1.160.0",
+    "@aws-cdk/aws-route53": "1.160.0",
+    "@aws-cdk/core": "1.160.0",
+    "aws-rfdk": "0.42.0",
     "source-map-support": "^0.5.21"
   }
 }
