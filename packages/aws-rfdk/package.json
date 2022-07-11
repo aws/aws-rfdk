@@ -135,7 +135,7 @@
     "@types/aws-lambda": "^8.10.100",
     "@types/jest": "^27.5.2",
     "@types/sinon": "^10.0.11",
-    "aws-sdk": "^2.1155.0",
+    "aws-sdk": "^2.1171.0",
     "aws-sdk-mock": "5.5.0",
     "cdk-build-tools": "0.42.0",
     "constructs": "^3.3.69",
