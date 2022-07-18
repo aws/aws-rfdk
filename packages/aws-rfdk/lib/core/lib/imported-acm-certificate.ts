@@ -7,30 +7,6 @@ import * as crypto from 'crypto';
 import { join } from 'path';
 
 import {
-  Certificate,
-  ICertificate,
-} from '@aws-cdk/aws-certificatemanager';
-import {
-  Metric,
-  MetricOptions,
-} from '@aws-cdk/aws-cloudwatch';
-import {
-  AttributeType,
-  BillingMode,
-  Table,
-  TableEncryption,
-} from '@aws-cdk/aws-dynamodb';
-import { PolicyStatement } from '@aws-cdk/aws-iam';
-import { IKey } from '@aws-cdk/aws-kms';
-import {
-  Code,
-  LayerVersion,
-  Runtime,
-  SingletonFunction,
-} from '@aws-cdk/aws-lambda';
-import { ISecret } from '@aws-cdk/aws-secretsmanager';
-import {
-  Construct,
   CustomResource,
   Duration,
   Names,
@@ -39,7 +15,31 @@ import {
   Stack,
   Tag,
   Token,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import {
+  Certificate,
+  ICertificate,
+} from 'aws-cdk-lib/aws-certificatemanager';
+import {
+  Metric,
+  MetricOptions,
+} from 'aws-cdk-lib/aws-cloudwatch';
+import {
+  AttributeType,
+  BillingMode,
+  Table,
+  TableEncryption,
+} from 'aws-cdk-lib/aws-dynamodb';
+import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { IKey } from 'aws-cdk-lib/aws-kms';
+import {
+  Code,
+  LayerVersion,
+  Runtime,
+  SingletonFunction,
+} from 'aws-cdk-lib/aws-lambda';
+import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
+import { Construct } from 'constructs';
 
 import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
 import { IAcmImportCertProps } from '../../lambdas/nodejs/x509-certificate';

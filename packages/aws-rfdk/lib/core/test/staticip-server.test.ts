@@ -4,27 +4,23 @@
  */
 
 import {
-  arrayWith,
-  countResources,
-  countResourcesLike,
-  expect as cdkExpect,
-  haveResourceLike,
-  objectLike,
-  ResourcePart,
-} from '@aws-cdk/assert';
+  App,
+  Duration,
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   AmazonLinuxGeneration,
   InstanceType,
   MachineImage,
   SubnetType,
   Vpc,
-} from '@aws-cdk/aws-ec2';
-import {
-  App,
-  Duration,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
 import {StaticPrivateIpServer} from '../lib';
+import {resourcePropertiesCountIs} from './test-helper';
 
 describe('Test StaticIpServer', () => {
   let stack: Stack;
@@ -45,58 +41,68 @@ describe('Test StaticIpServer', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+    Template.fromStack(stack).hasResource('AWS::AutoScaling::AutoScalingGroup', {
       Properties: {
         MinSize: '1',
         MaxSize: '1',
-        LifecycleHookSpecificationList: arrayWith(objectLike({
-          DefaultResult: 'ABANDON',
-          HeartbeatTimeout: 120,
-          LifecycleHookName: 'NewStaticPrivateIpServer',
-          LifecycleTransition: 'autoscaling:EC2_INSTANCE_LAUNCHING',
-          NotificationMetadata: {
-            'Fn::Join': arrayWith([
-              '{\"eniId\":\"',
-              {
-                Ref: 'InstanceEniA230F5FE',
-              },
-              '\"}',
-            ]),
-          },
-        })),
-        Tags: arrayWith({
+        LifecycleHookSpecificationList: Match.arrayWith([
+          Match.objectLike({
+            DefaultResult: 'ABANDON',
+            HeartbeatTimeout: 120,
+            LifecycleHookName: 'NewStaticPrivateIpServer',
+            LifecycleTransition: 'autoscaling:EC2_INSTANCE_LAUNCHING',
+            NotificationMetadata: {
+              'Fn::Join': [
+                '',
+                Match.arrayWith([
+                  '{"eniId":"',
+                  {
+                    Ref: 'InstanceEniA230F5FE',
+                  },
+                  '"}',
+                ]),
+              ],
+            },
+          }),
+        ]),
+        Tags: Match.arrayWith([{
           Key: 'RfdkStaticPrivateIpServerGrantConditionKey',
           PropagateAtLaunch: true,
           Value: 'StackNameAttachEniToInstance83a5dca5db544aa485d28d419cdf85ceF20CDF73',
-        }),
+        }]),
       },
-      DependsOn: arrayWith(
+      DependsOn: Match.arrayWith([
         'AttachEniToInstance83a5dca5db544aa485d28d419cdf85ceAttachEniNotificationTopicc8b1e9a6783c4954b191204dd5e3b9e0695D3E7F', // The SNS Topic Subscription; this is key.
         'InstanceEniA230F5FE', // The NetWorkInterface. Also key.
-      ),
-    }, ResourcePart.CompleteDefinition));
+      ]),
+      UpdatePolicy: {
+        AutoScalingScheduledAction: {
+          IgnoreUnmodifiedGroupSizeProperties: true,
+        },
+      },
+    });
 
-    cdkExpect(stack).to(haveResourceLike('AWS::EC2::NetworkInterface', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::NetworkInterface', {
       Description: 'Static ENI for StackName/Instance',
-      GroupSet: arrayWith({
+      GroupSet: Match.arrayWith([{
         'Fn::GetAtt': [
           'InstanceAsgInstanceSecurityGroup2DB1DA8B',
           'GroupId',
         ],
-      }),
-    }));
+      }]),
+    });
 
-    cdkExpect(stack).to(haveResourceLike('AWS::Lambda::Function', {
+    Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
       Handler: 'index.handler',
       Runtime: 'nodejs16.x',
       Description: 'Created by RFDK StaticPrivateIpServer to process instance launch lifecycle events in stack \'StackName\'. This lambda attaches an ENI to newly launched instances.',
-    }));
+    });
 
-    cdkExpect(stack).to(haveResourceLike('AWS::SNS::Topic', {
+    Template.fromStack(stack).hasResourceProperties('AWS::SNS::Topic', {
       DisplayName: 'For RFDK instance-launch notifications for stack \'StackName\'',
-    }));
+    });
 
-    cdkExpect(stack).to(haveResourceLike('AWS::SNS::Subscription', {
+    Template.fromStack(stack).hasResourceProperties('AWS::SNS::Subscription', {
       Protocol: 'lambda',
       TopicArn: {
         Ref: 'AttachEniNotificationTopicc8b1e9a6783c4954b191204dd5e3b9e0F5D22665',
@@ -107,13 +113,13 @@ describe('Test StaticIpServer', () => {
           'Arn',
         ],
       },
-    }));
+    });
 
     // The Lambda's policy should allow ENI attachment & condition-limited CompleteLifecycle.
-    cdkExpect(stack).to(haveResourceLike('AWS::IAM::Policy', {
+    Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
       PolicyDocument: {
-        Statement: arrayWith(
-          objectLike({
+        Statement: Match.arrayWith([
+          Match.objectLike({
             Action: 'autoscaling:CompleteLifecycleAction',
             Effect: 'Allow',
             Condition: {
@@ -142,7 +148,7 @@ describe('Test StaticIpServer', () => {
               ],
             },
           }),
-          objectLike({
+          Match.objectLike({
             Effect: 'Allow',
             Action: [
               'ec2:DescribeNetworkInterfaces',
@@ -150,14 +156,15 @@ describe('Test StaticIpServer', () => {
             ],
             Resource: '*',
           }),
-        ),
+        ]),
       },
-    }));
+    });
 
     // Count singleton objects
-    cdkExpect(stack).to(countResources('AWS::Lambda::Function', 2)); // Log retention & event handler.
-    cdkExpect(stack).to(countResources('AWS::SNS::Topic', 1));
-    cdkExpect(stack).to(countResourcesLike('AWS::IAM::Role', 1, {
+    Template.fromStack(stack).resourceCountIs('AWS::Lambda::Function', 2); // Log retention & event handler.
+    Template.fromStack(stack).resourceCountIs('AWS::SNS::Topic', 1);
+
+    resourcePropertiesCountIs(stack, 'AWS::IAM::Role', {
       AssumeRolePolicyDocument: {
         Statement: [
           {
@@ -169,8 +176,8 @@ describe('Test StaticIpServer', () => {
           },
         ],
       },
-    }));
-    cdkExpect(stack).to(countResourcesLike('AWS::IAM::Policy', 1, {
+    }, 1);
+    resourcePropertiesCountIs(stack, 'AWS::IAM::Policy', {
       PolicyDocument: {
         Statement: [
           {
@@ -182,7 +189,7 @@ describe('Test StaticIpServer', () => {
           },
         ],
       },
-    }));
+    }, 1);
   });
 
   test('creates singleton resources', () => {
@@ -200,18 +207,18 @@ describe('Test StaticIpServer', () => {
 
     // THEN
     // Make sure both ASGs are tagged to allow CompleteLifeCycle by the singleton lambda.
-    cdkExpect(stack).to(countResourcesLike('AWS::AutoScaling::AutoScalingGroup', 2, {
-      Tags: arrayWith({
+    resourcePropertiesCountIs(stack, 'AWS::AutoScaling::AutoScalingGroup', {
+      Tags: Match.arrayWith([{
         Key: 'RfdkStaticPrivateIpServerGrantConditionKey',
         PropagateAtLaunch: true,
         Value: 'StackNameAttachEniToInstance83a5dca5db544aa485d28d419cdf85ceF20CDF73',
-      }),
-    }));
+      }]),
+    }, 2);
 
     // Count singleton objects
-    cdkExpect(stack).to(countResources('AWS::Lambda::Function', 2)); // Log retention & event handler.
-    cdkExpect(stack).to(countResources('AWS::SNS::Topic', 1));
-    cdkExpect(stack).to(countResourcesLike('AWS::IAM::Role', 1, {
+    Template.fromStack(stack).resourceCountIs('AWS::Lambda::Function', 2); // Log retention & event handler.
+    Template.fromStack(stack).resourceCountIs('AWS::SNS::Topic', 1);
+    resourcePropertiesCountIs(stack, 'AWS::IAM::Role', {
       AssumeRolePolicyDocument: {
         Statement: [
           {
@@ -223,7 +230,7 @@ describe('Test StaticIpServer', () => {
           },
         ],
       },
-    }));
+    }, 1);
   });
 
   test('throw exception when no available subnets', () => {
@@ -251,14 +258,14 @@ describe('Test StaticIpServer', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+    Template.fromStack(stack).hasResource('AWS::AutoScaling::AutoScalingGroup', {
       CreationPolicy: {
         ResourceSignal: {
           Count: 1,
           Timeout: 'PT12H',
         },
       },
-    }, ResourcePart.CompleteDefinition));
+    });
     expect(() => {
       new StaticPrivateIpServer(stack, 'InstanceFail', {
         vpc,

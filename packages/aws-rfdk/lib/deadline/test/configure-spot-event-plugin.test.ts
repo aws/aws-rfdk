@@ -4,14 +4,16 @@
  */
 
 import {
-  expect as cdkExpect,
-  countResources,
-  haveResourceLike,
-  objectLike,
-  arrayWith,
-  countResourcesLike,
-  ABSENT,
-} from '@aws-cdk/assert';
+  App,
+  Duration,
+  Expiration,
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Annotations,
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   GenericWindowsImage,
   InstanceClass,
@@ -19,18 +21,12 @@ import {
   InstanceType,
   SubnetType,
   Vpc,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   ContainerImage,
-} from '@aws-cdk/aws-ecs';
-import { ManagedPolicy } from '@aws-cdk/aws-iam';
-import { PrivateHostedZone } from '@aws-cdk/aws-route53';
-import {
-  App,
-  Duration,
-  Expiration,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ecs';
+import { ManagedPolicy } from 'aws-cdk-lib/aws-iam';
+import { PrivateHostedZone } from 'aws-cdk-lib/aws-route53';
 import { X509CertificatePem } from '../../core';
 import { tagFields } from '../../core/lib/runtime-info';
 import {
@@ -50,6 +46,8 @@ import {
 import {
   SpotEventPluginFleet,
 } from '../lib/spot-event-plugin-fleet';
+
+import { resourcePropertiesCountIs } from './test-helper';
 
 describe('ConfigureSpotEventPlugin', () => {
   let stack: Stack;
@@ -116,8 +114,8 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-        spotPluginConfigurations: objectLike({
+      Template.fromStack(stack).hasResourceProperties('Custom::RFDK_ConfigureSpotEventPlugin', Match.objectLike({
+        spotPluginConfigurations: Match.objectLike({
           AWSInstanceStatus: 'Disabled',
           DeleteInterruptedSlaves: false,
           DeleteTerminatedSlaves: false,
@@ -130,7 +128,7 @@ describe('ConfigureSpotEventPlugin', () => {
           State: 'Global Enabled',
           StrictHardCap: false,
         }),
-      })));
+      }));
     });
 
     test('with custom spot event plugin properties', () => {
@@ -160,8 +158,8 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-        spotPluginConfigurations: objectLike({
+      Template.fromStack(stack).hasResourceProperties('Custom::RFDK_ConfigureSpotEventPlugin', Match.objectLike({
+        spotPluginConfigurations: Match.objectLike({
           AWSInstanceStatus: 'ExtraInfo0',
           DeleteInterruptedSlaves: true,
           DeleteTerminatedSlaves: true,
@@ -174,7 +172,7 @@ describe('ConfigureSpotEventPlugin', () => {
           State: 'Disabled',
           StrictHardCap: true,
         }),
-      })));
+      }));
     });
 
     test('without spot fleets', () => {
@@ -185,9 +183,9 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', {
-        spotFleetRequestConfigurations: ABSENT,
-      }));
+      Template.fromStack(stack).hasResourceProperties('Custom::RFDK_ConfigureSpotEventPlugin', {
+        spotFleetRequestConfigurations: Match.absent(),
+      });
     });
 
     test('provides RQ connection parameters to custom resource', () => {
@@ -201,13 +199,13 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-        connection: objectLike({
+      Template.fromStack(stack).hasResourceProperties('Custom::RFDK_ConfigureSpotEventPlugin', Match.objectLike({
+        connection: Match.objectLike({
           hostname: stack.resolve(renderQueue.endpoint.hostname),
           port: stack.resolve(renderQueue.endpoint.portAsString()),
           protocol: stack.resolve(renderQueue.endpoint.applicationProtocol.toString()),
         }),
-      })));
+      }));
     });
 
     test('with default spot fleet request configuration', () => {
@@ -222,33 +220,33 @@ describe('ConfigureSpotEventPlugin', () => {
       const rfdkTag = tagFields(fleet);
 
       // THEN
-      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', {
+      Template.fromStack(stack).hasResourceProperties('Custom::RFDK_ConfigureSpotEventPlugin', {
         spotFleetRequestConfigurations: {
           [groupName]: {
             AllocationStrategy: 'lowestPrice',
             IamFleetRole: stack.resolve(fleet.fleetRole.roleArn),
-            LaunchTemplateConfigs: [
-              {
+            LaunchTemplateConfigs: Match.arrayWith([
+              Match.objectLike({
                 LaunchTemplateSpecification: {
                   Version: '$Latest',
                   LaunchTemplateId: stack.resolve(fleet.launchTemplate.launchTemplateId),
                 },
-              },
-            ],
-            TagSpecifications: arrayWith(
-              objectLike({
+              }),
+            ]),
+            TagSpecifications: Match.arrayWith([
+              Match.objectLike({
                 ResourceType: 'spot-fleet-request',
-                Tags: arrayWith(
+                Tags: Match.arrayWith([
                   {
                     Key: rfdkTag.name,
                     Value: rfdkTag.value,
                   },
-                ),
+                ]),
               }),
-            ),
+            ]),
           },
         },
-      }));
+      });
     });
 
     test('adds policies to the render queue', () => {
@@ -262,14 +260,14 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      cdkExpect(stack).to(countResourcesLike('AWS::IAM::Role', 1, {
-        ManagedPolicyArns: arrayWith(
+      resourcePropertiesCountIs(stack, 'AWS::IAM::Role', {
+        ManagedPolicyArns: Match.arrayWith([
           stack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginAdminPolicy').managedPolicyArn),
           stack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAdminPolicy').managedPolicyArn),
-        ),
-      }));
+        ]),
+      }, 1);
 
-      cdkExpect(stack).to(haveResourceLike('AWS::IAM::Policy', {
+      Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
         PolicyDocument: {
           Statement: [
             {
@@ -298,7 +296,7 @@ describe('ConfigureSpotEventPlugin', () => {
         Roles: [{
           Ref: 'RQRCSTaskTaskRole00DC9B43',
         }],
-      }));
+      });
     });
 
     test('adds resource tracker policy even if rt disabled', () => {
@@ -315,11 +313,11 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      cdkExpect(stack).to(haveResourceLike('AWS::IAM::Role', {
-        ManagedPolicyArns: arrayWith(
+      Template.fromStack(stack).hasResourceProperties('AWS::IAM::Role', {
+        ManagedPolicyArns: Match.arrayWith([
           stack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAdminPolicy').managedPolicyArn),
-        ),
-      }));
+        ]),
+      });
     });
 
     test.each([
@@ -334,18 +332,18 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-        spotFleetRequestConfigurations: ABSENT,
-      })));
-
-      cdkExpect(stack).notTo(haveResourceLike('AWS::IAM::Role', {
-        ManagedPolicyArns: arrayWith(
-          stack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginAdminPolicy').managedPolicyArn),
-          stack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAdminPolicy').managedPolicyArn),
-        ),
+      Template.fromStack(stack).hasResourceProperties('Custom::RFDK_ConfigureSpotEventPlugin', Match.objectLike({
+        spotFleetRequestConfigurations: Match.absent(),
       }));
 
-      cdkExpect(stack).notTo(haveResourceLike('AWS::IAM::Policy', {
+      Template.fromStack(stack).hasResourceProperties('AWS::IAM::Role', Match.not({
+        ManagedPolicyArns: Match.arrayWith([
+          stack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineSpotEventPluginAdminPolicy').managedPolicyArn),
+          stack.resolve(ManagedPolicy.fromAwsManagedPolicyName('AWSThinkboxDeadlineResourceTrackerAdminPolicy').managedPolicyArn),
+        ]),
+      }));
+
+      Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', Match.not({
         PolicyDocument: {
           Statement: [
             {
@@ -401,13 +399,13 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-        spotFleetRequestConfigurations: objectLike({
-          [groupName]: objectLike({
+      Template.fromStack(stack).hasResourceProperties('Custom::RFDK_ConfigureSpotEventPlugin', Match.objectLike({
+        spotFleetRequestConfigurations: Match.objectLike({
+          [groupName]: Match.objectLike({
             ValidUntil: validUntil.date.toISOString(),
           }),
         }),
-      })));
+      }));
     });
   });
 
@@ -468,7 +466,7 @@ describe('ConfigureSpotEventPlugin', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(countResources('Custom::RFDK_ConfigureSpotEventPlugin', 2));
+    Template.fromStack(stack).resourceCountIs('Custom::RFDK_ConfigureSpotEventPlugin', 2);
   });
 
   test('throws with not supported render queue', () => {
@@ -568,7 +566,7 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      cdkExpect(stack).to(haveResourceLike('AWS::IAM::Policy', {
+      Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
         PolicyDocument: {
           Statement: [
             {
@@ -586,7 +584,7 @@ describe('ConfigureSpotEventPlugin', () => {
             Ref: 'ConfigureSpotEventPluginConfiguratorServiceRole341B4735',
           },
         ],
-      }));
+      });
     });
 
     test('creates a custom resource with connection', () => {
@@ -600,14 +598,14 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      cdkExpect(stack).to(haveResourceLike('Custom::RFDK_ConfigureSpotEventPlugin', objectLike({
-        connection: objectLike({
+      Template.fromStack(stack).hasResourceProperties('Custom::RFDK_ConfigureSpotEventPlugin', Match.objectLike({
+        connection: Match.objectLike({
           hostname: stack.resolve(renderQueueWithTls.endpoint.hostname),
           port: stack.resolve(renderQueueWithTls.endpoint.portAsString()),
           protocol: stack.resolve(renderQueueWithTls.endpoint.applicationProtocol.toString()),
           caCertificateArn: stack.resolve((renderQueueWithTls as RenderQueue).certChain!.secretArn),
         }),
-      })));
+      }));
     });
   });
 
@@ -648,14 +646,14 @@ describe('ConfigureSpotEventPlugin', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResourceLike('AWS::Lambda::Function', {
+    Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
       Handler: 'configure-spot-event-plugin.configureSEP',
       VpcConfig: {
         SubnetIds: [
           stack.resolve(vpc.privateSubnets[0].subnetId),
         ],
       },
-    }));
+    });
   });
 
   describe('throws with wrong deadline version', () => {
@@ -781,10 +779,10 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      expect(fleet.node.metadataEntry).toContainEqual(expect.objectContaining({
-        type: 'aws:cdk:warning',
-        data: 'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
-      }));
+      Annotations.fromStack(stack).hasWarning(
+        `/${fleet.node.path}`,
+        'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
+      );
     });
 
     test('a fleet with vpcSubnets specified => does not warn about dedicated subnets', () => {
@@ -813,10 +811,7 @@ describe('ConfigureSpotEventPlugin', () => {
       });
 
       // THEN
-      expect(fleet.node.metadataEntry).not.toContainEqual(expect.objectContaining({
-        type: 'aws:cdk:warning',
-        data: expect.stringMatching(/dedicated subnet/i),
-      }));
+      Annotations.fromStack(stack).hasNoWarning(`/${fleet.node.path}`, Match.stringLikeRegexp('.*dedicated subnet.*'));
     });
   });
 });

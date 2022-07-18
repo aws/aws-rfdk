@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {IVpc} from '@aws-cdk/aws-ec2';
+import {IVpc} from 'aws-cdk-lib/aws-ec2';
 import {
   ApplicationListener,
   ApplicationLoadBalancer,
   ApplicationProtocol,
   ApplicationTargetGroup,
   Protocol,
-} from '@aws-cdk/aws-elasticloadbalancingv2';
-import {Construct} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-elasticloadbalancingv2';
+import { Construct } from 'constructs';
 import {
   HealthCheckConfig,
   HealthMonitor,

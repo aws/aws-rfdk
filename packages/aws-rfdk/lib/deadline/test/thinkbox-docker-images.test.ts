@@ -4,25 +4,21 @@
  */
 
 import {
-  arrayWith,
-  expect as expectCDK,
-  haveResource,
-  objectLike,
-  stringLike,
-  SynthUtils,
-} from '@aws-cdk/assert';
+  App,
+  CustomResource,
+  Stack,
+  Token,
+} from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   Compatibility,
   ContainerDefinition,
   ContainerImage,
   TaskDefinition,
-} from '@aws-cdk/aws-ecs';
-import {
-  App,
-  CustomResource,
-  Stack,
-  Token,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ecs';
 
 import {
   AwsThinkboxEulaAcceptance,
@@ -79,7 +75,7 @@ AWS Thinkbox EULA.
 
       // WHEN
       function synth() {
-        SynthUtils.synthesize(newStack);
+        app.synth();
       }
 
       // THEN
@@ -88,9 +84,9 @@ AWS Thinkbox EULA.
 
     test('creates Custom::RFDK_ECR_PROVIDER', () => {
       // THEN
-      expectCDK(stack).to(haveResource('Custom::RFDK_EcrProvider', {
-        ForceRun: stringLike('*'),
-      }));
+      Template.fromStack(stack).hasResourceProperties('Custom::RFDK_EcrProvider', {
+        ForceRun: Match.anyValue(),
+      });
     });
 
     describe('provides container images for', () => {
@@ -127,11 +123,11 @@ AWS Thinkbox EULA.
         });
 
         // THEN
-        expectCDK(taskDefStack).to(haveResource('AWS::ECS::TaskDefinition', {
-          ContainerDefinitions: arrayWith(objectLike({
+        Template.fromStack(taskDefStack).hasResourceProperties('AWS::ECS::TaskDefinition', {
+          ContainerDefinitions: Match.arrayWith([Match.objectLike({
             Image: taskDefStack.resolve(expectedImage),
-          })),
-        }));
+          })]),
+        });
       });
     });
 
@@ -222,11 +218,11 @@ AWS Thinkbox EULA.
         });
 
         // THEN
-        expectCDK(taskDefStack).to(haveResource('AWS::ECS::TaskDefinition', {
-          ContainerDefinitions: arrayWith(objectLike({
+        Template.fromStack(taskDefStack).hasResourceProperties('AWS::ECS::TaskDefinition', {
+          ContainerDefinitions: Match.arrayWith([Match.objectLike({
             Image: taskDefStack.resolve(expectedImage),
-          })),
-        }));
+          })]),
+        });
       });
     });
 
@@ -240,7 +236,7 @@ AWS Thinkbox EULA.
 
       // WHEN
       function synth() {
-        SynthUtils.synthesize(newStack);
+        app.synth();
       }
 
       // THEN

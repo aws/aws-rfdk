@@ -4,6 +4,9 @@
 import builtins
 import typing
 
+from aws_cdk import (
+    Stack
+)
 from aws_cdk.aws_ec2 import (
     GatewayVpcEndpointAwsService,
     InterfaceVpcEndpointAwsService,
@@ -15,9 +18,8 @@ from aws_cdk.aws_ec2 import (
 from aws_cdk.aws_route53 import (
     PrivateHostedZone
 )
-from aws_cdk.core import (
-    Construct,
-    Stack
+from constructs import (
+    Construct
 )
 import jsii
 

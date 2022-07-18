@@ -3,11 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import {Stack} from 'aws-cdk-lib';
 import {
-  expect as expectCDK,
-  haveResource,
-  haveResourceLike,
-} from '@aws-cdk/assert';
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   AmazonLinuxGeneration,
   AmazonLinuxImage,
@@ -18,8 +17,7 @@ import {
   Vpc,
   WindowsImage,
   WindowsVersion,
-} from '@aws-cdk/aws-ec2';
-import {Stack} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   CloudWatchAgent,
   CloudWatchConfigBuilder,
@@ -60,32 +58,10 @@ describe('CloudWatchAgent', () => {
     });
 
     // THEN
-    expectCDK(stack).to(haveResource('AWS::SSM::Parameter', {
+    Template.fromStack(stack).hasResourceProperties('AWS::SSM::Parameter', {
       Type: 'String',
       Value: cloudWatchConfig,
-    }));
-  });
-
-  test('creates an asset', () => {
-    // GIVEN
-    const host = new Instance(stack, 'Instance', {
-      instanceType: InstanceType.of(InstanceClass.T2, InstanceSize.LARGE),
-      machineImage: new AmazonLinuxImage({
-        generation: AmazonLinuxGeneration.AMAZON_LINUX_2,
-      }),
-      vpc,
     });
-
-    // WHEN
-    new CloudWatchAgent(stack, 'testResource', {
-      cloudWatchConfig,
-      host,
-    });
-
-    // THEN
-    // Find an asset created by the CloudWatchAgentConfigResource
-    const asset = stack.node.metadataEntry.find(m => m.type === 'aws:cdk:asset');
-    expect(asset).toBeDefined();
   });
 
   test('creates an IAM policy to access the SSM parameter, CDK asset bucket, and CloudWatch agent bucket', () => {
@@ -105,7 +81,7 @@ describe('CloudWatchAgent', () => {
     });
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+    Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
       PolicyDocument: {
         Statement: [
           {
@@ -123,7 +99,7 @@ describe('CloudWatchAgent', () => {
                     'arn:',
                     { Ref: 'AWS::Partition' },
                     ':s3:::',
-                    { Ref: CWA_ASSET_LINUX.Bucket },
+                    { 'Fn::Sub': CWA_ASSET_LINUX.Bucket },
                   ],
                 ],
               },
@@ -134,7 +110,7 @@ describe('CloudWatchAgent', () => {
                     'arn:',
                     { Ref: 'AWS::Partition' },
                     ':s3:::',
-                    { Ref: CWA_ASSET_LINUX.Bucket },
+                    { 'Fn::Sub': CWA_ASSET_LINUX.Bucket },
                     '/*',
                   ],
                 ],
@@ -228,13 +204,13 @@ describe('CloudWatchAgent', () => {
       },
       PolicyName: 'InstanceInstanceRoleDefaultPolicy4ACE9290',
       Roles: [ { Ref: 'InstanceInstanceRoleE9785DE5' } ],
-    }));
+    });
   });
 
   test.each([
-    ["' -i ", undefined],
-    ["' -i ", true],
-    ["' ", false],
+    [' -i', undefined],
+    [' -i', true],
+    ['', false],
   ])('adds user data commands to fetch and execute the script (linux). installFlag: %s shouldInstallAgent: %p', (installFlag: string, shouldInstallAgent?: boolean) => {
     // GIVEN
     const host = new Instance(stack, 'Instance', {
@@ -258,124 +234,9 @@ describe('CloudWatchAgent', () => {
       'Fn::Join': [
         '',
         [
-          "#!/bin/bash\nmkdir -p $(dirname '/tmp/",
-          {
-            'Fn::Select': [
-              0,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_LINUX.Key },
-                ],
-              },
-            ],
-          },
-          {
-            'Fn::Select': [
-              1,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_LINUX.Key },
-                ],
-              },
-            ],
-          },
-          "')\naws s3 cp 's3://",
-          { Ref: CWA_ASSET_LINUX.Bucket },
-          '/',
-          {
-            'Fn::Select': [
-              0,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_LINUX.Key },
-                ],
-              },
-            ],
-          },
-          {
-            'Fn::Select': [
-              1,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_LINUX.Key },
-                ],
-              },
-            ],
-          },
-          "' '/tmp/",
-          {
-            'Fn::Select': [
-              0,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_LINUX.Key },
-                ],
-              },
-            ],
-          },
-          {
-            'Fn::Select': [
-              1,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_LINUX.Key },
-                ],
-              },
-            ],
-          },
-          "'\nset -e\nchmod +x '/tmp/",
-          {
-            'Fn::Select': [
-              0,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_LINUX.Key },
-                ],
-              },
-            ],
-          },
-          {
-            'Fn::Select': [
-              1,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_LINUX.Key },
-                ],
-              },
-            ],
-          },
-          "'\n'/tmp/",
-          {
-            'Fn::Select': [
-              0,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_LINUX.Key },
-                ],
-              },
-            ],
-          },
-          {
-            'Fn::Select': [
-              1,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_LINUX.Key },
-                ],
-              },
-            ],
-          },
-          installFlag,
+          `#!/bin/bash\nmkdir -p $(dirname '/tmp/${CWA_ASSET_LINUX.Key}.sh')\naws s3 cp 's3://`,
+          { 'Fn::Sub': CWA_ASSET_LINUX.Bucket },
+          `/${CWA_ASSET_LINUX.Key}.sh' '/tmp/${CWA_ASSET_LINUX.Key}.sh'\nset -e\nchmod +x '/tmp/${CWA_ASSET_LINUX.Key}.sh'\n'/tmp/${CWA_ASSET_LINUX.Key}.sh'${installFlag} `,
           { Ref: 'AWS::Region' },
           ' ',
           { Ref: 'StringParameter472EED0E' },
@@ -385,9 +246,9 @@ describe('CloudWatchAgent', () => {
   });
 
   test.each([
-    ["' -i ", undefined],
-    ["' -i ", true],
-    ["' ", false],
+    [' -i', undefined],
+    [' -i', true],
+    ['', false],
   ])('adds user data commands to fetch and execute the script (windows). installFlag: %s shouldInstallAgent: %p', (installFlag: string, shouldInstallAgent?: boolean) => {
     // GIVEN
     const host = new Instance(stack, 'Instance', {
@@ -409,128 +270,13 @@ describe('CloudWatchAgent', () => {
       'Fn::Join': [
         '',
         [
-          "<powershell>mkdir (Split-Path -Path 'C:/temp/",
-          {
-            'Fn::Select': [
-              0,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_WINDOWS.Key },
-                ],
-              },
-            ],
-          },
-          {
-            'Fn::Select': [
-              1,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_WINDOWS.Key },
-                ],
-              },
-            ],
-          },
-          "' ) -ea 0\nRead-S3Object -BucketName '",
-          { Ref: CWA_ASSET_WINDOWS.Bucket },
-          "' -key '",
-          {
-            'Fn::Select': [
-              0,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_WINDOWS.Key },
-                ],
-              },
-            ],
-          },
-          {
-            'Fn::Select': [
-              1,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_WINDOWS.Key },
-                ],
-              },
-            ],
-          },
-          "' -file 'C:/temp/",
-          {
-            'Fn::Select': [
-              0,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_WINDOWS.Key },
-                ],
-              },
-            ],
-          },
-          {
-            'Fn::Select': [
-              1,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_WINDOWS.Key },
-                ],
-              },
-            ],
-          },
-          "' -ErrorAction Stop\n&'C:/temp/",
-          {
-            'Fn::Select': [
-              0,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_WINDOWS.Key },
-                ],
-              },
-            ],
-          },
-          {
-            'Fn::Select': [
-              1,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_WINDOWS.Key },
-                ],
-              },
-            ],
-          },
-          installFlag,
+          `<powershell>mkdir (Split-Path -Path 'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
+          { 'Fn::Sub': CWA_ASSET_WINDOWS.Bucket },
+          `' -key '${CWA_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n&'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1'${installFlag} `,
           { Ref: 'AWS::Region' },
           ' ',
           { Ref: 'StringParameter472EED0E' },
-          "\nif (!$?) { Write-Error 'Failed to execute the file \"C:/temp/",
-          {
-            'Fn::Select': [
-              0,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_WINDOWS.Key },
-                ],
-              },
-            ],
-          },
-          {
-            'Fn::Select': [
-              1,
-              {
-                'Fn::Split': [
-                  '||',
-                  { Ref: CWA_ASSET_WINDOWS.Key },
-                ],
-              },
-            ],
-          },
-          "\"' -ErrorAction Stop }</powershell>",
+          `\nif (!$?) { Write-Error 'Failed to execute the file \"C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1\"' -ErrorAction Stop }</powershell>`,
         ],
       ],
     });

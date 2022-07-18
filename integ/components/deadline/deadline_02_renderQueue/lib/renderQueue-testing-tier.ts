@@ -4,7 +4,7 @@
  */
 
 import * as path from 'path';
-import { Construct } from '@aws-cdk/core';
+import { Construct } from 'constructs';
 import { RenderStruct } from '../../../../lib/render-struct';
 import { TestingTier, TestingTierProps } from '../../../../lib/testing-tier';
 

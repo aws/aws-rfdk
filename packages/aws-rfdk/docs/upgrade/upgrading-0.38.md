@@ -38,7 +38,7 @@ The below example code snippets demonstrate what each case above may look like:
 <details><summary><b>Typescript</b> (click to expand)</summary>
 
 ```ts
-import { ApplicationProtocol } from '@aws-cdk/aws-elasticloadbalancingv2';
+import { ApplicationProtocol } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import { RenderQueue } from 'aws-rfdk/deadline';
 
 new RenderQueue(this, 'RenderQueue', {

@@ -3,8 +3,7 @@
 
 from dataclasses import dataclass
 
-from aws_cdk.core import (
-    Construct,
+from aws_cdk import (
     RemovalPolicy,
     Stack,
     StackProps
@@ -19,6 +18,9 @@ from aws_rfdk.deadline import (
     RepositoryRemovalPolicies,
     ThinkboxDockerImages,
     VersionQuery,
+)
+from constructs import (
+    Construct
 )
 
 

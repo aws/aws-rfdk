@@ -4,28 +4,27 @@
  */
 
 import {
-  arrayWith,
-  expect as cdkExpect,
-  haveResourceLike,
-  ResourcePart,
-} from '@aws-cdk/assert';
-import {
-  SecurityGroup,
-  Vpc,
-} from '@aws-cdk/aws-ec2';
-import {
-  AccessPoint,
-  FileSystem as EfsFileSystem,
-} from '@aws-cdk/aws-efs';
-import {
-  Function as LambdaFunction,
-} from '@aws-cdk/aws-lambda';
-import {
   App,
   CfnElement,
   Size,
   Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import {
+  Annotations,
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
+import {
+  SecurityGroup,
+  Vpc,
+} from 'aws-cdk-lib/aws-ec2';
+import {
+  AccessPoint,
+  FileSystem as EfsFileSystem,
+} from 'aws-cdk-lib/aws-efs';
+import {
+  Function as LambdaFunction,
+} from 'aws-cdk-lib/aws-lambda';
 import {
   PadEfsStorage,
 } from '../lib/pad-efs-storage';
@@ -70,7 +69,7 @@ describe('Test PadEfsStorage', () => {
     const padFilesystem = pad.node.findChild('PadFilesystem') as LambdaFunction;
 
     // THEN
-    cdkExpect(stack).to(haveResourceLike('AWS::Lambda::Function', {
+    Template.fromStack(stack).hasResource('AWS::Lambda::Function', {
       Properties: {
         FileSystemConfigs: [
           {
@@ -93,9 +92,9 @@ describe('Test PadEfsStorage', () => {
           ],
         },
       },
-      DependsOn: arrayWith(stack.getLogicalId(accessPoint.node.defaultChild as CfnElement)),
-    }, ResourcePart.CompleteDefinition));
-    cdkExpect(stack).to(haveResourceLike('AWS::Lambda::Function', {
+      DependsOn: Match.arrayWith([stack.getLogicalId(accessPoint.node.defaultChild as CfnElement)]),
+    });
+    Template.fromStack(stack).hasResource('AWS::Lambda::Function', {
       Properties: {
         FileSystemConfigs: [
           {
@@ -118,8 +117,8 @@ describe('Test PadEfsStorage', () => {
           ],
         },
       },
-      DependsOn: arrayWith(stack.getLogicalId(accessPoint.node.defaultChild as CfnElement)),
-    }, ResourcePart.CompleteDefinition));
+      DependsOn: Match.arrayWith([stack.getLogicalId(accessPoint.node.defaultChild as CfnElement)]),
+    });
 
     const lambdaRetryCatch = {
       Retry: [
@@ -141,7 +140,7 @@ describe('Test PadEfsStorage', () => {
         },
       ],
     };
-    cdkExpect(stack).to(haveResourceLike('AWS::StepFunctions::StateMachine', {
+    Template.fromStack(stack).hasResourceProperties('AWS::StepFunctions::StateMachine', {
       DefinitionString: stack.resolve(JSON.stringify({
         StartAt: 'QueryDiskUsage',
         States: {
@@ -217,9 +216,9 @@ describe('Test PadEfsStorage', () => {
           },
         },
       })),
-    }));
+    });
 
-    cdkExpect(stack).to(haveResourceLike('Custom::AWS', {
+    Template.fromStack(stack).hasResourceProperties('Custom::AWS', {
       Create: {
         'Fn::Join': [
           '',
@@ -252,7 +251,7 @@ describe('Test PadEfsStorage', () => {
           ],
         ],
       },
-    }));
+    });
   });
 
   test('Set desiredPadding', () => {
@@ -265,20 +264,20 @@ describe('Test PadEfsStorage', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResourceLike('Custom::AWS', {
+    Template.fromStack(stack).hasResourceProperties('Custom::AWS', {
       Create: {
         'Fn::Join': [
           '',
-          arrayWith(`","input":"{\\"desiredPadding\\":${desiredPadding}}"}}`),
+          Match.arrayWith([`","input":"{\\"desiredPadding\\":${desiredPadding}}"}}`]),
         ],
       },
       Update: {
         'Fn::Join': [
           '',
-          arrayWith(`","input":"{\\"desiredPadding\\":${desiredPadding}}"}}`),
+          Match.arrayWith([`","input":"{\\"desiredPadding\\":${desiredPadding}}"}}`]),
         ],
       },
-    }));
+    });
   });
 
   test('Throws on bad desiredPadding', () => {
@@ -290,14 +289,7 @@ describe('Test PadEfsStorage', () => {
     });
 
     // THEN
-    expect(pad.node.metadataEntry).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          type: 'aws:cdk:error',
-          data: 'Failed to round desiredSize to an integer number of GiB. The size must be in GiB.',
-        }),
-      ]),
-    );
+    Annotations.fromStack(stack).hasError(`/${pad.node.path}`, 'Failed to round desiredSize to an integer number of GiB. The size must be in GiB.');
   });
 
   test('Provide SecurityGroup', () => {
@@ -315,18 +307,18 @@ describe('Test PadEfsStorage', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResourceLike('AWS::Lambda::Function', {
+    Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
       Handler: 'pad-efs-storage.getDiskUsage',
       VpcConfig: {
         SecurityGroupIds: [ stack.resolve(sg.securityGroupId) ],
       },
-    }));
-    cdkExpect(stack).to(haveResourceLike('AWS::Lambda::Function', {
+    });
+    Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
       Handler: 'pad-efs-storage.padFilesystem',
       VpcConfig: {
         SecurityGroupIds: [ stack.resolve(sg.securityGroupId) ],
       },
-    }));
+    });
   });
 
 });

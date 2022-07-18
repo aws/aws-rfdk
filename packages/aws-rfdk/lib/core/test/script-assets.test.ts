@@ -5,7 +5,11 @@
 
 import * as path from 'path';
 
-import { expect as expectCDK, haveResource } from '@aws-cdk/assert';
+import { Stack } from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   AmazonLinuxImage,
   Instance,
@@ -15,8 +19,7 @@ import {
   Vpc,
   WindowsImage,
   WindowsVersion,
-} from '@aws-cdk/aws-ec2';
-import { Stack } from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
 
 import { ScriptAsset } from '../lib/script-assets';
 
@@ -54,9 +57,9 @@ describe('executeScriptAsset', () => {
     asset.executeOn({ host: instance });
 
     // THEN
-    expectCDK(stack).to(haveResource('AWS::IAM::Policy', {
+    Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
       PolicyDocument: {
-        Statement: [
+        Statement: Match.arrayWith([
           {
             Action: [
               's3:GetObject*',
@@ -72,7 +75,7 @@ describe('executeScriptAsset', () => {
                     'arn:',
                     { Ref: 'AWS::Partition' },
                     ':s3:::',
-                    { Ref: bucketKey },
+                    { 'Fn::Sub': bucketKey },
                   ],
                 ],
               },
@@ -83,19 +86,19 @@ describe('executeScriptAsset', () => {
                     'arn:',
                     { Ref: 'AWS::Partition' },
                     ':s3:::',
-                    { Ref: bucketKey },
+                    { 'Fn::Sub': bucketKey },
                     '/*',
                   ],
                 ],
               },
             ],
           },
-        ],
+        ]),
         Version: '2012-10-17',
       },
       PolicyName: 'instInstanceRoleDefaultPolicyCB9E402C',
       Roles: [ { Ref: 'instInstanceRoleFE783FB1' } ],
-    }));
+    });
   });
 
   test('downloads and executes script for linux', () => {
@@ -116,135 +119,22 @@ describe('executeScriptAsset', () => {
     });
 
     // THEN
-    expectCDK(stack).to(haveResource('AWS::EC2::Instance', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Instance', {
       UserData: {
         'Fn::Base64': {
           'Fn::Join': [
             '',
             [
-              "#!/bin/bash\nmkdir -p $(dirname '/tmp/",
+              `#!/bin/bash\nmkdir -p $(dirname '/tmp/${CWA_ASSET_LINUX.Key}.sh')\naws s3 cp 's3://`,
               {
-                'Fn::Select': [
-                  0,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
-                    ],
-                  },
-                ],
+                'Fn::Sub': CWA_ASSET_LINUX.Bucket,
               },
-              {
-                'Fn::Select': [
-                  1,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
-                    ],
-                  },
-                ],
-              },
-              "')\naws s3 cp 's3://",
-              { Ref: CWA_ASSET_LINUX.Bucket },
-              '/',
-              {
-                'Fn::Select': [
-                  0,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
-                    ],
-                  },
-                ],
-              },
-              {
-                'Fn::Select': [
-                  1,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
-                    ],
-                  },
-                ],
-              },
-              "' '/tmp/",
-              {
-                'Fn::Select': [
-                  0,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
-                    ],
-                  },
-                ],
-              },
-              {
-                'Fn::Select': [
-                  1,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
-                    ],
-                  },
-                ],
-              },
-              "'\nset -e\nchmod +x '/tmp/",
-              {
-                'Fn::Select': [
-                  0,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
-                    ],
-                  },
-                ],
-              },
-              {
-                'Fn::Select': [
-                  1,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
-                    ],
-                  },
-                ],
-              },
-              "'\n'/tmp/",
-              {
-                'Fn::Select': [
-                  0,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
-                    ],
-                  },
-                ],
-              },
-              {
-                'Fn::Select': [
-                  1,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_LINUX.Key },
-                    ],
-                  },
-                ],
-              },
-              "' arg1",
+              `/${CWA_ASSET_LINUX.Key}.sh' '/tmp/${CWA_ASSET_LINUX.Key}.sh'\nset -e\nchmod +x '/tmp/${CWA_ASSET_LINUX.Key}.sh'\n'/tmp/${CWA_ASSET_LINUX.Key}.sh' arg1`,
             ],
           ],
         },
       },
-    }));
+    });
   });
 
   test('downloads and executes script for windows', () => {
@@ -265,134 +155,22 @@ describe('executeScriptAsset', () => {
     });
 
     // THEN
-    expectCDK(stack).to(haveResource('AWS::EC2::Instance', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Instance', {
       UserData: {
         'Fn::Base64': {
           'Fn::Join': [
             '',
             [
-              "<powershell>mkdir (Split-Path -Path 'C:/temp/",
+              `<powershell>mkdir (Split-Path -Path 'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
               {
-                'Fn::Select': [
-                  0,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_WINDOWS.Key },
-                    ],
-                  },
-                ],
+                'Fn::Sub': CWA_ASSET_WINDOWS.Bucket,
               },
-              {
-                'Fn::Select': [
-                  1,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_WINDOWS.Key },
-                    ],
-                  },
-                ],
-              },
-              "' ) -ea 0\nRead-S3Object -BucketName '",
-              { Ref: CWA_ASSET_WINDOWS.Bucket },
-              "' -key '",
-              {
-                'Fn::Select': [
-                  0,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_WINDOWS.Key },
-                    ],
-                  },
-                ],
-              },
-              {
-                'Fn::Select': [
-                  1,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_WINDOWS.Key },
-                    ],
-                  },
-                ],
-              },
-              "' -file 'C:/temp/",
-              {
-                'Fn::Select': [
-                  0,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_WINDOWS.Key },
-                    ],
-                  },
-                ],
-              },
-              {
-                'Fn::Select': [
-                  1,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_WINDOWS.Key },
-                    ],
-                  },
-                ],
-              },
-              "' -ErrorAction Stop\n&'C:/temp/",
-              {
-                'Fn::Select': [
-                  0,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_WINDOWS.Key },
-                    ],
-                  },
-                ],
-              },
-              {
-                'Fn::Select': [
-                  1,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_WINDOWS.Key },
-                    ],
-                  },
-                ],
-              },
-              "' arg1\nif (!$?) { Write-Error 'Failed to execute the file \"C:/temp/",
-              {
-                'Fn::Select': [
-                  0,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_WINDOWS.Key },
-                    ],
-                  },
-                ],
-              },
-              {
-                'Fn::Select': [
-                  1,
-                  {
-                    'Fn::Split': [
-                      '||',
-                      { Ref: CWA_ASSET_WINDOWS.Key },
-                    ],
-                  },
-                ],
-              },
-              "\"' -ErrorAction Stop }</powershell>",
+              `' -key '${CWA_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n` +
+              `&'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' arg1\nif (!$?) { Write-Error 'Failed to execute the file "C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1"' -ErrorAction Stop }</powershell>`,
             ],
           ],
         },
       },
-    }));
+    });
   });
 });

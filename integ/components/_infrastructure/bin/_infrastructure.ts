@@ -5,7 +5,7 @@
 
 /* eslint-disable no-console */
 
-import { App } from '@aws-cdk/core';
+import { App } from 'aws-cdk-lib';
 import { NetworkTier } from '../lib/network-tier';
 
 // Create a cdk app containing just a Vpc, that will then be used for the tests that follow

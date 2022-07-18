@@ -4,26 +4,27 @@
  */
 
 import * as path from 'path';
-import { Alarm } from '@aws-cdk/aws-cloudwatch';
+import { Duration } from 'aws-cdk-lib';
+import { Alarm } from 'aws-cdk-lib/aws-cloudwatch';
 import {
   Rule,
   RuleTargetInput,
   Schedule,
-} from '@aws-cdk/aws-events';
-import { LambdaFunction } from '@aws-cdk/aws-events-targets';
-import { Effect, PolicyStatement } from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-events';
+import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import {
   Code,
   Runtime,
   SingletonFunction,
-} from '@aws-cdk/aws-lambda';
+} from 'aws-cdk-lib/aws-lambda';
 import {
   ILogGroup,
   LogGroup,
   LogRetention,
   RetentionDays,
-} from '@aws-cdk/aws-logs';
-import { Construct, Duration } from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-logs';
+import { Construct } from 'constructs';
 
 /**
  * Properties for setting up an {@link ExportingLogGroup}.

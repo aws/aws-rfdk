@@ -12,11 +12,12 @@ import {
   SubnetSelection,
   SubnetType,
   Vpc,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   PrivateHostedZone,
-} from '@aws-cdk/aws-route53';
-import * as cdk from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-route53';
+import * as cdk from 'aws-cdk-lib';
+import { Construct } from 'constructs';
 
 import { config } from '../bin/config';
 
@@ -72,7 +73,7 @@ export class NetworkTier extends cdk.Stack {
   /**
    * Initializes a new instance of {@link NetworkTier}.
    */
-  constructor(scope: cdk.Construct, id: string, props: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: cdk.StackProps) {
     super(scope, id, props);
 
     // We're creating a SubnetSelection with only the standard availability zones to be

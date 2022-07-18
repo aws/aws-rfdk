@@ -6,21 +6,20 @@
 import * as path from 'path';
 
 import {
+  Stack,
+} from 'aws-cdk-lib';
+import {
   IVolume,
   OperatingSystemType,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   Effect,
   PolicyStatement,
-} from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-iam';
 import {
   Asset,
-} from '@aws-cdk/aws-s3-assets';
-import {
-  Construct,
-  IConstruct,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-s3-assets';
+import { Construct, IConstruct } from 'constructs';
 
 import {
   MountPermissionsHelper,

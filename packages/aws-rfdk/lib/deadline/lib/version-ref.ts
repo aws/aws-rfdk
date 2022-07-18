@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { IBucket } from '@aws-cdk/aws-s3';
+import { IBucket } from 'aws-cdk-lib/aws-s3';
 import { Version } from './version';
 
 /**

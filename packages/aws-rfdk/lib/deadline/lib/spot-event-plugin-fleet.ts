@@ -4,8 +4,16 @@
  */
 
 import {
+  Annotations,
+  Expiration,
+  Stack,
+  TagManager,
+  Tags,
+  TagType,
+} from 'aws-cdk-lib';
+import {
   BlockDevice,
-} from '@aws-cdk/aws-autoscaling';
+} from 'aws-cdk-lib/aws-autoscaling';
 import {
   Connections,
   EbsDeviceVolumeType,
@@ -23,7 +31,7 @@ import {
   SubnetSelection,
   SubnetType,
   UserData,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   CfnInstanceProfile,
   IGrantable,
@@ -32,16 +40,8 @@ import {
   ManagedPolicy,
   Role,
   ServicePrincipal,
-} from '@aws-cdk/aws-iam';
-import {
-  Annotations,
-  Construct,
-  Expiration,
-  Stack,
-  TagManager,
-  Tags,
-  TagType,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-iam';
+import { Construct } from 'constructs';
 import {
   IScriptHost,
   LogGroupFactoryProps,

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SubnetConfiguration, SubnetType } from '@aws-cdk/aws-ec2';
+import { SubnetConfiguration, SubnetType } from 'aws-cdk-lib/aws-ec2';
 
 export class Subnets {
   /**

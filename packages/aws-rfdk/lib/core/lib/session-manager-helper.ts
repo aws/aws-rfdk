@@ -6,7 +6,7 @@
 import {
   IGrantable,
   PolicyStatement,
-} from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-iam';
 
 /**
  * This is a helper class meant to make it easier to use the AWS Systems Manager Session Manager

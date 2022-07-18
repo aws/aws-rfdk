@@ -5,12 +5,21 @@
 
 import * as path from 'path';
 import {
+  CfnResource,
+  Duration,
+  Lazy,
+  Names,
+  Stack,
+  Tags,
+} from 'aws-cdk-lib';
+import {
   AutoScalingGroup,
   BlockDevice,
   CfnAutoScalingGroup,
   DefaultResult,
   LifecycleTransition,
-} from '@aws-cdk/aws-autoscaling';
+  Signals,
+} from 'aws-cdk-lib/aws-autoscaling';
 import {
   CfnNetworkInterface,
   Connections,
@@ -22,7 +31,7 @@ import {
   OperatingSystemType,
   SubnetSelection,
   UserData,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   Effect,
   IGrantable,
@@ -31,30 +40,22 @@ import {
   PolicyStatement,
   Role,
   ServicePrincipal,
-} from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-iam';
 import {
   Code,
   Function as LambdaFunction,
   Runtime,
-} from '@aws-cdk/aws-lambda';
+} from 'aws-cdk-lib/aws-lambda';
 import {
   RetentionDays,
-} from '@aws-cdk/aws-logs';
+} from 'aws-cdk-lib/aws-logs';
 import {
   Topic,
-} from '@aws-cdk/aws-sns';
+} from 'aws-cdk-lib/aws-sns';
 import {
   LambdaSubscription,
-} from '@aws-cdk/aws-sns-subscriptions';
-import {
-  CfnResource,
-  Construct,
-  Duration,
-  Lazy,
-  Names,
-  Stack,
-  Tags,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-sns-subscriptions';
+import { Construct } from 'constructs';
 
 
 /**
@@ -241,8 +242,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
       vpcSubnets: { subnets: [subnet] },
       blockDevices: props.blockDevices,
       keyName: props.keyName,
-      resourceSignalCount: props.resourceSignalTimeout ? 1 : undefined,
-      resourceSignalTimeout: props.resourceSignalTimeout,
+      signals: props.resourceSignalTimeout ? Signals.waitForCount(1, { timeout: props.resourceSignalTimeout }) : undefined,
       role: props.role,
       securityGroup: props.securityGroup,
       userData: props.userData,

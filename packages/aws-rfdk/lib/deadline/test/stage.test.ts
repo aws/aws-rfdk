@@ -7,14 +7,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import {
-  expect as expectCDK,
-  haveResourceLike,
-  stringLike,
-} from '@aws-cdk/assert';
-import {
   App,
   Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 
 import {
   Manifest,
@@ -298,7 +297,7 @@ describe('Stage', () => {
     test('creates DockerImageAssets from existing recipes', () => {
       jest.resetModules();
       const mockDockerImageAssetConstructor = jest.fn();
-      jest.mock('@aws-cdk/aws-ecr-assets', () => {
+      jest.mock('aws-cdk-lib/aws-ecr-assets', () => {
 
         class DockerImageAsset {
           constructor(...args: [any]) {
@@ -398,10 +397,10 @@ describe('Stage', () => {
 
       // WHEN
       stage.getVersion(stack, 'Version');
-      expectCDK(stack).to(haveResourceLike('Custom::RFDK_DEADLINE_INSTALLERS', {
-        forceRun: stringLike('*'),
+      Template.fromStack(stack).hasResourceProperties('Custom::RFDK_DEADLINE_INSTALLERS', {
+        forceRun: Match.anyValue(),
         versionString: '10.1.9',
-      }));
+      });
     });
   });
 });

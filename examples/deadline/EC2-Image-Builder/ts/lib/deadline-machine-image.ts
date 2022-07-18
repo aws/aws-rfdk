@@ -8,26 +8,26 @@ import * as path from 'path';
 import {
   IMachineImage,
   OperatingSystemType,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   CfnInstanceProfile,
   ManagedPolicy,
   PolicyStatement,
   Role,
   ServicePrincipal,
-} from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-iam';
 import {
   CfnComponent,
   CfnDistributionConfiguration,
   CfnImage,
   CfnImageRecipe,
   CfnInfrastructureConfiguration,
-} from '@aws-cdk/aws-imagebuilder';
+} from 'aws-cdk-lib/aws-imagebuilder';
 import {
   CfnResource,
-  Construct,
   Token,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import { Construct } from 'constructs';
 
 import { templateComponent } from './template';
 

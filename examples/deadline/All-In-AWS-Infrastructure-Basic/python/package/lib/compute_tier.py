@@ -8,8 +8,7 @@ from typing import (
     Optional
 )
 
-from aws_cdk.core import (
-    Construct,
+from aws_cdk import (
     Stack,
     StackProps
 )
@@ -34,6 +33,9 @@ from aws_rfdk.deadline import (
     UsageBasedLicense,
     UsageBasedLicensing,
     WorkerInstanceFleet,
+)
+from constructs import (
+    Construct
 )
 
 

@@ -3,15 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as cdk from 'aws-cdk-lib';
 import {
-  arrayWith,
-  countResources,
-  expect as expectCDK,
-  haveResourceLike,
-  ResourcePart,
-  stringLike,
-} from '@aws-cdk/assert';
-import { CfnLaunchConfiguration } from '@aws-cdk/aws-autoscaling';
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
+import { CfnLaunchConfiguration } from 'aws-cdk-lib/aws-autoscaling';
 import {
   AmazonLinuxGeneration,
   AmazonLinuxImage,
@@ -21,19 +18,20 @@ import {
   SecurityGroup,
   SubnetType,
   Vpc,
-} from '@aws-cdk/aws-ec2';
-import * as iam from '@aws-cdk/aws-iam';
-import { ILogGroup } from '@aws-cdk/aws-logs';
-import { Bucket } from '@aws-cdk/aws-s3';
-import { Asset } from '@aws-cdk/aws-s3-assets';
-import { StringParameter } from '@aws-cdk/aws-ssm';
-import * as cdk from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import { ILogGroup } from 'aws-cdk-lib/aws-logs';
+import { Bucket } from 'aws-cdk-lib/aws-s3';
+import { Asset } from 'aws-cdk-lib/aws-s3-assets';
+import { StringParameter } from 'aws-cdk-lib/aws-ssm';
+import {Construct} from 'constructs';
 
 import {
   DeploymentInstance,
   DeploymentInstanceProps,
 } from '../lib/deployment-instance';
 import { resourceTagMatcher, testConstructTags } from './tag-helpers';
+import { resourcePropertiesCountIs } from './test-helper';
 
 
 const DEFAULT_CONSTRUCT_ID = 'DeploymentInstance';
@@ -45,7 +43,7 @@ const DEFAULT_CONSTRUCT_ID = 'DeploymentInstance';
  * * `.addExecuteFileCommand`
  */
 class AmazonLinuxWithUserDataSpy extends AmazonLinuxImage {
-  public getImage(scope: cdk.Construct) {
+  public getImage(scope: Construct) {
     const result = super.getImage(scope);
     jest.spyOn(result.userData, 'addOnExitCommands');
     jest.spyOn(result.userData, 'addExecuteFileCommand');
@@ -54,23 +52,18 @@ class AmazonLinuxWithUserDataSpy extends AmazonLinuxImage {
 }
 
 describe('DeploymentInstance', () => {
-  let app: cdk.App;
-  let depStack: cdk.Stack;
-  let stack: cdk.Stack;
-  let vpc: Vpc;
-  let target: DeploymentInstance;
-
-  beforeAll(() => {
-    // GIVEN
-    app = new cdk.App();
-    depStack = new cdk.Stack(app, 'DepStack');
-    vpc = new Vpc(depStack, 'VPC');
-  });
-
   describe('defaults', () => {
+    let app: cdk.App;
+    let depStack: cdk.Stack;
+    let vpc: Vpc;
+    let stack: cdk.Stack;
+    let target: DeploymentInstance;
 
     beforeAll(() => {
       // GIVEN
+      app = new cdk.App();
+      depStack = new cdk.Stack(app, 'DepStack');
+      vpc = new Vpc(depStack, 'VPC');
       stack = new cdk.Stack(app, 'DefaultsStack');
       target = new DeploymentInstance(stack, DEFAULT_CONSTRUCT_ID, {
         vpc,
@@ -83,21 +76,21 @@ describe('DeploymentInstance', () => {
       // ASG makes these assertions linked
       test('deploys a single Auto-Scaling Group', () => {
         // THEN
-        expectCDK(stack).to(countResources('AWS::AutoScaling::AutoScalingGroup', 1));
+        Template.fromStack(stack).resourceCountIs('AWS::AutoScaling::AutoScalingGroup', 1);
       });
 
       test('MaxSize is 1', () => {
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+        Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::AutoScalingGroup', {
           MaxSize: '1',
-        }));
+        });
       });
 
       test('MinSize is 1', () => {
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+        Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::AutoScalingGroup', {
           MinSize: '1',
-        }));
+        });
       });
 
       test('uses private subnets', () => {
@@ -105,16 +98,16 @@ describe('DeploymentInstance', () => {
         const privateSubnetIDs = vpc.selectSubnets({ subnetType: SubnetType.PRIVATE_WITH_NAT }).subnetIds;
 
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
-          VPCZoneIdentifier: arrayWith(
+        Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::AutoScalingGroup', {
+          VPCZoneIdentifier: Match.arrayWith([
             ...stack.resolve(privateSubnetIDs),
-          ),
-        }));
+          ]),
+        });
       });
 
       test('waits 15 minutes for one signal', () => {
         // THEN
-        expectCDK(stack).to(haveResourceLike(
+        Template.fromStack(stack).hasResource(
           'AWS::AutoScaling::AutoScalingGroup',
           {
             CreationPolicy: {
@@ -124,13 +117,12 @@ describe('DeploymentInstance', () => {
               },
             },
           },
-          ResourcePart.CompleteDefinition,
-        ));
+        );
       });
 
       test('sets replacing update policy', () => {
         // THEN
-        expectCDK(stack).to(haveResourceLike(
+        Template.fromStack(stack).hasResource(
           'AWS::AutoScaling::AutoScalingGroup',
           {
             UpdatePolicy: {
@@ -142,8 +134,7 @@ describe('DeploymentInstance', () => {
               },
             },
           },
-          ResourcePart.CompleteDefinition,
-        ));
+        );
       });
 
       test('uses Launch Configuration', () => {
@@ -151,9 +142,9 @@ describe('DeploymentInstance', () => {
         const launchConfig = target.node.findChild('ASG').node.findChild('LaunchConfig') as CfnLaunchConfiguration;
 
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+        Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::AutoScalingGroup', {
           LaunchConfigurationName: stack.resolve(launchConfig.ref),
-        }));
+        });
       });
     });
 
@@ -163,7 +154,7 @@ describe('DeploymentInstance', () => {
       // ASG makes these assertions linked
       test('deploys a single Launch Configuration', () => {
         // THEN
-        expectCDK(stack).to(countResources('AWS::AutoScaling::LaunchConfiguration', 1));
+        Template.fromStack(stack).resourceCountIs('AWS::AutoScaling::LaunchConfiguration', 1);
       });
 
       test('uses latest Amazon Linux machine image', () => {
@@ -172,16 +163,16 @@ describe('DeploymentInstance', () => {
         const imageId: { Ref: string } = stack.resolve(amazonLinux.getImage(stack)).imageId;
 
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+        Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
           ImageId: imageId,
-        }));
+        });
       });
 
       test('uses t3.small', () => {
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+        Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
           InstanceType: 't3.small',
-        }));
+        });
       });
 
       test('Uses created Security Group', () => {
@@ -192,11 +183,11 @@ describe('DeploymentInstance', () => {
         ) as SecurityGroup;
 
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+        Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
           SecurityGroups: [
             stack.resolve(securityGroup.securityGroupId),
           ],
-        }));
+        });
       });
 
       test('depends on policy', () => {
@@ -210,25 +201,24 @@ describe('DeploymentInstance', () => {
         ) as iam.CfnPolicy;
 
         // THEN
-        expectCDK(stack).to(haveResourceLike(
+        Template.fromStack(stack).hasResource(
           'AWS::AutoScaling::LaunchConfiguration',
           {
-            DependsOn: arrayWith(
+            DependsOn: Match.arrayWith([
               stack.resolve(policy.logicalId),
-            ),
+            ]),
           },
-          ResourcePart.CompleteDefinition,
-        ));
+        );
       });
     });
 
     describe('Security Group', () => {
       test('creates Security Group in the desired VPC', () => {
         // THEN
-        expectCDK(stack).to(countResources('AWS::EC2::SecurityGroup', 1));
-        expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroup', {
+        Template.fromStack(stack).resourceCountIs('AWS::EC2::SecurityGroup', 1);
+        Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroup', {
           VpcId: stack.resolve(vpc.vpcId),
-        }));
+        });
       });
     });
 
@@ -247,11 +237,11 @@ describe('DeploymentInstance', () => {
 
       test('creates an instance profile', () => {
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::IAM::InstanceProfile', {
+        Template.fromStack(stack).hasResourceProperties('AWS::IAM::InstanceProfile', {
           Roles: [
             { Ref: stack.getLogicalId(instanceRole) },
           ],
-        }));
+        });
       });
 
       test('creates a role that can be assumed by EC2', () => {
@@ -259,7 +249,7 @@ describe('DeploymentInstance', () => {
         const servicePrincipal = new iam.ServicePrincipal('ec2.amazonaws.com');
 
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::IAM::Role', {
+        Template.fromStack(stack).hasResourceProperties('AWS::IAM::Role', {
           AssumeRolePolicyDocument: {
             Statement: [
               {
@@ -271,25 +261,25 @@ describe('DeploymentInstance', () => {
               },
             ],
           },
-        }));
+        });
       });
 
       test('can signal to CloudFormation', () => {
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+        Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
           PolicyDocument: {
-            Statement: arrayWith(
+            Statement: Match.arrayWith([
               {
                 Action: 'cloudformation:SignalResource',
                 Effect: 'Allow',
                 Resource: { Ref: 'AWS::StackId' },
               },
-            ),
+            ]),
           },
           Roles: [
             stack.resolve(instanceRole.ref),
           ],
-        }));
+        });
       });
 
       test('can write to the log group', () => {
@@ -297,9 +287,9 @@ describe('DeploymentInstance', () => {
         const logGroup = target.node.findChild(`${DEFAULT_CONSTRUCT_ID}LogGroup`) as ILogGroup;
 
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+        Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
           PolicyDocument: {
-            Statement: arrayWith(
+            Statement: Match.arrayWith([
               {
                 Action: [
                   'logs:CreateLogStream',
@@ -308,12 +298,12 @@ describe('DeploymentInstance', () => {
                 Effect: 'Allow',
                 Resource: stack.resolve(logGroup.logGroupArn),
               },
-            ),
+            ]),
           },
           Roles: [
             stack.resolve(instanceRole.ref),
           ],
-        }));
+        });
       });
 
       test('can fetch the CloudWatch Agent install script', () => {
@@ -324,9 +314,9 @@ describe('DeploymentInstance', () => {
         ) as Asset;
 
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+        Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
           PolicyDocument: {
-            Statement: arrayWith(
+            Statement: Match.arrayWith([
               {
                 Action: [
                   's3:GetObject*',
@@ -339,12 +329,12 @@ describe('DeploymentInstance', () => {
                   cloudWatchAgentScriptAsset.bucket.arnForObjects('*'),
                 ]),
               },
-            ),
+            ]),
           },
           Roles: [
             stack.resolve(instanceRole.ref),
           ],
-        }));
+        });
       });
 
       test('can fetch the CloudWatch Agent configuration file SSM parameter', () => {
@@ -355,9 +345,9 @@ describe('DeploymentInstance', () => {
         ) as StringParameter;
 
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+        Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
           PolicyDocument: {
-            Statement: arrayWith(
+            Statement: Match.arrayWith([
               {
                 Action: [
                   'ssm:DescribeParameters',
@@ -368,12 +358,12 @@ describe('DeploymentInstance', () => {
                 Effect: 'Allow',
                 Resource: stack.resolve(cloudWatchConfigSsmParam.parameterArn),
               },
-            ),
+            ]),
           },
           Roles: [
             stack.resolve(instanceRole.ref),
           ],
-        }));
+        });
       });
 
       test('can fetch the CloudWatch Agent installer from S3', () => {
@@ -381,9 +371,9 @@ describe('DeploymentInstance', () => {
         const cloudWatchAgentInstallerBucket = Bucket.fromBucketArn(depStack, 'CloudWatchAgentInstallerBucket', `arn:aws:s3:::amazoncloudwatch-agent-${stack.region}` );
 
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+        Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
           PolicyDocument: {
-            Statement: arrayWith(
+            Statement: Match.arrayWith([
               {
                 Action: [
                   's3:GetObject*',
@@ -396,12 +386,12 @@ describe('DeploymentInstance', () => {
                   cloudWatchAgentInstallerBucket.arnForObjects('*'),
                 ]),
               },
-            ),
+            ]),
           },
           Roles: [
             stack.resolve(instanceRole.ref),
           ],
-        }));
+        });
       });
 
       test('can fetch GPG installer from RFDK dependencies S3 bucket', () => {
@@ -409,9 +399,9 @@ describe('DeploymentInstance', () => {
         const rfdkExternalDepsBucket = Bucket.fromBucketArn(depStack, 'RfdkExternalDependenciesBucket', `arn:aws:s3:::rfdk-external-dependencies-${stack.region}` );
 
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+        Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
           PolicyDocument: {
-            Statement: arrayWith(
+            Statement: Match.arrayWith([
               {
                 Action: [
                   's3:GetObject*',
@@ -424,19 +414,19 @@ describe('DeploymentInstance', () => {
                   rfdkExternalDepsBucket.arnForObjects('*'),
                 ]),
               },
-            ),
+            ]),
           },
           Roles: [
             stack.resolve(instanceRole.ref),
           ],
-        }));
+        });
       });
 
       test('can scale the Auto-Scaling Group', () => {
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+        Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
           PolicyDocument: {
-            Statement: arrayWith(
+            Statement: Match.arrayWith([
               {
                 Action: 'autoscaling:UpdateAutoScalingGroup',
                 Condition: {
@@ -453,12 +443,12 @@ describe('DeploymentInstance', () => {
                 Effect: 'Allow',
                 Resource: '*',
               },
-            ),
+            ]),
           },
           Roles: [
             stack.resolve(instanceRole.ref),
           ],
-        }));
+        });
       });
     });
 
@@ -468,33 +458,33 @@ describe('DeploymentInstance', () => {
         const logGroup = target.node.findChild(`${DEFAULT_CONSTRUCT_ID}LogGroup`) as ILogGroup;
 
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::SSM::Parameter', {
+        Template.fromStack(stack).hasResourceProperties('AWS::SSM::Parameter', {
           Type: 'String',
           Value: {
             'Fn::Join': [
               '',
-              arrayWith(
+              Match.arrayWith([
                 '{"logs":{"logs_collected":{"files":{"collect_list":[{"log_group_name":"',
                 stack.resolve(logGroup.logGroupName),
-              ),
+              ]),
             ],
           },
-        }));
+        });
       });
 
       test('configures cloud-init log', () => {
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::SSM::Parameter', {
+        Template.fromStack(stack).hasResourceProperties('AWS::SSM::Parameter', {
           Type: 'String',
           Value: {
             'Fn::Join': [
               '',
-              arrayWith(
-                stringLike('*"log_stream_name":"cloud-init-output-{instance_id}","file_path":"/var/log/cloud-init-output.log",*'),
-              ),
+              Match.arrayWith([
+                Match.stringLikeRegexp('.*"log_stream_name":"cloud-init-output-{instance_id}","file_path":"/var/log/cloud-init-output.log",.*'),
+              ]),
             ],
           },
-        }));
+        });
       });
     });
 
@@ -520,13 +510,22 @@ describe('DeploymentInstance', () => {
       const matcher = resourceTagMatcher('AWS::AutoScaling::AutoScalingGroup', 'resourceLogicalId', cdk.Names.uniqueId(target));
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', matcher));
+      Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::AutoScalingGroup', matcher);
     });
   });
 
   describe('User Data', () => {
+    let app: cdk.App;
+    let depStack: cdk.Stack;
+    let vpc: Vpc;
+    let stack: cdk.Stack;
+    let target: DeploymentInstance;
+
     beforeAll(() => {
       // GIVEN
+      app = new cdk.App();
+      depStack = new cdk.Stack(app, 'DepStack');
+      vpc = new Vpc(depStack, 'VPC');
       stack = new cdk.Stack(app, 'UserDataStack');
 
       // WHEN
@@ -582,6 +581,11 @@ describe('DeploymentInstance', () => {
   });
 
   describe('Custom::LogRetention.LogGroupName', () => {
+    let app: cdk.App;
+    let depStack: cdk.Stack;
+    let vpc: Vpc;
+    let stack: cdk.Stack;
+
     beforeEach(() => {
       // We need a clean construct tree, because the tests use the same construct ID
       app = new cdk.App();
@@ -634,19 +638,18 @@ describe('DeploymentInstance', () => {
       });
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('Custom::LogRetention', {
+      Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
         LogGroupName: expectedLogGroupName,
-      }));
+      });
     });
   });
 
-  // GIVEN
   test('uses specified instance type', () => {
     // GIVEN
+    const app = new cdk.App();
+    const stack = new cdk.Stack(app, 'TestStack');
+    const vpc = new Vpc(stack, 'VPC');
     const instanceType = new InstanceType('c5.large');
-    // We want an isolated stack to ensure expectCDK is only searching resources
-    // synthesized by the specific DeploymentInstance stack
-    stack = new cdk.Stack(app, 'InstanceTypeStack');
 
     // WHEN
     new DeploymentInstance(stack, DEFAULT_CONSTRUCT_ID, {
@@ -655,16 +658,19 @@ describe('DeploymentInstance', () => {
     });
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+    Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
       InstanceType: instanceType.toString(),
-    }));
+    });
   });
 
   test('uses specified security group', () => {
     // GIVEN
+    const app = new cdk.App();
+    const stack = new cdk.Stack(app, 'TestStack');
+    const vpc = new Vpc(stack, 'VPC');
+
     const securityGroupId = 'securityGroupId';
-    const securityGroup = SecurityGroup.fromSecurityGroupId(depStack, 'SecurityGroup', securityGroupId);
-    stack = new cdk.Stack(app, 'SecurityGroupStack');
+    const securityGroup = SecurityGroup.fromSecurityGroupId(stack, 'SecurityGroup', securityGroupId);
 
     // WHEN
     new DeploymentInstance(stack, DEFAULT_CONSTRUCT_ID, {
@@ -673,17 +679,26 @@ describe('DeploymentInstance', () => {
     });
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
-      SecurityGroups: arrayWith(
+    Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
+      SecurityGroups: Match.arrayWith([
         securityGroupId,
-      ),
-    }));
+      ]),
+    });
   });
 
   describe('.selfTermination = false', () => {
+    let app: cdk.App;
+    let depStack: cdk.Stack;
+    let vpc: Vpc;
+    let stack: cdk.Stack;
+    let target: DeploymentInstance;
+
     beforeAll(() => {
       // GIVEN
-      stack = new cdk.Stack(app, 'SelfTerminationDisabledStack');
+      app = new cdk.App();
+      depStack = new cdk.Stack(app, 'DepStack');
+      vpc = new Vpc(depStack, 'VPC');
+      stack = new cdk.Stack(app, 'DefaultsStack');
       // Spy on user data method calls
       const machineImage = new AmazonLinuxWithUserDataSpy();
 
@@ -712,33 +727,36 @@ describe('DeploymentInstance', () => {
           .node.findChild('InstanceRole')
           .node.defaultChild
       ) as iam.CfnRole;
+      const matcher = Match.objectLike({
+        Properties: {
+          PolicyDocument: {
+            Statement: Match.arrayWith([
+              {
+                Action: 'autoscaling:UpdateAutoScalingGroup',
+                Condition: {
+                  // This tag is added by RFDK to scope down the permissions of the policy for least-privilege
+                  StringEquals: { 'autoscaling:ResourceTag/resourceLogicalId': cdk.Names.uniqueId(target) },
+                },
+                Effect: 'Allow',
+                Resource: '*',
+              },
+              // The instance determines its Auto-Scaling Group by reading the tag created on the instance by the EC2
+              // Auto-Scaling service
+              {
+                Action: 'ec2:DescribeTags',
+                Effect: 'Allow',
+                Resource: '*',
+              },
+            ]),
+          },
+          Roles: [
+            stack.resolve(instanceRole.ref),
+          ],
+        },
+      });
 
       // THEN
-      expectCDK(stack).notTo(haveResourceLike('AWS::IAM::Policy', {
-        PolicyDocument: {
-          Statement: arrayWith(
-            {
-              Action: 'autoscaling:UpdateAutoScalingGroup',
-              Condition: {
-                // This tag is added by RFDK to scope down the permissions of the policy for least-privilege
-                StringEquals: { 'autoscaling:ResourceTag/resourceLogicalId': cdk.Names.uniqueId(target) },
-              },
-              Effect: 'Allow',
-              Resource: '*',
-            },
-            // The instance determines its Auto-Scaling Group by reading the tag created on the instance by the EC2
-            // Auto-Scaling service
-            {
-              Action: 'ec2:DescribeTags',
-              Effect: 'Allow',
-              Resource: '*',
-            },
-          ),
-        },
-        Roles: [
-          stack.resolve(instanceRole.ref),
-        ],
-      }));
+      resourcePropertiesCountIs(stack, 'AWS::IAM::Policy', matcher, 0);
     });
 
     test('does not tag for self-termination', () => {
@@ -746,18 +764,24 @@ describe('DeploymentInstance', () => {
       const matcher = resourceTagMatcher('AWS::AutoScaling::AutoScalingGroup', 'resourceLogicalId', cdk.Names.uniqueId(target));
 
       // THEN
-      expectCDK(stack).notTo(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', matcher));
+      Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::AutoScalingGroup', Match.not(matcher));
     });
   });
 
   // GIVEN
   describe('.executionTimeout is specified', () => {
+    let app: cdk.App;
+    let depStack: cdk.Stack;
+    let vpc: Vpc;
+    let stack: cdk.Stack;
     const  executionTimeout = cdk.Duration.minutes(30);
 
     beforeAll(() => {
       // GIVEN
-      // Use a clean stack to not pollute other stacks with resources
-      stack = new cdk.Stack(app, 'ExecutionTimeout');
+      app = new cdk.App();
+      depStack = new cdk.Stack(app, 'DepStack');
+      vpc = new Vpc(depStack, 'VPC');
+      stack = new cdk.Stack(app, 'DefaultsStack');
       const deploymentInstanceProps: DeploymentInstanceProps = {
         vpc,
         executionTimeout,
@@ -769,7 +793,7 @@ describe('DeploymentInstance', () => {
 
     // THEN
     test('AWS::AutoScaling::AutoScalingGroup creation policy signal timeout is set accordingly', () => {
-      expectCDK(stack).to(haveResourceLike(
+      Template.fromStack(stack).hasResource(
         'AWS::AutoScaling::AutoScalingGroup',
         {
           CreationPolicy: {
@@ -779,8 +803,7 @@ describe('DeploymentInstance', () => {
             },
           },
         },
-        ResourcePart.CompleteDefinition,
-      ));
+      );
     });
   });
 });

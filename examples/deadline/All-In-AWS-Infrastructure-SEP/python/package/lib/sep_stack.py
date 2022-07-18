@@ -1,12 +1,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import (
-    Optional,
-)
 from dataclasses import dataclass
-from aws_cdk.core import (
-    Construct,
+from aws_cdk import (
     Duration,
     RemovalPolicy,
     Stack,
@@ -48,6 +44,9 @@ from aws_rfdk.deadline import (
 from aws_rfdk import (
     DistinguishedName,
     X509CertificatePem,
+)
+from constructs import (
+    Construct
 )
 
 

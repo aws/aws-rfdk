@@ -5,10 +5,8 @@
 
 import {
   IConnectable,
-} from '@aws-cdk/aws-ec2';
-import {
-  IConstruct,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
+import { IConstruct } from 'constructs';
 
 import { IScriptHost } from './script-assets';
 

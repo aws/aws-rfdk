@@ -5,37 +5,36 @@
 
 import * as path from 'path';
 import {
+  Duration,
+  Names,
+  RemovalPolicy,
+} from 'aws-cdk-lib';
+import {
   ComparisonOperator,
   IAlarmAction,
   IMetric,
   MathExpression,
   TreatMissingData,
-} from '@aws-cdk/aws-cloudwatch';
-import {SnsAction} from '@aws-cdk/aws-cloudwatch-actions';
+} from 'aws-cdk-lib/aws-cloudwatch';
+import {SnsAction} from 'aws-cdk-lib/aws-cloudwatch-actions';
 import {
   IConnectable,
   ISecurityGroup,
   IVpc,
   Port,
   SubnetSelection,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   ApplicationLoadBalancer,
   ApplicationTargetGroup,
   IApplicationLoadBalancerTarget,
-} from '@aws-cdk/aws-elasticloadbalancingv2';
-import {IPolicy, IRole, Policy, ServicePrincipal} from '@aws-cdk/aws-iam';
-import {IKey, Key} from '@aws-cdk/aws-kms';
-import {Code, Runtime, SingletonFunction} from '@aws-cdk/aws-lambda';
-import {ITopic, Topic} from '@aws-cdk/aws-sns';
-import {LambdaSubscription} from '@aws-cdk/aws-sns-subscriptions';
-import {
-  Construct,
-  Duration,
-  IConstruct,
-  Names,
-  RemovalPolicy,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-elasticloadbalancingv2';
+import {IPolicy, IRole, Policy, ServicePrincipal} from 'aws-cdk-lib/aws-iam';
+import {IKey, Key} from 'aws-cdk-lib/aws-kms';
+import {Code, Runtime, SingletonFunction} from 'aws-cdk-lib/aws-lambda';
+import {ITopic, Topic} from 'aws-cdk-lib/aws-sns';
+import {LambdaSubscription} from 'aws-cdk-lib/aws-sns-subscriptions';
+import { Construct, IConstruct } from 'constructs';
 
 import {LoadBalancerFactory} from './load-balancer-manager';
 import {tagConstruct} from './runtime-info';
@@ -378,7 +377,6 @@ export class HealthMonitor extends HealthMonitorBase {
       description: `This key is used to encrypt SNS messages for ${Names.uniqueId(this)}.`,
       enableKeyRotation: true,
       removalPolicy: RemovalPolicy.DESTROY,
-      trustAccountIdentities: true,
     });
 
     // allow cloudwatch service to send encrypted messages

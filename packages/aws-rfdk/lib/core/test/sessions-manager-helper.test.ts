@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { CfnElement, Stack } from 'aws-cdk-lib';
 import {
-  expect as expectCDK,
-  haveResourceLike,
-} from '@aws-cdk/assert';
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   AutoScalingGroup,
-} from '@aws-cdk/aws-autoscaling';
+} from 'aws-cdk-lib/aws-autoscaling';
 import {
   AmazonLinuxImage,
   Instance,
@@ -17,8 +17,7 @@ import {
   InstanceSize,
   InstanceType,
   Vpc,
-} from '@aws-cdk/aws-ec2';
-import { CfnElement, Stack } from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
 
 import { SessionManagerHelper } from '../lib';
 
@@ -42,7 +41,7 @@ test('Grant SSM permissions to Instance', () => {
 
   const instanceRole = stack.getLogicalId(instance.role.node.defaultChild as CfnElement);
 
-  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
     PolicyDocument: {
       Statement: [
         {
@@ -59,7 +58,7 @@ test('Grant SSM permissions to Instance', () => {
       ],
     },
     Roles: [{ Ref: instanceRole }],
-  }));
+  });
 });
 
 test('Grant SSM permissions to ASG', () => {
@@ -72,7 +71,7 @@ test('Grant SSM permissions to ASG', () => {
 
   const asgRole = stack.getLogicalId(asg.role.node.defaultChild as CfnElement);
 
-  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
     PolicyDocument: {
       Statement: [
         {
@@ -89,5 +88,5 @@ test('Grant SSM permissions to ASG', () => {
       ],
     },
     Roles: [{ Ref: asgRole }],
-  }));
+  });
 });

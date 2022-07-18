@@ -4,16 +4,21 @@
  */
 
 import {
-  expect as expectCDK,
-  haveResource,
-  haveResourceLike,
-  ResourcePart,
-} from '@aws-cdk/assert';
+  Duration,
+  Resource,
+  ResourceEnvironment,
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Annotations,
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   DatabaseCluster,
   Endpoint,
   IDatabaseCluster,
-} from '@aws-cdk/aws-docdb';
+} from 'aws-cdk-lib/aws-docdb';
 import {
   AmazonLinuxGeneration,
   Connections,
@@ -27,26 +32,20 @@ import {
   Volume,
   Vpc,
   WindowsVersion,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   AccountRootPrincipal,
   Role,
-} from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-iam';
 import {
   IPrivateHostedZone,
   PrivateHostedZone,
-} from '@aws-cdk/aws-route53';
+} from 'aws-cdk-lib/aws-route53';
 import {
   Secret,
   SecretAttachmentTargetProps,
-} from '@aws-cdk/aws-secretsmanager';
-import {
-  Construct,
-  Duration,
-  Resource,
-  ResourceEnvironment,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-secretsmanager';
+import {Construct} from 'constructs';
 import * as sinon from 'sinon';
 
 import {
@@ -62,6 +61,10 @@ import {
 import {
   DatabaseConnection,
 } from '../lib';
+
+import {
+  GET_SECRET_TO_FILE_SCRIPT_LINUX,
+} from './asset-constants';
 
 describe('DocumentDB', () => {
   let stack: Stack;
@@ -105,7 +108,7 @@ describe('DocumentDB', () => {
     connection.grantRead(role);
 
     // THEN
-    expectCDK(stack).to(haveResource('AWS::IAM::Policy', {
+    Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
       PolicyDocument: {
         Version: '2012-10-17',
         Statement: [{
@@ -117,7 +120,7 @@ describe('DocumentDB', () => {
           Resource: {Ref: 'DbClusterSecretAttachment4201A1ED'},
         }],
       },
-    }));
+    });
   });
 
   test('addInstallerDBArgs defines required elements', () => {
@@ -150,7 +153,7 @@ describe('DocumentDB', () => {
     connection.allowConnectionsFrom(securityGroup);
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
       IpProtocol: 'tcp',
       FromPort: {
         'Fn::GetAtt': [
@@ -170,7 +173,7 @@ describe('DocumentDB', () => {
           'Port',
         ],
       },
-    }));
+    });
   });
 
   test('add child dependency', () => {
@@ -186,12 +189,12 @@ describe('DocumentDB', () => {
     connection.addChildDependency(instance);
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::EC2::Instance', {
+    Template.fromStack(stack).hasResource('AWS::EC2::Instance', {
       DependsOn: [
         'DbClusterInstance155835CE5',
         'InstanceInstanceRoleE9785DE5',
       ],
-    }, ResourcePart.CompleteDefinition));
+    });
   });
 
   test('add child dependency to attributes', () => {
@@ -218,11 +221,11 @@ describe('DocumentDB', () => {
     connection.addChildDependency(instance);
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::EC2::Instance', {
+    Template.fromStack(stack).hasResource('AWS::EC2::Instance', {
       DependsOn: [
         'InstanceInstanceRoleE9785DE5',
       ],
-    }, ResourcePart.CompleteDefinition));
+    });
   });
 
   test('add child dependency throws when cluster implementation changed', () => {
@@ -306,13 +309,11 @@ describe('DocumentDB', () => {
     connection.addSecurityGroup(securityGroup);
 
     // THEN
-    expect(fakeDatabase.node.metadataEntry).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        type: 'aws:cdk:warning',
-        data: expect.stringMatching(new RegExp(`Failed to add the following security groups to ${fakeDatabase.node.id}: .*\\. ` +
-        'The \\"database\\" property passed to this class is not an instance of AWS CDK\'s DocumentDB cluster construct.')),
-      }),
-    ]));
+    Annotations.fromStack(stack).hasWarning(
+      `/${fakeDatabase.node.path}`,
+      Match.stringLikeRegexp(`Failed to add the following security groups to ${fakeDatabase.node.id}: .*\\. ` +
+      'The \\"database\\" property passed to this class is not an instance of AWS CDK\'s DocumentDB cluster construct.'),
+    );
   });
 
   // This test can be removed once the following CDK PR is merged:
@@ -329,13 +330,11 @@ describe('DocumentDB', () => {
     connection.addSecurityGroup(securityGroup);
 
     // THEN
-    expect(database.node.metadataEntry).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        type: 'aws:cdk:warning',
-        data: expect.stringMatching(new RegExp(`Failed to add the following security groups to ${database.node.id}: .*\\. ` +
-        'The internal implementation of AWS CDK\'s DocumentDB cluster construct has changed.')),
-      }),
-    ]));
+    Annotations.fromStack(stack).hasWarning(
+      `/${database.node.path}`,
+      Match.stringLikeRegexp(`Failed to add the following security groups to ${database.node.id}: .*\\. ` +
+      'The internal implementation of AWS CDK\'s DocumentDB cluster construct has changed.'),
+    );
   });
 
   test('Document DB connection is pointed to correct construct', () => {
@@ -380,7 +379,9 @@ describe('DocumentDB Version Checks', () => {
     DatabaseConnection.forDocDB({database, login: database.secret!});
 
     // THEN
-    expect(database.node.metadataEntry.length).toBe(0);
+    Annotations.fromStack(stack).hasNoInfo(`/${database.node.path}`, Match.anyValue());
+    Annotations.fromStack(stack).hasNoWarning(`/${database.node.path}`, Match.anyValue());
+    Annotations.fromStack(stack).hasNoError(`/${database.node.path}`, Match.anyValue());
   });
 
   test('When from attributes', () => {
@@ -403,7 +404,9 @@ describe('DocumentDB Version Checks', () => {
     const databaseConnection = DatabaseConnection.forDocDB({database, login: secret});
 
     // THEN
-    expect(database.node.metadataEntry.length).toBe(0);
+    Annotations.fromStack(stack).hasNoInfo(`/${database.node.path}`, Match.anyValue());
+    Annotations.fromStack(stack).hasNoWarning(`/${database.node.path}`, Match.anyValue());
+    Annotations.fromStack(stack).hasNoError(`/${database.node.path}`, Match.anyValue());
     expect(databaseConnection.databaseConstruct).toBeUndefined();
   });
 
@@ -431,13 +434,9 @@ describe('DocumentDB Version Checks', () => {
     DatabaseConnection.forDocDB({database, login: database.secret!});
 
     // THEN
-    expect(database.node.metadataEntry).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          type: 'aws:cdk:error',
-          data: 'engineVersion must be 3.6.0 to be compatible with Deadline',
-        }),
-      ]),
+    Annotations.fromStack(stack).hasError(
+      `/${database.node.path}`,
+      'engineVersion must be 3.6.0 to be compatible with Deadline',
     );
   });
 
@@ -466,13 +465,9 @@ describe('DocumentDB Version Checks', () => {
     DatabaseConnection.forDocDB({database, login: database.secret!});
 
     // THEN
-    expect(database.node.metadataEntry).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          type: 'aws:cdk:error',
-          data: 'engineVersion must be 3.6.0 to be compatible with Deadline',
-        }),
-      ]),
+    Annotations.fromStack(stack).hasError(
+      `/${database.node.path}`,
+      'engineVersion must be 3.6.0 to be compatible with Deadline',
     );
   });
 });
@@ -534,7 +529,7 @@ describe('MongoDB', () => {
     connection.grantRead(role);
 
     // THEN
-    expectCDK(stack).to(haveResource('AWS::IAM::Policy', {
+    Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
       PolicyDocument: {
         Version: '2012-10-17',
         Statement: [
@@ -563,7 +558,7 @@ describe('MongoDB', () => {
           },
         ],
       },
-    }));
+    });
   });
 
   test('addInstallerDBArgs defines required elements', () => {
@@ -581,7 +576,7 @@ describe('MongoDB', () => {
 
     // THEN
     const token = '${Token[TOKEN.\\d+]}';
-    expect(userData).toMatch(new RegExp(escapeTokenRegex('\'/tmp/' + token + token + '\' ' + token + ' /opt/Thinkbox/certs/mongo_client.pfx')));
+    expect(userData).toMatch(new RegExp(escapeTokenRegex(`'/tmp/${GET_SECRET_TO_FILE_SCRIPT_LINUX.Key}.sh' ${token} /opt/Thinkbox/certs/mongo_client.pfx`)));
     expect(userData).toContain('configure_database_installation_args(){\n');
     expect(userData).toContain('\nexport -f configure_database_installation_args');
     expect(userData).toContain('{ set +x; } 2>/dev/null');
@@ -607,7 +602,7 @@ describe('MongoDB', () => {
 
     // THEN
     const token = '${Token[TOKEN.\\d+]}';
-    expect(userData).toMatch(new RegExp(escapeTokenRegex('\'/tmp/' + token + token + '\' ' + token + ' /opt/Thinkbox/certs/mongo_client.pfx')));
+    expect(userData).toMatch(new RegExp(escapeTokenRegex(`'/tmp/${GET_SECRET_TO_FILE_SCRIPT_LINUX.Key}.sh' ${token} /opt/Thinkbox/certs/mongo_client.pfx`)));
     expect(userData).toContain('configure_deadline_database(){\n');
     expect(userData).toContain('\nexport -f configure_deadline_database');
     expect(userData).toContain('{ set +x; } 2>/dev/null');
@@ -635,7 +630,7 @@ describe('MongoDB', () => {
     connection.allowConnectionsFrom(securityGroup);
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
       IpProtocol: 'tcp',
       FromPort: 27017,
       ToPort: 27017,
@@ -651,7 +646,7 @@ describe('MongoDB', () => {
           'GroupId',
         ],
       },
-    }));
+    });
   });
 
   test('add child dependency', () => {
@@ -667,12 +662,12 @@ describe('MongoDB', () => {
     connection.addChildDependency(instance);
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::EC2::Instance', {
+    Template.fromStack(stack).hasResource('AWS::EC2::Instance', {
       DependsOn: [
         'InstanceInstanceRoleE9785DE5',
         'MongoDbServerAsgASG47B3D94E',
       ],
-    }, ResourcePart.CompleteDefinition));
+    });
   });
 
   test('asserts linux-only', () => {

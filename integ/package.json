@@ -52,15 +52,16 @@
     "clean": "./scripts/bash/cleanup.sh",
     "deploy-all": "./scripts/bash/deploy-all.sh",
     "tear-down": "./scripts/bash/tear-down.sh",
-    "pkglint": "pkglint -f"
+    "pkglint": "pkglint -f",
+    "lint": "eslint . --ext=.ts",
+    "lintfix": "eslint . --ext=.ts --fix"
   },
   "devDependencies": {
-    "@aws-cdk/assert": "1.160.0",
     "@types/jest": "^27.5.2",
     "@types/node": "^18.0.0",
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
-    "aws-cdk": "1.160.0",
+    "aws-cdk": "2.33.0",
     "eslint": "^7.32.0",
     "eslint-import-resolver-node": "^0.3.6",
     "eslint-import-resolver-typescript": "^2.7.1",
@@ -73,42 +74,18 @@
     "typescript": "~4.7.3"
   },
   "dependencies": {
-    "@aws-cdk/aws-autoscaling": "1.160.0",
-    "@aws-cdk/aws-docdb": "1.160.0",
-    "@aws-cdk/aws-ec2": "1.160.0",
-    "@aws-cdk/aws-ecr": "1.160.0",
-    "@aws-cdk/aws-ecs": "1.160.0",
-    "@aws-cdk/aws-efs": "1.160.0",
-    "@aws-cdk/aws-elasticloadbalancingv2": "1.160.0",
-    "@aws-cdk/aws-iam": "1.160.0",
-    "@aws-cdk/aws-logs": "1.160.0",
-    "@aws-cdk/aws-route53": "1.160.0",
-    "@aws-cdk/aws-s3": "1.160.0",
-    "@aws-cdk/aws-s3-assets": "1.160.0",
-    "@aws-cdk/aws-secretsmanager": "1.160.0",
-    "@aws-cdk/core": "1.160.0",
     "@aws-sdk/client-cloudformation": "^3.110.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.110.0",
     "@aws-sdk/client-secrets-manager": "^3.110.0",
     "@aws-sdk/client-ssm": "^3.110.0",
-    "aws-rfdk": "0.42.0"
+    "aws-cdk-lib": "2.33.0",
+    "aws-rfdk": "0.42.0",
+    "constructs": "^10.0.0"
   },
   "peerDependencies": {
-    "@aws-cdk/aws-autoscaling": "1.160.0",
-    "@aws-cdk/aws-docdb": "1.160.0",
-    "@aws-cdk/aws-ec2": "1.160.0",
-    "@aws-cdk/aws-ecr": "1.160.0",
-    "@aws-cdk/aws-ecs": "1.160.0",
-    "@aws-cdk/aws-efs": "1.160.0",
-    "@aws-cdk/aws-elasticloadbalancingv2": "1.160.0",
-    "@aws-cdk/aws-iam": "1.160.0",
-    "@aws-cdk/aws-logs": "1.160.0",
-    "@aws-cdk/aws-route53": "1.160.0",
-    "@aws-cdk/aws-s3": "1.160.0",
-    "@aws-cdk/aws-s3-assets": "1.160.0",
-    "@aws-cdk/aws-secretsmanager": "1.160.0",
-    "@aws-cdk/core": "1.160.0",
-    "aws-rfdk": "0.42.0"
+    "aws-cdk-lib": "2.33.0",
+    "aws-rfdk": "0.42.0",
+    "constructs": "^10.0.0"
   },
   "engines": {
     "node": ">= 14.15.0"

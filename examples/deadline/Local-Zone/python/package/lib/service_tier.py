@@ -4,6 +4,12 @@
 from dataclasses import dataclass
 from typing import List
 
+from aws_cdk import (
+    Duration,
+    RemovalPolicy,
+    Stack,
+    StackProps
+)
 from aws_cdk.aws_ec2 import (
     IVpc,
     SubnetSelection,
@@ -15,14 +21,6 @@ from aws_cdk.aws_elasticloadbalancingv2 import (
 from aws_cdk.aws_route53 import (
     IPrivateHostedZone
 )
-from aws_cdk.core import (
-    Construct,
-    Duration,
-    RemovalPolicy,
-    Stack,
-    StackProps
-)
-
 from aws_rfdk import (
     DistinguishedName,
     SessionManagerHelper,
@@ -39,7 +37,9 @@ from aws_rfdk.deadline import (
     ThinkboxDockerImages,
     VersionQuery
 )
-
+from constructs import (
+    Construct
+)
 
 @dataclass
 class ServiceTierProps(StackProps):

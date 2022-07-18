@@ -5,8 +5,7 @@ import json
 from dataclasses import dataclass
 from typing import Optional
 
-from aws_cdk.core import (
-    Construct,
+from aws_cdk import (
     Duration,
     RemovalPolicy,
     Size,
@@ -52,7 +51,6 @@ from aws_cdk.aws_sns import (
 from aws_cdk.aws_sns_subscriptions import (
     EmailSubscription
 )
-
 from aws_rfdk import (
     MongoDbUsers,
     MongoDbX509User,
@@ -67,9 +65,11 @@ from aws_rfdk import (
     X509CertificatePem,
     X509CertificatePkcs12
 )
-
 from aws_rfdk.deadline import (
     DatabaseConnection
+)
+from constructs import (
+    Construct
 )
 
 from . import subnets
@@ -231,8 +231,7 @@ class StorageTier(Stack):
             'SNSEncryptionKey',
             description='Used to encrypt the SNS Topic for sending EFS Burst Credit alerts',
             enable_key_rotation=True,
-            removal_policy=RemovalPolicy.DESTROY,
-            trust_account_identities=True
+            removal_policy=RemovalPolicy.DESTROY
         )
         key.grant(ServicePrincipal('cloudwatch.amazonaws.com'), 'kms:Decrypt', 'kms:GenerateDataKey')
 

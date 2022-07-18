@@ -9,16 +9,26 @@ import {
 } from 'url';
 
 import {
+  Annotations,
+  Duration,
+  RemovalPolicy,
+  Names,
+  Size,
+  Stack,
+  Tags,
+  Token,
+} from 'aws-cdk-lib';
+import {
   AutoScalingGroup,
   Signals,
   UpdatePolicy,
-} from '@aws-cdk/aws-autoscaling';
+} from 'aws-cdk-lib/aws-autoscaling';
 import {
   CfnDBInstance,
   DatabaseCluster,
   CfnDBCluster,
   ClusterParameterGroup,
-} from '@aws-cdk/aws-docdb';
+} from 'aws-cdk-lib/aws-docdb';
 import {
   AmazonLinuxGeneration,
   AmazonLinuxImage,
@@ -30,37 +40,26 @@ import {
   OperatingSystemType,
   SubnetSelection,
   SubnetType,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   MountPoint,
   TaskDefinition,
-} from '@aws-cdk/aws-ecs';
+} from 'aws-cdk-lib/aws-ecs';
 import {
   FileSystem as EfsFileSystem,
   LifecyclePolicy as EfsLifecyclePolicy,
-} from '@aws-cdk/aws-efs';
+} from 'aws-cdk-lib/aws-efs';
 import {
   PolicyStatement,
-} from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-iam';
 import {
   Asset,
-} from '@aws-cdk/aws-s3-assets';
+} from 'aws-cdk-lib/aws-s3-assets';
 import {
   ISecret,
   Secret,
-} from '@aws-cdk/aws-secretsmanager';
-import {
-  Annotations,
-  Construct,
-  Duration,
-  IConstruct,
-  RemovalPolicy,
-  Names,
-  Size,
-  Stack,
-  Tags,
-  Token,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-secretsmanager';
+import { Construct, IConstruct } from 'constructs';
 import {
   CloudWatchAgent,
   CloudWatchConfigBuilder,
@@ -783,22 +782,25 @@ export class Repository extends Construct implements IRepository {
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
-  }
 
-  protected onValidate(): string[] {
-    const validationErrors = [];
+    const thisConstruct = this;
+    this.node.addValidation({
+      validate(): string[] {
+        const validationErrors = [];
 
-    // Using the output of VersionQuery across stacks can cause issues. CloudFormation stack outputs cannot change if
-    // a resource in another stack is referencing it.
-    if (this.version instanceof VersionQuery) {
-      const versionStack = Stack.of(this.version);
-      const thisStack = Stack.of(this);
-      if (versionStack != thisStack) {
-        validationErrors.push('A VersionQuery can not be supplied from a different stack');
-      }
-    }
+        // Using the output of VersionQuery across stacks can cause issues. CloudFormation stack outputs cannot change if
+        // a resource in another stack is referencing it.
+        if (thisConstruct.version instanceof VersionQuery) {
+          const versionStack = Stack.of(thisConstruct.version);
+          const thisStack = Stack.of(thisConstruct);
+          if (versionStack != thisStack) {
+            validationErrors.push('A VersionQuery can not be supplied from a different stack');
+          }
+        }
 
-    return validationErrors;
+        return validationErrors;
+      },
+    });
   }
 
   /**

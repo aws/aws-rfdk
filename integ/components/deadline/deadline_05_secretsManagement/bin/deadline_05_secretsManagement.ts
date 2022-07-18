@@ -5,8 +5,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { App, Stack, Aspects } from '@aws-cdk/core';
 import { SecretsManager, ResourceNotFoundException } from '@aws-sdk/client-secrets-manager';
+import { App, Stack, Aspects } from 'aws-cdk-lib';
 import {
   Stage,
   ThinkboxDockerRecipes,

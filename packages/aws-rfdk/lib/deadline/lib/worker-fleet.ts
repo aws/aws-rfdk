@@ -5,13 +5,17 @@
 
 import * as path from 'path';
 import {
+  Annotations,
+  Duration,
+} from 'aws-cdk-lib';
+import {
   AutoScalingGroup,
   BlockDevice,
   CfnAutoScalingGroup,
   HealthCheck,
   Signals,
-} from '@aws-cdk/aws-autoscaling';
-import {IMetric, Metric} from '@aws-cdk/aws-cloudwatch';
+} from 'aws-cdk-lib/aws-autoscaling';
+import {IMetric, Metric} from 'aws-cdk-lib/aws-cloudwatch';
 import {
   Connections,
   IConnectable,
@@ -24,8 +28,8 @@ import {
   Port,
   SubnetSelection,
   SubnetType,
-} from '@aws-cdk/aws-ec2';
-import {IApplicationLoadBalancerTarget} from '@aws-cdk/aws-elasticloadbalancingv2';
+} from 'aws-cdk-lib/aws-ec2';
+import {IApplicationLoadBalancerTarget} from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import {
   IGrantable,
   IPolicy,
@@ -33,13 +37,8 @@ import {
   IRole,
   Policy,
   PolicyStatement,
-} from '@aws-cdk/aws-iam';
-import {
-  Annotations,
-  Construct,
-  Duration,
-  IConstruct,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-iam';
+import { Construct, IConstruct } from 'constructs';
 
 import {
   HealthCheckConfig,

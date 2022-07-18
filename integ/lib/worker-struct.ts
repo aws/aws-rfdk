@@ -3,13 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { IMachineImage, MachineImage, Port, Vpc } from '@aws-cdk/aws-ec2';
-import { Construct, Stack } from '@aws-cdk/core';
+import { Stack } from 'aws-cdk-lib';
+import { IMachineImage, MachineImage, Port, Vpc } from 'aws-cdk-lib/aws-ec2';
+import {
+  RetentionDays,
+} from 'aws-cdk-lib/aws-logs';
 import { X509CertificatePem } from 'aws-rfdk';
 import {
   RenderQueue,
   WorkerInstanceFleet,
 } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 import { NetworkTier } from '../components/_infrastructure/lib/network-tier';
 import { RenderStruct } from './render-struct';
 
@@ -58,7 +62,8 @@ export class WorkerStruct extends Construct {
         renderQueue: this.renderQueue,
         workerMachineImage,
         logGroupProps: {
-          logGroupPrefix: Stack.of(this).stackName + '-' + id,
+          logGroupPrefix: `/${Stack.of(this).stackName}-${id}/`,
+          retention: RetentionDays.TWO_MONTHS,
         },
         groups: ['testgroup'],
       }),
@@ -68,7 +73,8 @@ export class WorkerStruct extends Construct {
         renderQueue: this.renderQueue,
         workerMachineImage,
         logGroupProps: {
-          logGroupPrefix: Stack.of(this).stackName + '-' + id,
+          logGroupPrefix: `/${Stack.of(this).stackName}-${id}/`,
+          retention: RetentionDays.TWO_MONTHS,
         },
         pools: ['testpool'],
       }),
@@ -78,7 +84,8 @@ export class WorkerStruct extends Construct {
         renderQueue: this.renderQueue,
         workerMachineImage,
         logGroupProps: {
-          logGroupPrefix: Stack.of(this).stackName + '-' + id,
+          logGroupPrefix: `/${Stack.of(this).stackName}-${id}/`,
+          retention: RetentionDays.TWO_MONTHS,
         },
         region: 'testregion',
       }),

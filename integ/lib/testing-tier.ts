@@ -4,19 +4,20 @@
  */
 
 import * as path from 'path';
+import { CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
 import {
   BastionHostLinux,
   InstanceType,
   Port,
   Vpc,
-} from '@aws-cdk/aws-ec2';
-import { Asset } from '@aws-cdk/aws-s3-assets';
-import { CfnOutput, Construct, Duration, Stack, StackProps } from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
+import { Asset } from 'aws-cdk-lib/aws-s3-assets';
 import {
   SessionManagerHelper,
   X509CertificatePem,
 } from 'aws-rfdk';
 import { RenderQueue } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 import { NetworkTier } from '../components/_infrastructure/lib/network-tier';
 import { IRenderFarmDb } from './storage-struct';
 

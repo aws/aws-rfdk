@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {IConnectable} from '@aws-cdk/aws-ec2';
-import {IConstruct} from '@aws-cdk/core';
+import {IConnectable} from 'aws-cdk-lib/aws-ec2';
+import {IConstruct} from 'constructs';
 import {IScriptHost} from '../../core';
 
 /**

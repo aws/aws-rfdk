@@ -4,10 +4,16 @@
  */
 
 import {
+  Duration,
+  Names,
+  Stack,
+  Tags,
+} from 'aws-cdk-lib';
+import {
   AutoScalingGroup,
   Signals,
   UpdatePolicy,
-} from '@aws-cdk/aws-autoscaling';
+} from 'aws-cdk-lib/aws-autoscaling';
 import {
   AmazonLinuxGeneration,
   Connections,
@@ -21,17 +27,11 @@ import {
   MachineImage,
   SubnetSelection,
   SubnetType,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   PolicyStatement,
-} from '@aws-cdk/aws-iam';
-import {
-  Construct,
-  Duration,
-  Names,
-  Stack,
-  Tags,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-iam';
+import { Construct } from 'constructs';
 
 import {
   CloudWatchConfigBuilder,

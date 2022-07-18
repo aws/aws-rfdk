@@ -4,13 +4,13 @@
  */
 
 import {
-  LaunchTemplate,
-} from '@aws-cdk/aws-ec2';
-import {
   App,
   Expiration,
   Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import {
+  LaunchTemplate,
+} from 'aws-cdk-lib/aws-ec2';
 import * as AWS from 'aws-sdk';
 import {
   SpotEventPluginDisplayInstanceStatus,
