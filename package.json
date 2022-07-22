@@ -96,7 +96,7 @@
     "@types/jest": "^27.5.2",
     "@types/node": "^18.0.0",
     "aws-cdk": "1.160.0",
-    "aws-sdk": "^2.1155.0",
+    "aws-sdk": "^2.1180.0",
     "@aws-sdk/client-ssm": "^3.110.0",
     "@aws-sdk/client-cloudformation": "^3.110.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.110.0",
