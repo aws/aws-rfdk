@@ -32,15 +32,13 @@ These instructions assume that your working directory is `examples/deadline/All-
     popd
     pip install ../../../../dist/python/aws-rfdk-<version>.tar.gz
     ```
-4.  You must read and accept the [AWS Thinkbox End-User License Agreement (EULA)](https://www.awsthinkbox.com/end-user-license-agreement) to deploy and run Deadline. To do so, change the value of the `accept_aws_thinkbox_eula` in `package/config.py`:
+4.  By downloading or using the Deadline software, you agree to the [AWS Customer Agreement](https://aws.amazon.com/agreement/)
+    and [AWS Intellectual Property License](https://aws.amazon.com/legal/aws-ip-license-terms/). You acknowledge that Deadline
+    is AWS Content as defined in those Agreements.
+    To accept these terms, change the value of `accept_aws_customer_agreement_and_ip_license` in `package/config.py`:
 
     ```py
-    # Change this value to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA if you wish to accept the EULA
-    # for Deadline and proceed with Deadline deployment. Users must explicitly accept the AWS Thinkbox EULA before
-    # using the AWS Thinkbox Deadline container images.
-    #
-    # See https://www.awsthinkbox.com/end-user-license-agreement for the terms of the agreement.
-    self.accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA
+    self.accept_aws_customer_agreement_and_ip_license: AwsCustomerAgreementAndIpLicenseAcceptance = AwsCustomerAgreementAndIpLicenseAcceptance.USER_REJECTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE
     ```
 5.  Change the value of the `deadline_version` variable in `package/config.py` to specify the desired version of Deadline to be deployed to your render farm. RFDK is compatible with Deadline versions 10.1.9.x and later. To see the available versions of Deadline, consult the [Deadline release notes](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html). It is recommended to use the latest version of Deadline available when building your farm, but to pin this version when the farm is ready for production use. For example, to pin to the latest `10.1.12.x` release of Deadline, use:
 

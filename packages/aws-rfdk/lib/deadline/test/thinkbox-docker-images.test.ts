@@ -21,7 +21,7 @@ import {
 } from 'aws-cdk-lib/aws-ecs';
 
 import {
-  AwsThinkboxEulaAcceptance,
+  AwsCustomerAgreementAndIpLicenseAcceptance,
   IVersion,
   RenderQueueImages,
   ThinkboxDockerImages,
@@ -34,43 +34,37 @@ describe('ThinkboxDockerRecipes', () => {
   let app: App;
   let stack: Stack;
   let images: ThinkboxDockerImages;
-  let userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance;
+  let userAwsCustomerAgreementAndIpLicenseAcceptance: AwsCustomerAgreementAndIpLicenseAcceptance;
 
   describe('defaults', () => {
     beforeEach(() => {
       // GIVEN
       app = new App();
       stack = new Stack(app, 'Stack');
-      userAwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA;
+      userAwsCustomerAgreementAndIpLicenseAcceptance = AwsCustomerAgreementAndIpLicenseAcceptance.USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE;
 
       // WHEN
       images = new ThinkboxDockerImages(stack, 'Images', {
-        userAwsThinkboxEulaAcceptance,
+        userAwsCustomerAgreementAndIpLicenseAcceptance,
       });
     });
 
-    test('fails validation when EULA is not accepted', () =>{
+    test('fails validation when terms are not accepted', () =>{
       // GIVEN
       const newStack = new Stack(app, 'NewStack');
       const expectedError = `
 The ThinkboxDockerImages will install Deadline onto one or more EC2 instances.
 
-Deadline is provided by AWS Thinkbox under the AWS Thinkbox End User License
-Agreement (EULA). By installing Deadline, you are agreeing to the terms of this
-license. Follow the link below to read the terms of the AWS Thinkbox EULA.
+By downloading or using the Deadline software, you agree to the AWS Customer Agreement (https://aws.amazon.com/agreement/)
+and AWS Intellectual Property License (https://aws.amazon.com/legal/aws-ip-license-terms/). You acknowledge that Deadline
+is AWS Content as defined in those Agreements.
 
-https://www.awsthinkbox.com/end-user-license-agreement
-
-By using the ThinkboxDockerImages to install Deadline you agree to the terms of
-the AWS Thinkbox EULA.
-
-Please set the userAwsThinkboxEulaAcceptance property to
-USER_ACCEPTS_AWS_THINKBOX_EULA to signify your acceptance of the terms of the
-AWS Thinkbox EULA.
+Please set the userAcceptsAwsCustomerAgreementAndIpLicense property to
+USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE to signify your acceptance of these terms.
 `;
-      userAwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA;
+      userAwsCustomerAgreementAndIpLicenseAcceptance = AwsCustomerAgreementAndIpLicenseAcceptance.USER_REJECTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE;
       new ThinkboxDockerImages(newStack, 'Images', {
-        userAwsThinkboxEulaAcceptance,
+        userAwsCustomerAgreementAndIpLicenseAcceptance,
       });
 
       // WHEN
@@ -180,7 +174,7 @@ AWS Thinkbox EULA.
       // WHEN
       images = new ThinkboxDockerImages(stack, 'Images', {
         version,
-        userAwsThinkboxEulaAcceptance,
+        userAwsCustomerAgreementAndIpLicenseAcceptance,
       });
     });
 
@@ -231,7 +225,7 @@ AWS Thinkbox EULA.
       const newStack = new Stack(app, 'NewStack');
       new ThinkboxDockerImages(newStack, 'Images', {
         version,
-        userAwsThinkboxEulaAcceptance,
+        userAwsCustomerAgreementAndIpLicenseAcceptance,
       });
 
       // WHEN

@@ -45,7 +45,7 @@ const service = new ServiceTier(app, 'ServiceTier', {
   deadlineVersion: config.deadlineVersion,
   rootCa: security.rootCa,
   dnsZone: network.dnsZone,
-  acceptAwsThinkboxEula: config.acceptAwsThinkboxEula,
+  userAwsCustomerAgreementAndIpLicenseAcceptance: config.acceptAwsCustomerAgreementAndIpLicense,
 });
 
 new ComputeTier(app, 'ComputeTier', {

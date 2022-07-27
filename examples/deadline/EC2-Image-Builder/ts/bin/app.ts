@@ -22,7 +22,7 @@ const app = new cdk.App();
 const baseFarm = new BaseFarmStack(app, 'BaseFarmStack', {
   env,
   deadlineVersion: config.deadlineVersion,
-  acceptAwsThinkboxEula: config.acceptAwsThinkboxEula,
+  userAwsCustomerAgreementAndIpLicenseAcceptance: config.acceptAwsCustomerAgreementAndIpLicense,
 });
 
 new ComputeStack(app, 'ComputeStack', {
