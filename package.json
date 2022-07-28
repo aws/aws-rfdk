@@ -33,7 +33,7 @@
     "@types/jest": "^27.5.2",
     "@types/node": "^18.0.0",
     "aws-cdk-lib": "2.33.0",
-    "aws-sdk": "^2.1155.0",
+    "aws-sdk": "^2.1183.0",
     "constructs": "^10.0.0",
     "fs-extra": "^9.1.0",
     "jest": "^27.5.1",
