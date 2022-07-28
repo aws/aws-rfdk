@@ -7,18 +7,18 @@ import {
   MachineImage,
   Vpc,
   WindowsVersion,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   CfnResource,
-  Construct,
   Stack,
   StackProps
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
 import {
   RenderQueue,
   VersionQuery,
   WorkerInstanceFleet,
 } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 
 import {
   DeadlineMachineImage,

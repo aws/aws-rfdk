@@ -49,6 +49,7 @@ class AppConfig {
 
   /**
    * (Optional) A secret (in binary form) in SecretsManager that stores the UBL certificates in a .zip file.
+   * This must be in the format `arn:<partition>:secretsmanager:<region>:<accountId>:secret:<secretName>-<6RandomCharacters`
    */
   public readonly ublCertificatesSecretArn?: string;
 

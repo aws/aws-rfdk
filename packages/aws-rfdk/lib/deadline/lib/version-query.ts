@@ -7,20 +7,20 @@ import { randomBytes } from 'crypto';
 import { join } from 'path';
 
 import {
-  Code,
-  SingletonFunction,
-  Runtime,
-} from '@aws-cdk/aws-lambda';
-import { RetentionDays } from '@aws-cdk/aws-logs';
-import {
-  Bucket,
-} from '@aws-cdk/aws-s3';
-import {
-  Construct,
   CustomResource,
   Duration,
   Token,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import {
+  Code,
+  SingletonFunction,
+  Runtime,
+} from 'aws-cdk-lib/aws-lambda';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import {
+  Bucket,
+} from 'aws-cdk-lib/aws-s3';
+import { Construct } from 'constructs';
 
 import {
   IVersionProviderResourceProperties,

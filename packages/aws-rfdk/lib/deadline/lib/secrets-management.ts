@@ -5,16 +5,16 @@
 
 import * as path from 'path';
 
-import { SelectedSubnets } from '@aws-cdk/aws-ec2';
-import { PolicyStatement } from '@aws-cdk/aws-iam';
-import { ISecret } from '@aws-cdk/aws-secretsmanager';
 import {
-  Construct,
   Lazy,
   Stack,
   Fn,
   Annotations,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import { SelectedSubnets } from 'aws-cdk-lib/aws-ec2';
+import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
+import { Construct } from 'constructs';
 
 import {
   IRepository,

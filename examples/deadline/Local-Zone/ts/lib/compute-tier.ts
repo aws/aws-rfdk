@@ -12,8 +12,8 @@ import {
   IVpc,
   SubnetSelection,
   SubnetType,
-} from '@aws-cdk/aws-ec2';
-import * as cdk from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
+import * as cdk from 'aws-cdk-lib';
 import {
   HealthMonitor,
   IHealthMonitor,
@@ -26,6 +26,7 @@ import {
   IWorkerFleet,
   WorkerInstanceFleet,
 } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 
 /**
  * Properties for {@link ComputeTier}.
@@ -89,7 +90,7 @@ export class ComputeTier extends cdk.Stack {
   /**
    * Initializes a new instance of {@link ComputeTier}.
    */
-  constructor(scope: cdk.Construct, id: string, props: ComputeTierProps) {
+  constructor(scope: Construct, id: string, props: ComputeTierProps) {
     super(scope, id, props);
 
     // We can put the health monitor and worker fleet in all of the local zones we're using

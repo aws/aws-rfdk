@@ -8,8 +8,8 @@ import {
   LogGroup,
   LogRetention,
   RetentionDays,
-} from '@aws-cdk/aws-logs';
-import { Construct } from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-logs';
+import { Construct } from 'constructs';
 import { ExportingLogGroup } from './exporting-log-group';
 
 /**

@@ -4,9 +4,12 @@
  */
 
 import {
-  expect as cdkExpect,
-  haveResourceLike,
-} from '@aws-cdk/assert';
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   AmazonLinuxGeneration,
   Instance,
@@ -14,10 +17,7 @@ import {
   MachineImage,
   Vpc,
   WindowsVersion,
-} from '@aws-cdk/aws-ec2';
-import {
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
 
 import {
   MongoDbInstaller,
@@ -28,9 +28,6 @@ import {
 import {
   INSTALL_MONGODB_3_6_SCRIPT_LINUX,
 } from './asset-constants';
-import {
-  escapeTokenRegex,
-} from './token-regex-helpers';
 
 describe('Test MongoDbInstaller', () => {
   let stack: Stack;
@@ -85,10 +82,9 @@ Please set the userSsplAcceptance property to USER_ACCEPTS_SSPL to signify your 
 
     // WHEN
     installer.installOnLinuxInstance(instance);
-    const userData = instance.userData.render();
 
     // THEN
-    cdkExpect(stack).to(haveResourceLike('AWS::IAM::Policy', {
+    Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
       PolicyDocument: {
         Statement: [
           {
@@ -109,7 +105,7 @@ Please set the userSsplAcceptance property to USER_ACCEPTS_SSPL to signify your 
                     },
                     ':s3:::',
                     {
-                      Ref: INSTALL_MONGODB_3_6_SCRIPT_LINUX.Bucket,
+                      'Fn::Sub': INSTALL_MONGODB_3_6_SCRIPT_LINUX.Bucket,
                     },
                   ],
                 ],
@@ -124,7 +120,7 @@ Please set the userSsplAcceptance property to USER_ACCEPTS_SSPL to signify your 
                     },
                     ':s3:::',
                     {
-                      Ref: INSTALL_MONGODB_3_6_SCRIPT_LINUX.Bucket,
+                      'Fn::Sub': INSTALL_MONGODB_3_6_SCRIPT_LINUX.Bucket,
                     },
                     '/*',
                   ],
@@ -134,12 +130,24 @@ Please set the userSsplAcceptance property to USER_ACCEPTS_SSPL to signify your 
           },
         ],
       },
-    }));
-    // Make sure we download the mountEFS script asset bundle
-    const s3Copy = 'aws s3 cp \'s3://${Token[TOKEN.\\d+]}/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\' \'/tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\'';
-    expect(userData).toMatch(new RegExp(escapeTokenRegex(s3Copy)));
-    // Make sure we execute the script with the correct args
-    expect(userData).toMatch(new RegExp(escapeTokenRegex('bash /tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}')));
+    });
+    // Make sure we download and run the mongo install script
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Instance', {
+      UserData: {
+        'Fn::Base64': {
+          'Fn::Join': [
+            '',
+            [
+              `#!/bin/bash\nmkdir -p $(dirname '/tmp/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh')\naws s3 cp 's3://`,
+              {
+                'Fn::Sub': INSTALL_MONGODB_3_6_SCRIPT_LINUX.Bucket,
+              },
+              `/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh' '/tmp/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh'\nbash /tmp/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh`,
+            ],
+          ],
+        },
+      },
+    });
   });
 
   test('assert Linux-only', () => {
@@ -179,14 +187,28 @@ Please set the userSsplAcceptance property to USER_ACCEPTS_SSPL to signify your 
     // WHEN
     installer1.installOnLinuxInstance(instance);
     installer2.installOnLinuxInstance(instance);
-    const userData = instance.userData.render();
-    const s3Copy = 'aws s3 cp \'s3://${Token[TOKEN.\\d+]}/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\'';
-    const regex = new RegExp(escapeTokenRegex(s3Copy), 'g');
-    const matches = userData.match(regex) ?? [];
 
     // THEN
     // The source of the asset copy should be identical from installer1 & installer2
-    expect(matches).toHaveLength(2);
-    expect(matches[0]).toBe(matches[1]);
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Instance', {
+      UserData: {
+        'Fn::Base64': {
+          'Fn::Join': [
+            '',
+            Match.arrayWith([
+              `#!/bin/bash\nmkdir -p $(dirname '/tmp/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh')\naws s3 cp 's3://`,
+              {
+                'Fn::Sub': INSTALL_MONGODB_3_6_SCRIPT_LINUX.Bucket,
+              },
+              `/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh' '/tmp/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh'\nbash /tmp/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh\nmkdir -p $(dirname '/tmp/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh')\naws s3 cp 's3://`,
+              {
+                'Fn::Sub': INSTALL_MONGODB_3_6_SCRIPT_LINUX.Bucket,
+              },
+              `/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh' '/tmp/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh'\nbash /tmp/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh`,
+            ]),
+          ],
+        },
+      },
+    });
   });
 });

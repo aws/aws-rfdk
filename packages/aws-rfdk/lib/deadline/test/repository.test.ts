@@ -4,16 +4,20 @@
  */
 
 import {
-  arrayWith,
-  countResourcesLike,
-  expect as expectCDK,
-  haveResource,
-  haveResourceLike,
-  ResourcePart,
-  SynthUtils,
-} from '@aws-cdk/assert';
-import {AutoScalingGroup} from '@aws-cdk/aws-autoscaling';
-import {DatabaseCluster} from '@aws-cdk/aws-docdb';
+  App,
+  CfnElement,
+  Duration,
+  Names,
+  RemovalPolicy,
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Annotations,
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
+import {AutoScalingGroup} from 'aws-cdk-lib/aws-autoscaling';
+import {DatabaseCluster} from 'aws-cdk-lib/aws-docdb';
 import {
   AmazonLinuxGeneration,
   Instance,
@@ -28,34 +32,26 @@ import {
   SubnetType,
   Vpc,
   WindowsVersion,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   AccessPoint,
   CfnFileSystem,
   FileSystem as EfsFileSystem,
-} from '@aws-cdk/aws-efs';
-import { CfnRole } from '@aws-cdk/aws-iam';
-import { Bucket } from '@aws-cdk/aws-s3';
-import { Asset } from '@aws-cdk/aws-s3-assets';
-import { Secret } from '@aws-cdk/aws-secretsmanager';
-import {
-  App,
-  CfnElement,
-  Duration,
-  Names,
-  RemovalPolicy,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-efs';
+import { CfnRole } from 'aws-cdk-lib/aws-iam';
+import { Bucket } from 'aws-cdk-lib/aws-s3';
+import { Asset } from 'aws-cdk-lib/aws-s3-assets';
+import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 
 import {
   MountableEfs,
 } from '../../core';
 import {
+  CWA_ASSET_LINUX,
+} from '../../core/test/asset-constants';
+import {
   testConstructTags,
 } from '../../core/test/tag-helpers';
-import {
-  CWA_ASSET_LINUX,
-} from '../../deadline/test/asset-constants';
 import {
   DatabaseConnection,
   IVersion,
@@ -65,8 +61,12 @@ import {
   PlatformInstallers,
 } from '../lib';
 import {
+  CONFIG_REPO_DIRECT_CONNECT_LINUX,
   REPO_DC_ASSET,
 } from './asset-constants';
+import {
+  resourcePropertiesCountIs,
+} from './test-helper';
 
 let app: App;
 let stack: Stack;
@@ -145,7 +145,7 @@ test('repository installer instance is created correctly', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+  Template.fromStack(stack).hasResource('AWS::AutoScaling::AutoScalingGroup', {
     Properties: {
       MaxSize: '1',
       MinSize: '1',
@@ -172,15 +172,15 @@ test('repository installer instance is created correctly', () => {
         IgnoreUnmodifiedGroupSizeProperties: true,
       },
     },
-    DependsOn: [
+    DependsOn: Match.arrayWith([
       'repositoryInstallerDocumentDatabaseInstance11A6F8C8E',
-    ],
-  }, ResourcePart.CompleteDefinition));
-  expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+    ]),
+  });
+  Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
     InstanceType: 't3.large',
-  }));
+  });
 
-  expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+  Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
     IpProtocol: 'tcp',
     FromPort: 2049,
     ToPort: 2049,
@@ -196,7 +196,7 @@ test('repository installer instance is created correctly', () => {
         'GroupId',
       ],
     },
-  }));
+  });
 });
 
 test('repository installer honors vpcSubnet', () => {
@@ -217,9 +217,9 @@ test('repository installer honors vpcSubnet', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+  Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::AutoScalingGroup', {
     VPCZoneIdentifier: isolatedSubnetIds,
-  }));
+  });
 });
 
 test('repository installer security groups created correctly', () => {
@@ -230,7 +230,7 @@ test('repository installer security groups created correctly', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+  Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
     IpProtocol: 'tcp',
     FromPort: 2049,
     ToPort: 2049,
@@ -246,8 +246,8 @@ test('repository installer security groups created correctly', () => {
         'GroupId',
       ],
     },
-  }));
-  expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+  });
+  Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
     IpProtocol: 'tcp',
     FromPort: {
       'Fn::GetAtt': [
@@ -273,7 +273,7 @@ test('repository installer security groups created correctly', () => {
         'GroupId',
       ],
     },
-  }));
+  });
 });
 
 /*
@@ -314,9 +314,9 @@ test('repository installer iam permissions: db secret access', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
     PolicyDocument: {
-      Statement: arrayWith({
+      Statement: Match.arrayWith([{
         Action: [
           'secretsmanager:GetSecretValue',
           'secretsmanager:DescribeSecret',
@@ -325,9 +325,10 @@ test('repository installer iam permissions: db secret access', () => {
         Resource: {
           Ref: 'repositoryInstallerDocumentDatabaseSecretAttachment29753B7C',
         },
-      }),
+      }]),
     },
-  }));
+    PolicyName: Match.stringLikeRegexp('^repositoryInstallerInstanceRoleDefaultPolicy.*'),
+  });
 });
 
 test('repository installer iam permissions: installer get', () => {
@@ -338,9 +339,9 @@ test('repository installer iam permissions: installer get', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
     PolicyDocument: {
-      Statement: arrayWith(
+      Statement: Match.arrayWith([
         {
           Action: [
             's3:GetObject*',
@@ -348,7 +349,7 @@ test('repository installer iam permissions: installer get', () => {
             's3:List*',
           ],
           Effect: 'Allow',
-          Resource: arrayWith(
+          Resource: Match.arrayWith([
             {
               'Fn::Join': [
                 '',
@@ -359,7 +360,7 @@ test('repository installer iam permissions: installer get', () => {
                   },
                   ':s3:::',
                   {
-                    Ref: CWA_ASSET_LINUX.Bucket,
+                    'Fn::Sub': CWA_ASSET_LINUX.Bucket,
                   },
                 ],
               ],
@@ -374,17 +375,18 @@ test('repository installer iam permissions: installer get', () => {
                   },
                   ':s3:::',
                   {
-                    Ref: CWA_ASSET_LINUX.Bucket,
+                    'Fn::Sub': CWA_ASSET_LINUX.Bucket,
                   },
                   '/*',
                 ],
               ],
             },
-          ),
+          ]),
         },
-      ),
+      ]),
     },
-  }));
+    PolicyName: Match.stringLikeRegexp('^repositoryInstallerInstanceRoleDefaultPolicy.*'),
+  });
 });
 
 test('default repository installer log group created correctly', () => {
@@ -395,10 +397,10 @@ test('default repository installer log group created correctly', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResource('Custom::LogRetention', {
+  Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
     RetentionInDays: 3,
     LogGroupName: '/renderfarm/repositoryInstaller',
-  }));
+  });
 });
 
 test('repository installer logs all required files', () => {
@@ -412,7 +414,7 @@ test('repository installer logs all required files', () => {
   // The CloudWatchAgent stores the agent configuration in an SSM Parameter. Check it for the required setup.
   // Note: This would be better implemented using the tools in: https://github.com/aws/aws-cdk/pull/8444
   // but that is not yet available.
-  expectCDK(stack).to(haveResourceLike('AWS::SSM::Parameter', {
+  Template.fromStack(stack).hasResourceProperties('AWS::SSM::Parameter', {
     Type: 'String',
     Value: {
       'Fn::Join': [
@@ -426,7 +428,7 @@ test('repository installer logs all required files', () => {
         ],
       ],
     },
-  }));
+  });
 });
 
 test('repository mounts repository filesystem', () => {
@@ -458,9 +460,9 @@ test.each([
   });
 
   // THEN
-  expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBCluster', {
+  Template.fromStack(stack).hasResource('AWS::DocDB::DBCluster', {
     DeletionPolicy: expected,
-  }, ResourcePart.CompleteDefinition));
+  });
 });
 
 test.each([
@@ -478,9 +480,9 @@ test.each([
   });
 
   // THEN
-  expectCDK(stack).to(haveResourceLike('AWS::EFS::FileSystem', {
+  Template.fromStack(stack).hasResource('AWS::EFS::FileSystem', {
     DeletionPolicy: expected,
-  }, ResourcePart.CompleteDefinition));
+  });
 });
 
 test('repository warns if removal policy for filesystem when filesystem provided', () => {
@@ -507,13 +509,9 @@ test('repository warns if removal policy for filesystem when filesystem provided
   });
 
   // THEN
-  expect(repo.node.metadataEntry).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        type: 'aws:cdk:warning',
-        data: 'RemovalPolicy for filesystem will not be applied since a filesystem is not being created by this construct',
-      }),
-    ]),
+  Annotations.fromStack(stack).hasWarning(
+    `/${repo.node.path}`,
+    'RemovalPolicy for filesystem will not be applied since a filesystem is not being created by this construct',
   );
 });
 
@@ -545,13 +543,9 @@ test('repository warns if removal policy for database when database provided', (
   });
 
   // THEN
-  expect(repo.node.metadataEntry).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        type: 'aws:cdk:warning',
-        data: 'RemovalPolicy for database will not be applied since a database is not being created by this construct',
-      }),
-    ]),
+  Annotations.fromStack(stack).hasWarning(
+    `/${repo.node.path}`,
+    Match.stringLikeRegexp('RemovalPolicy for database will not be applied since a database is not being created by this construct.*'),
   );
 });
 
@@ -575,19 +569,19 @@ test('repository creates deadlineDatabase if none provided', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResource('AWS::DocDB::DBCluster'));
-  expectCDK(stack).to(haveResource('AWS::DocDB::DBInstance'));
-  expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBCluster', {
+  Template.fromStack(stack).resourceCountIs('AWS::DocDB::DBCluster', 1);
+  Template.fromStack(stack).resourceCountIs('AWS::DocDB::DBInstance', 1);
+  Template.fromStack(stack).hasResourceProperties('AWS::DocDB::DBCluster', {
     EnableCloudwatchLogsExports: [ 'audit' ],
-  }, ResourcePart.Properties));
-  expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBClusterParameterGroup', {
+  });
+  Template.fromStack(stack).hasResourceProperties('AWS::DocDB::DBClusterParameterGroup', {
     Parameters: {
       audit_logs: 'enabled',
     },
-  }, ResourcePart.Properties));
-  expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBInstance', {
+  });
+  Template.fromStack(stack).hasResourceProperties('AWS::DocDB::DBInstance', {
     AutoMinorVersionUpgrade: true,
-  }));
+  });
 });
 
 test('disabling Audit logging does not enable Cloudwatch audit logs', () => {
@@ -611,15 +605,15 @@ test('disabling Audit logging does not enable Cloudwatch audit logs', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResource('AWS::DocDB::DBCluster'));
-  expectCDK(stack).notTo(haveResourceLike('AWS::DocDB::DBCluster', {
-    EnableCloudwatchLogsExports: [ 'audit' ],
-  }, ResourcePart.Properties));
-  expectCDK(stack).notTo(haveResourceLike('AWS::DocDB::DBClusterParameterGroup', {
+  Template.fromStack(stack).resourceCountIs('AWS::DocDB::DBCluster', 1);
+  resourcePropertiesCountIs(stack, 'AWS::DocDB::DBCluster', {
+    EnableCloudwatchLogsExports: Match.arrayWith([ 'audit' ]),
+  }, 0);
+  resourcePropertiesCountIs(stack, 'AWS::DocDB::DBClusterParameterGroup', {
     Parameters: {
       audit_logs: 'enabled',
     },
-  }, ResourcePart.Properties));
+  }, 0);
 });
 
 test('repository warns if databaseAuditLogging defined and database is specified', () => {
@@ -654,14 +648,7 @@ test('repository warns if databaseAuditLogging defined and database is specified
     'Please ensure that the Database provided is configured correctly.';
 
   // THEN
-  expect(repo.node.metadataEntry).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        type: 'aws:cdk:warning',
-        data: warningMsg,
-      }),
-    ]),
-  );
+  Annotations.fromStack(stack).hasWarning(`/${repo.node.path}`, warningMsg);
 });
 
 test('honors subnet specification', () => {
@@ -691,14 +678,14 @@ test('honors subnet specification', () => {
   });
 
   // THEN
-  expectCDK(isolatedStack).to(haveResourceLike('AWS::DocDB::DBSubnetGroup', {
+  Template.fromStack(isolatedStack).hasResourceProperties('AWS::DocDB::DBSubnetGroup', {
     SubnetIds: [
       'SubnetID1',
       'SubnetID2',
     ],
-  }));
-  expectCDK(isolatedStack).to(haveResourceLike('AWS::EFS::MountTarget', { SubnetId: 'SubnetID1' }));
-  expectCDK(isolatedStack).to(haveResourceLike('AWS::EFS::MountTarget', { SubnetId: 'SubnetID2' }));
+  });
+  Template.fromStack(isolatedStack).hasResourceProperties('AWS::EFS::MountTarget', { SubnetId: 'SubnetID1' });
+  Template.fromStack(isolatedStack).hasResourceProperties('AWS::EFS::MountTarget', { SubnetId: 'SubnetID2' });
 });
 
 test('repository honors database instance count', () => {
@@ -713,9 +700,9 @@ test('repository honors database instance count', () => {
   });
 
   // THEN
-  expectCDK(stack).to(countResourcesLike('AWS::DocDB::DBInstance', instanceCount, {
+  resourcePropertiesCountIs(stack, 'AWS::DocDB::DBInstance', {
     AutoMinorVersionUpgrade: true,
-  }));
+  }, instanceCount);
 });
 
 test('repository honors database retention period', () => {
@@ -732,9 +719,9 @@ test('repository honors database retention period', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBCluster', {
+  Template.fromStack(stack).hasResourceProperties('AWS::DocDB::DBCluster', {
     BackupRetentionPeriod: period,
-  }));
+  });
 });
 
 test('warns if both retention period and database provided', () => {
@@ -765,13 +752,9 @@ test('warns if both retention period and database provided', () => {
   });
 
   // THEN
-  expect(repo.node.metadataEntry).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        type: 'aws:cdk:warning',
-        data: 'Backup retention for database will not be applied since a database is not being created by this construct',
-      }),
-    ]),
+  Annotations.fromStack(stack).hasWarning(
+    `/${repo.node.path}`,
+    'Backup retention for database will not be applied since a database is not being created by this construct',
   );
 });
 
@@ -807,8 +790,8 @@ test('repository creates filesystem if none provided', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResource('AWS::EFS::FileSystem'));
-  expectCDK(stack).to(haveResource('AWS::EFS::MountTarget'));
+  Template.fromStack(stack).resourceCountIs('AWS::EFS::FileSystem', 1);
+  Template.fromStack(stack).resourceCountIs('AWS::EFS::MountTarget', 2);
   expect(repo.node.tryFindChild('PadEfsStorage')).toBeDefined();
   expect(repo.node.findChild('FileSystem').node.tryFindChild('PaddingAccessPoint')).toBeDefined();
 });
@@ -845,14 +828,14 @@ test('repository instance is created with user defined timeout', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResource('AWS::AutoScaling::AutoScalingGroup', {
+  Template.fromStack(stack).hasResource('AWS::AutoScaling::AutoScalingGroup', {
     CreationPolicy: {
       ResourceSignal: {
         Count: 1,
         Timeout: 'PT30M',
       },
     },
-  }, ResourcePart.CompleteDefinition));
+  });
 });
 
 test('repository instance is created with correct installer path version', () => {
@@ -884,9 +867,9 @@ test.each([
   });
 
   // THEN
-  expectCDK(stack).to(haveResource('Custom::LogRetention', {
+  Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
     LogGroupName: testPrefix + id,
-  }));
+  });
 });
 
 test('validate instance self-termination', () => {
@@ -902,9 +885,9 @@ test('validate instance self-termination', () => {
   const asgLogicalIdToken = escapeTokenRegex('${Token[Stack.repositoryInstaller.Installer.ASG.LogicalID.\\d+]}');
   const expectedString = `function exitTrap\\(\\)\\{\nexitCode=\\$\\?\nsleep 1m\nTOKEN=\\$\\(curl -X PUT "http:\\/\\/169\\.254\\.169\\.254\\/latest\\/api\\/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 30" 2> \\/dev\\/null\\)\nINSTANCE="\\$\\(curl -s -H "X-aws-ec2-metadata-token: \\$TOKEN" http:\\/\\/169\\.254\\.169\\.254\\/latest\\/meta-data\\/instance-id  2> \\/dev\\/null\\)"\nASG="\\$\\(aws --region ${regionToken} ec2 describe-tags --filters "Name=resource-id,Values=\\$\\{INSTANCE\\}" "Name=key,Values=aws:autoscaling:groupName" --query "Tags\\[0\\]\\.Value" --output text\\)"\naws --region ${regionToken} autoscaling update-auto-scaling-group --auto-scaling-group-name \\$\\{ASG\\} --min-size 0 --max-size 0 --desired-capacity 0\n\\/opt\\/aws\\/bin\\/cfn-signal --stack ${stack.stackName} --resource ${asgLogicalIdToken} --region ${regionToken} -e \\$exitCode \\|\\| echo 'Failed to send Cloudformation Signal'\n\\}`;
   expect((repo.node.defaultChild as AutoScalingGroup).userData.render()).toMatch(new RegExp(expectedString));
-  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
     PolicyDocument: {
-      Statement: arrayWith(
+      Statement: Match.arrayWith([
         {
           Action: 'autoscaling:UpdateAutoScalingGroup',
           Condition: {
@@ -920,9 +903,9 @@ test('validate instance self-termination', () => {
           Effect: 'Allow',
           Resource: '*',
         },
-      ),
+      ]),
     },
-  }));
+  });
 });
 
 test('repository configure client instance', () => {
@@ -962,25 +945,24 @@ test('repository configure client instance', () => {
   expect(userData).toMatch(/.*export -f configure_deadline_database.*/);
 
   // Make sure we call the configureRepositoryDirectConnect script with appropriate argument.
-  const regex = new RegExp(escapeTokenRegex('\'/tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\' \\"/mnt/repository/DeadlineRepository\\"'));
-  expect(userData).toMatch(regex);
+  expect(userData).toContain(`'/tmp/${CONFIG_REPO_DIRECT_CONNECT_LINUX.Key}.sh' "/mnt/repository/DeadlineRepository"`);
 
   // Assert the IAM instance profile is given read access to the database credentials secret
-  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
     PolicyDocument: {
-      Statement: arrayWith({
+      Statement: Match.arrayWith([{
         Action: [
           'secretsmanager:GetSecretValue',
           'secretsmanager:DescribeSecret',
         ],
         Effect: 'Allow',
         Resource: stack.resolve(db.secret!.secretArn),
-      }),
+      }]),
     },
     Roles: [
       stack.resolve(instanceRole.ref),
     ],
-  }));
+  });
 });
 
 test('configureClientInstance uses singleton for repo config script', () => {
@@ -1015,9 +997,9 @@ test('configureClientInstance uses singleton for repo config script', () => {
 
   // THEN
   // Make sure that both instances have access to the same Asset for the configureRepositoryDirectConnect script
-  expectCDK(stack).to(countResourcesLike('AWS::IAM::Policy', 2, {
-    PolicyDocument: {
-      Statement: arrayWith(
+  resourcePropertiesCountIs(stack, 'AWS::IAM::Policy', {
+    PolicyDocument: Match.objectLike({
+      Statement: Match.arrayWith([
         {
           Effect: 'Allow',
           Action: [
@@ -1036,7 +1018,7 @@ test('configureClientInstance uses singleton for repo config script', () => {
                   },
                   ':s3:::',
                   {
-                    Ref: REPO_DC_ASSET.Bucket,
+                    'Fn::Sub': REPO_DC_ASSET.Bucket,
                   },
                 ],
               ],
@@ -1051,7 +1033,7 @@ test('configureClientInstance uses singleton for repo config script', () => {
                   },
                   ':s3:::',
                   {
-                    Ref: REPO_DC_ASSET.Bucket,
+                    'Fn::Sub': REPO_DC_ASSET.Bucket,
                   },
                   '/*',
                 ],
@@ -1059,9 +1041,10 @@ test('configureClientInstance uses singleton for repo config script', () => {
             },
           ],
         },
-      ),
-    },
-  }));
+      ]),
+    }),
+    PolicyName: Match.stringLikeRegexp('Instance[1-2]InstanceRoleDefaultPolicy.*'),
+  }, 2);
 });
 
 test('windows client cannot direct connect to repository', () => {
@@ -1132,9 +1115,9 @@ describe('Security Groups', () => {
       });
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::DocDB::DBCluster', {
-        VpcSecurityGroupIds: arrayWith(stack.resolve(repositorySecurityGroup.securityGroupId)),
-      }));
+      Template.fromStack(stack).hasResourceProperties('AWS::DocDB::DBCluster', {
+        VpcSecurityGroupIds: Match.arrayWith([stack.resolve(repositorySecurityGroup.securityGroupId)]),
+      });
     });
   });
 
@@ -1153,9 +1136,9 @@ describe('Security Groups', () => {
       // THEN
       // The EFS construct adds the security group to each mount target, and one mount target is generated per subnet.
       const numMountTargets = vpc.selectSubnets().subnets.length;
-      expectCDK(stack).to(countResourcesLike('AWS::EFS::MountTarget', numMountTargets, {
-        SecurityGroups: arrayWith(stack.resolve(repositorySecurityGroup.securityGroupId)),
-      }));
+      resourcePropertiesCountIs(stack, 'AWS::EFS::MountTarget', {
+        SecurityGroups: Match.arrayWith([stack.resolve(repositorySecurityGroup.securityGroupId)]),
+      }, numMountTargets);
     });
   });
 
@@ -1172,9 +1155,9 @@ describe('Security Groups', () => {
       });
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
-        SecurityGroups: arrayWith(stack.resolve(repositorySecurityGroup.securityGroupId)),
-      }));
+      Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
+        SecurityGroups: Match.arrayWith([stack.resolve(repositorySecurityGroup.securityGroupId)]),
+      });
     });
 
   });
@@ -1191,7 +1174,7 @@ test('validates VersionQuery is not in a different stack', () => {
 
   // WHEN
   function synth() {
-    SynthUtils.synthesize(newStack);
+    app.synth();
   }
 
   // THEN
@@ -1207,14 +1190,14 @@ test('creates an EFS AccessPoint when no filesystem is supplied', () => {
 
   // THEN
   const efsResource = (repo.node.findChild('FileSystem') as CfnElement).node.defaultChild as CfnFileSystem;
-  expectCDK(stack).to(haveResource('AWS::EFS::AccessPoint', {
+  Template.fromStack(stack).hasResourceProperties('AWS::EFS::AccessPoint', {
     FileSystemId: stack.resolve(efsResource.ref),
     PosixUser: {
       Gid: '0',
       Uid: '0',
     },
     RootDirectory: {},
-  }));
+  });
 });
 
 test('throws an error if supplied a MountableEfs with no Access Point', () => {
@@ -1291,7 +1274,9 @@ test('imports repository settings', () => {
 
   // THEN
   const installerGroup = repository.node.tryFindChild('Installer') as AutoScalingGroup;
-  expect(installerGroup.userData.render()).toContain(`aws s3 cp '${repositorySettings.s3ObjectUrl}'`);
+  // Note: The repostory settings is the js file that this compiles in to. The hash for that is fragile in that any
+  // change to this file will change it. So, we search for an s3 cp of a js file (this is the only one).
+  expect(installerGroup.userData.render()).toMatch(new RegExp('aws s3 cp \'s3://[^\']+/[a-f0-9]+.js\''));
 });
 
 test('IMountableLinuxFilesystem.usesUserPosixPermissions() = true changes ownership of repository files', () => {

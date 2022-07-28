@@ -4,16 +4,14 @@
  */
 
 import {
-  ABSENT,
-  expect as expectCDK,
-  haveResourceLike,
-  stringLike,
-} from '@aws-cdk/assert';
-import {
   App,
   CustomResource,
   Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 
 import {
   Installer,
@@ -25,11 +23,11 @@ test('VersionQuery constructor full version', () => {
   const stack = new Stack(app, 'Stack');
   new VersionQuery(stack, 'VersionQuery', { version: '10.1.9.2'});
 
-  expectCDK(stack).to(haveResourceLike('Custom::RFDK_DEADLINE_INSTALLERS', {
-    forceRun: ABSENT,
+  Template.fromStack(stack).hasResourceProperties('Custom::RFDK_DEADLINE_INSTALLERS', {
+    forceRun: Match.absent(),
     versionString: '10.1.9.2',
-  }));
-  expectCDK(stack).to(haveResourceLike('AWS::IAM::Role', {
+  });
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Role', {
     AssumeRolePolicyDocument: {
       Statement: [
         {
@@ -55,17 +53,17 @@ test('VersionQuery constructor full version', () => {
         ],
       },
     ],
-  }));
-  expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function', {
+  });
+  Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
     Handler: 'version-provider.handler',
     Role: {
       'Fn::GetAtt': [
-        stringLike('SingletonLambda*ServiceRole*'),
+        Match.stringLikeRegexp('SingletonLambda.*ServiceRole.*'),
         'Arn',
       ],
     },
     Runtime: 'nodejs16.x',
-  }));
+  });
 });
 
 test('VersionQuery constructor no versionString', () => {
@@ -73,10 +71,10 @@ test('VersionQuery constructor no versionString', () => {
   const stack = new Stack(app, 'Stack');
   new VersionQuery(stack, 'VersionQuery');
 
-  expectCDK(stack).to(haveResourceLike('Custom::RFDK_DEADLINE_INSTALLERS', {
-    forceRun: stringLike('*'),
-    versionString: ABSENT,
-  }));
+  Template.fromStack(stack).hasResourceProperties('Custom::RFDK_DEADLINE_INSTALLERS', {
+    forceRun: Match.anyValue(),
+    versionString: Match.absent(),
+  });
 });
 
 test.each([
@@ -88,10 +86,10 @@ test.each([
   const stack = new Stack(app, 'Stack');
   new VersionQuery(stack, 'VersionQuery', { version });
 
-  expectCDK(stack).to(haveResourceLike('Custom::RFDK_DEADLINE_INSTALLERS', {
+  Template.fromStack(stack).hasResourceProperties('Custom::RFDK_DEADLINE_INSTALLERS', {
     versionString: version,
-    forceRun: stringLike('*'),
-  }));
+    forceRun: Match.anyValue(),
+  });
 });
 
 describe('VersionQuery.linuxInstallers', () => {

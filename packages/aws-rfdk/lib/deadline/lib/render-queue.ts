@@ -7,13 +7,16 @@ import {
   join,
 } from 'path';
 import {
+  Stack,
+} from 'aws-cdk-lib';
+import {
   AutoScalingGroup,
   BlockDeviceVolume,
   UpdatePolicy,
-} from '@aws-cdk/aws-autoscaling';
+} from 'aws-cdk-lib/aws-autoscaling';
 import {
   ICertificate,
-} from '@aws-cdk/aws-certificatemanager';
+} from 'aws-cdk-lib/aws-certificatemanager';
 import {
   Connections,
   IConnectable,
@@ -23,7 +26,7 @@ import {
   Port,
   SubnetSelection,
   SubnetType,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   Cluster,
   ContainerImage,
@@ -32,36 +35,32 @@ import {
   PlacementConstraint,
   Scope,
   UlimitName,
-} from '@aws-cdk/aws-ecs';
+} from 'aws-cdk-lib/aws-ecs';
 import {
   ApplicationLoadBalancedEc2Service,
-} from '@aws-cdk/aws-ecs-patterns';
+} from 'aws-cdk-lib/aws-ecs-patterns';
 import {
   ApplicationListener,
   ApplicationLoadBalancer,
   ApplicationProtocol,
   ApplicationTargetGroup,
   CfnTargetGroup,
-} from '@aws-cdk/aws-elasticloadbalancingv2';
+} from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import {
   IGrantable,
   IPrincipal,
   ManagedPolicy,
   PolicyStatement,
   ServicePrincipal,
-} from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-iam';
 import {
   ILogGroup,
-} from '@aws-cdk/aws-logs';
-import { IHostedZone, IPrivateHostedZone, PrivateHostedZone } from '@aws-cdk/aws-route53';
+} from 'aws-cdk-lib/aws-logs';
+import { IHostedZone, IPrivateHostedZone, PrivateHostedZone } from 'aws-cdk-lib/aws-route53';
 import {
   ISecret,
-} from '@aws-cdk/aws-secretsmanager';
-import {
-  Construct,
-  IConstruct,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-secretsmanager';
+import { Construct, IConstruct } from 'constructs';
 
 import {
   ECSConnectOptions,
@@ -447,7 +446,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
         // We want the volume to be encrypted. The default AMI size is 30-GiB.
         volume: BlockDeviceVolume.ebs(30, { encrypted: true }),
       }],
-      updateType: undefined, // Workaround -- See: https://github.com/aws/aws-cdk/issues/11581
+      ...{ updateType: undefined }, // Workaround -- See: https://github.com/aws/aws-cdk/issues/11581
       updatePolicy: UpdatePolicy.rollingUpdate(),
       // addCapacity doesn't specifically take a securityGroup, but it passes on its properties to the ASG it creates,
       // so this security group will get applied there
@@ -523,7 +522,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     this.pattern = new ApplicationLoadBalancedEc2Service(this, 'AlbEc2ServicePattern', {
       certificate: this.clientCert,
       cluster: this.cluster,
-      desiredCount: this.renderQueueSize?.desired,
+      desiredCount: this.renderQueueSize?.desired ?? minCapacity,
       domainZone,
       domainName: loadBalancerFQDN,
       listenerPort: externalPortNumber,
@@ -629,22 +628,25 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
 
     // Tag deployed resources with RFDK meta-data
     tagConstruct(this);
-  }
 
-  protected onValidate(): string[] {
-    const validationErrors = [];
+    const thisConstruct = this;
+    this.node.addValidation({
+      validate(): string[] {
+        const validationErrors = [];
 
-    // Using the output of VersionQuery across stacks can cause issues. CloudFormation stack outputs cannot change if
-    // a resource in another stack is referencing it.
-    if (this.version instanceof VersionQuery) {
-      const versionStack = Stack.of(this.version);
-      const thisStack = Stack.of(this);
-      if (versionStack != thisStack) {
-        validationErrors.push('A VersionQuery can not be supplied from a different stack');
-      }
-    }
+        // Using the output of VersionQuery across stacks can cause issues. CloudFormation stack outputs cannot change if
+        // a resource in another stack is referencing it.
+        if (thisConstruct.version instanceof VersionQuery) {
+          const versionStack = Stack.of(thisConstruct.version);
+          const thisStack = Stack.of(thisConstruct);
+          if (versionStack != thisStack) {
+            validationErrors.push('A VersionQuery can not be supplied from a different stack');
+          }
+        }
 
-    return validationErrors;
+        return validationErrors;
+      },
+    });
   }
 
   /**
@@ -976,6 +978,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
         securityGroup: this.backendConnections.securityGroups[0],
         vpc: this.props.vpc,
         vpcSubnets: this.props.vpcSubnets ?? RenderQueue.DEFAULT_VPC_SUBNETS_OTHER,
+        logGroupProps: this.props.logGroupProps,
       });
     } else if (deploymentInstanceNode instanceof DeploymentInstance) {
       return deploymentInstanceNode;

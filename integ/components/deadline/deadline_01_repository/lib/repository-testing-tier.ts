@@ -4,10 +4,11 @@
  */
 
 import * as path from 'path';
-import { ILogGroup } from '@aws-cdk/aws-logs';
-import { CfnOutput, Construct } from '@aws-cdk/core';
+import { CfnOutput } from 'aws-cdk-lib';
+import { ILogGroup } from 'aws-cdk-lib/aws-logs';
 import { MongoDbInstaller, MongoDbSsplLicenseAcceptance, MongoDbVersion } from 'aws-rfdk';
 import { Repository } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 import { StorageStruct } from '../../../../lib/storage-struct';
 import { TestingTier, TestingTierProps } from '../../../../lib/testing-tier';
 

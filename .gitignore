@@ -12,3 +12,6 @@ yarn-error.log
 
 #Defines license that must be present
 !license-header.js
+
+# Visual Studio Code working space
+.vscode/

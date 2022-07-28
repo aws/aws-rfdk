@@ -4,8 +4,7 @@
 import typing
 from dataclasses import dataclass
 
-from aws_cdk.core import (
-    Construct,
+from aws_cdk import (
     Duration,
     Stack,
     StackProps
@@ -26,7 +25,6 @@ from aws_cdk.aws_secretsmanager import (
 from aws_cdk.aws_route53 import (
     IPrivateHostedZone
 )
-
 from aws_rfdk import (
     DistinguishedName,
     MountableEfs,
@@ -47,6 +45,10 @@ from aws_rfdk.deadline import (
     UsageBasedLicensing,
     VersionQuery,
 )
+from constructs import (
+    Construct
+)
+
 
 from . import subnets
 
@@ -222,7 +224,7 @@ class ServiceTier(Stack):
         if props.ubl_licenses:
             if not props.ubl_certs_secret_arn:
                 raise ValueError('UBL certificates secret ARN is required when using UBL but was not specified.')
-            ubl_cert_secret = Secret.from_secret_arn(self, 'ublcertssecret', props.ubl_certs_secret_arn)
+            ubl_cert_secret = Secret.from_secret_complete_arn(self, 'ublcertssecret', props.ubl_certs_secret_arn)
             self.ubl_licensing = UsageBasedLicensing(
                 self,
                 'UsageBasedLicensing',

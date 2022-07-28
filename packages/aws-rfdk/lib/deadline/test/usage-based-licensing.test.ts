@@ -4,12 +4,15 @@
  */
 
 import {
-  arrayWith,
-  expect as expectCDK,
-  haveResource,
-  haveResourceLike,
-  stringLike,
-} from '@aws-cdk/assert';
+  App,
+  CfnElement,
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Annotations,
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   GenericWindowsImage,
   IVpc,
@@ -17,26 +20,21 @@ import {
   SubnetSelection,
   SubnetType,
   Vpc,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   DockerImageAsset,
-} from '@aws-cdk/aws-ecr-assets';
+} from 'aws-cdk-lib/aws-ecr-assets';
 import {
   CfnService,
   ContainerImage,
-} from '@aws-cdk/aws-ecs';
+} from 'aws-cdk-lib/aws-ecs';
 import {
   ILogGroup,
-} from '@aws-cdk/aws-logs';
+} from 'aws-cdk-lib/aws-logs';
 import {
   ISecret,
   Secret,
-} from '@aws-cdk/aws-secretsmanager';
-import {
-  App,
-  CfnElement,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-secretsmanager';
 
 import {
   testConstructTags,
@@ -133,10 +131,9 @@ describe('UsageBasedLicensing', () => {
     });
 
     // THEN
-    expect(ubl.node.metadataEntry).not.toContainEqual(expect.objectContaining({
-      type: 'aws:cdk:warning',
-      data: expect.stringMatching(/dedicated subnet/i),
-    }));
+    Annotations.fromStack(stack).hasNoInfo(`/${ubl.node.path}`, Match.anyValue());
+    Annotations.fromStack(stack).hasNoWarning(`/${ubl.node.path}`, Match.anyValue());
+    Annotations.fromStack(stack).hasNoError(`/${ubl.node.path}`, Match.anyValue());
   });
 
   test('vpcSubnets not specified => emits warning about dedicated subnets', () => {
@@ -144,10 +141,10 @@ describe('UsageBasedLicensing', () => {
     const ubl = createUbl();
 
     // THEN
-    expect(ubl.node.metadataEntry).toContainEqual(expect.objectContaining({
-      type: 'aws:cdk:warning',
-      data: 'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
-    }));
+    Annotations.fromStack(stack).hasWarning(
+      `/${ubl.node.path}`,
+      'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
+    );
   });
 
   describe('configures auto registration', () => {
@@ -197,7 +194,7 @@ describe('UsageBasedLicensing', () => {
     createUbl();
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::ECS::Cluster'));
+    Template.fromStack(stack).resourceCountIs('AWS::ECS::Cluster', 1);
   });
 
   describe('creates an ASG', () => {
@@ -206,18 +203,18 @@ describe('UsageBasedLicensing', () => {
       createUbl();
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+      Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::AutoScalingGroup', {
         MinSize: '1',
         MaxSize: '1',
         VPCZoneIdentifier: [
           {
-            'Fn::ImportValue': stringLike(`${dependencyStack.stackName}:ExportsOutputRefVPCPrivateSubnet1Subnet*`),
+            'Fn::ImportValue': Match.stringLikeRegexp(`${dependencyStack.stackName}:ExportsOutputRefVPCPrivateSubnet1Subnet.*`),
           },
           {
-            'Fn::ImportValue': stringLike(`${dependencyStack.stackName}:ExportsOutputRefVPCPrivateSubnet2Subnet*`),
+            'Fn::ImportValue': Match.stringLikeRegexp(`${dependencyStack.stackName}:ExportsOutputRefVPCPrivateSubnet2Subnet.*`),
           },
         ],
-      }));
+      });
     });
 
     test('capacity can be specified', () => {
@@ -227,10 +224,10 @@ describe('UsageBasedLicensing', () => {
       });
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+      Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::AutoScalingGroup', {
         MinSize: '2',
         MaxSize: '2',
-      }));
+      });
     });
 
     test('gives write access to log group', () => {
@@ -242,24 +239,24 @@ describe('UsageBasedLicensing', () => {
       const asgRoleLogicalId = Stack.of(ubl).getLogicalId(ubl.asg.role.node.defaultChild as CfnElement);
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+      Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
         PolicyDocument: {
-          Statement: arrayWith(
+          Statement: Match.arrayWith([
             {
-              Action: arrayWith(
+              Action: Match.arrayWith([
                 'logs:CreateLogStream',
                 'logs:PutLogEvents',
-              ),
+              ]),
               Effect: 'Allow',
               Resource: stack.resolve(logGroup.logGroupArn),
             },
-          ),
+          ]),
           Version: '2012-10-17',
         },
-        Roles: arrayWith(
+        Roles: Match.arrayWith([
           { Ref: asgRoleLogicalId },
-        ),
-      }));
+        ]),
+      });
     });
 
     test('uses the supplied security group', () => {
@@ -272,9 +269,9 @@ describe('UsageBasedLicensing', () => {
       createUbl({ securityGroup });
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
-        SecurityGroups: arrayWith(stack.resolve(securityGroup.securityGroupId)),
-      }));
+      Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
+        SecurityGroups: Match.arrayWith([stack.resolve(securityGroup.securityGroupId)]),
+      });
     });
   });
 
@@ -284,9 +281,9 @@ describe('UsageBasedLicensing', () => {
       const ubl = createUbl();
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
+      Template.fromStack(stack).hasResourceProperties('AWS::ECS::Service', {
         Cluster: { Ref: stack.getLogicalId(ubl.cluster.node.defaultChild as CfnElement) },
-      }));
+      });
     });
 
     describe('DesiredCount', () => {
@@ -295,9 +292,9 @@ describe('UsageBasedLicensing', () => {
         createUbl();
 
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
+        Template.fromStack(stack).hasResourceProperties('AWS::ECS::Service', {
           DesiredCount: 1,
-        }));
+        });
       });
 
       test('can be specified', () => {
@@ -308,9 +305,9 @@ describe('UsageBasedLicensing', () => {
         createUbl({ desiredCount });
 
         // THEN
-        expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
+        Template.fromStack(stack).hasResourceProperties('AWS::ECS::Service', {
           DesiredCount: desiredCount,
-        }));
+        });
       });
     });
 
@@ -319,9 +316,9 @@ describe('UsageBasedLicensing', () => {
       createUbl();
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
+      Template.fromStack(stack).hasResourceProperties('AWS::ECS::Service', {
         LaunchType: 'EC2',
-      }));
+      });
     });
 
     test('sets distinct instance placement constraint', () => {
@@ -329,11 +326,11 @@ describe('UsageBasedLicensing', () => {
       createUbl();
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
-        PlacementConstraints: arrayWith(
+      Template.fromStack(stack).hasResourceProperties('AWS::ECS::Service', {
+        PlacementConstraints: Match.arrayWith([
           { Type: 'distinctInstance' },
-        ),
-      }));
+        ]),
+      });
     });
 
     test('uses the task definition', () => {
@@ -341,9 +338,9 @@ describe('UsageBasedLicensing', () => {
       const ubl = createUbl();
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
+      Template.fromStack(stack).hasResourceProperties('AWS::ECS::Service', {
         TaskDefinition: { Ref: stack.getLogicalId(ubl.service.taskDefinition.node.defaultChild as CfnElement) },
-      }));
+      });
     });
 
     test('with the correct deployment configuration', () => {
@@ -351,12 +348,12 @@ describe('UsageBasedLicensing', () => {
       createUbl();
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::ECS::Service', {
+      Template.fromStack(stack).hasResourceProperties('AWS::ECS::Service', {
         DeploymentConfiguration: {
           MaximumPercent: 100,
           MinimumHealthyPercent: 0,
         },
-      }));
+      });
     });
   });
 
@@ -366,13 +363,13 @@ describe('UsageBasedLicensing', () => {
       createUbl();
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
+      Template.fromStack(stack).hasResourceProperties('AWS::ECS::TaskDefinition', {
         ContainerDefinitions: [
           {
             Name: 'LicenseForwarderContainer',
           },
         ],
-      }));
+      });
     });
 
     test('container is marked essential', () => {
@@ -380,13 +377,13 @@ describe('UsageBasedLicensing', () => {
       createUbl();
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
+      Template.fromStack(stack).hasResourceProperties('AWS::ECS::TaskDefinition', {
         ContainerDefinitions: [
           {
             Essential: true,
           },
         ],
-      }));
+      });
     });
 
     test('with increased ulimits', () => {
@@ -394,7 +391,7 @@ describe('UsageBasedLicensing', () => {
       createUbl();
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
+      Template.fromStack(stack).hasResourceProperties('AWS::ECS::TaskDefinition', {
         ContainerDefinitions: [
           {
             Ulimits: [
@@ -411,7 +408,7 @@ describe('UsageBasedLicensing', () => {
             ],
           },
         ],
-      }));
+      });
     });
 
     test('with awslogs log driver', () => {
@@ -419,7 +416,7 @@ describe('UsageBasedLicensing', () => {
       createUbl();
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
+      Template.fromStack(stack).hasResourceProperties('AWS::ECS::TaskDefinition', {
         ContainerDefinitions: [
           {
             LogConfiguration: {
@@ -432,7 +429,7 @@ describe('UsageBasedLicensing', () => {
             },
           },
         ],
-      }));
+      });
     });
 
     test('configures UBL certificates', () => {
@@ -443,15 +440,15 @@ describe('UsageBasedLicensing', () => {
       const taskRoleLogicalId = Stack.of(ubl).getLogicalId(ubl.service.taskDefinition.taskRole.node.defaultChild as CfnElement);
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
+      Template.fromStack(stack).hasResourceProperties('AWS::ECS::TaskDefinition', {
         ContainerDefinitions: [
           {
-            Environment: arrayWith(
+            Environment: Match.arrayWith([
               {
                 Name: 'UBL_CERTIFICATES_URI',
                 Value: certificateSecret.secretArn,
               },
-            ),
+            ]),
           },
         ],
         TaskRoleArn: {
@@ -460,11 +457,11 @@ describe('UsageBasedLicensing', () => {
             'Arn',
           ],
         },
-      }));
+      });
 
-      expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+      Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
         PolicyDocument: {
-          Statement: arrayWith(
+          Statement: Match.arrayWith([
             {
               Action: [
                 'secretsmanager:GetSecretValue',
@@ -473,13 +470,13 @@ describe('UsageBasedLicensing', () => {
               Effect: 'Allow',
               Resource: certificateSecret.secretArn,
             },
-          ),
+          ]),
           Version: '2012-10-17',
         },
         Roles: [
           { Ref: Stack.of(ubl).getLogicalId(ubl.service.taskDefinition.taskRole.node.defaultChild as CfnElement) },
         ],
-      }));
+      });
     });
 
     test('uses host networking', () => {
@@ -487,9 +484,9 @@ describe('UsageBasedLicensing', () => {
       createUbl();
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
+      Template.fromStack(stack).hasResourceProperties('AWS::ECS::TaskDefinition', {
         NetworkMode: 'host',
-      }));
+      });
     });
 
     test('is marked EC2 compatible only', () => {
@@ -497,9 +494,9 @@ describe('UsageBasedLicensing', () => {
       createUbl();
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
+      Template.fromStack(stack).hasResourceProperties('AWS::ECS::TaskDefinition', {
         RequiresCompatibilities: [ 'EC2' ],
-      }));
+      });
     });
   });
 
@@ -519,9 +516,9 @@ describe('UsageBasedLicensing', () => {
     });
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+    Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::AutoScalingGroup', {
       VPCZoneIdentifier: publicSubnetIds,
-    }));
+    });
   });
 
   test.each([
@@ -539,9 +536,9 @@ describe('UsageBasedLicensing', () => {
     });
 
     // THEN
-    expectCDK(stack).to(haveResource('Custom::LogRetention', {
+    Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: testPrefix + id,
-    }));
+    });
   });
 
   describe('license limits', () => {
@@ -555,18 +552,18 @@ describe('UsageBasedLicensing', () => {
       });
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
+      Template.fromStack(stack).hasResourceProperties('AWS::ECS::TaskDefinition', {
         ContainerDefinitions: [
           {
-            Environment: arrayWith(
+            Environment: Match.arrayWith([
               {
                 Name: 'UBL_LIMITS',
                 Value: 'maya:10;vray:10',
               },
-            ),
+            ]),
           },
         ],
-      }));
+      });
     });
 
     test.each([
@@ -606,14 +603,14 @@ describe('UsageBasedLicensing', () => {
 
       // THEN
       ports.forEach( port => {
-        expectCDK(workerStack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+        Template.fromStack(workerStack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
           IpProtocol: 'tcp',
           ToPort: port,
           GroupId: {
-            'Fn::ImportValue': stringLike(`${Stack.of(ubl).stackName}:ExportsOutputFnGetAttUBLClusterASGInstanceSecurityGroup*`),
+            'Fn::ImportValue': Match.stringLikeRegexp(`${Stack.of(ubl).stackName}:ExportsOutputFnGetAttUBLClusterASGInstanceSecurityGroup.*`),
           },
           SourceSecurityGroupId: 'sg-123456789',
-        }));
+        });
       });
     });
 
@@ -634,13 +631,13 @@ describe('UsageBasedLicensing', () => {
       const ubl = createUbl();
       const ublSecurityGroup = ubl.connections.securityGroups[0];
 
-      expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+      Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
         IpProtocol: 'tcp',
         FromPort: 4433,
         ToPort: 4433,
         GroupId: stack.resolve(renderQueueSecurityGroup.securityGroupId),
         SourceSecurityGroupId: stack.resolve(ublSecurityGroup.securityGroupId),
-      }));
+      });
     });
 
     test('adds ingress rule from RenderQueue ASG to UsageBasedLicensing ASG', () => {
@@ -651,13 +648,13 @@ describe('UsageBasedLicensing', () => {
       const ubl = createUbl();
       const ublSecurityGroup = ubl.connections.securityGroups[0];
 
-      expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+      Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
         IpProtocol: 'tcp',
         FromPort: 17004,
         ToPort: 17004,
         GroupId: stack.resolve(ublSecurityGroup.securityGroupId),
         SourceSecurityGroupId: stack.resolve(renderQueueSecurityGroup.securityGroupId),
-      }));
+      });
     });
 
     test('sets RENDER_QUEUE_URI environment variable', () => {
@@ -665,18 +662,18 @@ describe('UsageBasedLicensing', () => {
       createUbl();
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::ECS::TaskDefinition', {
+      Template.fromStack(stack).hasResourceProperties('AWS::ECS::TaskDefinition', {
         ContainerDefinitions: [
           {
-            Environment: arrayWith(
+            Environment: Match.arrayWith([
               {
                 Name: 'RENDER_QUEUE_URI',
                 Value: stack.resolve(`${renderQueue.endpoint.applicationProtocol.toLowerCase()}://${renderQueue.endpoint.socketAddress}`),
               },
-            ),
+            ]),
           },
         ],
-      }));
+      });
     });
   });
 

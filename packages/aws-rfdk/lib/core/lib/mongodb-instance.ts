@@ -6,8 +6,13 @@
 import * as path from 'path';
 
 import {
+  Duration,
+  Names,
+  Size,
+} from 'aws-cdk-lib';
+import {
   BlockDeviceVolume,
-} from '@aws-cdk/aws-autoscaling';
+} from 'aws-cdk-lib/aws-autoscaling';
 import {
   AmazonLinuxGeneration,
   Connections,
@@ -20,34 +25,28 @@ import {
   SubnetSelection,
   UserData,
   Volume,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   IGrantable,
   IPrincipal,
   IRole,
-} from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-iam';
 import {
   IKey,
-} from '@aws-cdk/aws-kms';
+} from 'aws-cdk-lib/aws-kms';
 import {
   ARecord,
   IPrivateHostedZone,
   RecordTarget,
-} from '@aws-cdk/aws-route53';
+} from 'aws-cdk-lib/aws-route53';
 import {
   Asset,
-} from '@aws-cdk/aws-s3-assets';
+} from 'aws-cdk-lib/aws-s3-assets';
 import {
   ISecret,
   Secret,
-} from '@aws-cdk/aws-secretsmanager';
-import {
-  Construct,
-  Duration,
-  IConstruct,
-  Names,
-  Size,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-secretsmanager';
+import { Construct, IConstruct } from 'constructs';
 
 import {
   BlockVolumeFormat,
@@ -607,7 +606,7 @@ export class MongoDbInstance extends Construct implements IMongoDb, IGrantable {
 
     instance.userData.addOnExitCommands(
       // Clean up the temporary RAM filesystem
-      'test "${MONGO_SETUP_DIR} != "" && sudo umount "${MONGO_SETUP_DIR}',
+      'test "${MONGO_SETUP_DIR}" != "" && sudo umount "${MONGO_SETUP_DIR}"',
     );
   }
 

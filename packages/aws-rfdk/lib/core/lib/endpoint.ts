@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { Token } from 'aws-cdk-lib';
 import {
   Connections,
   IConnectable,
   Port,
   Protocol,
-} from '@aws-cdk/aws-ec2';
-import { ApplicationProtocol } from '@aws-cdk/aws-elasticloadbalancingv2';
-import { Token } from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
+import { ApplicationProtocol } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 
 /**
  * Properties for constructing an {@link Endpoint}

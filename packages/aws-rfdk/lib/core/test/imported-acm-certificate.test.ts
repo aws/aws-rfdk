@@ -3,21 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { RemovalPolicy, Stack } from 'aws-cdk-lib';
 import {
-  arrayWith,
-  expect as expectCDK,
-  haveResourceLike,
-  objectLike,
-  ResourcePart,
-  stringLike,
-} from '@aws-cdk/assert';
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   Metric,
   Statistic,
-} from '@aws-cdk/aws-cloudwatch';
-import { Table } from '@aws-cdk/aws-dynamodb';
-import { CfnSecret } from '@aws-cdk/aws-secretsmanager';
-import { RemovalPolicy, Stack } from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-cloudwatch';
+import { Table } from 'aws-cdk-lib/aws-dynamodb';
+import { CfnSecret } from 'aws-cdk-lib/aws-secretsmanager';
 
 import { ImportedAcmCertificate } from '../lib/imported-acm-certificate';
 import { X509CertificatePem } from '../lib/x509-certificate';
@@ -48,7 +44,7 @@ describe('ImportedAcmCertificate', () => {
 
   test('creates Custom::RFDK_AcmImportedCertificate', () => {
     // THEN
-    expectCDK(stack).to(haveResourceLike('Custom::RFDK_AcmImportedCertificate', {
+    Template.fromStack(stack).hasResourceProperties('Custom::RFDK_AcmImportedCertificate', {
       X509CertificatePem: {
         Cert: {
           'Fn::GetAtt': [
@@ -77,53 +73,53 @@ describe('ImportedAcmCertificate', () => {
           Value: 'f4e2abf974443234fdb095fafcfa9ee2',
         },
       ],
-    }));
+    });
   });
 
   describe('creates AWS::DynamoDB::Table for database', () => {
     test('with PhysicalID partition key', () => {
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::DynamoDB::Table', {
-        AttributeDefinitions: arrayWith(
+      Template.fromStack(stack).hasResourceProperties('AWS::DynamoDB::Table', {
+        AttributeDefinitions: Match.arrayWith([
           {
             AttributeName: 'PhysicalId',
             AttributeType: 'S',
           },
-        ),
-        KeySchema: arrayWith(
+        ]),
+        KeySchema: Match.arrayWith([
           {
             AttributeName: 'PhysicalId',
             KeyType: 'HASH',
           },
-        ),
-      }));
+        ]),
+      });
     });
 
     test('with CustomResource sort key', () => {
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::DynamoDB::Table', {
-        AttributeDefinitions: arrayWith(
+      Template.fromStack(stack).hasResourceProperties('AWS::DynamoDB::Table', {
+        AttributeDefinitions: Match.arrayWith([
           {
             AttributeName: 'CustomResource',
             AttributeType: 'S',
           },
-        ),
-        KeySchema: arrayWith(
+        ]),
+        KeySchema: Match.arrayWith([
           {
             AttributeName: 'CustomResource',
             KeyType: 'RANGE',
           },
-        ),
-      }));
+        ]),
+      });
     });
   });
 
   test('creates AWS::IAM::Policy', () => {
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+    Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
       PolicyDocument: {
         Statement: [
-          {
+          Match.objectLike({
             Action: [
               'dynamodb:BatchGetItem',
               'dynamodb:GetRecords',
@@ -136,12 +132,13 @@ describe('ImportedAcmCertificate', () => {
               'dynamodb:PutItem',
               'dynamodb:UpdateItem',
               'dynamodb:DeleteItem',
+              'dynamodb:DescribeTable',
             ],
-          },
-          {
+          }),
+          Match.objectLike({
             Action: 'dynamodb:DescribeTable',
-          },
-          {
+          }),
+          Match.objectLike({
             Action: [
               'secretsmanager:GetSecretValue',
               'secretsmanager:DescribeSecret',
@@ -152,8 +149,8 @@ describe('ImportedAcmCertificate', () => {
                 'Cert',
               ],
             },
-          },
-          {
+          }),
+          Match.objectLike({
             Action: [
               'secretsmanager:GetSecretValue',
               'secretsmanager:DescribeSecret',
@@ -164,7 +161,7 @@ describe('ImportedAcmCertificate', () => {
                 'Key',
               ],
             },
-          },
+          }),
           {
             Action: [
               'secretsmanager:GetSecretValue',
@@ -174,7 +171,7 @@ describe('ImportedAcmCertificate', () => {
               Ref: certPassphraseID,
             },
           },
-          {
+          Match.objectLike({
             Action: [
               'acm:AddTagsToCertificate',
               'acm:ImportCertificate',
@@ -185,35 +182,35 @@ describe('ImportedAcmCertificate', () => {
               },
             },
             Resource: '*',
-          },
-          {
+          }),
+          Match.objectLike({
             Action: [
               'acm:DeleteCertificate',
               'acm:DescribeCertificate',
               'acm:GetCertificate',
             ],
             Resource: '*',
-          },
+          }),
         ],
       },
-    }));
+    });
   });
 
   describe('custom resource lambda function', () => {
     test('uses correct handler', () => {
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function', {
+      Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
         Handler: 'x509-certificate.importCert',
-      }));
+      });
     });
 
     test('uses RFDK lambda layer', () => {
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function', {
-        Layers: arrayWith(
-          stringLike('arn:aws:lambda:us-west-2:224375009292:layer:openssl-al2:*'),
-        ),
-      }));
+      Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
+        Layers: Match.arrayWith([
+          Match.stringLikeRegexp('arn:aws:lambda:us-west-2:224375009292:layer:openssl-al2:.*'),
+        ]),
+      });
     });
 
     test('sets DATABASE environment variable', () => {
@@ -221,30 +218,30 @@ describe('ImportedAcmCertificate', () => {
       const table = importedAcmCertificate.node.findChild('Table') as Table;
 
       // THEN
-      expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function', {
+      Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
         Environment: {
-          Variables: objectLike({
+          Variables: Match.objectLike({
             DATABASE: stack.resolve(table.tableName),
           }),
         },
-      }));
+      });
     });
   });
 
   describe('applyRemovalPolicy', () => {
     test('default RemovalPolicy is Delete', () => {
-      expectCDK(stack).to(haveResourceLike('Custom::RFDK_AcmImportedCertificate', {
+      Template.fromStack(stack).hasResource('Custom::RFDK_AcmImportedCertificate', {
         DeletionPolicy: 'Delete',
         UpdateReplacePolicy: 'Delete',
-      }, ResourcePart.CompleteDefinition));
+      });
     });
 
     test('Different policy can be applied', () => {
       importedAcmCertificate.applyRemovalPolicy(RemovalPolicy.RETAIN);
-      expectCDK(stack).to(haveResourceLike('Custom::RFDK_AcmImportedCertificate', {
+      Template.fromStack(stack).hasResource('Custom::RFDK_AcmImportedCertificate', {
         DeletionPolicy: 'Retain',
         UpdateReplacePolicy: 'Retain',
-      }, ResourcePart.CompleteDefinition));
+      });
     });
   });
 

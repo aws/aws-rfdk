@@ -5,13 +5,12 @@
 
 import {
   Vpc,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
-  Construct,
   RemovalPolicy,
   Stack,
   StackProps
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
 import {
   AwsThinkboxEulaAcceptance,
   RenderQueue,
@@ -19,6 +18,7 @@ import {
   ThinkboxDockerImages,
   VersionQuery
 } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 
 export interface FarmProps extends StackProps {
   /**

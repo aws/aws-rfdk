@@ -5,10 +5,11 @@
 
 import * as path from 'path';
 
-import { IGrantable } from '@aws-cdk/aws-iam';
-import { Bucket } from '@aws-cdk/aws-s3';
-import { StringParameter } from '@aws-cdk/aws-ssm';
-import { Construct, Stack } from '@aws-cdk/core';
+import { Stack } from 'aws-cdk-lib';
+import { IGrantable } from 'aws-cdk-lib/aws-iam';
+import { Bucket } from 'aws-cdk-lib/aws-s3';
+import { StringParameter } from 'aws-cdk-lib/aws-ssm';
+import { Construct } from 'constructs';
 
 import { IScriptHost, ScriptAsset } from './script-assets';
 

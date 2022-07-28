@@ -6,10 +6,12 @@
 /* eslint-disable dot-notation */
 
 import {
-  expect as expectCDK,
-  haveResource,
-  haveResourceLike,
-} from '@aws-cdk/assert';
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   AmazonLinuxGeneration,
   Instance,
@@ -19,19 +21,20 @@ import {
   SecurityGroup,
   Vpc,
   WindowsVersion,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   ContainerImage,
-} from '@aws-cdk/aws-ecs';
+} from 'aws-cdk-lib/aws-ecs';
 import {
   ILogGroup,
-} from '@aws-cdk/aws-logs';
-import {
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-logs';
 import {
   LogGroupFactoryProps,
 } from '../../core/lib';
+import {
+  CWA_ASSET_LINUX,
+  CWA_ASSET_WINDOWS,
+} from '../../core/test/asset-constants';
 import {
   RenderQueue,
   Repository,
@@ -40,10 +43,10 @@ import {
   WorkerInstanceConfiguration,
 } from '../lib';
 import {
-  linuxConfigureWorkerScriptBoilerplate,
-  linuxCloudWatchScriptBoilerplate,
-  windowsConfigureWorkerScriptBoilerplate,
-  windowsCloudWatchScriptBoilerplate,
+  CONFIG_WORKER_ASSET_LINUX,
+  CONFIG_WORKER_ASSET_WINDOWS,
+  CONFIG_WORKER_PORT_ASSET_LINUX,
+  CONFIG_WORKER_PORT_ASSET_WINDOWS,
 } from './asset-constants';
 
 describe('Test WorkerInstanceConfiguration for Linux', () => {
@@ -66,18 +69,32 @@ describe('Test WorkerInstanceConfiguration for Linux', () => {
     new WorkerInstanceConfiguration(stack, 'Config', {
       worker: instance,
     });
-    const userData = stack.resolve(instance.userData.render());
 
-    // // THEN
-    expect(userData).toStrictEqual({
-      'Fn::Join': [
-        '',
-        [
-          '#!/bin/bash\nmkdir -p $(dirname \'/tmp/',
-          ...linuxConfigureWorkerScriptBoilerplate(
-            `\' \'\' \'\' \'\' \'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}\' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} /tmp/`),
-        ],
-      ],
+    // THEN
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Instance', {
+      UserData: {
+        'Fn::Base64': {
+          'Fn::Join': [
+            '',
+            [
+              '#!/bin/bash\n' +
+              `mkdir -p $(dirname '/tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py')\naws s3 cp 's3://`,
+              {
+                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_LINUX.Bucket,
+              },
+              `/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py' '/tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py'\n` +
+              `mkdir -p $(dirname '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh')\naws s3 cp 's3://`,
+              {
+                'Fn::Sub': CONFIG_WORKER_ASSET_LINUX.Bucket,
+              },
+              `/${CONFIG_WORKER_ASSET_LINUX.Key}.sh' '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh'\n` +
+              'set -e\n' +
+              `chmod +x '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh'\n` +
+              `'/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} /tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py`,
+            ],
+          ],
+        },
+      },
     });
   });
 
@@ -91,17 +108,32 @@ describe('Test WorkerInstanceConfiguration for Linux', () => {
         listenerPort: otherListenerPort,
       },
     });
-    const userData = stack.resolve(instance.userData.render());
 
-    // // THEN
-    expect(userData).toStrictEqual({
-      'Fn::Join': [
-        '',
-        [
-          '#!/bin/bash\nmkdir -p $(dirname \'/tmp/',
-          ...linuxConfigureWorkerScriptBoilerplate(`\' \'\' \'\' \'\' \'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}\' ${otherListenerPort} /tmp/`),
-        ],
-      ],
+    // THEN
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Instance', {
+      UserData: {
+        'Fn::Base64': {
+          'Fn::Join': [
+            '',
+            [
+              '#!/bin/bash\n' +
+              `mkdir -p $(dirname '/tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py')\naws s3 cp 's3://`,
+              {
+                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_LINUX.Bucket,
+              },
+              `/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py' '/tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py'\n` +
+              `mkdir -p $(dirname '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh')\naws s3 cp 's3://`,
+              {
+                'Fn::Sub': CONFIG_WORKER_ASSET_LINUX.Bucket,
+              },
+              `/${CONFIG_WORKER_ASSET_LINUX.Key}.sh' '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh'\n` +
+              'set -e\n' +
+              `chmod +x '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh'\n` +
+              `'/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${otherListenerPort} /tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py`,
+            ],
+          ],
+        },
+      },
     });
   });
 
@@ -115,18 +147,32 @@ describe('Test WorkerInstanceConfiguration for Linux', () => {
         region: 'r1',
       },
     });
-    const userData = stack.resolve(instance.userData.render());
 
-    // // THEN
-    expect(userData).toStrictEqual({
-      'Fn::Join': [
-        '',
-        [
-          '#!/bin/bash\nmkdir -p $(dirname \'/tmp/',
-          ...linuxConfigureWorkerScriptBoilerplate(
-            `\' \'g1,g2\' \'p1,p2\' \'r1\' \'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}\' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} /tmp/`),
-        ],
-      ],
+    // THEN
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Instance', {
+      UserData: {
+        'Fn::Base64': {
+          'Fn::Join': [
+            '',
+            [
+              '#!/bin/bash\n' +
+              `mkdir -p $(dirname '/tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py')\naws s3 cp 's3://`,
+              {
+                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_LINUX.Bucket,
+              },
+              `/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py' '/tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py'\n` +
+              `mkdir -p $(dirname '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh')\naws s3 cp 's3://`,
+              {
+                'Fn::Sub': CONFIG_WORKER_ASSET_LINUX.Bucket,
+              },
+              `/${CONFIG_WORKER_ASSET_LINUX.Key}.sh' '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh'\n` +
+              'set -e\n' +
+              `chmod +x '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh'\n` +
+              `'/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh' 'g1,g2' 'p1,p2' 'r1' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} /tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py`,
+            ],
+          ],
+        },
+      },
     });
   });
 
@@ -141,23 +187,48 @@ describe('Test WorkerInstanceConfiguration for Linux', () => {
       worker: instance,
       cloudWatchLogSettings: logGroupProps,
     });
-    const logGroup = config.node.findChild('ConfigLogGroupWrapper');
-    const logGroupName = stack.resolve((logGroup as ILogGroup).logGroupName);
-    const userData = stack.resolve(instance.userData.render());
+    const logGroup = config.node.findChild('ConfigLogGroup') as ILogGroup;
+    const logGroupName = stack.resolve(logGroup.logGroupName);
 
     // THEN
-    expect(userData).toStrictEqual({
-      'Fn::Join': [
-        '',
-        [
-          '#!/bin/bash\nmkdir -p $(dirname \'/tmp/',
-          ...linuxCloudWatchScriptBoilerplate(
-            `\' \'\' \'\' \'\' \'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}\' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} /tmp/`),
-        ],
-      ],
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Instance', {
+      UserData: {
+        'Fn::Base64': {
+          'Fn::Join': [
+            '',
+            [
+              `#!/bin/bash\nmkdir -p $(dirname '/tmp/${CWA_ASSET_LINUX.Key}.sh')\naws s3 cp 's3://`,
+              {
+                'Fn::Sub': CWA_ASSET_LINUX.Bucket,
+              },
+              `/${CWA_ASSET_LINUX.Key}.sh' '/tmp/${CWA_ASSET_LINUX.Key}.sh'\nset -e\nchmod +x '/tmp/${CWA_ASSET_LINUX.Key}.sh'\n'/tmp/${CWA_ASSET_LINUX.Key}.sh' -i `,
+              {
+                Ref: 'AWS::Region',
+              },
+              ' ',
+              {
+                Ref: Match.stringLikeRegexp('^ConfigStringParameter.*'),
+              },
+              `\nmkdir -p $(dirname '/tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py')\naws s3 cp 's3://`,
+              {
+                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_LINUX.Bucket,
+              },
+              `/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py' '/tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py'\n` +
+              `mkdir -p $(dirname '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh')\naws s3 cp 's3://`,
+              {
+                'Fn::Sub': CONFIG_WORKER_ASSET_LINUX.Bucket,
+              },
+              `/${CONFIG_WORKER_ASSET_LINUX.Key}.sh' '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh'\n` +
+              'set -e\n' +
+              `chmod +x '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh'\n` +
+              `'/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} /tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py`,
+            ],
+          ],
+        },
+      },
     });
 
-    expectCDK(stack).to(haveResource('AWS::SSM::Parameter', {
+    Template.fromStack(stack).hasResourceProperties('AWS::SSM::Parameter', {
       Value: {
         'Fn::Join': [
           '',
@@ -172,7 +243,7 @@ describe('Test WorkerInstanceConfiguration for Linux', () => {
           ],
         ],
       },
-    }));
+    });
   });
 });
 
@@ -196,19 +267,30 @@ describe('Test WorkerInstanceConfiguration for Windows', () => {
     new WorkerInstanceConfiguration(stack, 'Config', {
       worker: instance,
     });
-    const userData = stack.resolve(instance.userData.render());
 
     // THEN
-    expect(userData).toStrictEqual({
-      'Fn::Join': [
-        '',
-        [
-          '<powershell>mkdir (Split-Path -Path \'C:/temp/',
-          ...windowsConfigureWorkerScriptBoilerplate(
-            `\' \'\' \'\' \'\' \'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}\' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} C:/temp/`),
-          '\"\' -ErrorAction Stop }</powershell>',
-        ],
-      ],
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Instance', {
+      UserData: {
+        'Fn::Base64': {
+          'Fn::Join': [
+            '',
+            [
+              `<powershell>mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' ) -ea 0\nRead-S3Object -BucketName '`,
+              {
+                'Fn::Sub': CONFIG_WORKER_ASSET_WINDOWS.Bucket,
+              },
+              `' -key '${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -file 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -ErrorAction Stop\n` +
+              `mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
+              {
+                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_WINDOWS.Bucket,
+              },
+              `' -key '${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n` +
+              `&'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py\n` +
+              `if (!$?) { Write-Error 'Failed to execute the file \"C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1\"' -ErrorAction Stop }</powershell>`,
+            ],
+          ],
+        },
+      },
     });
   });
 
@@ -222,19 +304,30 @@ describe('Test WorkerInstanceConfiguration for Windows', () => {
         region: 'r1',
       },
     });
-    const userData = stack.resolve(instance.userData.render());
 
     // THEN
-    expect(userData).toStrictEqual({
-      'Fn::Join': [
-        '',
-        [
-          '<powershell>mkdir (Split-Path -Path \'C:/temp/',
-          ...windowsConfigureWorkerScriptBoilerplate(
-            `\' \'g1,g2\' \'p1,p2\' \'r1\' \'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}\' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} C:/temp/`),
-          '\"\' -ErrorAction Stop }</powershell>',
-        ],
-      ],
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Instance', {
+      UserData: {
+        'Fn::Base64': {
+          'Fn::Join': [
+            '',
+            [
+              `<powershell>mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' ) -ea 0\nRead-S3Object -BucketName '`,
+              {
+                'Fn::Sub': CONFIG_WORKER_ASSET_WINDOWS.Bucket,
+              },
+              `' -key '${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -file 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -ErrorAction Stop\n` +
+              `mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
+              {
+                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_WINDOWS.Bucket,
+              },
+              `' -key '${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n` +
+              `&'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' 'g1,g2' 'p1,p2' 'r1' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py\n` +
+              `if (!$?) { Write-Error 'Failed to execute the file \"C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1\"' -ErrorAction Stop }</powershell>`,
+            ],
+          ],
+        },
+      },
     });
   });
 
@@ -247,19 +340,30 @@ describe('Test WorkerInstanceConfiguration for Windows', () => {
         listenerPort: otherListenerPort,
       },
     });
-    const userData = stack.resolve(instance.userData.render());
 
     // THEN
-    expect(userData).toStrictEqual({
-      'Fn::Join': [
-        '',
-        [
-          '<powershell>mkdir (Split-Path -Path \'C:/temp/',
-          ...windowsConfigureWorkerScriptBoilerplate(
-            `\' \'\' \'\' \'\' \'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}\' ${otherListenerPort} C:/temp/`),
-          '\"\' -ErrorAction Stop }</powershell>',
-        ],
-      ],
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Instance', {
+      UserData: {
+        'Fn::Base64': {
+          'Fn::Join': [
+            '',
+            [
+              `<powershell>mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' ) -ea 0\nRead-S3Object -BucketName '`,
+              {
+                'Fn::Sub': CONFIG_WORKER_ASSET_WINDOWS.Bucket,
+              },
+              `' -key '${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -file 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -ErrorAction Stop\n` +
+              `mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
+              {
+                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_WINDOWS.Bucket,
+              },
+              `' -key '${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n` +
+              `&'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${otherListenerPort} C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py\n` +
+              `if (!$?) { Write-Error 'Failed to execute the file \"C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1\"' -ErrorAction Stop }</powershell>`,
+            ],
+          ],
+        },
+      },
     });
   });
 
@@ -274,24 +378,48 @@ describe('Test WorkerInstanceConfiguration for Windows', () => {
       worker: instance,
       cloudWatchLogSettings: logGroupProps,
     });
-    const logGroup = config.node.findChild('ConfigLogGroupWrapper');
-    const logGroupName = stack.resolve((logGroup as ILogGroup).logGroupName);
-    const userData = stack.resolve(instance.userData.render());
+    const logGroup = config.node.findChild('ConfigLogGroup') as ILogGroup;
+    const logGroupName = stack.resolve(logGroup.logGroupName);
 
     // THEN
-    expect(userData).toStrictEqual({
-      'Fn::Join': [
-        '',
-        [
-          '<powershell>mkdir (Split-Path -Path \'C:/temp/',
-          ...windowsCloudWatchScriptBoilerplate(
-            `\' \'\' \'\' \'\' \'${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}\' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} C:/temp/`),
-          '\"\' -ErrorAction Stop }</powershell>',
-        ],
-      ],
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Instance', {
+      UserData: {
+        'Fn::Base64': {
+          'Fn::Join': [
+            '',
+            [
+              `<powershell>mkdir (Split-Path -Path 'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
+              {
+                'Fn::Sub': CWA_ASSET_WINDOWS.Bucket,
+              },
+              `' -key '${CWA_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n&'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' -i `,
+              {
+                Ref: 'AWS::Region',
+              },
+              ' ',
+              {
+                Ref: Match.stringLikeRegexp('^ConfigStringParameter.*'),
+              },
+              `\nif (!$?) { Write-Error 'Failed to execute the file \"C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1\"' -ErrorAction Stop }\n` +
+              `mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' ) -ea 0\nRead-S3Object -BucketName '`,
+              {
+                'Fn::Sub': CONFIG_WORKER_ASSET_WINDOWS.Bucket,
+              },
+              `' -key '${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -file 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -ErrorAction Stop\n` +
+              `mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
+              {
+                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_WINDOWS.Bucket,
+              },
+              `' -key '${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n` +
+              `&'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py\n` +
+              `if (!$?) { Write-Error 'Failed to execute the file \"C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1\"' -ErrorAction Stop }</powershell>`,
+            ],
+          ],
+        },
+      },
     });
 
-    expectCDK(stack).to(haveResource('AWS::SSM::Parameter', {
+    Template.fromStack(stack).hasResourceProperties('AWS::SSM::Parameter', {
       Value: {
         'Fn::Join': [
           '',
@@ -306,7 +434,7 @@ describe('Test WorkerInstanceConfiguration for Windows', () => {
           ],
         ],
       },
-    }));
+    });
   });
 });
 
@@ -355,12 +483,12 @@ describe('Test WorkerInstanceConfiguration connect to RenderQueue', () => {
     // THEN
     // Open-box testing. We know that we invoked the connection method on the
     // render queue if the security group for the instance has an ingress rule to the RQ.
-    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
       IpProtocol: 'tcp',
       ToPort: 8080,
       SourceSecurityGroupId: instanceSGId,
       GroupId: renderQueueSGId,
-    }));
+    });
   });
 
   test('For Windows', () => {
@@ -382,11 +510,11 @@ describe('Test WorkerInstanceConfiguration connect to RenderQueue', () => {
     // THEN
     // Open-box testing. We know that we invoked the connection method on the
     // render queue if the security group for the instance has an ingress rule to the RQ.
-    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
       IpProtocol: 'tcp',
       ToPort: 8080,
       SourceSecurityGroupId: instanceSGId,
       GroupId: renderQueueSGId,
-    }));
+    });
   });
 });

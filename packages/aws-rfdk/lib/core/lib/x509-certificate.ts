@@ -7,37 +7,36 @@ import * as crypto from 'crypto';
 import { join } from 'path';
 
 import {
-  AttributeType,
-  BillingMode,
-  Table,
-  TableEncryption,
-} from '@aws-cdk/aws-dynamodb';
-import {
-  Grant,
-  IGrantable,
-  PolicyStatement,
-} from '@aws-cdk/aws-iam';
-import { IKey } from '@aws-cdk/aws-kms';
-import {
-  Code,
-  Function as LambdaFunction,
-  LayerVersion,
-  Runtime,
-} from '@aws-cdk/aws-lambda';
-import { RetentionDays } from '@aws-cdk/aws-logs';
-import { ISecret, Secret } from '@aws-cdk/aws-secretsmanager';
-import {
   Annotations,
-  Construct,
   CustomResource,
   Duration,
-  IConstruct,
   Names,
   RemovalPolicy,
   Stack,
   Tag,
   Token,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import {
+  AttributeType,
+  BillingMode,
+  Table,
+  TableEncryption,
+} from 'aws-cdk-lib/aws-dynamodb';
+import {
+  Grant,
+  IGrantable,
+  PolicyStatement,
+} from 'aws-cdk-lib/aws-iam';
+import { IKey } from 'aws-cdk-lib/aws-kms';
+import {
+  Code,
+  Function as LambdaFunction,
+  LayerVersion,
+  Runtime,
+} from 'aws-cdk-lib/aws-lambda';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { ISecret, Secret } from 'aws-cdk-lib/aws-secretsmanager';
+import { Construct, IConstruct } from 'constructs';
 
 import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
 import { IX509CertificateEncodePkcs12, IX509CertificateGenerate } from '../../lambdas/nodejs/x509-certificate';

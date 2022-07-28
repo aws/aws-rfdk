@@ -7,22 +7,22 @@ import { randomBytes } from 'crypto';
 import * as path from 'path';
 
 import {
-  ContainerImage,
-  RepositoryImage,
-} from '@aws-cdk/aws-ecs';
-import {
-  Code,
-  SingletonFunction,
-  Runtime,
-} from '@aws-cdk/aws-lambda';
-import { RetentionDays } from '@aws-cdk/aws-logs';
-import {
-  Construct,
   CustomResource,
   Duration,
   Stack,
   Token,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import {
+  ContainerImage,
+  RepositoryImage,
+} from 'aws-cdk-lib/aws-ecs';
+import {
+  Code,
+  SingletonFunction,
+  Runtime,
+} from 'aws-cdk-lib/aws-lambda';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { Construct } from 'constructs';
 
 import {
   IVersion,
@@ -217,26 +217,29 @@ AWS Thinkbox EULA.
 
     this.remoteConnectionServer = this.ecrImageForRecipe(ThinkboxManagedDeadlineDockerRecipes.REMOTE_CONNECTION_SERVER);
     this.licenseForwarder = this.ecrImageForRecipe(ThinkboxManagedDeadlineDockerRecipes.LICENSE_FORWARDER);
-  }
 
-  protected onValidate() {
-    const errors: string[] = [];
+    const thisConstruct = this;
+    this.node.addValidation({
+      validate(): string[] {
+        const errors: string[] = [];
 
-    // Users must accept the AWS Thinkbox EULA to use the container images
-    if (this.userAwsThinkboxEulaAcceptance !== AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA) {
-      errors.push(ThinkboxDockerImages.AWS_THINKBOX_EULA_MESSAGE);
-    }
+        // Users must accept the AWS Thinkbox EULA to use the container images
+        if (thisConstruct.userAwsThinkboxEulaAcceptance !== AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA) {
+          errors.push(ThinkboxDockerImages.AWS_THINKBOX_EULA_MESSAGE);
+        }
 
-    // Using the output of VersionQuery across stacks can cause issues. CloudFormation stack outputs cannot change if
-    // a resource in another stack is referencing it.
-    if (this.version instanceof VersionQuery) {
-      const versionStack = Stack.of(this.version);
-      const thisStack = Stack.of(this);
-      if (versionStack != thisStack) {
-        errors.push('A VersionQuery can not be supplied from a different stack');
-      }
-    }
-    return errors;
+        // Using the output of VersionQuery across stacks can cause issues. CloudFormation stack outputs cannot change if
+        // a resource in another stack is referencing it.
+        if (thisConstruct.version instanceof VersionQuery) {
+          const versionStack = Stack.of(thisConstruct.version);
+          const thisStack = Stack.of(thisConstruct);
+          if (versionStack != thisStack) {
+            errors.push('A VersionQuery can not be supplied from a different stack');
+          }
+        }
+        return errors;
+      },
+    });
   }
 
   private ecrImageForRecipe(recipe: ThinkboxManagedDeadlineDockerRecipes): RepositoryImage {

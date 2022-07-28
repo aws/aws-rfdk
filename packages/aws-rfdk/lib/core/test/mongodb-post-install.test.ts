@@ -4,24 +4,22 @@
  */
 
 import {
-  expect as cdkExpect,
-  haveResource,
-  haveResourceLike,
-  ResourcePart,
-} from '@aws-cdk/assert';
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   Vpc,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   PrivateHostedZone,
-} from '@aws-cdk/aws-route53';
+} from 'aws-cdk-lib/aws-route53';
 import {
   ISecret,
   Secret,
-} from '@aws-cdk/aws-secretsmanager';
-import {
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-secretsmanager';
 
 import {
   MongoDbUsers,
@@ -112,7 +110,7 @@ describe('MongoDbPostInstall', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResourceLike('AWS::Lambda::Function', {
+    Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
       Handler: 'mongodb.configureMongo',
       Environment: {
         Variables: {
@@ -138,12 +136,12 @@ describe('MongoDbPostInstall', () => {
           },
         ],
       },
-    }));
+    });
 
     // Lambda role can get the required secrets.
-    cdkExpect(stack).to(haveResourceLike('AWS::IAM::Policy', {
+    Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
       PolicyDocument: {
-        Statement: [
+        Statement: Match.arrayWith([
           {
             Action: [
               'secretsmanager:GetSecretValue',
@@ -183,11 +181,11 @@ describe('MongoDbPostInstall', () => {
             Effect: 'Allow',
             Resource: pwUser2Arn,
           },
-        ],
+        ]),
       },
-    }));
+    });
 
-    cdkExpect(stack).to(haveResourceLike('Custom::RFDK_MongoDbPostInstallSetup', {
+    Template.fromStack(stack).hasResource('Custom::RFDK_MongoDbPostInstallSetup', {
       Properties: {
         Connection: {
           Hostname: 'mongodb.testZone.internal',
@@ -222,7 +220,7 @@ describe('MongoDbPostInstall', () => {
         'MongoPostInstallLambdaServiceRoleDefaultPolicy8B1C1CE8',
         'MongoPostInstallLambdaServiceRoleCD03B9B9',
       ],
-    }, ResourcePart.CompleteDefinition));
+    });
   });
 
   test('created correctly: only password users', () => {
@@ -240,7 +238,7 @@ describe('MongoDbPostInstall', () => {
 
     // THEN
     // Lambda role can get the required secrets.
-    cdkExpect(stack).to(haveResourceLike('AWS::IAM::Policy', {
+    Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
       PolicyDocument: {
         Statement: [
           {
@@ -284,9 +282,9 @@ describe('MongoDbPostInstall', () => {
           },
         ],
       },
-    }));
+    });
 
-    cdkExpect(stack).to(haveResource('Custom::RFDK_MongoDbPostInstallSetup', {
+    Template.fromStack(stack).hasResourceProperties('Custom::RFDK_MongoDbPostInstallSetup', {
       Connection: {
         Hostname: 'mongodb.testZone.internal',
         Port: '27017',
@@ -304,7 +302,7 @@ describe('MongoDbPostInstall', () => {
         pwUser1Arn,
         pwUser2Arn,
       ],
-    }));
+    });
   });
 
   test('created correctly: only x509 users', () => {
@@ -321,7 +319,7 @@ describe('MongoDbPostInstall', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResource('Custom::RFDK_MongoDbPostInstallSetup', {
+    Template.fromStack(stack).hasResourceProperties('Custom::RFDK_MongoDbPostInstallSetup', {
       Connection: {
         Hostname: 'mongodb.testZone.internal',
         Port: '27017',
@@ -345,7 +343,7 @@ describe('MongoDbPostInstall', () => {
           Roles: x509User2.roles,
         },
       ],
-    }));
+    });
   });
 
   test('use selected subnets', () => {
@@ -364,7 +362,7 @@ describe('MongoDbPostInstall', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResourceLike('AWS::Lambda::Function', {
+    Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
       Handler: 'mongodb.configureMongo',
       VpcConfig: {
         SubnetIds: [
@@ -373,7 +371,7 @@ describe('MongoDbPostInstall', () => {
           },
         ],
       },
-    }));
+    });
   });
 
   test('assert bad x509 role', () => {

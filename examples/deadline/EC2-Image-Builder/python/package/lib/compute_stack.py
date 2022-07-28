@@ -8,8 +8,7 @@ from aws_cdk.aws_ec2 import (
     Vpc,
     WindowsVersion
 )
-from aws_cdk.core import (
-    Construct,
+from aws_cdk import (
     Stack,
     StackProps
 )
@@ -17,6 +16,9 @@ from aws_rfdk.deadline import (
     RenderQueue,
     VersionQuery,
     WorkerInstanceFleet
+)
+from constructs import (
+    Construct
 )
 
 from .deadline_machine_image import (

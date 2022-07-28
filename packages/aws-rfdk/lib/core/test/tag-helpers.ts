@@ -4,13 +4,13 @@
  */
 
 import {
-  arrayWith,
-  countResourcesLike,
-  expect as expectCDK,
-} from '@aws-cdk/assert';
-import {
   Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import {
+  Match,
+} from 'aws-cdk-lib/assertions';
+
+import { resourcePropertiesCountIs } from './test-helper';
 
 /**
  * The name of the tag that RFDK is expected to use
@@ -67,18 +67,18 @@ export function resourceTagMatcher(resourceType: string, tagName: string, tagVal
     };
   } else if (resourceType === 'AWS::AutoScaling::AutoScalingGroup') {
     return {
-      Tags: arrayWith({
+      Tags: Match.arrayWith([{
         Key: tagName,
         PropagateAtLaunch: true,
         Value: tagValue,
-      }),
+      }]),
     };
   } else {
     return {
-      Tags: arrayWith({
+      Tags: Match.arrayWith([{
         Key: tagName,
         Value: tagValue,
-      }),
+      }]),
     };
   }
 }
@@ -137,6 +137,6 @@ export function testConstructTags(args: TestConstructTagsArgs) {
     const stack = createConstruct();
 
     // THEN
-    expectCDK(stack).to(countResourcesLike(resourceType, expectedCount, expectedProps));
+    resourcePropertiesCountIs(stack, resourceType, expectedProps, expectedCount);
   });
 }

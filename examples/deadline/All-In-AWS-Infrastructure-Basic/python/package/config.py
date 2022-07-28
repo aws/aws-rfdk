@@ -46,6 +46,7 @@ class AppConfig:
         self.deadline_client_linux_ami_map: Mapping[str, str] = {'us-west-2': 'ami-04ae356533dc07fb5'}
 
         # A secret (in binary form) in SecretsManager that stores the UBL certificates in a .zip file.
+        # This must be in the format `arn:<partition>:secretsmanager:<region>:<accountId>:secret:<secretName>-<6RandomCharacters`
         self.ubl_certificate_secret_arn: str =\
             ''
 

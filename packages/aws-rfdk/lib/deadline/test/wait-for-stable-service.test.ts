@@ -4,34 +4,32 @@
  */
 
 import {
-  arrayWith,
-  countResourcesLike,
-  expect as cdkExpect,
-  haveResourceLike,
-  objectLike,
-} from '@aws-cdk/assert';
+  App,
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   InstanceClass,
   InstanceSize,
   InstanceType,
   SubnetType,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   Cluster,
   ContainerImage,
   Ec2Service,
   Ec2TaskDefinition,
-} from '@aws-cdk/aws-ecs';
+} from 'aws-cdk-lib/aws-ecs';
 import {
   ManagedPolicy,
-} from '@aws-cdk/aws-iam';
-import {
-  App,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-iam';
 import {
   WaitForStableService,
 } from '../lib/wait-for-stable-service';
+import { resourcePropertiesCountIs } from './test-helper';
 
 describe('WaitForStableService', () => {
   let app: App;
@@ -70,10 +68,10 @@ describe('WaitForStableService', () => {
     });
 
     // THEN
-    cdkExpect(isolatedStack).to(haveResourceLike('Custom::RFDK_WaitForStableService', {
+    Template.fromStack(isolatedStack).hasResourceProperties('Custom::RFDK_WaitForStableService', {
       cluster: isolatedStack.resolve(cluster.clusterArn),
       services: [isolatedStack.resolve(service.serviceArn)],
-    }));
+    });
   });
 
   test('creates lambda correctly', () => {
@@ -82,7 +80,7 @@ describe('WaitForStableService', () => {
       service,
     });
 
-    cdkExpect(isolatedStack).to(countResourcesLike('AWS::Lambda::Function', 1, {
+    resourcePropertiesCountIs(isolatedStack, 'AWS::Lambda::Function', {
       Handler: 'wait-for-stable-service.wait',
       Environment: {
         Variables: {
@@ -91,7 +89,7 @@ describe('WaitForStableService', () => {
       },
       Runtime: 'nodejs16.x',
       Timeout: 900,
-    }));
+    }, 1);
   });
 
   test('adds policies to the lambda role', () => {
@@ -101,22 +99,22 @@ describe('WaitForStableService', () => {
     });
 
     // THEN
-    cdkExpect(isolatedStack).to(haveResourceLike('AWS::IAM::Role', {
-      ManagedPolicyArns: arrayWith(
+    Template.fromStack(isolatedStack).hasResourceProperties('AWS::IAM::Role', {
+      ManagedPolicyArns: Match.arrayWith([
         isolatedStack.resolve(ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole').managedPolicyArn),
-      ),
+      ]),
       Policies: [{
-        PolicyDocument: objectLike({
+        PolicyDocument: Match.objectLike({
           Statement: [{
             Action: 'ecs:DescribeServices',
             Effect: 'Allow',
-            Resource: arrayWith(
+            Resource: Match.arrayWith([
               isolatedStack.resolve(cluster.clusterArn),
               isolatedStack.resolve(service.serviceArn),
-            ),
+            ]),
           }],
         }),
       }],
-    }));
+    });
   });
 });

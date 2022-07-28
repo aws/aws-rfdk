@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Vpc } from '@aws-cdk/aws-ec2';
-import { ApplicationProtocol } from '@aws-cdk/aws-elasticloadbalancingv2';
-import { PrivateHostedZone } from '@aws-cdk/aws-route53';
-import { Secret } from '@aws-cdk/aws-secretsmanager';
-import { Construct, Stack } from '@aws-cdk/core';
+import { Stack } from 'aws-cdk-lib';
+import { Vpc } from 'aws-cdk-lib/aws-ec2';
+import { ApplicationProtocol } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { PrivateHostedZone } from 'aws-cdk-lib/aws-route53';
+import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { X509CertificatePem } from 'aws-rfdk';
 import {
   IRepository,
@@ -18,6 +19,7 @@ import {
   UsageBasedLicense,
   UsageBasedLicensing,
 } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 import { NetworkTier } from '../components/_infrastructure/lib/network-tier';
 import { ThinkboxDockerImageOverrides } from './thinkbox-docker-image-overrides';
 
@@ -106,7 +108,8 @@ export class RenderStruct extends Construct {
       repository: props.repository,
       images: dockerImageOverrides?.renderQueueImages ?? props.recipes.renderQueueImages,
       logGroupProps: {
-        logGroupPrefix: Stack.of(this).stackName + '-' + id,
+        logGroupPrefix: `/${Stack.of(this).stackName}-${id}/`,
+        retention: RetentionDays.TWO_MONTHS,
       },
       hostname,
       version: props.recipes.version,
@@ -125,6 +128,10 @@ export class RenderStruct extends Construct {
         images: dockerImageOverrides?.ublImages ?? props.recipes.ublImages,
         licenses: props.ubl.licenses,
         certificateSecret: ublCertificates,
+        logGroupProps: {
+          logGroupPrefix: `/${Stack.of(this).stackName}-${id}/`,
+          retention: RetentionDays.TWO_MONTHS,
+        },
       });
     }
   }

@@ -7,20 +7,19 @@ import {
   IVpc,
   SubnetSelection,
   SubnetType,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   ApplicationProtocol,
-} from '@aws-cdk/aws-elasticloadbalancingv2';
+} from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import {
   IPrivateHostedZone,
-} from '@aws-cdk/aws-route53';
+} from 'aws-cdk-lib/aws-route53';
 import {
-  Construct,
   Duration,
   RemovalPolicy,
   Stack,
   StackProps,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
 import {
   SessionManagerHelper,
   X509CertificatePem,
@@ -32,6 +31,7 @@ import {
   ThinkboxDockerImages,
   VersionQuery,
 } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 
 /**
  * Properties for {@link ServiceTier}.

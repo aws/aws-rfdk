@@ -5,7 +5,7 @@
 
 import os
 
-from aws_cdk.core import (
+from aws_cdk import (
     App,
     Environment,
 )

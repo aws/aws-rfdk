@@ -4,11 +4,15 @@
  */
 
 import {
-  arrayWith,
-  expect as cdkExpect,
-  haveResourceLike,
-  objectLike,
-} from '@aws-cdk/assert';
+  Arn,
+  App,
+  CfnResource,
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   AmazonLinuxGeneration,
   Instance,
@@ -16,14 +20,8 @@ import {
   MachineImage,
   Vpc,
   WindowsVersion,
-} from '@aws-cdk/aws-ec2';
-import * as efs from '@aws-cdk/aws-efs';
-import {
-  Arn,
-  App,
-  CfnResource,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
+import * as efs from 'aws-cdk-lib/aws-efs';
 
 import {
   MountableEfs,
@@ -34,6 +32,9 @@ import {
   MountPermissionsHelper,
 } from '../lib/mount-permissions-helper';
 
+import {
+  MOUNT_EFS_SCRIPT_LINUX,
+} from './asset-constants';
 import {
   escapeTokenRegex,
 } from './token-regex-helpers';
@@ -71,7 +72,7 @@ describe('Test MountableEFS', () => {
     // THEN
 
     // Make sure the instance has been granted ingress to the EFS's security group
-    cdkExpect(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
       IpProtocol: 'tcp',
       FromPort: 2049,
       ToPort: 2049,
@@ -87,11 +88,11 @@ describe('Test MountableEFS', () => {
           'GroupId',
         ],
       },
-    }));
+    });
     // Make sure we download the mountEfs script asset bundle
-    const s3Copy = 'aws s3 cp \'s3://${Token[TOKEN.\\d+]}/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\' \'/tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\'';
+    const s3Copy = `aws s3 cp 's3://\${Token[TOKEN.\\d+]}/${MOUNT_EFS_SCRIPT_LINUX.Key}.zip' '/tmp/${MOUNT_EFS_SCRIPT_LINUX.Key}.zip'`;
     expect(userData).toMatch(new RegExp(escapeTokenRegex(s3Copy)));
-    expect(userData).toMatch(new RegExp(escapeTokenRegex('unzip /tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}')));
+    expect(userData).toMatch(new RegExp(escapeTokenRegex(`unzip /tmp/${MOUNT_EFS_SCRIPT_LINUX.Key}.zip`)));
     // Make sure we execute the script with the correct args
     expect(userData).toMatch(new RegExp(escapeTokenRegex('bash ./mountEfs.sh ${Token[TOKEN.\\d+]} /mnt/efs/fs1 false rw')));
   });
@@ -216,9 +217,9 @@ describe('Test MountableEFS', () => {
       });
 
       test('grants IAM access point permissions', () => {
-        cdkExpect(stack).to(haveResourceLike('AWS::IAM::Policy', {
-          PolicyDocument: objectLike({
-            Statement: arrayWith(
+        Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
+          PolicyDocument: Match.objectLike({
+            Statement: Match.arrayWith([
               {
                 Action: expectedActions.length === 1 ? expectedActions[0] : expectedActions,
                 Condition: {
@@ -229,14 +230,14 @@ describe('Test MountableEFS', () => {
                 Effect: 'Allow',
                 Resource: stack.resolve((efsFS.node.defaultChild as efs.CfnFileSystem).attrArn),
               },
-            ),
+            ]),
             Version: '2012-10-17',
           }),
-          Roles: arrayWith(
+          Roles: Match.arrayWith([
             // The Policy construct micro-optimizes the reference to a role in the same stack using its logical ID
             stack.resolve((instance.role.node.defaultChild as CfnResource).ref),
-          ),
-        }));
+          ]),
+        });
       });
     });
   });
@@ -278,7 +279,7 @@ describe('Test MountableEFS', () => {
       location: '/mnt/efs/fs1',
     });
     const userData = instance.userData.render();
-    const s3Copy = 'aws s3 cp \'s3://${Token[TOKEN.\\d+]}/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\'';
+    const s3Copy = `aws s3 cp 's3://\${Token[TOKEN.\\d+]}/${MOUNT_EFS_SCRIPT_LINUX.Key}.zip'`;
     const regex = new RegExp(escapeTokenRegex(s3Copy), 'g');
     const matches = userData.match(regex) ?? [];
 
@@ -326,20 +327,20 @@ describe('Test MountableEFS', () => {
         if (accessPoint) {
           expectedResources.push(stack.resolve(accessPoint?.accessPointArn));
         }
-        cdkExpect(stack).to(haveResourceLike('AWS::IAM::Policy', {
-          PolicyDocument: objectLike({
-            Statement: arrayWith(
+        Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
+          PolicyDocument: Match.objectLike({
+            Statement: Match.arrayWith([
               {
                 Action: 'elasticfilesystem:DescribeMountTargets',
                 Effect: 'Allow',
                 Resource: expectedResources.length == 1 ? expectedResources[0] : expectedResources,
               },
-            ),
+            ]),
           }),
-          Roles: arrayWith(
+          Roles: Match.arrayWith([
             stack.resolve((instance.role.node.defaultChild as CfnResource).ref),
-          ),
-        }));
+          ]),
+        });
       });
     });
   });

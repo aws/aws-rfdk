@@ -6,17 +6,15 @@
 import * as path from 'path';
 
 import {
-  expect as expectCDK,
-  haveResource,
-  haveResourceLike,
-  stringLike,
-} from '@aws-cdk/assert';
-import { DockerImageAsset } from '@aws-cdk/aws-ecr-assets';
-import { Asset } from '@aws-cdk/aws-s3-assets';
-import {
   App,
   Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
+import { DockerImageAsset } from 'aws-cdk-lib/aws-ecr-assets';
+import { Asset } from 'aws-cdk-lib/aws-s3-assets';
 
 import {
   DeadlineDockerRecipes,
@@ -150,10 +148,10 @@ describe('ThinkboxDockerRecipes', () => {
       // WHEN
       recipes.version;
 
-      expectCDK(stack).to(haveResourceLike('Custom::RFDK_DEADLINE_INSTALLERS', {
-        forceRun: stringLike('*'),
+      Template.fromStack(stack).hasResourceProperties('Custom::RFDK_DEADLINE_INSTALLERS', {
+        forceRun: Match.anyValue(),
         versionString: RELEASE_VERSION_STRING,
-      }));
+      });
     });
 
     test('does not create a VersionQuery when not referenced', () => {
@@ -162,7 +160,7 @@ describe('ThinkboxDockerRecipes', () => {
         stage,
       });
 
-      expectCDK(stack).notTo(haveResource('Custom::RFDK_DEADLINE_INSTALLERS'));
+      Template.fromStack(stack).resourceCountIs('Custom::RFDK_DEADLINE_INSTALLERS', 0);
     });
 
     test('.linuxInstallers.client creates an Asset using the client installer', () => {

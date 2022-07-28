@@ -5,10 +5,10 @@
 
 import * as path from 'path';
 
-import { OperatingSystemType, UserData } from '@aws-cdk/aws-ec2';
-import { IGrantable } from '@aws-cdk/aws-iam';
-import { Asset, AssetProps } from '@aws-cdk/aws-s3-assets';
-import { Construct } from '@aws-cdk/core';
+import { OperatingSystemType, UserData } from 'aws-cdk-lib/aws-ec2';
+import { IGrantable } from 'aws-cdk-lib/aws-iam';
+import { Asset, AssetProps } from 'aws-cdk-lib/aws-s3-assets';
+import { Construct } from 'constructs';
 
 enum ScriptExtension {
   '.sh' = OperatingSystemType.LINUX,

@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { expect as expectCDK, haveResource, haveResourceLike } from '@aws-cdk/assert';
-import { RetentionDays } from '@aws-cdk/aws-logs';
-import { Bucket } from '@aws-cdk/aws-s3';
-import { Stack } from '@aws-cdk/core';
+import { Stack } from 'aws-cdk-lib';
+import { Template } from 'aws-cdk-lib/assertions';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { ExportingLogGroup } from '../lib/exporting-log-group';
 
 test('default exporting log group is created correctly', () => {
@@ -23,7 +23,7 @@ test('default exporting log group is created correctly', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResource('Custom::LogRetention', {
+  Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
     ServiceToken: {
       'Fn::GetAtt': [
         'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A',
@@ -32,8 +32,8 @@ test('default exporting log group is created correctly', () => {
     },
     LogGroupName: 'logGroup',
     RetentionInDays: 3,
-  }));
-  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+  });
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
     PolicyDocument: {
       Statement: [
         {
@@ -74,9 +74,9 @@ test('default exporting log group is created correctly', () => {
         },
       ],
     },
-  }));
+  });
 
-  expectCDK(stack).to(haveResourceLike('AWS::CloudWatch::Alarm', {
+  Template.fromStack(stack).hasResourceProperties('AWS::CloudWatch::Alarm', {
     ComparisonOperator: 'GreaterThanOrEqualToThreshold',
     EvaluationPeriods: 1,
     Dimensions: [
@@ -92,9 +92,9 @@ test('default exporting log group is created correctly', () => {
     Period: 300,
     Statistic: 'Sum',
     Threshold: 1,
-  }));
+  });
 
-  expectCDK(stack).to(haveResourceLike('AWS::Events::Rule', {
+  Template.fromStack(stack).hasResourceProperties('AWS::Events::Rule', {
     ScheduleExpression: 'rate(1 hour)',
     State: 'ENABLED',
     Targets: [
@@ -120,8 +120,8 @@ test('default exporting log group is created correctly', () => {
         },
       },
     ],
-  }));
-  expectCDK(stack).to(haveResource('AWS::Lambda::Function'));
+  });
+  Template.fromStack(stack).resourceCountIs('AWS::Lambda::Function', 2);
 });
 
 test('custom set retention is created correctly', () => {
@@ -139,7 +139,7 @@ test('custom set retention is created correctly', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResource('Custom::LogRetention', {
+  Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
     ServiceToken: {
       'Fn::GetAtt': [
         'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A',
@@ -148,8 +148,8 @@ test('custom set retention is created correctly', () => {
     },
     LogGroupName: 'logGroup',
     RetentionInDays: 7,
-  }));
-  expectCDK(stack).to(haveResource('AWS::Lambda::Function'));
-  expectCDK(stack).to(haveResource('AWS::CloudWatch::Alarm'));
-  expectCDK(stack).to(haveResource('AWS::Events::Rule'));
+  });
+  Template.fromStack(stack).resourceCountIs('AWS::Lambda::Function', 2);
+  Template.fromStack(stack).resourceCountIs('AWS::CloudWatch::Alarm', 1);
+  Template.fromStack(stack).resourceCountIs('AWS::Events::Rule', 1);
 });

@@ -114,7 +114,7 @@ the root of the EFS file-system. Sample code:
 **TypeScript:**
 
 ```ts
-import { AccessPoint, FileSystem } from '@aws-cdk/aws-efs';
+import { AccessPoint, FileSystem } from 'aws-cdk-lib/aws-efs';
 
 const fileSystem = new FileSystem(scope, 'FileSystem', {
     // ...
@@ -169,7 +169,7 @@ EFS file-system, you could do the following:
 **TypeScript:**
 
 ```ts
-import { AccessPoint, FileSystem } from '@aws-cdk/aws-efs';
+import { AccessPoint, FileSystem } from 'aws-cdk-lib/aws-efs';
 import { MountableEfs } from 'aws-rfdk';
 import { Repository } from 'aws-rfdk/deadline';
 

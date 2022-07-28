@@ -4,26 +4,23 @@
  */
 
 import {
-  arrayWith,
-  countResources,
-  countResourcesLike,
-  deepObjectLike,
-  expect as expectCDK,
-  haveResource,
-  haveResourceLike,
-  not,
-  ABSENT,
-  notMatching,
-  stringLike,
-} from '@aws-cdk/assert';
+  App,
+  CfnElement,
+  Names,
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   AutoScalingGroup,
   CfnAutoScalingGroup,
-} from '@aws-cdk/aws-autoscaling';
+} from 'aws-cdk-lib/aws-autoscaling';
 import {
   IMetric,
   Metric,
-} from '@aws-cdk/aws-cloudwatch';
+} from 'aws-cdk-lib/aws-cloudwatch';
 import {
   AmazonLinuxGeneration,
   AmazonLinuxImage,
@@ -35,23 +32,17 @@ import {
   SecurityGroup,
   SubnetType,
   Vpc,
-} from '@aws-cdk/aws-ec2';
-import {IApplicationLoadBalancerTarget} from '@aws-cdk/aws-elasticloadbalancingv2';
+} from 'aws-cdk-lib/aws-ec2';
+import {IApplicationLoadBalancerTarget} from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import {
   IPolicy,
   Policy,
   PolicyStatement,
-} from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-iam';
 import {
   Key,
-} from '@aws-cdk/aws-kms';
-import {
-  App,
-  CfnElement,
-  Construct,
-  Names,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-kms';
+import {Construct} from 'constructs';
 
 import {
   HealthMonitor,
@@ -60,6 +51,9 @@ import {
 import {
   testConstructTags,
 } from './tag-helpers';
+import {
+  resourcePropertiesCountIs,
+} from './test-helper';
 
 let app: App;
 let infraStack: Stack;
@@ -130,8 +124,8 @@ describe('HealthMonitor', () => {
       vpc,
     });
     // THEN
-    expectCDK(hmStack).notTo(haveResource('AWS::ElasticLoadBalancingV2::LoadBalancer'));
-    expectCDK(hmStack).to(haveResourceLike('AWS::KMS::Key', {
+    Template.fromStack(hmStack).resourceCountIs('AWS::ElasticLoadBalancingV2::LoadBalancer', 0);
+    Template.fromStack(hmStack).hasResourceProperties('AWS::KMS::Key', {
       KeyPolicy: {
         Statement: [
           {
@@ -172,8 +166,8 @@ describe('HealthMonitor', () => {
       },
       Description: `This key is used to encrypt SNS messages for ${Names.uniqueId(healthMonitor)}.`,
       EnableKeyRotation: true,
-    }));
-    expectCDK(hmStack).to(haveResourceLike('AWS::SNS::TopicPolicy', {
+    });
+    Template.fromStack(hmStack).hasResourceProperties('AWS::SNS::TopicPolicy', {
       PolicyDocument: {
         Statement: [
           {
@@ -194,17 +188,17 @@ describe('HealthMonitor', () => {
           Ref: hmStack.getLogicalId(healthMonitor.unhealthyFleetActionTopic.node.defaultChild as CfnElement),
         },
       ],
-    }));
-    expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Topic', {
+    });
+    Template.fromStack(hmStack).hasResourceProperties('AWS::SNS::Topic', {
       KmsMasterKeyId: {
         'Fn::GetAtt': [
           `${hmStack.getLogicalId(healthMonitor.node.findChild('SNSEncryptionKey').node.defaultChild as CfnElement)}`,
           'Arn',
         ],
       },
-    }));
-    expectCDK(hmStack).to(haveResource('AWS::Lambda::Function'));
-    expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Subscription', {
+    });
+    Template.fromStack(hmStack).hasResourceProperties('AWS::Lambda::Function', {});
+    Template.fromStack(hmStack).hasResourceProperties('AWS::SNS::Subscription', {
       Protocol: 'lambda',
       TopicArn: {
         Ref: `${infraStack.getLogicalId(healthMonitor.node.findChild('UnhealthyFleetTopic').node.defaultChild as CfnElement)}`,
@@ -215,7 +209,7 @@ describe('HealthMonitor', () => {
           'Arn',
         ],
       },
-    }));
+    });
   });
 
   test('validating health monitor properties while passing a key', () => {
@@ -225,13 +219,13 @@ describe('HealthMonitor', () => {
       encryptionKey: Key.fromKeyArn(hmStack, 'importedKey', 'arn:aws:kms:us-west-2:123456789012:key/testarn'),
     });
     // THEN
-    expectCDK(hmStack).notTo(haveResource('AWS::ElasticLoadBalancingV2::LoadBalancer'));
-    expectCDK(hmStack).notTo(haveResource('AWS::KMS::Key'));
-    expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Topic', {
+    Template.fromStack(hmStack).resourceCountIs('AWS::ElasticLoadBalancingV2::LoadBalancer', 0);
+    Template.fromStack(hmStack).resourceCountIs('AWS::KMS::Key', 0);
+    Template.fromStack(hmStack).hasResourceProperties('AWS::SNS::Topic', {
       KmsMasterKeyId: 'arn:aws:kms:us-west-2:123456789012:key/testarn',
-    }));
-    expectCDK(hmStack).to(haveResource('AWS::Lambda::Function'));
-    expectCDK(hmStack).to(haveResourceLike('AWS::SNS::Subscription', {
+    });
+    Template.fromStack(hmStack).hasResourceProperties('AWS::Lambda::Function', {});
+    Template.fromStack(hmStack).hasResourceProperties('AWS::SNS::Subscription', {
       Protocol: 'lambda',
       TopicArn: {
         Ref: `${infraStack.getLogicalId(healthMonitor.node.findChild('UnhealthyFleetTopic').node.defaultChild as CfnElement)}`,
@@ -242,7 +236,7 @@ describe('HealthMonitor', () => {
           'Arn',
         ],
       },
-    }));
+    });
   });
 
   test('validating the target with default health config', () => {
@@ -258,24 +252,24 @@ describe('HealthMonitor', () => {
     healthMonitor.registerFleet(fleet, {});
 
     // THEN
-    expectCDK(wfStack).to(haveResource('AWS::ElasticLoadBalancingV2::Listener'));
-    expectCDK(hmStack).notTo((haveResourceLike('AWS::EC2::SecurityGroup', {
-      SecurityGroupIngress: arrayWith(deepObjectLike({
+    Template.fromStack(wfStack).hasResourceProperties('AWS::ElasticLoadBalancingV2::Listener', {});
+    Template.fromStack(hmStack).hasResourceProperties('AWS::EC2::SecurityGroup', Match.not({
+      SecurityGroupIngress: Match.arrayWith([{
         CidrIp: '0.0.0.0/0',
         FromPort: 8081,
         IpProtocol: 'tcp',
         ToPort: 8081,
-      })),
-    })));
-    expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
+      }]),
+    }));
+    Template.fromStack(wfStack).hasResourceProperties('AWS::ElasticLoadBalancingV2::TargetGroup', {
       HealthCheckIntervalSeconds: 300,
       HealthCheckPort: '8081',
       HealthCheckProtocol: 'HTTP',
       Port: 8081,
       Protocol: 'HTTP',
       TargetType: 'instance',
-    }));
-    expectCDK(wfStack).to(haveResource('AWS::CloudWatch::Alarm'));
+    });
+    Template.fromStack(wfStack).hasResourceProperties('AWS::CloudWatch::Alarm', {});
   });
 
   test('validating the target with custom health config', () => {
@@ -292,16 +286,16 @@ describe('HealthMonitor', () => {
     });
 
     // THEN
-    expectCDK(wfStack).to(haveResource('AWS::ElasticLoadBalancingV2::Listener'));
-    expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
+    Template.fromStack(wfStack).hasResourceProperties('AWS::ElasticLoadBalancingV2::Listener' ,{});
+    Template.fromStack(wfStack).hasResourceProperties('AWS::ElasticLoadBalancingV2::TargetGroup', {
       HealthCheckIntervalSeconds: 300,
       HealthCheckPort: '7171',
       HealthCheckProtocol: 'HTTP',
       Port: 8081,
       Protocol: 'HTTP',
       TargetType: 'instance',
-    }));
-    expectCDK(wfStack).to(haveResource('AWS::CloudWatch::Alarm'));
+    });
+    Template.fromStack(wfStack).hasResourceProperties('AWS::CloudWatch::Alarm', {});
   });
 
   test('2 ASG gets registered to same LB', () => {
@@ -321,41 +315,40 @@ describe('HealthMonitor', () => {
     healthMonitor.registerFleet(fleet2, {port: 7171});
 
     // THEN
-    expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 1, {
-      LoadBalancerAttributes: [
+    resourcePropertiesCountIs(hmStack, 'AWS::ElasticLoadBalancingV2::LoadBalancer', {
+      LoadBalancerAttributes: Match.arrayWith([
         {
           Key: 'deletion_protection.enabled',
           Value: 'true',
         },
-      ],
+      ]),
       Scheme: 'internal',
-    }));
-    expectCDK(wfStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 2));
-    expectCDK(wfStack).to(haveResource('AWS::ElasticLoadBalancingV2::Listener'));
-    expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
+    }, 1);
+    Template.fromStack(wfStack).resourceCountIs('AWS::ElasticLoadBalancingV2::Listener', 2);
+    Template.fromStack(wfStack).hasResourceProperties('AWS::ElasticLoadBalancingV2::TargetGroup', {
       HealthCheckIntervalSeconds: 300,
       HealthCheckPort: '7171',
       HealthCheckProtocol: 'HTTP',
       Port: 8081,
       Protocol: 'HTTP',
       TargetType: 'instance',
-    }));
-    expectCDK(wfStack).to(haveResourceLike('AWS::CloudWatch::Alarm', {
+    });
+    Template.fromStack(wfStack).hasResourceProperties('AWS::CloudWatch::Alarm', {
       ComparisonOperator: 'GreaterThanThreshold',
       EvaluationPeriods: 8,
       ActionsEnabled: true,
       DatapointsToAlarm: 8,
       Threshold: 0,
       TreatMissingData: 'notBreaching',
-    }));
-    expectCDK(wfStack).to(haveResourceLike('AWS::CloudWatch::Alarm', {
+    });
+    Template.fromStack(wfStack).hasResourceProperties('AWS::CloudWatch::Alarm', {
       ComparisonOperator: 'GreaterThanThreshold',
       EvaluationPeriods: 1,
       ActionsEnabled: true,
       DatapointsToAlarm: 1,
       Threshold: 35,
       TreatMissingData: 'notBreaching',
-    }));
+    });
   });
 
   test('validating LB target limit', () => {
@@ -381,21 +374,21 @@ describe('HealthMonitor', () => {
     healthMonitor.registerFleet(fleet2, {});
 
     // THEN
-    expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 2, {
-      LoadBalancerAttributes: [
+    resourcePropertiesCountIs(hmStack, 'AWS::ElasticLoadBalancingV2::LoadBalancer', {
+      LoadBalancerAttributes: Match.arrayWith([
         {
           Key: 'deletion_protection.enabled',
           Value: 'true',
         },
-      ],
+      ]),
       Scheme: 'internal',
       Type: 'application',
-    }));
-    expectCDK(wfStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 2));
-    expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
+    }, 2);
+    Template.fromStack(wfStack).resourceCountIs('AWS::ElasticLoadBalancingV2::Listener', 2);
+    Template.fromStack(wfStack).hasResourceProperties('AWS::ElasticLoadBalancingV2::Listener', {
       Port: 8081,
       Protocol: 'HTTP',
-    }));
+    });
   });
 
   test('validating LB listener limit', () => {
@@ -422,21 +415,21 @@ describe('HealthMonitor', () => {
     healthMonitor.registerFleet(fleet2, {});
 
     // THEN
-    expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 2, {
-      LoadBalancerAttributes: [
+    resourcePropertiesCountIs(hmStack, 'AWS::ElasticLoadBalancingV2::LoadBalancer', {
+      LoadBalancerAttributes: Match.arrayWith([
         {
           Key: 'deletion_protection.enabled',
           Value: 'true',
         },
-      ],
+      ]),
       Scheme: 'internal',
       Type: 'application',
-    }));
-    expectCDK(wfStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 2));
-    expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
+    }, 2);
+    Template.fromStack(wfStack).resourceCountIs('AWS::ElasticLoadBalancingV2::Listener', 2);
+    Template.fromStack(wfStack).hasResourceProperties('AWS::ElasticLoadBalancingV2::Listener', {
       Port: 8081,
       Protocol: 'HTTP',
-    }));
+    });
   });
 
   test('validating target group limit per lb', () => {
@@ -460,15 +453,15 @@ describe('HealthMonitor', () => {
     healthMonitor.registerFleet(fleet2, {});
 
     // THEN
-    expectCDK(hmStack).to(countResourcesLike('AWS::ElasticLoadBalancingV2::LoadBalancer', 2, {
+    resourcePropertiesCountIs(hmStack, 'AWS::ElasticLoadBalancingV2::LoadBalancer', {
       Scheme: 'internal',
       Type: 'application',
-    }));
-    expectCDK(wfStack).to(countResources('AWS::ElasticLoadBalancingV2::Listener', 2));
-    expectCDK(wfStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::Listener', {
+    }, 2);
+    Template.fromStack(wfStack).resourceCountIs('AWS::ElasticLoadBalancingV2::Listener', 2);
+    Template.fromStack(wfStack).hasResourceProperties('AWS::ElasticLoadBalancingV2::Listener', {
       Port: 8081,
       Protocol: 'HTTP',
-    }));
+    });
   });
 
   test('validating target limit exhaustion', () => {
@@ -503,15 +496,17 @@ describe('HealthMonitor', () => {
     healthMonitor.registerFleet(fleet, {});
 
     // THEN
-    expectCDK(hmStack).to(not(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
-      LoadBalancerAttributes: arrayWith(
-        {
-          Key: 'deletion_protection.enabled',
-          Value: 'true',
-        },
-      ),
-      Scheme: ABSENT,
-      Type: ABSENT,
+    Template.fromStack(hmStack).hasResourceProperties('AWS::ElasticLoadBalancingV2::LoadBalancer', Match.not(Match.objectLike({
+      Properties: {
+        LoadBalancerAttributes: Match.arrayWith([
+          {
+            Key: 'deletion_protection.enabled',
+            Value: 'true',
+          },
+        ]),
+        Scheme: Match.absent,
+        Type: Match.absent,
+      },
     })));
   });
 
@@ -527,14 +522,14 @@ describe('HealthMonitor', () => {
     healthMonitor.registerFleet(fleet, {});
 
     // THEN
-    expectCDK(hmStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
-      LoadBalancerAttributes: arrayWith(
+    Template.fromStack(hmStack).hasResourceProperties('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+      LoadBalancerAttributes: Match.arrayWith([
         {
           Key: 'routing.http.drop_invalid_header_fields.enabled',
           Value: 'true',
         },
-      ),
-    }));
+      ]),
+    });
   });
 
   test('specifying a subnet', () => {
@@ -553,19 +548,19 @@ describe('HealthMonitor', () => {
 
     // THEN
     // Make sure it has the public subnets
-    expectCDK(hmStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+    Template.fromStack(hmStack).hasResourceProperties('AWS::ElasticLoadBalancingV2::LoadBalancer', {
       Subnets: [
-        {'Fn::ImportValue': stringLike('*PublicSubnet*')},
-        {'Fn::ImportValue': stringLike('*PublicSubnet*')},
+        {'Fn::ImportValue': Match.stringLikeRegexp('.*PublicSubnet.*')},
+        {'Fn::ImportValue': Match.stringLikeRegexp('.*PublicSubnet.*')},
       ],
-    }));
+    });
     // Make sure the private subnets aren't present
-    expectCDK(hmStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+    Template.fromStack(hmStack).hasResourceProperties('AWS::ElasticLoadBalancingV2::LoadBalancer', {
       Subnets: [
-        {'Fn::ImportValue': notMatching(stringLike('*PrivateSubnet*'))},
-        {'Fn::ImportValue': notMatching(stringLike('*PrivateSubnet*'))},
+        {'Fn::ImportValue': Match.not(Match.stringLikeRegexp('.*PrivateSubnet.*'))},
+        {'Fn::ImportValue': Match.not(Match.stringLikeRegexp('.*PrivateSubnet.*'))},
       ],
-    }));
+    });
   });
 
   test('specifying a security group', () => {
@@ -584,13 +579,13 @@ describe('HealthMonitor', () => {
 
     // THEN
     // Make sure it has the security group
-    expectCDK(hmStack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::LoadBalancer', {
-      SecurityGroups: arrayWith(
+    Template.fromStack(hmStack).hasResourceProperties('AWS::ElasticLoadBalancingV2::LoadBalancer', {
+      SecurityGroups: Match.arrayWith([
         hmStack.resolve(securityGroup.securityGroupId),
-      ),
-    }));
+      ]),
+    });
     // HealthMonitor should not create its own security group
-    expectCDK(hmStack).notTo(haveResource('AWS::EC2::SecurityGroup'));
+    Template.fromStack(hmStack).resourceCountIs('AWS::EC2::SecurityGroup', 0);
   });
 
   describe('tagging', () => {

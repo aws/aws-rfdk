@@ -7,14 +7,14 @@ import {
   BastionHostLinux,
   BlockDeviceVolume,
   IVpc,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   ApplicationProtocol,
-} from '@aws-cdk/aws-elasticloadbalancingv2';
+} from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import {
   IPrivateHostedZone,
-} from '@aws-cdk/aws-route53';
-import * as cdk from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-route53';
+import * as cdk from 'aws-cdk-lib';
 import {
   MountableEfs,
   X509CertificatePem,
@@ -31,8 +31,9 @@ import {
 } from 'aws-rfdk/deadline';
 import {
   Secret,
-} from '@aws-cdk/aws-secretsmanager';
+} from 'aws-cdk-lib/aws-secretsmanager';
 import { SessionManagerHelper } from 'aws-rfdk/lib/core';
+import { Construct } from 'constructs';
 
 import { Subnets } from './subnets';
 
@@ -130,7 +131,7 @@ export class ServiceTier extends cdk.Stack {
    * @param id The ID of this construct.
    * @param props The properties for this construct.
    */
-  constructor(scope: cdk.Construct, id: string, props: ServiceTierProps) {
+  constructor(scope: Construct, id: string, props: ServiceTierProps) {
     super(scope, id, props);
 
     // Bastion instance for convenience (e.g. SSH into RenderQueue and WorkerFleet instances).
