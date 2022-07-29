@@ -30,7 +30,7 @@ def main():
 
     farm_props = base_farm_stack.BaseFarmStackProps(
         deadline_version=config.deadline_version,
-        accept_aws_thinkbox_eula=config.accept_aws_thinkbox_eula
+        accept_aws_customer_agreement_and_ip_license=config.accept_aws_customer_agreement_and_ip_license
     )
     farm_stack = base_farm_stack.BaseFarmStack(app, 'BaseFarmStack', props=farm_props, env=env)
 

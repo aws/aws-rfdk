@@ -18,18 +18,15 @@ These instructions assume that your working directory is `examples/deadline/All-
     ```
     yarn install
     ```
-3.  You must read and accept the [AWS Thinkbox End-User License Agreement (EULA)](https://www.awsthinkbox.com/end-user-license-agreement) to deploy and run Deadline. To do so, change the value of the `acceptAwsThinkboxEula` in `bin/config.ts`:
+3.  By downloading or using the Deadline software, you agree to the [AWS Customer Agreement](https://aws.amazon.com/agreement/)
+    and [AWS Intellectual Property License](https://aws.amazon.com/legal/aws-ip-license-terms/). You acknowledge that Deadline
+    is AWS Content as defined in those Agreements.
+    To accept these terms, change the value of `acceptAwsCustomerAgreementAndIpLicense` in `bin/config.ts`:
 
     ```ts
-    /**
-     * Change this value to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA if you wish to accept the EULA for
-     * Deadline and proceed with Deadline deployment. Users must explicitly accept the AWS Thinkbox EULA before using the
-     * AWS Thinkbox Deadline container images.
-     *
-     * See https://www.awsthinkbox.com/end-user-license-agreement for the terms of the agreement.
-     */
-    public readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA;
+    public readonly acceptAwsCustomerAgreementAndIpLicense: AwsCustomerAgreementAndIpLicenseAcceptance = AwsCustomerAgreementAndIpLicenseAcceptance.USER_REJECTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE;
     ```
+
 4.  Change the value of the `deadlineVersion` variable in `bin/config.ts` to specify the desired version of Deadline to be deployed to your render farm. RFDK is compatible with Deadline versions 10.1.9.x and later. To see the available versions of Deadline, consult the [Deadline release notes](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html). It is recommended to use the latest version of Deadline available when building your farm, but to pin this version when the farm is ready for production use. For example, to pin to the latest `10.1.12.x` release of Deadline, use:
 
     ```ts

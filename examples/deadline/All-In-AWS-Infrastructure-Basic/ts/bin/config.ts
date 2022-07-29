@@ -6,7 +6,7 @@
 import 'source-map-support/register';
 import { UsageBasedLicense } from 'aws-rfdk/deadline';
 import { MongoDbSsplLicenseAcceptance } from 'aws-rfdk';
-import { AwsThinkboxEulaAcceptance } from 'aws-rfdk/deadline';
+import { AwsCustomerAgreementAndIpLicenseAcceptance } from 'aws-rfdk/deadline';
 
 /**
  * Configuration values for the sample app.
@@ -15,13 +15,12 @@ import { AwsThinkboxEulaAcceptance } from 'aws-rfdk/deadline';
  */
 class AppConfig {
   /**
-   * Change this value to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA if you wish to accept the EULA for
-   * Deadline and proceed with Deadline deployment. Users must explicitly accept the AWS Thinkbox EULA before using the
-   * AWS Thinkbox Deadline container images.
-   *
-   * See https://www.awsthinkbox.com/end-user-license-agreement for the terms of the agreement.
+   * By downloading or using the Deadline software, you agree to the AWS Customer Agreement (https://aws.amazon.com/agreement/)
+   * and AWS Intellectual Property License (https://aws.amazon.com/legal/aws-ip-license-terms/). You acknowledge that Deadline
+   * is AWS Content as defined in those Agreements.
+   * To accept these terms, change the value here to AwsCustomerAgreementAndIpLicenseAcceptance.USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE
    */
-  public readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA;
+  public readonly acceptAwsCustomerAgreementAndIpLicense: AwsCustomerAgreementAndIpLicenseAcceptance = AwsCustomerAgreementAndIpLicenseAcceptance.USER_REJECTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE;
 
   /**
    * Fill this in if you want to receive alarm emails when:

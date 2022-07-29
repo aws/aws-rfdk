@@ -111,7 +111,7 @@ const service = new ServiceTier(app, 'ServiceTier', {
   ublLicenses: config.ublLicenses,
   rootCa: security.rootCa,
   dnsZone: network.dnsZone,
-  acceptAwsThinkboxEula: config.acceptAwsThinkboxEula,
+  userAwsCustomerAgreementAndIpLicenseAcceptance: config.acceptAwsCustomerAgreementAndIpLicense,
   enableSecretsManagement: config.enableSecretsManagement,
   secretsManagementSecretArn: config.secretsManagementSecretArn
 });

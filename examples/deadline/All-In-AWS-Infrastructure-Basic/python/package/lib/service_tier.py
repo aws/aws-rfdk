@@ -32,7 +32,7 @@ from aws_rfdk import (
     X509CertificatePem
 )
 from aws_rfdk.deadline import (
-    AwsThinkboxEulaAcceptance,
+    AwsCustomerAgreementAndIpLicenseAcceptance,
     DatabaseConnection,
     RenderQueue,
     RenderQueueHostNameProps,
@@ -74,8 +74,8 @@ class ServiceTierProps(StackProps):
     dns_zone: IPrivateHostedZone
     # Version of Deadline to use
     deadline_version: str
-    # Whether the AWS Thinkbox End-User License Agreement is accepted or not
-    accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance
+    # Whether the AWS Customer Agreement and AWS Intellectual Property License are agreed to.
+    user_aws_customer_agreement_and_ip_license_acceptance: AwsCustomerAgreementAndIpLicenseAcceptance
     # Whether to enable Deadline Secrets Management.
     enable_secrets_management: bool
     # The ARN of the AWS Secret containing the admin credentials for Deadline Secrets Management.
@@ -155,7 +155,7 @@ class ServiceTier(Stack):
             self,
             'Images',
             version=self.version,
-            user_aws_thinkbox_eula_acceptance=props.accept_aws_thinkbox_eula
+            user_aws_customer_agreement_and_ip_license_acceptance=props.user_aws_customer_agreement_and_ip_license_acceptance
         )
 
         server_cert = X509CertificatePem(

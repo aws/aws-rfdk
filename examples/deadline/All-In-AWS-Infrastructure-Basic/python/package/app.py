@@ -113,7 +113,7 @@ def main():
         root_ca=security.root_ca,
         dns_zone=network.dns_zone,
         deadline_version=config.deadline_version,
-        accept_aws_thinkbox_eula=config.accept_aws_thinkbox_eula,
+        user_aws_customer_agreement_and_ip_license_acceptance=config.accept_aws_customer_agreement_and_ip_license,
         enable_secrets_management=config.enable_secrets_management,
         secrets_management_secret_arn=config.secrets_management_secret_arn
     )

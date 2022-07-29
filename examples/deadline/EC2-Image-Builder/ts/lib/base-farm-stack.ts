@@ -12,7 +12,7 @@ import {
   StackProps
 } from 'aws-cdk-lib';
 import {
-  AwsThinkboxEulaAcceptance,
+  AwsCustomerAgreementAndIpLicenseAcceptance,
   RenderQueue,
   Repository,
   ThinkboxDockerImages,
@@ -22,9 +22,9 @@ import { Construct } from 'constructs';
 
 export interface FarmProps extends StackProps {
   /**
-   * Whether the AWS Thinkbox End-User License Agreement is accepted or not
+   * Whether the AWS Customer Agreement and AWS Intellectual Property License are agreed to.
    */
-  readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance;
+  readonly userAwsCustomerAgreementAndIpLicenseAcceptance: AwsCustomerAgreementAndIpLicenseAcceptance;
 
   /**
    * Version of Deadline to use.
@@ -50,7 +50,7 @@ export class BaseFarmStack extends Stack {
 
     const images = new ThinkboxDockerImages(this, 'Images', {
       version: version,
-      userAwsThinkboxEulaAcceptance: props.acceptAwsThinkboxEula,
+      userAwsCustomerAgreementAndIpLicenseAcceptance: props.userAwsCustomerAgreementAndIpLicenseAcceptance,
     });
 
     const repository = new Repository(this, 'Repository', {

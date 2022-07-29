@@ -276,7 +276,7 @@ export interface ConfigureSpotEventPluginProps {
  * ```ts
  * import { App, Stack, Vpc } from '@aws-rfdk/core';
  * import { InstanceClass, InstanceSize, InstanceType } from 'aws-cdk-lib/aws-ec2';
- * import { AwsThinkboxEulaAcceptance, ConfigureSpotEventPlugin, RenderQueue, Repository, SpotEventPluginFleet, ThinkboxDockerImages, VersionQuery } from '@aws-rfdk/deadline';
+ * import { AwsCustomerAgreementAndIpLicenseAcceptance, ConfigureSpotEventPlugin, RenderQueue, Repository, SpotEventPluginFleet, ThinkboxDockerImages, VersionQuery } from '@aws-rfdk/deadline';
  * const app = new App();
  * const stack = new Stack(app, 'Stack');
  * const vpc = new Vpc(stack, 'Vpc');
@@ -285,9 +285,9 @@ export interface ConfigureSpotEventPluginProps {
  * });
  * const images = new ThinkboxDockerImages(stack, 'Image', {
  *   version,
- *   // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
- *   // of the AWS Thinkbox End User License Agreement
- *   userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
+ *   // Change this to AwsCustomerAgreementAndIpLicenseAcceptance.USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE to accept the terms
+ *   // of the AWS Customer Agreement and AWS Intellectual Property License.
+ *   userAwsCustomerAgreementAndIpLicenseAcceptance: AwsCustomerAgreementAndIpLicenseAcceptance.USER_REJECTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE,
  * });
  * const repository = new Repository(stack, 'Repository', {
  *   vpc,
