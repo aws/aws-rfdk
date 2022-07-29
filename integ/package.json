@@ -71,7 +71,7 @@
     "jest": "^27.5.1",
     "pkglint": "0.42.0",
     "ts-jest": "^27.1.5",
-    "typescript": "~4.7.3"
+    "typescript": "~4.7.4"
   },
   "dependencies": {
     "@aws-sdk/client-cloudformation": "^3.110.0",
