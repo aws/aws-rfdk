@@ -24,6 +24,6 @@ test.each([
   ['arn:aws:secretsmanager:us-west-1:1234567890:sec:SecretPath/SecretName', false],
   ['arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretName', true],
   ['arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/', true],
-])('test isArn(%s) -> %p', (value: string, expected: boolean) => {
+])('isArn(%s) -> %p', (value: string, expected: boolean) => {
   expect(isArn(value)).toBe(expected);
 });

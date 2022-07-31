@@ -25,6 +25,6 @@ test.each([
   ['arn:aws:kms:us-west-2:111122223333:key1234abcd-12ab-34cd-56ef-1234567890ab', false],
   ['arn:aws:kms:us-west-2:111122223333:key/', false],
   ['arn:aws:kms:us-west-2:111122223333:key/invalid-characters-ghijklmnopqr', false],
-])('test isArn(%s) -> %p', (value: string, expected: boolean) => {
+])('isArn(%s) -> %p', (value: string, expected: boolean) => {
   expect(isArn(value)).toBe(expected);
 });

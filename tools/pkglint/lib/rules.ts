@@ -14,8 +14,6 @@ import {
 
 const PKGLINT_VERSION = require('../package.json').version; // eslint-disable-line @typescript-eslint/no-require-imports
 
-const AWS_SERVICE_NAMES = require('./aws-service-official-names.json'); // eslint-disable-line @typescript-eslint/no-require-imports
-
 /**
  * Verify that the package name matches the directory name
  */
@@ -98,7 +96,7 @@ export class HomepageCorrect extends ValidationRule {
   public readonly name = 'package-info/homepage';
 
   public validate(pkg: PackageJson): void {
-    expectJSON(this.name, pkg, 'homepage', 'https://github.com/aws/aws-cdk');
+    expectJSON(this.name, pkg, 'homepage', 'https://github.com/aws/aws-rfdk');
   }
 }
 
@@ -157,32 +155,15 @@ export class ReadmeFile extends ValidationRule {
   public validate(pkg: PackageJson): void {
     const readmeFile = path.join(pkg.packageRoot, 'README.md');
 
-    const scopes = pkg.json['cdk-build'] && pkg.json['cdk-build'].cloudformation;
-    if (!scopes) {
-      return;
-    }
-    if (pkg.packageName === '@aws-cdk/core') {
-      return;
-    }
-    const scope: string = typeof scopes === 'string' ? scopes : scopes[0];
-    const serviceName = AWS_SERVICE_NAMES[scope];
-
-    const headline = serviceName && `${serviceName} Construct Library`;
+    const headline = 'Render Farm Deployment Kit on AWS';
 
     if (!fs.existsSync(readmeFile)) {
       pkg.report({
         ruleName: this.name,
         message: 'There must be a README.md file at the root of the package',
-        fix: () => fs.writeFileSync(
-          readmeFile,
-          [
-            `## ${headline || pkg.json.description}`,
-            'This module is part of the[AWS Cloud Development Kit](https://github.com/aws/aws-cdk) project.',
-          ].join('\n'),
-        ),
       });
     } else if (headline) {
-      const requiredFirstLine = `## ${headline}`;
+      const requiredFirstLine = `# ${headline}`;
       const [firstLine, ...rest] = fs.readFileSync(readmeFile, { encoding: 'utf8' }).split('\n');
       if (firstLine !== requiredFirstLine) {
         pkg.report({
@@ -191,44 +172,6 @@ export class ReadmeFile extends ValidationRule {
           fix: () => fs.writeFileSync(readmeFile, [requiredFirstLine, ...rest].join('\n')),
         });
       }
-    }
-  }
-}
-
-const MATURITY_TO_STABILITY: Record<string, string> = {
-  'cfn-only': 'experimental',
-  'experimental': 'experimental',
-  'developer-preview': 'experimental',
-  'stable': 'stable',
-  'deprecated': 'deprecated',
-};
-
-/**
- * There must be a stability setting, and it must match the package maturity.
- *
- * Maturity setting is leading here (as there are more options than the
- * stability setting), but the stability setting must be present for `jsii`
- * to properly read and encode it into the assembly.
- */
-export class StabilitySetting extends ValidationRule {
-  public readonly name = 'package-info/stability';
-
-  public validate(pkg: PackageJson): void {
-    if (pkg.json.private) {
-      // Does not apply to private packages!
-      return;
-    }
-
-    const maturity = pkg.json.maturity as string | undefined;
-    const stability = pkg.json.stability as string | undefined;
-
-    const expectedStability = maturity ? MATURITY_TO_STABILITY[maturity] : undefined;
-    if (!stability || (expectedStability && stability !== expectedStability)) {
-      pkg.report({
-        ruleName: this.name,
-        message: `stability is '${stability}', but based on maturity is expected to be '${expectedStability}'`,
-        fix: expectedStability ? (() => pkg.json.stability = expectedStability) : undefined,
-      });
     }
   }
 }
@@ -287,11 +230,7 @@ export class RFDKPackage extends ValidationRule {
     // skip private packages
     if (pkg.json.private) { return; }
 
-    if (!shouldUseCDKBuildTools(pkg)) { return; }
-
     const merkleMarker = '.LAST_PACKAGE';
-
-    expectJSON(this.name, pkg, 'scripts.package', 'cdk-package');
 
     const outdir = 'dist';
 
@@ -349,26 +288,6 @@ export class IncludeJsiiInNpmTarball extends ValidationRule {
 }
 
 /**
- * Verifies there is no dependency on "jsii" since it's defined at the repo
- * level.
- */
-export class NoJsiiDep extends ValidationRule {
-  public readonly name = 'dependencies/no-jsii';
-
-  public validate(pkg: PackageJson): void {
-    const predicate = (s: string) => s.startsWith('jsii');
-
-    if (pkg.getDevDependency(predicate)) {
-      pkg.report({
-        ruleName: this.name,
-        message: 'packages should not have a devDep on jsii since it is defined at the repo level',
-        fix: () => pkg.removeDevDependency(predicate),
-      });
-    }
-  }
-}
-
-/**
  * Verifies that the expected versions of node will be supported.
  */
 export class NodeCompatibility extends ValidationRule {
@@ -407,10 +326,6 @@ export class NoAtTypesInDependencies extends ValidationRule {
   }
 }
 
-function isCdkModuleName(name: string) {
-  return !!name.match(/^@aws-cdk\//);
-}
-
 /**
  * Computes the module name for various other purposes (java package, ...)
  */
@@ -424,43 +339,6 @@ function rfdkModuleName(name: string) {
       module: 'aws_rfdk',
     },
   };
-}
-
-/**
- * The package must depend on cdk-build-tools
- */
-export class MustDependOnBuildTools extends ValidationRule {
-  public readonly name = 'dependencies/build-tools';
-
-  public validate(pkg: PackageJson): void {
-    if (!shouldUseCDKBuildTools(pkg)) { return; }
-
-    // We can't ACTUALLY require cdk-build-tools/package.json here,
-    // because WE don't depend on cdk-build-tools and we don't know if
-    // the package does.
-    expectDevDependency(this.name,
-      pkg,
-      'cdk-build-tools',
-      `${PKGLINT_VERSION}`);
-  }
-}
-
-/**
- * Build script must be 'cdk-build'
- */
-export class MustUseCDKBuild extends ValidationRule {
-  public readonly name = 'package-info/scripts/build';
-
-  public validate(pkg: PackageJson): void {
-    if (!shouldUseCDKBuildTools(pkg)) { return; }
-
-    expectJSON(this.name, pkg, 'scripts.build', 'cdk-build');
-
-    // cdk-build will write a hash file that we have to ignore.
-    const merkleMarker = '.LAST_BUILD';
-    fileShouldContain(this.name, pkg, '.gitignore', merkleMarker);
-    fileShouldContain(this.name, pkg, '.npmignore', merkleMarker);
-  }
 }
 
 /**
@@ -499,70 +377,6 @@ export class RegularDependenciesMustSatisfyPeerDependencies extends ValidationRu
   }
 }
 
-/**
- * Check that dependencies on @aws-cdk/ packages use point versions (not version ranges)
- * and that they are also defined in `peerDependencies`.
- */
-export class MustDependonCdkByPointVersions extends ValidationRule {
-  public readonly name = 'dependencies/cdk-point-dependencies';
-
-  public validate(pkg: PackageJson): void {
-    // yes, ugly, but we have a bunch of references to other files in the repo.
-    // we use the root package.json to determine what should be the version
-    // across the repo: in local builds, this should be 0.0.0 and in CI builds
-    // this would be the actual version of the repo after it's been aligned
-    // using scripts/align-version.sh
-    const expectedVersion = require('../../../package.json').version; // eslint-disable-line @typescript-eslint/no-require-imports
-    const ignore = [
-      '@aws-cdk/cloudformation-diff',
-      '@aws-cdk/cfnspec',
-      '@aws-cdk/cx-api',
-      '@aws-cdk/cloud-assembly-schema',
-      '@aws-cdk/region-info',
-    ];
-
-    for (const [depName, depVersion] of Object.entries(pkg.dependencies)) {
-      if (!isCdkModuleName(depName) || ignore.includes(depName)) {
-        continue;
-      }
-
-      const peerDep = pkg.peerDependencies[depName];
-      if (!peerDep) {
-        pkg.report({
-          ruleName: this.name,
-          message: `dependency ${depName} must also appear in peerDependencies`,
-          fix: () => pkg.addPeerDependency(depName, expectedVersion),
-        });
-      }
-
-      if (peerDep !== expectedVersion) {
-        pkg.report({
-          ruleName: this.name,
-          message: `peer dependency ${depName} should have the version ${expectedVersion}`,
-          fix: () => pkg.addPeerDependency(depName, expectedVersion),
-        });
-      }
-
-      if (depVersion !== expectedVersion) {
-        pkg.report({
-          ruleName: this.name,
-          message: `dependency ${depName}: dependency version must be ${expectedVersion}`,
-          fix: () => pkg.addDependency(depName, expectedVersion),
-        });
-      }
-    }
-  }
-}
-
-export class MustIgnoreSNK extends ValidationRule {
-  public readonly name = 'ignore/strong-name-key';
-
-  public validate(pkg: PackageJson): void {
-    fileShouldContain(this.name, pkg, '.npmignore', '*.snk');
-    fileShouldContain(this.name, pkg, '.gitignore', '*.snk');
-  }
-}
-
 export class MustIgnoreJunitXml extends ValidationRule {
   public readonly name = 'ignore/junit';
 
@@ -589,32 +403,17 @@ export class NpmIgnoreForJsiiModules extends ValidationRule {
   }
 }
 
-/**
- * Must use 'cdk-watch' command
- */
-export class MustUseCDKWatch extends ValidationRule {
-  public readonly name = 'package-info/scripts/watch';
-
-  public validate(pkg: PackageJson): void {
-    if (!shouldUseCDKBuildTools(pkg)) { return; }
-
-    expectJSON(this.name, pkg, 'scripts.watch', 'cdk-watch');
-  }
-}
 
 /**
- * Must use 'cdk-test' command
+ * Must have test-generated files in .gitignore
  */
-export class MustUseCDKTest extends ValidationRule {
+export class MustIgnoreTestFiles extends ValidationRule {
   public readonly name = 'package-info/scripts/test';
 
   public validate(pkg: PackageJson): void {
-    if (!shouldUseCDKBuildTools(pkg)) { return; }
     if (!hasTestDirectory(pkg)) { return; }
 
-    expectJSON(this.name, pkg, 'scripts.test', 'cdk-test');
-
-    // 'cdk-test' will calculate coverage, so have the appropriate
+    // Tests ill calculate coverage, so have the appropriate
     // files in .gitignore.
     fileShouldContain(this.name, pkg, '.gitignore', '.nyc_output');
     fileShouldContain(this.name, pkg, '.gitignore', 'coverage');
@@ -633,47 +432,11 @@ export class MustHaveNodeEnginesDeclaration extends ValidationRule {
   }
 }
 
-/**
- * Scripts that run integ tests must also have the individual 'integ' script to update them
- *
- * This commands comes from the dev-dependency cdk-integ-tools.
- */
-export class MustHaveIntegCommand extends ValidationRule {
-  public readonly name = 'package-info/scripts/integ';
-
-  public validate(pkg: PackageJson): void {
-    if (!hasIntegTests(pkg)) { return; }
-
-    expectJSON(this.name, pkg, 'scripts.integ', 'cdk-integ');
-
-    // We can't ACTUALLY require cdk-build-tools/package.json here,
-    // because WE don't depend on cdk-build-tools and we don't know if
-    // the package does.
-    expectDevDependency(this.name,
-      pkg,
-      'cdk-integ-tools',
-      `${PKGLINT_VERSION}`);
-  }
-}
-
-/**
- * Checks API backwards compatibility against the latest released version.
- */
-export class CompatScript extends ValidationRule {
-  public readonly name = 'package-info/scripts/compat';
-
-  public validate(pkg: PackageJson): void {
-    if (!isJSII(pkg)) { return ; }
-
-    expectJSON(this.name, pkg, 'scripts.compat', 'cdk-compat');
-  }
-}
-
 export class PkgLintAsScript extends ValidationRule {
   public readonly name = 'package-info/scripts/pkglint';
 
   public validate(pkg: PackageJson): void {
-    const script = 'pkglint -f';
+    const script = 'pkglint';
 
     expectDevDependency(this.name, pkg, 'pkglint', `${PKGLINT_VERSION}`);
 
@@ -801,21 +564,7 @@ export class AwsLint extends ValidationRule {
       return;
     }
 
-    if (!isAWS(pkg)) {
-      return;
-    }
-
-    expectJSON(this.name, pkg, 'scripts.awslint', 'cdk-awslint');
-  }
-}
-
-export class Cfn2Ts extends ValidationRule {
-  public readonly name = 'cfn2ts';
-
-  public validate(pkg: PackageJson) {
-    if (!isJSII(pkg) || !isAWS(pkg)) {
-      return expectJSON(this.name, pkg, 'scripts.cfn2ts', undefined);
-    }
+    expectJSON(this.name, pkg, 'scripts.awslint', 'awslint');
   }
 }
 
@@ -977,17 +726,6 @@ export class EslintSetup extends ValidationRule {
       pkg.report({
         ruleName: this.name,
         message: 'There must be a .eslintrc.js file at the root of the package',
-        fix: () => {
-          const rootRelative = path.relative(pkg.packageRoot, repoRoot(pkg.packageRoot));
-          fs.writeFileSync(
-            eslintrcFilename,
-            [
-              `const baseConfig = require('${rootRelative}/tools/cdk-build-tools/config/eslintrc');`,
-              "baseConfig.parserOptions.project = __dirname + '/tsconfig.json';",
-              'module.exports = baseConfig;',
-            ].join('\n') + '\n',
-          );
-        },
       });
     }
     fileShouldContain(this.name, pkg, '.gitignore', '!.eslintrc.js');
@@ -999,42 +737,11 @@ export class JestSetup extends ValidationRule {
   public readonly name = 'package-info/jest.config';
 
   public validate(pkg: PackageJson): void {
-    const cdkBuild = pkg.json['cdk-build'] || {};
-
-    // check whether the package.json contains the "jest" key,
-    // which we no longer use
-    if (pkg.json.jest) {
-      pkg.report({
-        ruleName: this.name,
-        message: 'Using Jest is set through a flag in the "cdk-build" key in package.json, the "jest" key is ignored',
-        fix: () => {
-          delete pkg.json.jest;
-          cdkBuild.jest = true;
-          pkg.json['cdk-build'] = cdkBuild;
-        },
-      });
-    }
-
-    // this rule should only be enforced for packages that use Jest for testing
-    if (!cdkBuild.jest) {
-      return;
-    }
-
     const jestConfigFilename = 'jest.config.js';
     if (!fs.existsSync(jestConfigFilename)) {
       pkg.report({
         ruleName: this.name,
         message: 'There must be a jest.config.js file at the root of the package',
-        fix: () => {
-          const rootRelative = path.relative(pkg.packageRoot, repoRoot(pkg.packageRoot));
-          fs.writeFileSync(
-            jestConfigFilename,
-            [
-              `const baseConfig = require('${rootRelative}/tools/cdk-build-tools/config/jest.config');`,
-              'module.exports = baseConfig;',
-            ].join('\n') + '\n',
-          );
-        },
       });
     }
     fileShouldContain(this.name, pkg, '.gitignore', '!jest.config.js');
@@ -1059,47 +766,10 @@ function isJSII(pkg: PackageJson): boolean {
 }
 
 /**
- * Indicates that this is an "AWS" package (i.e. that it it has a cloudformation source)
- * @param pkg
- */
-function isAWS(pkg: PackageJson): boolean {
-  return pkg.json['cdk-build']?.cloudformation != null;
-}
-
-/**
  * Determine whether the package has tests
  *
  * A package has tests if the root/test directory exists
  */
 function hasTestDirectory(pkg: PackageJson) {
   return fs.existsSync(path.join(pkg.packageRoot, 'test'));
-}
-
-/**
- * Whether this package has integ tests
- *
- * A package has integ tests if it mentions 'cdk-integ' in the "test" script.
- */
-function hasIntegTests(pkg: PackageJson) {
-  if (!hasTestDirectory(pkg)) { return false; }
-
-  const files = fs.readdirSync(path.join(pkg.packageRoot, 'test'));
-  return files.some(p => p.startsWith('integ.'));
-}
-
-/**
- * Return whether this package should use CDK build tools
- */
-function shouldUseCDKBuildTools(pkg: PackageJson) {
-  // The packages that DON'T use CDKBuildTools are the package itself
-  // and the packages used by it.
-  return pkg.packageName !== 'cdk-build-tools' && pkg.packageName !== 'merkle-build' && pkg.packageName !== 'awslint';
-}
-
-function repoRoot(dir: string) {
-  let root = dir;
-  for (let i = 0; i < 50 && !fs.existsSync(path.join(root, 'yarn.lock')); i++) {
-    root = path.dirname(root);
-  }
-  return root;
 }
