@@ -1,2 +1,2 @@
-const baseConfig = require('../../tools/cdk-build-tools/config/jest.config');
+const baseConfig = require('../../config/jest.config');
 module.exports = baseConfig;

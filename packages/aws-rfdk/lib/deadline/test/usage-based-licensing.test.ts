@@ -583,7 +583,7 @@ describe('UsageBasedLicensing', () => {
       ['RedShift', UsageBasedLicense.forRedShift(10), [5054, 7054]],
       ['Vray', UsageBasedLicense.forVray(10), [30306]],
       ['Yeti', UsageBasedLicense.forYeti(10), [5053, 7053]],
-    ])('Test open port for license type %s', (_licenseName: string, license: UsageBasedLicense, ports: number[]) => {
+    ])('open port for license type %s', (_licenseName: string, license: UsageBasedLicense, ports: number[]) => {
       // GIVEN
       const ubl = createUbl();
       const workerStack = new Stack(app, 'WorkerStack', { env });

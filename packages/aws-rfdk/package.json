@@ -28,13 +28,9 @@
     "url": "https://github.com/aws/aws-rfdk.git",
     "directory": "packages/aws-rfdk"
   },
+  "homepage": "https://github.com/aws/aws-rfdk",
   "pkglint": {
     "exclude": [
-      "dependencies/cdk-point-dependencies",
-      "ignore/strong-name-key",
-      "package-info/homepage",
-      "package-info/scripts/compat",
-      "package-info/stability",
       "jsii/dotnet/icon-url",
       "jsii/dotnet/strong-name",
       "jsii/java",
@@ -47,19 +43,20 @@
     ]
   },
   "scripts": {
-    "awslint": "cdk-awslint",
-    "build": "cdk-build",
+    "awslint": "awslint",
+    "build": "jsii --project-references --silence-warnings=reserved-word && yarn run lint && yarn run pkglint",
     "build+test": "yarn run build && yarn test",
     "build+test+package": "yarn run build+test && yarn run package",
     "clean": "tsc --build --clean && bash ./clean.sh",
-    "lint": "cdk-lint",
-    "lintfix": "cdk-lint --fix",
-    "package": "cdk-package",
-    "pkglint": "pkglint -f",
+    "lint": "eslint . --ext=.ts --resolve-plugins-relative-to=.",
+    "lintfix": "eslint . --ext=.ts --resolve-plugins-relative-to=. --fix",
+    "package": "jsii-packmak -o dist",
+    "pkglint": "pkglint",
+    "pkglintfix": "pkglint -f",
     "test": "yarn testcdk && yarn testpy",
-    "testcdk": "cdk-test",
+    "testcdk": "CDK_DISABLE_STACK_TRACE=1 jest --silent",
     "testpy": "./test-python.sh",
-    "watch": "cdk-watch"
+    "watch": "tsc -w"
   },
   "keywords": [
     "aws",
@@ -69,17 +66,30 @@
     "deadline"
   ],
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.100",
+    "@types/aws-lambda": "^8.10.101",
     "@types/jest": "^27.5.2",
     "@types/sinon": "^10.0.13",
     "aws-sdk": "^2.1184.0",
     "aws-sdk-mock": "5.5.0",
-    "cdk-build-tools": "0.42.0",
     "aws-cdk-lib": "2.33.0",
     "constructs": "^10.0.0",
     "dynalite": "^3.2.2",
     "pkglint": "0.42.0",
-    "sinon": "^14.0.0"
+    "sinon": "^14.0.0",
+    "awslint": "2.33.0",
+    "jest": "^27.5.1",
+    "jsii": "^1.63.1",
+    "jsii-pacmak": "^1.63.1",
+    "jsii-reflect": "^1.63.1",
+    "eslint": "^8.20.0",
+    "eslint-import-resolver-node": "^0.3.6",
+    "eslint-import-resolver-typescript": "^3.3.0",
+    "eslint-plugin-deprecation": "^1.3.2",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-jest": "^26.6.0",
+    "eslint-plugin-license-header": "^0.6.0",
+    "ts-jest": "^27.1.5",
+    "typescript": "~4.7.4"
   },
   "dependencies": {
     "aws-cdk-lib": "2.33.0",
