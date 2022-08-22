@@ -273,5 +273,7 @@ test('decrypt private key', async () => {
   // THEN
   expect(decryptedKey).toEqual(expectedDecryptedKey);
   // Must have the decrypted private key
-  expect(decryptedKey).toContain('-----BEGIN RSA PRIVATE KEY-----');
+  // OpenSSL 1.0.x: -----BEGIN RSA PRIVATE KEY-----
+  // OpenSSL 1.1.x: -----BEGIN PRIVATE KEY-----
+  expect(decryptedKey).toMatch(/-----BEGIN (?:RSA )?PRIVATE KEY-----/);
 });
