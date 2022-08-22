@@ -28,6 +28,7 @@ import {
   Port,
   SubnetSelection,
   SubnetType,
+  UserData,
 } from 'aws-cdk-lib/aws-ec2';
 import {IApplicationLoadBalancerTarget} from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import {
@@ -222,6 +223,15 @@ export interface WorkerInstanceFleetProps extends WorkerSettings {
    * @default The default devices of the provided ami will be used.
    */
   readonly blockDevices?: BlockDevice[];
+
+  /**
+   * The specific UserData to use.
+   *
+   * The UserData will be mutated by this construct and may be mutated afterwards as well.
+   *
+   * @default A UserData object appropriate for the MachineImage's Operating System is created.
+   */
+  readonly userData?: UserData;
 
   /**
    * An optional provider of user data commands to be injected at various points during the Worker configuration lifecycle.
@@ -455,6 +465,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
       role: props.role,
       spotPrice: props.spotPrice?.toString(),
       blockDevices: props.blockDevices,
+      userData: props.userData,
     });
 
     this.targetCapacity = parseInt((this.fleet.node.defaultChild as CfnAutoScalingGroup).maxSize, 10);

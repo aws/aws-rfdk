@@ -28,6 +28,7 @@ import {
   Peer,
   SecurityGroup,
   SubnetType,
+  UserData,
   Vpc,
 } from 'aws-cdk-lib/aws-ec2';
 import {
@@ -475,6 +476,25 @@ test.each([
     RetentionInDays: 3,
     LogGroupName: testPrefix + id,
   });
+});
+
+test('worker fleet uses given UserData', () => {
+  // GIVEN
+  const id  = 'workerFleet';
+  const userData = UserData.forLinux();
+
+  // WHEN
+  const workerFleet = new WorkerInstanceFleet(stack, id, {
+    vpc,
+    workerMachineImage: new GenericLinuxImage({
+      'us-east-1': '123',
+    }),
+    renderQueue,
+    userData,
+  });
+
+  // THEN
+  expect(workerFleet.fleet.userData).toBe(userData);
 });
 
 test('default linux worker fleet is created correctly custom subnet values', () => {
