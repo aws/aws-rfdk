@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.0.0](https://github.com/aws/aws-rfdk/compare/v0.42.0...v1.0.0) (2022-08-25)
+
+
+### Supported CDK Version
+
+* [2.33.0](https://github.com/aws/aws-cdk/releases/tag/v2.33.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.23.6](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deadline:** The `userAwsThinkboxEulaAcceptance` property of the `ThinkboxDockerImages`
+construct has been removed and replaced with `userAwsCustomerAgreementAndIpLicenseAcceptance`.
+The licensing terms of Deadline have been retroactively changed with the
+release of Deadline 10.1.23, and these new terms must be agreed to by a
+code change in your applications.
+* **all:** This change migrates the RFDK to be based on CDK v2.
+All apps that use the RFDK will have to be migrated to CDKv2 as well.
+To update your app, follow the CDK's migration guide at:
+https://docs.aws.amazon.com/cdk/v2/guide/migrating-v2.html
+
+### Features
+
+* **all:** migrate to CDKv2 ([#738](https://github.com/aws/aws-rfdk/issues/738)) ([7c06857](https://github.com/aws/aws-rfdk/commit/7c06857f6315dcd59ccb3ac0c12f7094ef6be706))
+* **deadline:** adds UserData property to WorkerInstanceFleet ([#781](https://github.com/aws/aws-rfdk/issues/781)) ([b7e48b0](https://github.com/aws/aws-rfdk/commit/b7e48b04f09f504d4fd85ed61f3befc8ec843e55))
+* **deadline:** update to Deadline licensing terms ([#742](https://github.com/aws/aws-rfdk/issues/742)) ([03bc8ee](https://github.com/aws/aws-rfdk/commit/03bc8ee2e02bbf88df92b0cebef41a765c39a906))
+
 ## [0.42.0](https://github.com/aws/aws-rfdk/compare/v0.41.0...v0.42.0) (2022-06-18)
 
 
