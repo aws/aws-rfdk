@@ -2,8 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
-## [1.0.0](https://github.com/aws/aws-rfdk/compare/v0.42.0...v1.0.0) (2022-08-25)
+## [1.0.0](https://github.com/aws/aws-rfdk/compare/v0.42.0...v1.0.0) (2022-08-30)
 
+This release marks the first official stable release of RFDK. All RFDK APIs in this release are
+considered to be stable and will only be removed through a deprecation process that allows
+consumers to phase out their usage for at least one **minor** RFDK version.
+
+**NOTE:** Future minor RFDK releases may still introduce backwards-incompatible breaking
+changes. RFDK will continue to announce these breaking changes in this CHANGELOG and on each
+GitHub release along with documentation and guidance on navigating the change.
 
 ### Supported CDK Version
 
@@ -17,15 +24,17 @@ All notable changes to this project will be documented in this file. See [standa
 
 ### ⚠ BREAKING CHANGES
 
+This change migrates the RFDK to be based on CDK v2.
+All apps that adopt RFDK 1.x will have to be migrated to CDK v2 as well.
+To update your app, follow the [CDK v2 migration guide](https://docs.aws.amazon.com/cdk/v2/guide/migrating-v2.html).
+
+Additional breaking changes:
+
 * **deadline:** The `userAwsThinkboxEulaAcceptance` property of the `ThinkboxDockerImages`
 construct has been removed and replaced with `userAwsCustomerAgreementAndIpLicenseAcceptance`.
 The licensing terms of Deadline have been retroactively changed with the
 release of Deadline 10.1.23, and these new terms must be agreed to by a
 code change in your applications.
-* **all:** This change migrates the RFDK to be based on CDK v2.
-All apps that use the RFDK will have to be migrated to CDKv2 as well.
-To update your app, follow the CDK's migration guide at:
-https://docs.aws.amazon.com/cdk/v2/guide/migrating-v2.html
 
 ### Features
 
