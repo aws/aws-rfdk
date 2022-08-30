@@ -7,8 +7,8 @@
 import 'source-map-support/register';
 import {
   MachineImage,
-} from '@aws-cdk/aws-ec2';
-import * as cdk from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
+import * as cdk from 'aws-cdk-lib';
 
 import { config } from './config';
 import { ComputeTier } from '../lib/compute-tier';
@@ -45,7 +45,7 @@ const service = new ServiceTier(app, 'ServiceTier', {
   deadlineVersion: config.deadlineVersion,
   rootCa: security.rootCa,
   dnsZone: network.dnsZone,
-  acceptAwsThinkboxEula: config.acceptAwsThinkboxEula,
+  userAwsCustomerAgreementAndIpLicenseAcceptance: config.acceptAwsCustomerAgreementAndIpLicense,
 });
 
 new ComputeTier(app, 'ComputeTier', {

@@ -7,35 +7,35 @@ import {
   InstanceType,
   IVpc,
   SubnetSelection,
-} from '@aws-cdk/aws-ec2';
-import * as cdk from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
+import * as cdk from 'aws-cdk-lib';
 import {
   ComparisonOperator,
   Metric,
   TreatMissingData,
-} from '@aws-cdk/aws-cloudwatch';
+} from 'aws-cdk-lib/aws-cloudwatch';
 import {
   SnsAction,
-} from '@aws-cdk/aws-cloudwatch-actions';
-import { DatabaseCluster } from '@aws-cdk/aws-docdb';
+} from 'aws-cdk-lib/aws-cloudwatch-actions';
+import { DatabaseCluster } from 'aws-cdk-lib/aws-docdb';
 import {
   AccessPoint,
   FileSystem,
-} from '@aws-cdk/aws-efs';
+} from 'aws-cdk-lib/aws-efs';
 import {
   ServicePrincipal,
-} from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-iam';
 import {
   Key,
-} from '@aws-cdk/aws-kms';
-import { IPrivateHostedZone } from '@aws-cdk/aws-route53';
+} from 'aws-cdk-lib/aws-kms';
+import { IPrivateHostedZone } from 'aws-cdk-lib/aws-route53';
 import {
   Topic,
-} from '@aws-cdk/aws-sns';
+} from 'aws-cdk-lib/aws-sns';
 import {
   EmailSubscription,
-} from '@aws-cdk/aws-sns-subscriptions';
-import { RemovalPolicy, Duration } from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-sns-subscriptions';
+import { RemovalPolicy, Duration } from 'aws-cdk-lib';
 import {
   MongoDbInstance,
   MongoDbPostInstallSetup,
@@ -49,6 +49,7 @@ import {
 import {
   DatabaseConnection,
 } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 
 import { Subnets } from './subnets';
 
@@ -91,7 +92,7 @@ export abstract class StorageTier extends cdk.Stack {
    * @param id The ID of this construct.
    * @param props The properties for the storage tier.
    */
-  constructor(scope: cdk.Construct, id: string, props: StorageTierProps) {
+  constructor(scope: Construct, id: string, props: StorageTierProps) {
     super(scope, id, props);
 
     const fileSystem = new FileSystem(this, 'EfsFileSystem', {
@@ -208,8 +209,7 @@ export abstract class StorageTier extends cdk.Stack {
     const key = new Key(this, 'SNSEncryptionKey', {
       description: 'Used to encrypt the SNS Topic for sending EFS Burst Credit alerts',
       enableKeyRotation: true,
-      removalPolicy: RemovalPolicy.DESTROY,
-      trustAccountIdentities: true,
+      removalPolicy: RemovalPolicy.DESTROY
     });
     key.grant(new ServicePrincipal('cloudwatch.amazonaws.com'), 'kms:Decrypt', 'kms:GenerateDataKey');
 
@@ -310,7 +310,7 @@ export class StorageTierDocDB extends StorageTier {
    * @param id The ID of this construct.
    * @param props The properties for this construct.
    */
-  constructor(scope: cdk.Construct, id: string, props: StorageTierDocDBProps) {
+  constructor(scope: Construct, id: string, props: StorageTierDocDBProps) {
     super(scope, id, props);
 
     const docDb = new DatabaseCluster(this, 'DocDBCluster', {
@@ -391,7 +391,7 @@ export class StorageTierMongoDB extends StorageTier {
    * @param id The ID of this construct.
    * @param props The properties for this construct.
    */
-  constructor(scope: cdk.Construct, id: string, props: StorageTierMongoDBProps) {
+  constructor(scope: Construct, id: string, props: StorageTierMongoDBProps) {
     super(scope, id, props);
 
     const serverCert = new X509CertificatePem(this, 'MongoCert', {

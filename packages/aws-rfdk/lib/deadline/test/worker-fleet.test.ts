@@ -6,16 +6,18 @@
 /* eslint-disable dot-notation */
 
 import {
-  ABSENT,
-  expect as expectCDK,
-  haveResource,
-  haveResourceLike,
-  objectLike,
-  ResourcePart,
-} from '@aws-cdk/assert';
+  App,
+  CfnElement,
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Annotations,
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   BlockDeviceVolume,
-} from '@aws-cdk/aws-autoscaling';
+} from 'aws-cdk-lib/aws-autoscaling';
 import {
   GenericLinuxImage,
   GenericWindowsImage,
@@ -26,28 +28,24 @@ import {
   Peer,
   SecurityGroup,
   SubnetType,
+  UserData,
   Vpc,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   AssetImage,
   ContainerImage,
-} from '@aws-cdk/aws-ecs';
-import { ArtifactMetadataEntryType } from '@aws-cdk/cloud-assembly-schema';
-import {
-  App,
-  CfnElement,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ecs';
 
 import {
   HealthMonitor,
 } from '../../core/lib';
 import {
+  CWA_ASSET_LINUX,
+  CWA_ASSET_WINDOWS,
+} from '../../core/test/asset-constants';
+import {
   testConstructTags,
 } from '../../core/test/tag-helpers';
-import {
-  escapeTokenRegex,
-} from '../../core/test/token-regex-helpers';
 import {
   IHost,
   InstanceUserDataProvider,
@@ -63,9 +61,13 @@ import {
 import {
   CONFIG_WORKER_ASSET_LINUX,
   CONFIG_WORKER_ASSET_WINDOWS,
-  CWA_ASSET_LINUX,
+  CONFIG_WORKER_HEALTHCHECK_LINUX,
+  CONFIG_WORKER_HEALTHCHECK_WINDOWS,
+  CONFIG_WORKER_PORT_ASSET_LINUX,
+  CONFIG_WORKER_PORT_ASSET_WINDOWS,
   RQ_CONNECTION_ASSET,
 } from './asset-constants';
+import { resourcePropertiesCountIs } from './test-helper';
 
 let app: App;
 let stack: Stack;
@@ -113,12 +115,24 @@ test('default worker fleet is created correctly', () => {
   });
 
   // THEN
-  expectCDK(wfstack).to(haveResource('AWS::AutoScaling::AutoScalingGroup'));
-  expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+  Template.fromStack(wfstack).resourceCountIs('AWS::AutoScaling::AutoScalingGroup', 1);
+  Template.fromStack(wfstack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
     InstanceType: 't2.large',
-    spotPrice: ABSENT,
-  }));
-  expectCDK(wfstack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+    IamInstanceProfile: {
+      Ref: Match.stringLikeRegexp('^workerFleetInstanceProfile.*'),
+    },
+    ImageId: 'ami-any',
+    SecurityGroups: [
+      {
+        'Fn::GetAtt': [
+          Match.stringLikeRegexp('^workerFleetInstanceSecurityGroup.*'),
+          'GroupId',
+        ],
+      },
+    ],
+    spotPrice: Match.absent(),
+  });
+  Template.fromStack(wfstack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
     IpProtocol: 'tcp',
     ToPort: parseInt(renderQueue.endpoint.portAsString(), 10),
     SourceSecurityGroupId: {
@@ -130,15 +144,19 @@ test('default worker fleet is created correctly', () => {
     GroupId: {
       'Fn::ImportValue': 'infraStack:ExportsOutputFnGetAttRQLBSecurityGroupAC643AEDGroupId8F9F7830',
     },
-  }));
-  expectCDK(wfstack).to(haveResource('Custom::LogRetention', {
+  });
+  Template.fromStack(wfstack).hasResourceProperties('Custom::LogRetention', {
     RetentionInDays: 3,
     LogGroupName: '/renderfarm/workerFleet',
-  }));
-  expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-  expect(fleet.node.metadataEntry[0].data).toMatch('being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
-  expect(fleet.node.metadataEntry[1].type).toMatch(ArtifactMetadataEntryType.WARN);
-  expect(fleet.node.metadataEntry[1].data).toContain('being created without a health monitor attached to it. This means that the fleet will not automatically scale-in to 0 if the workers are unhealthy');
+  });
+  Annotations.fromStack(wfstack).hasWarning(
+    `/${fleet.node.path}`,
+    Match.stringLikeRegexp('.*being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.'),
+  );
+  Annotations.fromStack(wfstack).hasWarning(
+    `/${fleet.node.path}`,
+    Match.stringLikeRegexp('.*being created without a health monitor attached to it. This means that the fleet will not automatically scale-in to 0 if the workers are unhealthy'),
+  );
 });
 
 test('security group is added to fleet after its creation', () => {
@@ -156,7 +174,7 @@ test('security group is added to fleet after its creation', () => {
   }));
 
   // THEN
-  expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+  Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
     SecurityGroups: [
       {
         'Fn::GetAtt': [
@@ -166,7 +184,7 @@ test('security group is added to fleet after its creation', () => {
       },
       'sg-123456789',
     ],
-  }));
+  });
 });
 
 test('WorkerFleet uses given security group', () => {
@@ -183,11 +201,11 @@ test('WorkerFleet uses given security group', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+  Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
     SecurityGroups: [
       'sg-123456789',
     ],
-  }));
+  });
 });
 
 describe('allowing log listener port', () => {
@@ -204,7 +222,7 @@ describe('allowing log listener port', () => {
     fleet.allowListenerPortFrom(Peer.ipv4('127.0.0.1/24').connections);
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroup', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroup', {
       SecurityGroupEgress: [{ CidrIp: '0.0.0.0/0' }],
       SecurityGroupIngress: [
         {
@@ -215,7 +233,7 @@ describe('allowing log listener port', () => {
           ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + WorkerInstanceFleet['MAX_WORKERS_PER_HOST'],
         },
       ],
-    }));
+    });
   });
 
   test('to CIDR', () => {
@@ -231,7 +249,7 @@ describe('allowing log listener port', () => {
     fleet.allowListenerPortTo(Peer.ipv4('127.0.0.1/24').connections);
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroup', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroup', {
       SecurityGroupEgress: [{ CidrIp: '0.0.0.0/0' }],
       SecurityGroupIngress: [
         {
@@ -242,7 +260,7 @@ describe('allowing log listener port', () => {
           ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + WorkerInstanceFleet['MAX_WORKERS_PER_HOST'],
         },
       ],
-    }));
+    });
   });
 
   test('from SecurityGroup', () => {
@@ -259,12 +277,12 @@ describe('allowing log listener port', () => {
     fleet.allowListenerPortFrom(securityGroup);
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
       FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
       IpProtocol: 'tcp',
       SourceSecurityGroupId: 'sg-123456789',
       ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + WorkerInstanceFleet['MAX_WORKERS_PER_HOST'],
-    }));
+    });
   });
 
   test('to SecurityGroup', () => {
@@ -281,12 +299,12 @@ describe('allowing log listener port', () => {
     fleet.allowListenerPortTo(securityGroup);
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
       FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
       IpProtocol: 'tcp',
       SourceSecurityGroupId: 'sg-123456789',
       ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + WorkerInstanceFleet['MAX_WORKERS_PER_HOST'],
-    }));
+    });
   });
 
   test('from other stack', () => {
@@ -307,12 +325,12 @@ describe('allowing log listener port', () => {
     fleet.allowListenerPortFrom(securityGroup);
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
       FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
       IpProtocol: 'tcp',
       SourceSecurityGroupId: 'sg-123456789',
       ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + WorkerInstanceFleet['MAX_WORKERS_PER_HOST'],
-    }));
+    });
   });
 
   test('to other stack', () => {
@@ -333,12 +351,12 @@ describe('allowing log listener port', () => {
     fleet.allowListenerPortTo(securityGroup);
 
     // THEN
-    expectCDK(otherStack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+    Template.fromStack(otherStack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
       FromPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'],
       IpProtocol: 'tcp',
       SourceSecurityGroupId: 'sg-123456789',
       ToPort: WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT'] + WorkerInstanceFleet['MAX_WORKERS_PER_HOST'],
-    }));
+    });
   });
 });
 
@@ -347,14 +365,31 @@ test('default worker fleet is created correctly with linux image', () => {
   new WorkerInstanceFleet(stack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericLinuxImage({
-      'us-east-1': '123',
+      'us-east-1': 'ami-any',
     }),
     renderQueue,
   });
 
   // THEN
-  expectCDK(stack).to(haveResource('AWS::AutoScaling::AutoScalingGroup'));
-  expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration'));
+  // 3 = repository + renderqueue + worker fleet
+  Template.fromStack(stack).resourceCountIs('AWS::AutoScaling::AutoScalingGroup', 3);
+  Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
+    InstanceType: 't2.large',
+    IamInstanceProfile: {
+      Ref: Match.stringLikeRegexp('^workerFleetInstanceProfile.*'),
+    },
+    ImageId: 'ami-any',
+    SecurityGroups: [
+      {
+        'Fn::GetAtt': [
+          Match.stringLikeRegexp('^workerFleetInstanceSecurityGroup.*'),
+          'GroupId',
+        ],
+      },
+    ],
+    spotPrice: Match.absent(),
+  });
+
 });
 
 test('default worker fleet is created correctly with spot config', () => {
@@ -369,10 +404,10 @@ test('default worker fleet is created correctly with spot config', () => {
   });
 
   // THEN
-  expectCDK(wfstack).to(haveResource('AWS::AutoScaling::AutoScalingGroup'));
-  expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+  Template.fromStack(wfstack).resourceCountIs('AWS::AutoScaling::AutoScalingGroup', 1);
+  Template.fromStack(wfstack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
     SpotPrice: '2.5',
-  }));
+  });
 });
 
 test('default worker fleet is not created with incorrect spot config', () => {
@@ -413,9 +448,9 @@ test('default worker fleet is created correctly custom Instance type', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+  Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
     InstanceType: 't2.medium',
-  }));
+  });
 });
 
 test.each([
@@ -437,19 +472,38 @@ test.each([
     },
   });
 
-  expectCDK(stack).to(haveResource('Custom::LogRetention', {
+  Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
     RetentionInDays: 3,
     LogGroupName: testPrefix + id,
-  }));
+  });
 });
 
-test('default worker fleet is created correctly custom subnet values', () => {
+test('worker fleet uses given UserData', () => {
+  // GIVEN
+  const id  = 'workerFleet';
+  const userData = UserData.forLinux();
+
+  // WHEN
+  const workerFleet = new WorkerInstanceFleet(stack, id, {
+    vpc,
+    workerMachineImage: new GenericLinuxImage({
+      'us-east-1': '123',
+    }),
+    renderQueue,
+    userData,
+  });
+
+  // THEN
+  expect(workerFleet.fleet.userData).toBe(userData);
+});
+
+test('default linux worker fleet is created correctly custom subnet values', () => {
   vpc = new Vpc(stack, 'VPC1Az', {
     maxAzs: 1,
   });
 
   // WHEN
-  const workers = new WorkerInstanceFleet(stack, 'workerFleet', {
+  new WorkerInstanceFleet(stack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericLinuxImage({
       'us-east-1': '123',
@@ -465,480 +519,148 @@ test('default worker fleet is created correctly custom subnet values', () => {
   });
 
   // THEN
-  expectCDK(stack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+  Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::AutoScalingGroup', {
     VPCZoneIdentifier: [{
       Ref: 'VPC1AzPublicSubnet1Subnet9649CC17',
     }],
-  }));
-  const userData = stack.resolve(workers.fleet.userData.render());
-  expect(userData).toStrictEqual({
-    'Fn::Join': [
-      '',
-      [
-        '#!/bin/bash\nfunction exitTrap(){\nexitCode=$?\n/opt/aws/bin/cfn-signal --stack infraStack --resource workerFleetASG25520D69 --region us-east-1 -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n}\ntrap exitTrap EXIT\nmkdir -p $(dirname \'/tmp/',
-        {
-          'Fn::Select': [
-            0,
+  });
+  Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
+    InstanceType: 't2.medium',
+    IamInstanceProfile: {
+      Ref: Match.stringLikeRegexp('workerFleetInstanceProfile.*'),
+    },
+    UserData: {
+      'Fn::Base64': {
+        'Fn::Join': [
+          '',
+          [
+            '#!/bin/bash\n' +
+            'function exitTrap(){\nexitCode=$?\n/opt/aws/bin/cfn-signal --stack infraStack --resource workerFleetASG25520D69 --region us-east-1 -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n}\n' +
+            'trap exitTrap EXIT\n' +
+            `mkdir -p $(dirname '/tmp/${CWA_ASSET_LINUX.Key}.sh')\naws s3 cp 's3://`,
             {
-              'Fn::Split': [
-                '||',
-                { Ref: CWA_ASSET_LINUX.Key },
+              'Fn::Sub': CWA_ASSET_LINUX.Bucket.replace('${AWS::Region}', 'us-east-1'),
+            },
+            `/${CWA_ASSET_LINUX.Key}.sh' '/tmp/${CWA_ASSET_LINUX.Key}.sh'\n` +
+            `set -e\nchmod +x '/tmp/${CWA_ASSET_LINUX.Key}.sh'\n'/tmp/${CWA_ASSET_LINUX.Key}.sh' -i us-east-1 `,
+            {
+              Ref: Match.stringLikeRegexp('^workerFleetStringParameter.*'),
+            },
+            `\nmkdir -p $(dirname '/tmp/${RQ_CONNECTION_ASSET.Key}.py')\naws s3 cp 's3://`,
+            {
+              'Fn::Sub': RQ_CONNECTION_ASSET.Bucket.replace('${AWS::Region}', 'us-east-1'),
+            },
+            `/${RQ_CONNECTION_ASSET.Key}.py' '/tmp/${RQ_CONNECTION_ASSET.Key}.py'\n` +
+            'if [ -f "/etc/profile.d/deadlineclient.sh" ]; then\n  source "/etc/profile.d/deadlineclient.sh"\nfi\n' +
+            `"\${DEADLINE_PATH}/deadlinecommand" -executeScriptNoGui "/tmp/${RQ_CONNECTION_ASSET.Key}.py" --render-queue "http://`,
+            {
+              'Fn::GetAtt': [
+                'RQLB3B7B1CBC',
+                'DNSName',
               ],
             },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
+            `:8080" \nrm -f "/tmp/${RQ_CONNECTION_ASSET.Key}.py"` +
+            `\nmkdir -p $(dirname '/tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py')\naws s3 cp 's3://`,
             {
-              'Fn::Split': [
-                '||',
-                { Ref: CWA_ASSET_LINUX.Key },
+              'Fn::Sub': CONFIG_WORKER_PORT_ASSET_LINUX.Bucket.replace('${AWS::Region}', 'us-east-1'),
+            },
+            `/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py' '/tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py'\n` +
+            `mkdir -p $(dirname '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh')\naws s3 cp 's3://`,
+            {
+              'Fn::Sub': CONFIG_WORKER_ASSET_LINUX.Bucket.replace('${AWS::Region}', 'us-east-1'),
+            },
+            `/${CONFIG_WORKER_ASSET_LINUX.Key}.sh' '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh'\n` +
+            'set -e\n' +
+            `chmod +x '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh'\n` +
+            `'/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} /tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py`,
+          ],
+        ],
+      },
+    },
+  });
+});
+
+test('default windows worker fleet is created correctly custom subnet values', () => {
+  vpc = new Vpc(stack, 'VPC1Az', {
+    maxAzs: 1,
+  });
+
+  // WHEN
+  new WorkerInstanceFleet(stack, 'workerFleet', {
+    vpc,
+    workerMachineImage: new GenericWindowsImage({
+      'us-east-1': '123',
+    }),
+    renderQueue,
+    instanceType: InstanceType.of(InstanceClass.T2, InstanceSize.MEDIUM),
+    vpcSubnets: {
+      subnetType: SubnetType.PUBLIC,
+    },
+    healthCheckConfig: {
+      port: 6161,
+    },
+  });
+
+  // THEN
+  Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::AutoScalingGroup', {
+    VPCZoneIdentifier: [{
+      Ref: 'VPC1AzPublicSubnet1Subnet9649CC17',
+    }],
+  });
+  Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
+    InstanceType: 't2.medium',
+    IamInstanceProfile: {
+      Ref: Match.stringLikeRegexp('workerFleetInstanceProfile.*'),
+    },
+    UserData: {
+      'Fn::Base64': {
+        'Fn::Join': [
+          '',
+          [
+            '<powershell>trap {\n$success=($PSItem.Exception.Message -eq "Success")\n' +
+            'cfn-signal --stack infraStack --resource workerFleetASG25520D69 --region us-east-1 --success ($success.ToString().ToLower())\nbreak\n}\n' +
+            `mkdir (Split-Path -Path 'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
+            {
+              'Fn::Sub': CWA_ASSET_WINDOWS.Bucket.replace('${AWS::Region}', 'us-east-1'),
+            },
+            `' -key '${CWA_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n&'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' -i us-east-1 `,
+            {
+              Ref: Match.stringLikeRegexp('^workerFleetStringParameter.*'),
+            },
+            `\nif (!$?) { Write-Error 'Failed to execute the file \"C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1\"' -ErrorAction Stop }\n` +
+            `mkdir (Split-Path -Path 'C:/temp/${RQ_CONNECTION_ASSET.Key}.py' ) -ea 0\nRead-S3Object -BucketName '`,
+            {
+              'Fn::Sub': RQ_CONNECTION_ASSET.Bucket.replace('${AWS::Region}', 'us-east-1'),
+            },
+            `' -key '${RQ_CONNECTION_ASSET.Key}.py' -file 'C:/temp/${RQ_CONNECTION_ASSET.Key}.py' -ErrorAction Stop\n` +
+            '$ErrorActionPreference = "Stop"\n' +
+            '$DEADLINE_PATH = (get-item env:"DEADLINE_PATH").Value\n' +
+            `& "$DEADLINE_PATH/deadlinecommand.exe" -executeScriptNoGui "C:/temp/${RQ_CONNECTION_ASSET.Key}.py" --render-queue "http://`,
+            {
+              'Fn::GetAtt': [
+                'RQLB3B7B1CBC',
+                'DNSName',
               ],
             },
-          ],
-        },
-        "\')\naws s3 cp 's3://",
-        { Ref: CWA_ASSET_LINUX.Bucket },
-        '/',
-        {
-          'Fn::Select': [
-            0,
+            ':8080"  2>&1\n' +
+            `Remove-Item -Path "C:/temp/${RQ_CONNECTION_ASSET.Key}.py"\n` +
+            `mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' ) -ea 0\nRead-S3Object -BucketName '`,
             {
-              'Fn::Split': [
-                '||',
-                { Ref: CWA_ASSET_LINUX.Key },
-              ],
+              'Fn::Sub': CONFIG_WORKER_ASSET_WINDOWS.Bucket.replace('${AWS::Region}', 'us-east-1'),
             },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
+            `' -key '${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -file 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -ErrorAction Stop\n` +
+            `mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
             {
-              'Fn::Split': [
-                '||',
-                { Ref: CWA_ASSET_LINUX.Key },
-              ],
+              'Fn::Sub': CONFIG_WORKER_PORT_ASSET_WINDOWS.Bucket.replace('${AWS::Region}', 'us-east-1'),
             },
+            `' -key '${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n` +
+            `&'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py\n` +
+            `if (!$?) { Write-Error 'Failed to execute the file \"C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1\"' -ErrorAction Stop }\n` +
+            'throw \"Success\"</powershell>',
           ],
-        },
-        "' '/tmp/",
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CWA_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CWA_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        '\'\n' +
-        'set -e\n' +
-        'chmod +x \'/tmp/',
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CWA_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CWA_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        '\'\n\'/tmp/',
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CWA_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CWA_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        '\' -i us-east-1 ',
-        {Ref: 'workerFleetStringParameterDB3717DA'},
-        '\nmkdir -p $(dirname \'/tmp/',
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: RQ_CONNECTION_ASSET.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: RQ_CONNECTION_ASSET.Key },
-              ],
-            },
-          ],
-        },
-        '\')\naws s3 cp \'s3://',
-        { Ref: RQ_CONNECTION_ASSET.Bucket },
-        '/',
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: RQ_CONNECTION_ASSET.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: RQ_CONNECTION_ASSET.Key },
-              ],
-            },
-          ],
-        },
-        "' '/tmp/",
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: RQ_CONNECTION_ASSET.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: RQ_CONNECTION_ASSET.Key },
-              ],
-            },
-          ],
-        },
-        '\'\n' +
-        'if [ -f \"/etc/profile.d/deadlineclient.sh\" ]; then\n' +
-        '  source \"/etc/profile.d/deadlineclient.sh\"\n' +
-        'fi\n' +
-        '"${DEADLINE_PATH}/deadlinecommand" -executeScriptNoGui "/tmp/',
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: RQ_CONNECTION_ASSET.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: RQ_CONNECTION_ASSET.Key },
-              ],
-            },
-          ],
-        },
-        '" --render-queue "http://',
-        {
-          'Fn::GetAtt': [
-            'RQLB3B7B1CBC',
-            'DNSName',
-          ],
-        },
-        ':8080" \n' +
-        'rm -f "/tmp/',
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: RQ_CONNECTION_ASSET.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: RQ_CONNECTION_ASSET.Key },
-              ],
-            },
-          ],
-        },
-        '\"\n' +
-        "mkdir -p $(dirname '/tmp/",
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
-              ],
-            },
-          ],
-        },
-        '\')\naws s3 cp \'s3://',
-        { Ref: CONFIG_WORKER_ASSET_WINDOWS.Bucket },
-        '/',
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
-              ],
-            },
-          ],
-        },
-        '\' \'/tmp/',
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
-              ],
-            },
-          ],
-        },
-        "'\nmkdir -p $(dirname '/tmp/",
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        "')\naws s3 cp 's3://",
-        { Ref: CONFIG_WORKER_ASSET_LINUX.Bucket },
-        '/',
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        "' '/tmp/",
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        "'\nset -e\nchmod +x '/tmp/",
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        "'\n'/tmp/",
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_LINUX.Key },
-              ],
-            },
-          ],
-        },
-        `' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} /tmp/`,
-        {
-          'Fn::Select': [
-            0,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
-              ],
-            },
-          ],
-        },
-        {
-          'Fn::Select': [
-            1,
-            {
-              'Fn::Split': [
-                '||',
-                { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
-              ],
-            },
-          ],
-        },
-      ],
-    ],
+        ],
+      },
+    },
   });
 });
 
@@ -948,7 +670,7 @@ test('default worker fleet is created correctly with groups, pools and region', 
   });
 
   // WHEN
-  const workers = new WorkerInstanceFleet(stack, 'workerFleet', {
+  new WorkerInstanceFleet(stack, 'workerFleet', {
     vpc,
     workerMachineImage: new GenericLinuxImage({
       'us-east-1': '123',
@@ -958,486 +680,65 @@ test('default worker fleet is created correctly with groups, pools and region', 
     vpcSubnets: {
       subnetType: SubnetType.PUBLIC,
     },
-    groups: ['A', 'B'],
-    pools: ['C', 'D'],
+    groups: ['A', 'B'], // We want to make sure that these are converted to lowercase
+    pools: ['C', 'D'], // We want to make sure that these are converted to lowercase
     region: 'E',
   });
 
   // THEN
-  const userData = stack.resolve(workers.fleet.userData.render());
-  expect(userData).toStrictEqual({
-    'Fn::Join': ['', [
-      '#!/bin/bash\nfunction exitTrap(){\nexitCode=$?\n/opt/aws/bin/cfn-signal --stack infraStack --resource workerFleetASG25520D69 --region us-east-1 -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n}\ntrap exitTrap EXIT\nmkdir -p $(dirname \'/tmp/',
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CWA_ASSET_LINUX.Key},
-            ],
-          },
+  Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
+    InstanceType: 't2.medium',
+    IamInstanceProfile: {
+      Ref: Match.stringLikeRegexp('workerFleetInstanceProfile.*'),
+    },
+    UserData: {
+      'Fn::Base64': {
+        'Fn::Join': [
+          '',
+          [
+            '#!/bin/bash\n' +
+            'function exitTrap(){\nexitCode=$?\n/opt/aws/bin/cfn-signal --stack infraStack --resource workerFleetASG25520D69 --region us-east-1 -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n}\n' +
+            'trap exitTrap EXIT\n' +
+            `mkdir -p $(dirname '/tmp/${CWA_ASSET_LINUX.Key}.sh')\naws s3 cp 's3://`,
+            {
+              'Fn::Sub': CWA_ASSET_LINUX.Bucket.replace('${AWS::Region}', 'us-east-1'),
+            },
+            `/${CWA_ASSET_LINUX.Key}.sh' '/tmp/${CWA_ASSET_LINUX.Key}.sh'\n` +
+            `set -e\nchmod +x '/tmp/${CWA_ASSET_LINUX.Key}.sh'\n'/tmp/${CWA_ASSET_LINUX.Key}.sh' -i us-east-1 `,
+            {
+              Ref: Match.stringLikeRegexp('^workerFleetStringParameter.*'),
+            },
+            `\nmkdir -p $(dirname '/tmp/${RQ_CONNECTION_ASSET.Key}.py')\naws s3 cp 's3://`,
+            {
+              'Fn::Sub': RQ_CONNECTION_ASSET.Bucket.replace('${AWS::Region}', 'us-east-1'),
+            },
+            `/${RQ_CONNECTION_ASSET.Key}.py' '/tmp/${RQ_CONNECTION_ASSET.Key}.py'\n` +
+            'if [ -f "/etc/profile.d/deadlineclient.sh" ]; then\n  source "/etc/profile.d/deadlineclient.sh"\nfi\n' +
+            `"\${DEADLINE_PATH}/deadlinecommand" -executeScriptNoGui "/tmp/${RQ_CONNECTION_ASSET.Key}.py" --render-queue "http://`,
+            {
+              'Fn::GetAtt': [
+                'RQLB3B7B1CBC',
+                'DNSName',
+              ],
+            },
+            `:8080" \nrm -f "/tmp/${RQ_CONNECTION_ASSET.Key}.py"` +
+            `\nmkdir -p $(dirname '/tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py')\naws s3 cp 's3://`,
+            {
+              'Fn::Sub': CONFIG_WORKER_PORT_ASSET_LINUX.Bucket.replace('${AWS::Region}', 'us-east-1'),
+            },
+            `/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py' '/tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py'\n` +
+            `mkdir -p $(dirname '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh')\naws s3 cp 's3://`,
+            {
+              'Fn::Sub': CONFIG_WORKER_ASSET_LINUX.Bucket.replace('${AWS::Region}', 'us-east-1'),
+            },
+            `/${CONFIG_WORKER_ASSET_LINUX.Key}.sh' '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh'\n` +
+            'set -e\n' +
+            `chmod +x '/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh'\n` +
+            `'/tmp/${CONFIG_WORKER_ASSET_LINUX.Key}.sh' 'a,b' 'c,d' 'E' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} /tmp/${CONFIG_WORKER_PORT_ASSET_LINUX.Key}.py`,
+          ],
         ],
       },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CWA_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      '\')\naws s3 cp \'s3://',
-      {Ref: CWA_ASSET_LINUX.Bucket},
-      '/',
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CWA_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CWA_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      "' '/tmp/",
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CWA_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CWA_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      "'\nset -e\nchmod +x '/tmp/",
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CWA_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CWA_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      "'\n'/tmp/",
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CWA_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CWA_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      "' -i us-east-1 ",
-      {Ref: 'workerFleetStringParameterDB3717DA'},
-      '\nmkdir -p $(dirname \'/tmp/',
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: RQ_CONNECTION_ASSET.Key},
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: RQ_CONNECTION_ASSET.Key},
-            ],
-          },
-        ],
-      },
-      '\')\naws s3 cp \'s3://',
-      {Ref: RQ_CONNECTION_ASSET.Bucket},
-      '/',
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: RQ_CONNECTION_ASSET.Key},
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: RQ_CONNECTION_ASSET.Key},
-            ],
-          },
-        ],
-      },
-      "' '/tmp/",
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: RQ_CONNECTION_ASSET.Key},
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: RQ_CONNECTION_ASSET.Key},
-            ],
-          },
-        ],
-      },
-      '\'\n' +
-      'if [ -f \"/etc/profile.d/deadlineclient.sh\" ]; then\n' +
-      '  source \"/etc/profile.d/deadlineclient.sh\"\n' +
-      'fi\n' +
-      '"${DEADLINE_PATH}/deadlinecommand" -executeScriptNoGui "/tmp/',
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: RQ_CONNECTION_ASSET.Key},
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: RQ_CONNECTION_ASSET.Key},
-            ],
-          },
-        ],
-      },
-      '" --render-queue "http://',
-      {
-        'Fn::GetAtt': [
-          'RQLB3B7B1CBC',
-          'DNSName',
-        ],
-      },
-      ':8080" \n' +
-      'rm -f "/tmp/',
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: RQ_CONNECTION_ASSET.Key},
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: RQ_CONNECTION_ASSET.Key},
-            ],
-          },
-        ],
-      },
-      '\"\n' +
-      "mkdir -p $(dirname '/tmp/",
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {
-                Ref: CONFIG_WORKER_ASSET_WINDOWS.Key,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {
-                Ref: CONFIG_WORKER_ASSET_WINDOWS.Key,
-              },
-            ],
-          },
-        ],
-      },
-      "')\naws s3 cp 's3://",
-      {
-        Ref: CONFIG_WORKER_ASSET_WINDOWS.Bucket,
-      },
-      '/',
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
-            ],
-          },
-        ],
-      },
-      "' '/tmp/",
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              { Ref: CONFIG_WORKER_ASSET_WINDOWS.Key },
-            ],
-          },
-        ],
-      },
-      "'\nmkdir -p $(dirname '/tmp/",
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      "')\naws s3 cp 's3://",
-      {Ref: CONFIG_WORKER_ASSET_LINUX.Bucket},
-      '/',
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      "' '/tmp/",
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      "'\nset -e\nchmod +x '/tmp/",
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      "'\n'/tmp/",
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {Ref: CONFIG_WORKER_ASSET_LINUX.Key},
-            ],
-          },
-        ],
-      },
-      `' 'a,b' 'c,d' 'E' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} /tmp/`,
-      {
-        'Fn::Select': [
-          0,
-          {
-            'Fn::Split': [
-              '||',
-              {
-                Ref: CONFIG_WORKER_ASSET_WINDOWS.Key,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        'Fn::Select': [
-          1,
-          {
-            'Fn::Split': [
-              '||',
-              {
-                Ref: CONFIG_WORKER_ASSET_WINDOWS.Key,
-              },
-            ],
-          },
-        ],
-      },
-    ]],
+    },
   });
 });
 
@@ -1585,8 +886,10 @@ describe('Block Device Tests', () => {
       renderQueue,
       healthMonitor,
     });
-    expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-    expect(fleet.node.metadataEntry[0].data).toMatch('being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.');
+    Annotations.fromStack(wfstack).hasWarning(
+      `/${fleet.node.path}`,
+      Match.stringLikeRegexp('.*being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.'),
+    );
   });
 
   test('No Warnings if Encrypted BlockDevices Provided', () => {
@@ -1607,7 +910,7 @@ describe('Block Device Tests', () => {
     });
 
     //THEN
-    expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+    Template.fromStack(wfstack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
       BlockDeviceMappings: [
         {
           Ebs: {
@@ -1616,9 +919,11 @@ describe('Block Device Tests', () => {
           },
         },
       ],
-    }));
+    });
 
-    expect(fleet.node.metadataEntry).toHaveLength(0);
+    Annotations.fromStack(wfstack).hasNoInfo(`/${fleet.node.path}`, Match.anyValue());
+    Annotations.fromStack(wfstack).hasNoWarning(`/${fleet.node.path}`, Match.anyValue());
+    Annotations.fromStack(wfstack).hasNoError(`/${fleet.node.path}`, Match.anyValue());
   });
 
   test('Warnings if non-Encrypted BlockDevices Provided', () => {
@@ -1640,7 +945,7 @@ describe('Block Device Tests', () => {
     });
 
     //THEN
-    expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+    Template.fromStack(wfstack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
       BlockDeviceMappings: [
         {
           Ebs: {
@@ -1649,10 +954,12 @@ describe('Block Device Tests', () => {
           },
         },
       ],
-    }));
+    });
 
-    expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-    expect(fleet.node.metadataEntry[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the worker-fleet workerFleet is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
+    Annotations.fromStack(wfstack).hasWarning(
+      `/${fleet.node.path}`,
+      Match.stringLikeRegexp(`The BlockDevice \"${DEVICE_NAME}\" on the worker-fleet workerFleet is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`),
+    );
   });
 
   test('Warnings for BlockDevices without encryption specified', () => {
@@ -1674,7 +981,7 @@ describe('Block Device Tests', () => {
     });
 
     //THEN
-    expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+    Template.fromStack(wfstack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
       BlockDeviceMappings: [
         {
           Ebs: {
@@ -1682,10 +989,12 @@ describe('Block Device Tests', () => {
           },
         },
       ],
-    }));
+    });
 
-    expect(fleet.node.metadataEntry[0].type).toMatch(ArtifactMetadataEntryType.WARN);
-    expect(fleet.node.metadataEntry[0].data).toMatch(`The BlockDevice \"${DEVICE_NAME}\" on the worker-fleet workerFleet is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`);
+    Annotations.fromStack(wfstack).hasWarning(
+      `/${fleet.node.path}`,
+      Match.stringLikeRegexp(`The BlockDevice \"${DEVICE_NAME}\" on the worker-fleet workerFleet is not encrypted. Workers can have access to sensitive data so it is recommended to encrypt the devices on the worker fleet.`),
+    );
   });
 
   test('No warnings for Ephemeral blockDeviceVolumes', () => {
@@ -1706,16 +1015,18 @@ describe('Block Device Tests', () => {
     });
 
     //THEN
-    expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+    Template.fromStack(wfstack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
       BlockDeviceMappings: [
         {
           DeviceName: DEVICE_NAME,
           VirtualName: 'ephemeral0',
         },
       ],
-    }));
+    });
 
-    expect(fleet.node.metadataEntry).toHaveLength(0);
+    Annotations.fromStack(wfstack).hasNoInfo(`/${fleet.node.path}`, Match.anyValue());
+    Annotations.fromStack(wfstack).hasNoWarning(`/${fleet.node.path}`, Match.anyValue());
+    Annotations.fromStack(wfstack).hasNoError(`/${fleet.node.path}`, Match.anyValue());
   });
 
   test('No warnings for Suppressed blockDeviceVolumes', () => {
@@ -1736,15 +1047,17 @@ describe('Block Device Tests', () => {
     });
 
     //THEN
-    expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+    Template.fromStack(wfstack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
       BlockDeviceMappings: [
         {
           DeviceName: DEVICE_NAME,
         },
       ],
-    }));
+    });
 
-    expect(fleet.node.metadataEntry).toHaveLength(0);
+    Annotations.fromStack(wfstack).hasNoInfo(`/${fleet.node.path}`, Match.anyValue());
+    Annotations.fromStack(wfstack).hasNoWarning(`/${fleet.node.path}`, Match.anyValue());
+    Annotations.fromStack(wfstack).hasNoError(`/${fleet.node.path}`, Match.anyValue());
   });
 });
 
@@ -1772,18 +1085,18 @@ describe('HealthMonitor Tests', () => {
 
     // THEN
     // Ensure the configuration script is executed with the expected arguments.
-    expect(userData).toMatch(new RegExp(escapeTokenRegex('&\'C:/temp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\' \'63415\' \'10.1.9.2\'')));
+    expect(userData).toContain(`&'C:/temp/${CONFIG_WORKER_HEALTHCHECK_WINDOWS.Key}.ps1' '63415' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}'`);
     // Ensure that the health monitor target group has been set up.
     //  Note: It's sufficient to just check for any resource created by the HealthMonitor registration.
     //   The HealthMonitor tests cover ensuring that all of the resources are set up.
-    expectCDK(wfstack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
+    Template.fromStack(wfstack).hasResourceProperties('AWS::ElasticLoadBalancingV2::TargetGroup', {
       HealthCheckIntervalSeconds: 300,
       HealthCheckPort: '63415',
       HealthCheckProtocol: 'HTTP',
       Port: 8081,
       Protocol: 'HTTP',
       TargetType: 'instance',
-    }));
+    });
   });
 
   test('Monitor is configured for Linux', () => {
@@ -1800,18 +1113,18 @@ describe('HealthMonitor Tests', () => {
 
     // THEN
     // Ensure the configuration script is executed with the expected arguments.
-    expect(userData).toMatch(new RegExp(escapeTokenRegex('\'/tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\' \'63415\' \'10.1.9.2\'')));
+    expect(userData).toContain(`'/tmp/${CONFIG_WORKER_HEALTHCHECK_LINUX.Key}.sh' '63415' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}'`);
     // Ensure that the health monitor target group has been set up.
     //  Note: It's sufficient to just check for any resource created by the HealthMonitor registration.
     //   The HealthMonitor tests cover ensuring that all of the resources are set up.
-    expectCDK(wfstack).to(haveResourceLike('AWS::ElasticLoadBalancingV2::TargetGroup', {
+    Template.fromStack(wfstack).hasResourceProperties('AWS::ElasticLoadBalancingV2::TargetGroup', {
       HealthCheckIntervalSeconds: 300,
       HealthCheckPort: '63415',
       HealthCheckProtocol: 'HTTP',
       Port: 8081,
       Protocol: 'HTTP',
       TargetType: 'instance',
-    }));
+    });
   });
 
   test('UserData is added', () => {
@@ -1906,15 +1219,22 @@ test('worker fleet signals when non-zero minCapacity', () => {
 
   // THEN
   expect(userData).toContain('cfn-signal');
-  expectCDK(wfstack).to(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
+  Template.fromStack(wfstack).hasResource('AWS::AutoScaling::AutoScalingGroup', {
     CreationPolicy: {
       ResourceSignal: {
         Count: 1,
       },
     },
-  }, ResourcePart.CompleteDefinition));
-  // [0] = warning about block devices. [1] = warning about no health monitor
-  expect(fleet.node.metadataEntry).toHaveLength(2);
+  });
+  Annotations.fromStack(wfstack).hasWarning(
+    `/${fleet.node.path}`,
+    Match.stringLikeRegexp('.*being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.'),
+  );
+  Annotations.fromStack(wfstack).hasWarning(
+    `/${fleet.node.path}`,
+    Match.stringLikeRegexp('.*being created without a health monitor attached to it. This means that the fleet will not automatically scale-in to 0 if the workers are unhealthy'),
+  );
+
 });
 
 test('worker fleet does not signal when zero minCapacity', () => {
@@ -1935,14 +1255,21 @@ test('worker fleet does not signal when zero minCapacity', () => {
   // There should be no cfn-signal call in the UserData.
   expect(userData).not.toContain('cfn-signal');
   // Make sure we don't have a CreationPolicy
-  expectCDK(wfstack).notTo(haveResourceLike('AWS::AutoScaling::AutoScalingGroup', {
-    CreationPolicy: objectLike({}),
-  }, ResourcePart.CompleteDefinition));
-  // There should be a warning in the construct's metadata about deploying with no capacity.
-  expect(fleet.node.metadataEntry).toHaveLength(3);
-  // [0] = warning about block devices. [2] = warning about no health monitor
-  expect(fleet.node.metadataEntry[1].type).toMatch(ArtifactMetadataEntryType.WARN);
-  expect(fleet.node.metadataEntry[1].data).toMatch(/Deploying with 0 minimum capacity./);
+  resourcePropertiesCountIs(wfstack, 'AWS::AutoScaling::AutoScalingGroup', {
+    CreationPolicy: Match.anyValue(),
+  }, 0);
+  Annotations.fromStack(wfstack).hasWarning(
+    `/${fleet.node.path}`,
+    Match.stringLikeRegexp('.*Deploying with 0 minimum capacity\..*'),
+  );
+  Annotations.fromStack(wfstack).hasWarning(
+    `/${fleet.node.path}`,
+    Match.stringLikeRegexp('.*being created without being provided any block devices so the Source AMI\'s devices will be used. Workers can have access to sensitive data so it is recommended to either explicitly encrypt the devices on the worker fleet or to ensure the source AMI\'s Drives are encrypted.'),
+  );
+  Annotations.fromStack(wfstack).hasWarning(
+    `/${fleet.node.path}`,
+    Match.stringLikeRegexp('.*being created without a health monitor attached to it. This means that the fleet will not automatically scale-in to 0 if the workers are unhealthy'),
+  );
 });
 
 describe('secrets management enabled', () => {
@@ -1977,10 +1304,10 @@ describe('secrets management enabled', () => {
     const workerInstanceFleet = new WorkerInstanceFleet(wfstack, 'WorkerInstanceFleet', props);
 
     // THEN
-    expect(workerInstanceFleet.node.metadataEntry).toContainEqual(expect.objectContaining({
-      type: 'aws:cdk:warning',
-      data: 'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
-    }));
+    Annotations.fromStack(wfstack).hasWarning(
+      `/${workerInstanceFleet.node.path}`,
+      'Deadline Secrets Management is enabled on the Repository and VPC subnets have not been supplied. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components',
+    );
   });
 
   test('vpc subnets specified => does not emit dedicated subnets warning', () => {
@@ -1993,9 +1320,9 @@ describe('secrets management enabled', () => {
     });
 
     // THEN
-    expect(workerInstanceFleet.node.metadataEntry).not.toContainEqual(expect.objectContaining({
-      type: 'aws:cdk:warning',
-      data: expect.stringMatching(/dedicated subnet/i),
-    }));
+    Annotations.fromStack(wfstack).hasNoWarning(
+      `/${workerInstanceFleet.node.path}`,
+      Match.stringLikeRegexp('.*dedicated subnet.*'),
+    );
   });
 });

@@ -4,19 +4,20 @@
  */
 
 import {
-  anything,
-  expect as expectCDK,
-  haveResource,
-  haveResourceLike,
-  InspectionFailure,
-} from '@aws-cdk/assert';
+  Lazy,
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Annotations,
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   Role,
   ServicePrincipal,
-} from '@aws-cdk/aws-iam';
-import { Key } from '@aws-cdk/aws-kms';
-import { CfnSecret } from '@aws-cdk/aws-secretsmanager';
-import { Stack } from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-iam';
+import { Key } from 'aws-cdk-lib/aws-kms';
+import { CfnSecret } from 'aws-cdk-lib/aws-secretsmanager';
 
 import {
   X509CertificatePem,
@@ -31,33 +32,32 @@ test('Generate cert', () => {
   const cert = new X509CertificatePem(stack, 'Cert', {
     subject,
   });
-  const certPassphraseID = stack.getLogicalId(cert.passphrase.node.defaultChild as CfnSecret);
 
   // Expect the custom resource for cert generation
-  expectCDK(stack).to(haveResourceLike('Custom::RFDK_X509Generator', {
+  Template.fromStack(stack).hasResourceProperties('Custom::RFDK_X509Generator', {
     DistinguishedName: {
       CN: 'testCN',
       O: 'AWS',
       OU: 'Thinkbox',
     },
-  }));
+  });
   // Cannot have a CertificateValidFor property if not given one. Adding one
   // would cause existing certificates to be re-generated on re-deploy, and thus
   // risk breaking customer's setups.
-  expectCDK(stack).notTo(haveResourceLike('Custom::RFDK_X509Generator', {
-    CertificateValidFor: anything(),
+  Template.fromStack(stack).hasResourceProperties('Custom::RFDK_X509Generator', Match.not({
+    CertificateValidFor: Match.anyValue(),
   }));
   // Expect the resource for converting to PKCS #12 not to be created
-  expectCDK(stack).notTo(haveResource('Custom::RFDK_X509_PKCS12'));
+  Template.fromStack(stack).resourceCountIs('Custom::RFDK_X509_PKCS12', 0);
   // Expect the DynamoDB table used for custom resource tracking
-  expectCDK(stack).to(haveResource('AWS::DynamoDB::Table'));
-  // Expect a Secret used to store the cert
-  expectCDK(stack).to(haveResource('AWS::SecretsManager::Secret'));
+  Template.fromStack(stack).resourceCountIs('AWS::DynamoDB::Table', 1);
+  // Expect a Secret used to store the cert passphrase
+  Template.fromStack(stack).resourceCountIs('AWS::SecretsManager::Secret', 1);
   // Expect a policy that can interact with DynamoDB and SecretsManager
-  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
     PolicyDocument: {
-      Statement: [
-        {
+      Statement: Match.arrayWith([
+        Match.objectLike({
           Action: [
             'dynamodb:BatchGetItem',
             'dynamodb:GetRecords',
@@ -70,21 +70,22 @@ test('Generate cert', () => {
             'dynamodb:PutItem',
             'dynamodb:UpdateItem',
             'dynamodb:DeleteItem',
+            'dynamodb:DescribeTable',
           ],
-        },
-        {
+        }),
+        Match.objectLike({
           Action: 'dynamodb:DescribeTable',
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'secretsmanager:GetSecretValue',
             'secretsmanager:DescribeSecret',
           ],
           Resource: {
-            Ref: certPassphraseID,
+            Ref: Match.stringLikeRegexp('^CertPassphrase.*'),
           },
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'secretsmanager:CreateSecret',
             'secretsmanager:DeleteSecret',
@@ -96,43 +97,31 @@ test('Generate cert', () => {
               'secretsmanager:ResourceTag/X509SecretGrant-F53F5427': 'f53f5427b2e9eb4739661fcc0b249b6e',
             },
           },
-        },
-      ],
+        }),
+      ]),
     },
-  }));
+  });
   // Expect no KMS key for encryption
-  expectCDK(stack).notTo(haveResource('AWS::KMS::Key'));
+  Template.fromStack(stack).resourceCountIs('AWS::KMS::Key', 0);
   // Expect Lambda for doing the cert generation to use the generate() handler and openssl layer
-  expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function', (props: any, error: InspectionFailure): boolean => {
-    if (!props.Handler || props.Handler !== 'x509-certificate.generate') {
-      error.failureReason = 'x509-certificate.generate handler not found';
-      error.resource = props.Handler;
-      return false;
-    }
-    // Our test for the correct openssl lambda layer does not include the version, so we use a filter
-    // function to do a partial match
-    const filterOpensslArn = (value: string) => {
-      return value.toString().includes('arn:aws:lambda:us-west-2:224375009292:layer:openssl-al2:');
-    };
-    if (!props.Layers
-      || !Array.isArray(props.Layers)
-      || Array.of(props.Layers).filter(filterOpensslArn).length === 0) {
-      error.failureReason = 'openssl Lambda Layer missing';
-      error.resource = props.Layers;
-      return false;
-    }
-    if (!props.Environment
-      || !props.Environment.Variables
-      || !props.Environment.Variables.DATABASE) {
-      error.failureReason = 'DATABASE environment variable not set';
-      error.resource = props.Environment?.Variables?.DATABASE;
-      return false;
-    }
-    return true;
-  }));
+  Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
+    Handler: 'x509-certificate.generate',
+    Layers: Match.arrayWith([
+      Match.stringLikeRegexp('^arn:aws:lambda:us-west-2:224375009292:layer:openssl-al2:.*'),
+    ]),
+    Environment: {
+      Variables: {
+        DATABASE: {
+          Ref: Match.stringLikeRegexp('^CertTable.*'),
+        },
+      },
+    },
+  });
 
   // Should not be any errors.
-  expect(cert.node.metadataEntry.length).toBe(0);
+  Annotations.fromStack(stack).hasNoInfo(`/${cert.node.path}`, Match.anyValue());
+  Annotations.fromStack(stack).hasNoWarning(`/${cert.node.path}`, Match.anyValue());
+  Annotations.fromStack(stack).hasNoError(`/${cert.node.path}`, Match.anyValue());
 });
 
 test('Generate cert, all options set', () => {
@@ -144,19 +133,16 @@ test('Generate cert, all options set', () => {
   };
   const encryptionKey = new Key(stack, 'Key');
   const signingCertificate = new X509CertificatePem(stack, 'SigningCert', { subject });
-  const signingCertPassphraseID = stack.getLogicalId(signingCertificate.passphrase.node.defaultChild as CfnSecret);
 
-  const cert = new X509CertificatePem(stack, 'Cert', {
+  new X509CertificatePem(stack, 'Cert', {
     subject,
     encryptionKey,
     signingCertificate,
     validFor: 3000,
   });
 
-  const certPassphraseID = stack.getLogicalId(cert.passphrase.node.defaultChild as CfnSecret);
-
   // Expect the custom resource for cert generation
-  expectCDK(stack).to(haveResourceLike('Custom::RFDK_X509Generator', {
+  Template.fromStack(stack).hasResourceProperties('Custom::RFDK_X509Generator', {
     DistinguishedName: {
       CN: 'testCN',
       O: 'testO',
@@ -176,25 +162,19 @@ test('Generate cert, all options set', () => {
         ],
       },
       Passphrase: {
-        Ref: signingCertPassphraseID,
+        Ref: Match.stringLikeRegexp('^SigningCertPassphrase.*'),
       },
       CertChain: '',
     },
     CertificateValidFor: '3000',
-  }));
+  });
   // Expect the resource for converting to PKCS #12 not to be created
-  expectCDK(stack).notTo(haveResource('Custom::RFDK_X509_PKCS12'));
-  // Expect the DynamoDB table used for custom resource tracking
-  expectCDK(stack).to(haveResource('AWS::DynamoDB::Table'));
-  // Expect a Secret used to store the cert
-  expectCDK(stack).to(haveResource('AWS::SecretsManager::Secret'));
-  // Expect a KMS key for encryption
-  expectCDK(stack).to(haveResource('AWS::KMS::Key'));
+  Template.fromStack(stack).resourceCountIs('Custom::RFDK_X509_PKCS12', 0);
   // Expect a policy that can interact with DynamoDB and SecretsManager for the signing cert's custom resource
-  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
     PolicyDocument: {
-      Statement: [
-        {
+      Statement: Match.arrayWith([
+        Match.objectLike({
           Action: [
             'dynamodb:BatchGetItem',
             'dynamodb:GetRecords',
@@ -207,28 +187,29 @@ test('Generate cert, all options set', () => {
             'dynamodb:PutItem',
             'dynamodb:UpdateItem',
             'dynamodb:DeleteItem',
+            'dynamodb:DescribeTable',
           ],
-        },
-        {
+        }),
+        Match.objectLike({
           Action: 'dynamodb:DescribeTable',
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'kms:Encrypt',
             'kms:ReEncrypt*',
             'kms:GenerateDataKey*',
           ],
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'secretsmanager:GetSecretValue',
             'secretsmanager:DescribeSecret',
           ],
           Resource: {
-            Ref: certPassphraseID,
+            Ref: Match.stringLikeRegexp('^CertPassphrase.*'),
           },
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'secretsmanager:CreateSecret',
             'secretsmanager:DeleteSecret',
@@ -240,8 +221,8 @@ test('Generate cert, all options set', () => {
               'secretsmanager:ResourceTag/X509SecretGrant-B2B09A60': 'b2b09a6086e87fe14005f4e0b800e4f0',
             },
           },
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'secretsmanager:GetSecretValue',
             'secretsmanager:DescribeSecret',
@@ -252,8 +233,8 @@ test('Generate cert, all options set', () => {
               'Cert',
             ],
           },
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'secretsmanager:GetSecretValue',
             'secretsmanager:DescribeSecret',
@@ -264,8 +245,8 @@ test('Generate cert, all options set', () => {
               'Key',
             ],
           },
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'secretsmanager:GetSecretValue',
             'secretsmanager:DescribeSecret',
@@ -273,15 +254,15 @@ test('Generate cert, all options set', () => {
           Resource: {
             Ref: 'SigningCertPassphrase42F0BC4F',
           },
-        },
-      ],
+        }),
+      ]),
     },
-  }));
+  });
   // Expect a policy that can interact with DynamoDB and SecretsManager for the cert's custom resource
-  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
-    PolicyDocument: {
-      Statement: [
-        {
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
+    PolicyDocument: Match.objectLike({
+      Statement: Match.arrayWith([
+        Match.objectLike({
           Action: [
             'dynamodb:BatchGetItem',
             'dynamodb:GetRecords',
@@ -294,21 +275,22 @@ test('Generate cert, all options set', () => {
             'dynamodb:PutItem',
             'dynamodb:UpdateItem',
             'dynamodb:DeleteItem',
+            'dynamodb:DescribeTable',
           ],
-        },
-        {
+        }),
+        Match.objectLike({
           Action: 'dynamodb:DescribeTable',
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'secretsmanager:GetSecretValue',
             'secretsmanager:DescribeSecret',
           ],
           Resource: {
-            Ref: signingCertPassphraseID,
+            Ref: Match.stringLikeRegexp('^SigningCertPassphrase.*'),
           },
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'secretsmanager:CreateSecret',
             'secretsmanager:DeleteSecret',
@@ -320,14 +302,14 @@ test('Generate cert, all options set', () => {
               'secretsmanager:ResourceTag/X509SecretGrant-BA0FA489': 'ba0fa4898b2088c5b25f15075f605300',
             },
           },
-        },
-      ],
-    },
-  }));
+        }),
+      ]),
+    }),
+  });
   // Expect Lambda for doing the cert generation to use the generate() handler
-  expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function', {
+  Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
     Handler: 'x509-certificate.generate',
-  }));
+  });
 });
 
 test('Grant cert read', () => {
@@ -344,15 +326,15 @@ test('Grant cert read', () => {
   cert.grantCertRead(grantable);
 
   // Expect the custom resource to be created
-  expectCDK(stack).to(haveResourceLike('Custom::RFDK_X509Generator', {
+  Template.fromStack(stack).hasResourceProperties('Custom::RFDK_X509Generator', {
     DistinguishedName: {
       CN: 'testCN',
       O: 'AWS',
       OU: 'Thinkbox',
     },
-  }));
+  });
   // Expect the grantCertRead() to add this policy
-  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
     PolicyDocument: {
       Statement: [
         {
@@ -370,12 +352,12 @@ test('Grant cert read', () => {
         },
       ],
     },
-  }));
+  });
   // Expect the grantCertRead() not to add this full read policy
-  expectCDK(stack).notTo(haveResourceLike('AWS::IAM::Policy', {
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', Match.not({
     PolicyDocument: {
-      Statement: [
-        {
+      Statement: Match.arrayWith([
+        Match.objectLike({
           Action: 'secretsmanager:GetSecretValue',
           Effect: 'Allow',
           Resource: {
@@ -384,8 +366,8 @@ test('Grant cert read', () => {
               'Cert',
             ],
           },
-        },
-        {
+        }),
+        Match.objectLike({
           Action: 'secretsmanager:GetSecretValue',
           Effect: 'Allow',
           Resource: {
@@ -394,19 +376,19 @@ test('Grant cert read', () => {
               'Key',
             ],
           },
-        },
-        {
+        }),
+        Match.objectLike({
           Action: 'secretsmanager:GetSecretValue',
           Effect: 'Allow',
           Resource: {
             Ref: certPassphraseID,
           },
-        },
-      ],
+        }),
+      ]),
     },
   }));
   // Expect the PKCS #12 generator not to be created
-  expectCDK(stack).notTo(haveResource('Custom::RFDK_X509_PKCS12'));
+  Template.fromStack(stack).resourceCountIs('Custom::RFDK_X509_PKCS12', 0);
 });
 
 test('Grant full read', () => {
@@ -423,18 +405,18 @@ test('Grant full read', () => {
   cert.grantFullRead(grantable);
 
   // Expect the custom resource to be created
-  expectCDK(stack).to(haveResourceLike('Custom::RFDK_X509Generator', {
+  Template.fromStack(stack).hasResourceProperties('Custom::RFDK_X509Generator', {
     DistinguishedName: {
       CN: 'testCN',
       O: 'AWS',
       OU: 'Thinkbox',
     },
-  }));
+  });
   // Expect the grantFullRead() to add this policy
-  expectCDK(stack).notTo(haveResourceLike('AWS::IAM::Policy', {
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', Match.not({
     PolicyDocument: {
-      Statement: [
-        {
+      Statement: Match.arrayWith([
+        Match.objectLike({
           Action: 'secretsmanager:GetSecretValue',
           Effect: 'Allow',
           Resource: {
@@ -443,8 +425,8 @@ test('Grant full read', () => {
               'Cert',
             ],
           },
-        },
-        {
+        }),
+        Match.objectLike({
           Action: 'secretsmanager:GetSecretValue',
           Effect: 'Allow',
           Resource: {
@@ -453,19 +435,19 @@ test('Grant full read', () => {
               'Key',
             ],
           },
-        },
-        {
+        }),
+        Match.objectLike({
           Action: 'secretsmanager:GetSecretValue',
           Effect: 'Allow',
           Resource: {
             Ref: certPassphraseID,
           },
-        },
-      ],
+        }),
+      ]),
     },
   }));
   // Expect the PKCS #12 generator not to be created
-  expectCDK(stack).notTo(haveResource('Custom::RFDK_X509_PKCS12'));
+  Template.fromStack(stack).resourceCountIs('Custom::RFDK_X509_PKCS12', 0);
 });
 
 test('Validating expiry', () => {
@@ -480,24 +462,28 @@ test('Validating expiry', () => {
   });
 
   // THEN
-  expect(cert.node.metadataEntry.length).toBe(1);
+  Annotations.fromStack(stack).hasError(`/${cert.node.path}`, 'Certificates must be valid for at least one day.');
 });
 
 test('Validating expiry with token', () => {
   // GIVEN
   const stack = new Stack(undefined, 'Stack', { env: { region: 'us-west-2' } });
   const subject = { cn: 'testCN' };
-  // A numeric CDK token (see: https://docs.aws.amazon.com/cdk/latest/guide/tokens.html#tokens_number)
-  const CDK_NUMERIC_TOKEN = -1.8881545897087626e+289;
 
   // WHEN
   const cert = new X509CertificatePem(stack, 'Cert', {
     subject,
-    validFor: CDK_NUMERIC_TOKEN,
+    validFor: Lazy.number({
+      produce() {
+        return 0;
+      },
+    }),
   });
 
   // THEN
-  expect(cert.node.metadataEntry.length).toBe(0);
+  Annotations.fromStack(stack).hasNoInfo(`/${cert.node.path}`, Match.anyValue());
+  Annotations.fromStack(stack).hasNoWarning(`/${cert.node.path}`, Match.anyValue());
+  Annotations.fromStack(stack).hasNoError(`/${cert.node.path}`, Match.anyValue());
 });
 
 test('Convert to PKCS #12', () => {
@@ -510,7 +496,7 @@ test('Convert to PKCS #12', () => {
   const pkcs12CertPassphraseID = stack.getLogicalId(pkcs12Cert.passphrase.node.defaultChild as CfnSecret);
 
   // Expect the PKCS #12 custom resource
-  expectCDK(stack).to(haveResourceLike('Custom::RFDK_X509_PKCS12', {
+  Template.fromStack(stack).hasResourceProperties('Custom::RFDK_X509_PKCS12', {
     Passphrase: {
       Ref: 'CertPkcs12Passphrase1E3DF360',
     },
@@ -541,11 +527,11 @@ test('Convert to PKCS #12', () => {
         Ref: certPassphraseID,
       },
     },
-  }));
+  });
   // Expect the source certificate (custom resource)
-  expectCDK(stack).to(haveResource('Custom::RFDK_X509Generator'));
+  Template.fromStack(stack).resourceCountIs('Custom::RFDK_X509Generator', 1);
   // Expect the PKCS #12 to have a password secret
-  expectCDK(stack).to(haveResourceLike('AWS::SecretsManager::Secret', {
+  Template.fromStack(stack).hasResourceProperties('AWS::SecretsManager::Secret', {
     Description: 'Passphrase for the private key of the X509Certificate CertPkcs12',
     GenerateSecretString: {
       ExcludeCharacters: '"()$\'',
@@ -554,12 +540,12 @@ test('Convert to PKCS #12', () => {
       PasswordLength: 24,
       RequireEachIncludedType: true,
     },
-  }));
+  });
   // Expect the PKCS #12 resource to have a policy with access to the X.509 resource
-  expectCDK(stack).to(haveResourceLike('AWS::IAM::Policy', {
-    PolicyDocument: {
-      Statement: [
-        {
+  Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
+    PolicyDocument: Match.objectLike({
+      Statement: Match.arrayWith([
+        Match.objectLike({
           Action: [
             'dynamodb:BatchGetItem',
             'dynamodb:GetRecords',
@@ -572,12 +558,13 @@ test('Convert to PKCS #12', () => {
             'dynamodb:PutItem',
             'dynamodb:UpdateItem',
             'dynamodb:DeleteItem',
+            'dynamodb:DescribeTable',
           ],
-        },
-        {
+        }),
+        Match.objectLike({
           Action: 'dynamodb:DescribeTable',
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'secretsmanager:GetSecretValue',
             'secretsmanager:DescribeSecret',
@@ -585,8 +572,8 @@ test('Convert to PKCS #12', () => {
           Resource: {
             Ref: pkcs12CertPassphraseID,
           },
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'secretsmanager:CreateSecret',
             'secretsmanager:DeleteSecret',
@@ -598,8 +585,8 @@ test('Convert to PKCS #12', () => {
               'secretsmanager:ResourceTag/X509SecretGrant-71090F78': '71090f7809ce64f7c970cb645d4d473c',
             },
           },
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'secretsmanager:GetSecretValue',
             'secretsmanager:DescribeSecret',
@@ -611,8 +598,8 @@ test('Convert to PKCS #12', () => {
               'Cert',
             ],
           },
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'secretsmanager:GetSecretValue',
             'secretsmanager:DescribeSecret',
@@ -624,8 +611,8 @@ test('Convert to PKCS #12', () => {
               'Key',
             ],
           },
-        },
-        {
+        }),
+        Match.objectLike({
           Action: [
             'secretsmanager:GetSecretValue',
             'secretsmanager:DescribeSecret',
@@ -634,16 +621,16 @@ test('Convert to PKCS #12', () => {
           Resource: {
             Ref: certPassphraseID,
           },
-        },
-      ],
-    },
-  }));
+        }),
+      ]),
+    }),
+  });
   // Expect no KMS key
-  expectCDK(stack).notTo(haveResource('AWS::KMS::Key'));
+  Template.fromStack(stack).resourceCountIs('AWS::KMS::Key', 0);
   // Expect the Lambda for converting the PEM to PKCS 12
-  expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function', {
+  Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
     Handler: 'x509-certificate.convert',
-  }));
+  });
 });
 
 test('Convert to PKCS #12, use KMS', () => {
@@ -659,7 +646,7 @@ test('Convert to PKCS #12, use KMS', () => {
   });
 
   // Expect the PKCS #12 custom resource
-  expectCDK(stack).to(haveResourceLike('Custom::RFDK_X509_PKCS12', {
+  Template.fromStack(stack).hasResourceProperties('Custom::RFDK_X509_PKCS12', {
     Passphrase: {
       Ref: 'CertPkcs12Passphrase1E3DF360',
     },
@@ -690,11 +677,11 @@ test('Convert to PKCS #12, use KMS', () => {
         Ref: certPassphraseID,
       },
     },
-  }));
+  });
   // Expect the source certificate (custom resource)
-  expectCDK(stack).to(haveResource('Custom::RFDK_X509Generator'));
+  Template.fromStack(stack).resourceCountIs('Custom::RFDK_X509Generator', 1);
   // Expect the PKCS #12 to have a password secret
-  expectCDK(stack).to(haveResourceLike('AWS::SecretsManager::Secret', {
+  Template.fromStack(stack).hasResourceProperties('AWS::SecretsManager::Secret', {
     Description: 'Passphrase for the private key of the X509Certificate CertPkcs12',
     GenerateSecretString: {
       ExcludeCharacters: '"()$\'',
@@ -703,11 +690,11 @@ test('Convert to PKCS #12, use KMS', () => {
       PasswordLength: 24,
       RequireEachIncludedType: true,
     },
-  }));
+  });
   // Expect a KMS key for encryption
-  expectCDK(stack).to(haveResource('AWS::KMS::Key'));
+  Template.fromStack(stack).resourceCountIs('AWS::KMS::Key', 1);
   // Expect the Lambda for converting the PEM to PKCS #12
-  expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function', {
+  Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
     Handler: 'x509-certificate.convert',
-  }));
+  });
 });

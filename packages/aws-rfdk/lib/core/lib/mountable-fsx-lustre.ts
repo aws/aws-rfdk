@@ -5,20 +5,19 @@
 
 import * as path from 'path';
 import {
+  Stack,
+} from 'aws-cdk-lib';
+import {
   OperatingSystemType,
   Port,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   LustreFileSystem,
-} from '@aws-cdk/aws-fsx';
+} from 'aws-cdk-lib/aws-fsx';
 import {
   Asset,
-} from '@aws-cdk/aws-s3-assets';
-import {
-  Construct,
-  IConstruct,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-s3-assets';
+import { Construct, IConstruct } from 'constructs';
 import {
   MountPermissionsHelper,
 } from './mount-permissions-helper';

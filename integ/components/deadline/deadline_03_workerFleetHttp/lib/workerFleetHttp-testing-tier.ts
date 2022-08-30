@@ -4,9 +4,9 @@
  */
 
 import * as path from 'path';
-import { Port } from '@aws-cdk/aws-ec2';
-import { Construct } from '@aws-cdk/core';
+import { Port } from 'aws-cdk-lib/aws-ec2';
 import { IWorkerFleet } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 import { TestingTier, TestingTierProps } from '../../../../lib/testing-tier';
 import { WorkerStruct } from '../../../../lib/worker-struct';
 

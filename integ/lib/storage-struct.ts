@@ -3,26 +3,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { DatabaseCluster } from '@aws-cdk/aws-docdb';
+import {
+  Duration,
+  RemovalPolicy,
+  Stack,
+} from 'aws-cdk-lib';
+import { DatabaseCluster } from 'aws-cdk-lib/aws-docdb';
 import {
   InstanceClass,
   InstanceSize,
   InstanceType,
   Vpc,
   SubnetType,
-} from '@aws-cdk/aws-ec2';
+  Volume,
+} from 'aws-cdk-lib/aws-ec2';
 import {
   AccessPoint,
   FileSystem,
-} from '@aws-cdk/aws-efs';
-import { PrivateHostedZone } from '@aws-cdk/aws-route53';
-import { ISecret } from '@aws-cdk/aws-secretsmanager';
+} from 'aws-cdk-lib/aws-efs';
 import {
-  Construct,
-  Duration,
-  RemovalPolicy,
-  Stack,
-} from '@aws-cdk/core';
+  RetentionDays,
+} from 'aws-cdk-lib/aws-logs';
+import { PrivateHostedZone } from 'aws-cdk-lib/aws-route53';
+import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import {
   MongoDbInstance,
   MongoDbPostInstallSetup,
@@ -37,6 +40,7 @@ import {
   IVersion,
   Repository,
 } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 
 
 // Interface for supplying database connection and accompanying secret for credentials
@@ -172,6 +176,10 @@ export class StorageStruct extends Construct {
 
       // Create the mongoDB instance
       database = new MongoDbInstance(this, 'MongoDB', {
+        logGroupProps: {
+          logGroupPrefix: `/${Stack.of(this).stackName}-${id}/`,
+          retention: RetentionDays.TWO_MONTHS,
+        },
         mongoDb: {
           userSsplAcceptance,
           version: MongoDbVersion.COMMUNITY_3_6,
@@ -185,6 +193,9 @@ export class StorageStruct extends Construct {
         vpc,
       });
       databaseSecret = database.adminUser!;
+      // Ensure that the EBS Volume created by the MongoDB construct is deleted.
+      const dbDataEBS = database.node.findChild('MongoDbData') as Volume;
+      dbDataEBS.applyRemovalPolicy(RemovalPolicy.DESTROY);
 
       new MongoDbPostInstallSetup(this, 'MongoDbPostInstall', {
         vpc,
@@ -220,7 +231,8 @@ export class StorageStruct extends Construct {
       version: props.version,
       repositoryInstallationTimeout: Duration.minutes(20),
       logGroupProps: {
-        logGroupPrefix: Stack.of(this).stackName + '-' + id,
+        logGroupPrefix: `/${Stack.of(this).stackName}-${id}/`,
+        retention: RetentionDays.TWO_MONTHS,
       },
       removalPolicy: {
         database: RemovalPolicy.DESTROY,

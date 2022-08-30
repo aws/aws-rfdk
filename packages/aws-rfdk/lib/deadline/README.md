@@ -199,11 +199,11 @@ The following example outlines how to construct a `RenderQueue`:
 const version = new VersionQuery(stack, 'Version', {
   version: '1.2.3.4',
 });
-const images = new ThinkboxDockerImages(stack, 'Images', {
-  version: version,
-  // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
-  // of the AWS Thinkbox End User License Agreement
-  userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
+const images = new ThinkboxDockerImages(stack, 'Image', {
+  version,
+  // Change this to AwsCustomerAgreementAndIpLicenseAcceptance.USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE to accept the terms
+  // of the AWS Customer Agreement and AWS Intellectual Property License.
+  userAwsCustomerAgreementAndIpLicenseAcceptance: AwsCustomerAgreementAndIpLicenseAcceptance.USER_REJECTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE,
 });
 const repository = new Repository(stack, 'Repository', { /* ...*/});
 
@@ -566,10 +566,11 @@ simplifies using these images.
 
 ---
 
-_**Note:** Deadline is licensed under the terms of the
-[AWS Thinkbox End User License Agreement](https://www.awsthinkbox.com/end-user-license-agreement). Users of
-`ThinkboxDockerImages` must explicitly signify their acceptance of the terms of the AWS Thinkbox EULA through
-`userAwsThinkboxEulaAcceptance` property. By default, `userAwsThinkboxEulaAcceptance` is set to rejection._
+_**Note:** By downloading or using the Deadline software, you agree to the [AWS Customer Agreement](https://aws.amazon.com/agreement/)
+  and [AWS Intellectual Property License](https://aws.amazon.com/legal/aws-ip-license-terms/). You acknowledge that Deadline
+  is AWS Content as defined in those Agreements. Users of `ThinkboxDockerImages` must explicitly signify their acceptance of these terms
+  through the `userAwsCustomerAgreementAndIpLicenseAcceptance` property. By default, `userAwsCustomerAgreementAndIpLicenseAcceptance` is
+  set to reject these terms._
 
 ---
 
@@ -578,10 +579,10 @@ To use it, simply create one:
 
 ```ts
 // This will provide Docker container images for the latest Deadline release
-const images = new ThinkboxDockerImages(scope, 'Images', {
-  // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
-  // of the AWS Thinkbox End User License Agreement
-  userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
+const images = new ThinkboxDockerImages(stack, 'Image', {
+  // Change this to AwsCustomerAgreementAndIpLicenseAcceptance.USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE to accept the terms
+  // of the AWS Customer Agreement and AWS Intellectual Property License.
+  userAwsCustomerAgreementAndIpLicenseAcceptance: AwsCustomerAgreementAndIpLicenseAcceptance.USER_REJECTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE,
 });
 ```
 
@@ -594,12 +595,13 @@ const version = new VersionQuery(scope, 'Version', {
 });
 
 // This will provide Docker container images for the specified version of Deadline
-const images = new ThinkboxDockerImages(scope, 'Images', {
-  version: version,
-  // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
-  // of the AWS Thinkbox End User License Agreement
-  userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
+const images = new ThinkboxDockerImages(stack, 'Image', {
+  version,
+  // Change this to AwsCustomerAgreementAndIpLicenseAcceptance.USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE to accept the terms
+  // of the AWS Customer Agreement and AWS Intellectual Property License.
+  userAwsCustomerAgreementAndIpLicenseAcceptance: AwsCustomerAgreementAndIpLicenseAcceptance.USER_REJECTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE,
 });
+
 ```
 
 To use these images, you can use the expressive methods or provide the instance directly to downstream constructs:
@@ -648,12 +650,13 @@ The following example outlines how to construct `UsageBasedLicensing`:
 
 ```ts
 const version = new VersionQuery(stack, 'Version', '1.2.3.4');
-const images = new ThinkboxDockerImages(stack, 'Images', {
-  version: version,
-  // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
-  // of the AWS Thinkbox End User License Agreement
-  userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
+const images = new ThinkboxDockerImages(stack, 'Image', {
+  version,
+  // Change this to AwsCustomerAgreementAndIpLicenseAcceptance.USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE to accept the terms
+  // of the AWS Customer Agreement and AWS Intellectual Property License.
+  userAwsCustomerAgreementAndIpLicenseAcceptance: AwsCustomerAgreementAndIpLicenseAcceptance.USER_REJECTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE,
 });
+
 
 const ubl = new UsageBasedLicensing(stack, 'UsageBasedLicensing', {
   vpc: vpc,

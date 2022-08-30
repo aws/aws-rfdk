@@ -40,7 +40,7 @@ only process image URLs that begin with `/diagrams`. Putting this together, the 
 in the `core` package would look:
 
 ```ts
-import { Construct } from '@aws-cdk/core';
+import { Construct } from 'aws-cdk-lib';
 
 /**
  * Documentation for MyConstruct

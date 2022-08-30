@@ -5,6 +5,11 @@
 
 import {SSM, SendCommandRequest } from '@aws-sdk/client-ssm';
 
+// Workaround for AWS SDK v3 bug: https://github.com/aws/aws-sdk-js-v3/issues/3807
+declare global {
+  interface ReadableStream {}
+}
+
 const ssm = new SSM({});
 
 interface CommandResponse {

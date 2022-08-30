@@ -6,30 +6,30 @@
 import * as path from 'path';
 
 import {
+  CustomResource,
+  Duration,
+  Names,
+  Stack,
+} from 'aws-cdk-lib';
+import {
   IVpc,
   Port,
   SubnetSelection,
   SubnetType,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   Code,
   Function as LambdaFunction,
   LayerVersion,
   Runtime,
-} from '@aws-cdk/aws-lambda';
+} from 'aws-cdk-lib/aws-lambda';
 import {
   RetentionDays,
-} from '@aws-cdk/aws-logs';
+} from 'aws-cdk-lib/aws-logs';
 import {
   ISecret,
-} from '@aws-cdk/aws-secretsmanager';
-import {
-  Construct,
-  CustomResource,
-  Duration,
-  Names,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-secretsmanager';
+import { Construct } from 'constructs';
 
 import {
   IMongoDb,

@@ -4,6 +4,12 @@
 from dataclasses import dataclass
 from typing import List
 
+from aws_cdk import (
+    Duration,
+    RemovalPolicy,
+    Stack,
+    StackProps
+)
 from aws_cdk.aws_ec2 import (
     IVpc,
     SubnetSelection,
@@ -15,21 +21,13 @@ from aws_cdk.aws_elasticloadbalancingv2 import (
 from aws_cdk.aws_route53 import (
     IPrivateHostedZone
 )
-from aws_cdk.core import (
-    Construct,
-    Duration,
-    RemovalPolicy,
-    Stack,
-    StackProps
-)
-
 from aws_rfdk import (
     DistinguishedName,
     SessionManagerHelper,
     X509CertificatePem
 )
 from aws_rfdk.deadline import (
-    AwsThinkboxEulaAcceptance,
+    AwsCustomerAgreementAndIpLicenseAcceptance,
     RenderQueue,
     RenderQueueHostNameProps,
     RenderQueueTrafficEncryptionProps,
@@ -39,7 +37,9 @@ from aws_rfdk.deadline import (
     ThinkboxDockerImages,
     VersionQuery
 )
-
+from constructs import (
+    Construct
+)
 
 @dataclass
 class ServiceTierProps(StackProps):
@@ -48,8 +48,8 @@ class ServiceTierProps(StackProps):
     """
     # The VPC to deploy service tier resources into.
     vpc: IVpc
-    # Whether the AWS Thinkbox End-User License Agreement is accepted or not
-    accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance
+    # Whether the AWS Customer Agreement and AWS Intellectual Property License are agreed to.
+    user_aws_customer_agreement_and_ip_license_acceptance: AwsCustomerAgreementAndIpLicenseAcceptance
     # The availability zones that components in this stack will be deployed into. These should all be in the same
     # region and only be standard availability zones, as some constucts use services that aren't available in
     # local zones yet.
@@ -107,7 +107,7 @@ class ServiceTier(Stack):
             self,
             'Images',
             version=self.version,
-            user_aws_thinkbox_eula_acceptance=props.accept_aws_thinkbox_eula
+            user_aws_customer_agreement_and_ip_license_acceptance=props.user_aws_customer_agreement_and_ip_license_acceptance
         )
 
         server_cert = X509CertificatePem(

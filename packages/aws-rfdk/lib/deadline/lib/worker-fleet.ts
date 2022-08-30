@@ -5,13 +5,17 @@
 
 import * as path from 'path';
 import {
+  Annotations,
+  Duration,
+} from 'aws-cdk-lib';
+import {
   AutoScalingGroup,
   BlockDevice,
   CfnAutoScalingGroup,
   HealthCheck,
   Signals,
-} from '@aws-cdk/aws-autoscaling';
-import {IMetric, Metric} from '@aws-cdk/aws-cloudwatch';
+} from 'aws-cdk-lib/aws-autoscaling';
+import {IMetric, Metric} from 'aws-cdk-lib/aws-cloudwatch';
 import {
   Connections,
   IConnectable,
@@ -24,8 +28,9 @@ import {
   Port,
   SubnetSelection,
   SubnetType,
-} from '@aws-cdk/aws-ec2';
-import {IApplicationLoadBalancerTarget} from '@aws-cdk/aws-elasticloadbalancingv2';
+  UserData,
+} from 'aws-cdk-lib/aws-ec2';
+import {IApplicationLoadBalancerTarget} from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import {
   IGrantable,
   IPolicy,
@@ -33,13 +38,8 @@ import {
   IRole,
   Policy,
   PolicyStatement,
-} from '@aws-cdk/aws-iam';
-import {
-  Annotations,
-  Construct,
-  Duration,
-  IConstruct,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-iam';
+import { Construct, IConstruct } from 'constructs';
 
 import {
   HealthCheckConfig,
@@ -223,6 +223,15 @@ export interface WorkerInstanceFleetProps extends WorkerSettings {
    * @default The default devices of the provided ami will be used.
    */
   readonly blockDevices?: BlockDevice[];
+
+  /**
+   * The specific UserData to use.
+   *
+   * The UserData will be mutated by this construct and may be mutated afterwards as well.
+   *
+   * @default A UserData object appropriate for the MachineImage's Operating System is created.
+   */
+  readonly userData?: UserData;
 
   /**
    * An optional provider of user data commands to be injected at various points during the Worker configuration lifecycle.
@@ -456,6 +465,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
       role: props.role,
       spotPrice: props.spotPrice?.toString(),
       blockDevices: props.blockDevices,
+      userData: props.userData,
     });
 
     this.targetCapacity = parseInt((this.fleet.node.defaultChild as CfnAutoScalingGroup).maxSize, 10);

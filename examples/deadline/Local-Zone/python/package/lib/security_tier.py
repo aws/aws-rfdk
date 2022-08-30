@@ -1,15 +1,16 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-from aws_cdk.core import (
-    Construct,
+from aws_cdk import (
     Stack,
 )
 from aws_rfdk import (
     DistinguishedName,
     X509CertificatePem
 )
-
+from constructs import (
+    Construct
+)
 
 class SecurityTier(Stack):
     """

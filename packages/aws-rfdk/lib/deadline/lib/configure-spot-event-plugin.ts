@@ -6,30 +6,30 @@
 import * as path from 'path';
 
 import {
-  IVpc,
-  SubnetSelection,
-  SubnetType,
-} from '@aws-cdk/aws-ec2';
-import {
-  Role,
-  Policy,
-  PolicyStatement,
-} from '@aws-cdk/aws-iam';
-import {
-  Code,
-  Function as LambdaFunction,
-  Runtime,
-} from '@aws-cdk/aws-lambda';
-import { RetentionDays } from '@aws-cdk/aws-logs';
-import {
   Annotations,
-  Construct,
   CustomResource,
   Duration,
   IResolvable,
   Lazy,
   Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import {
+  IVpc,
+  SubnetSelection,
+  SubnetType,
+} from 'aws-cdk-lib/aws-ec2';
+import {
+  Role,
+  Policy,
+  PolicyStatement,
+} from 'aws-cdk-lib/aws-iam';
+import {
+  Code,
+  Function as LambdaFunction,
+  Runtime,
+} from 'aws-cdk-lib/aws-lambda';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { Construct } from 'constructs';
 
 import {
   PluginSettings,
@@ -123,15 +123,15 @@ export enum SpotEventPluginPreJobTaskMode {
 export enum SpotEventPluginDisplayInstanceStatus {
   DISABLED = 'Disabled',
   EXTRA_INFO_0 = 'ExtraInfo0',
-  EXTRA_INFO_1 = 'ExtraInfo0',
-  EXTRA_INFO_2 = 'ExtraInfo0',
-  EXTRA_INFO_3 = 'ExtraInfo0',
-  EXTRA_INFO_4 = 'ExtraInfo0',
-  EXTRA_INFO_5 = 'ExtraInfo0',
-  EXTRA_INFO_6 = 'ExtraInfo0',
-  EXTRA_INFO_7 = 'ExtraInfo0',
-  EXTRA_INFO_8 = 'ExtraInfo0',
-  EXTRA_INFO_9 = 'ExtraInfo0',
+  EXTRA_INFO_1 = 'ExtraInfo1',
+  EXTRA_INFO_2 = 'ExtraInfo2',
+  EXTRA_INFO_3 = 'ExtraInfo3',
+  EXTRA_INFO_4 = 'ExtraInfo4',
+  EXTRA_INFO_5 = 'ExtraInfo5',
+  EXTRA_INFO_6 = 'ExtraInfo6',
+  EXTRA_INFO_7 = 'ExtraInfo7',
+  EXTRA_INFO_8 = 'ExtraInfo8',
+  EXTRA_INFO_9 = 'ExtraInfo9',
 }
 
 /**
@@ -275,8 +275,8 @@ export interface ConfigureSpotEventPluginProps {
  *
  * ```ts
  * import { App, Stack, Vpc } from '@aws-rfdk/core';
- * import { InstanceClass, InstanceSize, InstanceType } from '@aws-cdk/aws-ec2';
- * import { AwsThinkboxEulaAcceptance, ConfigureSpotEventPlugin, RenderQueue, Repository, SpotEventPluginFleet, ThinkboxDockerImages, VersionQuery } from '@aws-rfdk/deadline';
+ * import { InstanceClass, InstanceSize, InstanceType } from 'aws-cdk-lib/aws-ec2';
+ * import { AwsCustomerAgreementAndIpLicenseAcceptance, ConfigureSpotEventPlugin, RenderQueue, Repository, SpotEventPluginFleet, ThinkboxDockerImages, VersionQuery } from '@aws-rfdk/deadline';
  * const app = new App();
  * const stack = new Stack(app, 'Stack');
  * const vpc = new Vpc(stack, 'Vpc');
@@ -285,9 +285,9 @@ export interface ConfigureSpotEventPluginProps {
  * });
  * const images = new ThinkboxDockerImages(stack, 'Image', {
  *   version,
- *   // Change this to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA to accept the terms
- *   // of the AWS Thinkbox End User License Agreement
- *   userAwsThinkboxEulaAcceptance: AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA,
+ *   // Change this to AwsCustomerAgreementAndIpLicenseAcceptance.USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE to accept the terms
+ *   // of the AWS Customer Agreement and AWS Intellectual Property License.
+ *   userAwsCustomerAgreementAndIpLicenseAcceptance: AwsCustomerAgreementAndIpLicenseAcceptance.USER_REJECTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE,
  * });
  * const repository = new Repository(stack, 'Repository', {
  *   vpc,

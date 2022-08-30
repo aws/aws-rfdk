@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as cdk from '@aws-cdk/core';
+import * as cdk from 'aws-cdk-lib';
 import {
   X509CertificatePem,
 } from 'aws-rfdk';
+import { Construct } from 'constructs';
 
 /**
  * The security tier of the render farm. This stack contains resources used to
@@ -24,7 +25,7 @@ export class SecurityTier extends cdk.Stack {
    * @param id The ID of this construct.
    * @param props The properties for the security tier.
    */
-  constructor(scope: cdk.Construct, id: string, props: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: cdk.StackProps) {
     super(scope, id, props);
 
     this.rootCa = new X509CertificatePem(this, 'RootCA', {

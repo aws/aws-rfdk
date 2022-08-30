@@ -4,18 +4,21 @@
  */
 
 import {
+  Stack,
+} from 'aws-cdk-lib';
+import {
   InstanceType,
   MachineImage,
   Vpc,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
-  Construct,
-  Stack,
-} from '@aws-cdk/core';
+  RetentionDays,
+} from 'aws-cdk-lib/aws-logs';
 import {
   ConfigureSpotEventPlugin,
   SpotEventPluginFleet,
 } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 import { NetworkTier } from '../components/_infrastructure/lib/network-tier';
 import { RenderStruct } from './render-struct';
 
@@ -52,6 +55,10 @@ export class SepWorkerStruct extends Construct {
         workerMachineImage: MachineImage.genericLinux({ [Stack.of(this).region]: linuxAmi }),
         deadlineGroups: ['sep_group'],
         instanceTypes: [new InstanceType('t2.micro')],
+        logGroupProps: {
+          logGroupPrefix: `/${Stack.of(this).stackName}-${id}/`,
+          retention: RetentionDays.TWO_MONTHS,
+        },
       }),
     ];
 

@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Repository } from '@aws-cdk/aws-ecr';
-import { ContainerImage } from '@aws-cdk/aws-ecs';
-import { Construct } from '@aws-cdk/core';
+import { Repository } from 'aws-cdk-lib/aws-ecr';
+import { ContainerImage } from 'aws-cdk-lib/aws-ecs';
 import {
   RenderQueueImages,
   ThinkboxManagedDeadlineDockerRecipes as Recipes,
   UsageBasedLicensingImages,
 } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 
 type DeadlineDockerImageOverrides = {[key in Recipes]?: string};
 

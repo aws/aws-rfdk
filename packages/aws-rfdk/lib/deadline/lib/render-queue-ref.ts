@@ -3,34 +3,34 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { Duration } from 'aws-cdk-lib';
 import {
   ICertificate,
-} from '@aws-cdk/aws-certificatemanager';
+} from 'aws-cdk-lib/aws-certificatemanager';
 import {
   InstanceType,
   ISecurityGroup,
   IVpc,
   SubnetSelection,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   ContainerImage,
-} from '@aws-cdk/aws-ecs';
+} from 'aws-cdk-lib/aws-ecs';
 import {
   ApplicationProtocol,
-} from '@aws-cdk/aws-elasticloadbalancingv2';
+} from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import {
   IGrantable,
-} from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-iam';
 import {
   IPrivateHostedZone,
-} from '@aws-cdk/aws-route53';
+} from 'aws-cdk-lib/aws-route53';
 import {
   IBucket,
-} from '@aws-cdk/aws-s3';
+} from 'aws-cdk-lib/aws-s3';
 import {
   ISecret,
-} from '@aws-cdk/aws-secretsmanager';
-import { Duration } from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-secretsmanager';
 import {
   IX509CertificatePem,
   LogGroupFactoryProps,

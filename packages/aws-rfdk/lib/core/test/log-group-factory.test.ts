@@ -3,9 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { expect as expectCDK, haveResourceLike } from '@aws-cdk/assert';
-import { RetentionDays } from '@aws-cdk/aws-logs';
-import { Stack } from '@aws-cdk/core';
+import { Stack } from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { LogGroupFactory } from '../lib/log-group-factory';
 
 describe('log group', () => {
@@ -16,11 +19,11 @@ describe('log group', () => {
     LogGroupFactory.createOrFetch(stack, 'TestId', 'testLogGroup');
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('Custom::LogRetention', {
+    Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: 'testLogGroup',
       RetentionInDays: 3,
-    }));
-    expectCDK(stack).notTo(haveResourceLike('AWS::Lambda::Function',  {
+    });
+    Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function',  Match.not({
       Role: {
         'Fn::GetAtt': [
           'LogGroupExporter6382448ce4b242e9b14fa0a9ccdb198eServiceRoleB67C808B',
@@ -39,11 +42,11 @@ describe('log group', () => {
     });
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('Custom::LogRetention', {
+    Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: 'prefix-testLogGroup',
       RetentionInDays: 3,
-    }));
-    expectCDK(stack).notTo(haveResourceLike('AWS::Lambda::Function',  {
+    });
+    Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function',  Match.not({
       Role: {
         'Fn::GetAtt': [
           'LogGroupExporter6382448ce4b242e9b14fa0a9ccdb198eServiceRoleB67C808B',
@@ -62,11 +65,11 @@ describe('log group', () => {
     });
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('Custom::LogRetention', {
+    Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: 'testLogGroup',
       RetentionInDays: 7,
-    }));
-    expectCDK(stack).notTo(haveResourceLike('AWS::Lambda::Function',  {
+    });
+    Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function',  Match.not({
       Role: {
         'Fn::GetAtt': [
           'LogGroupExporter6382448ce4b242e9b14fa0a9ccdb198eServiceRoleB67C808B',
@@ -87,26 +90,26 @@ describe('exporting log group', () => {
     });
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('Custom::LogRetention', {
+    Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: 'testLogGroup',
       RetentionInDays: 3,
-    }));
+    });
 
-    expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function',  {
+    Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function',  {
       Role: {
         'Fn::GetAtt': [
           'LogGroupExporter6382448ce4b242e9b14fa0a9ccdb198eServiceRoleB67C808B',
           'Arn',
         ],
       },
-    }));
-    expectCDK(stack).to(haveResourceLike('AWS::Events::Rule', {
+    });
+    Template.fromStack(stack).hasResourceProperties('AWS::Events::Rule', {
       Targets: [
         {
           Input: '{\"BucketName\":\"test-bucket\",\"ExportFrequencyInHours\":1,\"LogGroupName\":\"testLogGroup\",\"RetentionInHours\":72}',
         },
       ],
-    }));
+    });
   });
 
   test('created correctly with prefix', () => {
@@ -119,27 +122,27 @@ describe('exporting log group', () => {
     });
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('Custom::LogRetention', {
+    Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: 'prefix-testLogGroup',
       RetentionInDays: 3,
-    }));
+    });
 
-    expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function',  {
+    Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function',  {
       Role: {
         'Fn::GetAtt': [
           'LogGroupExporter6382448ce4b242e9b14fa0a9ccdb198eServiceRoleB67C808B',
           'Arn',
         ],
       },
-    }));
+    });
 
-    expectCDK(stack).to(haveResourceLike('AWS::Events::Rule', {
+    Template.fromStack(stack).hasResourceProperties('AWS::Events::Rule', {
       Targets: [
         {
           Input: '{\"BucketName\":\"test-bucket\",\"ExportFrequencyInHours\":1,\"LogGroupName\":\"prefix-testLogGroup\",\"RetentionInHours\":72}',
         },
       ],
-    }));
+    });
   });
 
   test('created correctly with custom retention', () => {
@@ -152,26 +155,26 @@ describe('exporting log group', () => {
     });
 
     // THEN
-    expectCDK(stack).to(haveResourceLike('Custom::LogRetention', {
+    Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: 'testLogGroup',
       RetentionInDays: 7,
-    }));
+    });
 
-    expectCDK(stack).to(haveResourceLike('AWS::Lambda::Function',  {
+    Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function',  {
       Role: {
         'Fn::GetAtt': [
           'LogGroupExporter6382448ce4b242e9b14fa0a9ccdb198eServiceRoleB67C808B',
           'Arn',
         ],
       },
-    }));
+    });
 
-    expectCDK(stack).to(haveResourceLike('AWS::Events::Rule', {
+    Template.fromStack(stack).hasResourceProperties('AWS::Events::Rule', {
       Targets: [
         {
           Input: '{\"BucketName\":\"test-bucket\",\"ExportFrequencyInHours\":1,\"LogGroupName\":\"testLogGroup\",\"RetentionInHours\":168}',
         },
       ],
-    }));
+    });
   });
 });

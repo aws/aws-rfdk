@@ -4,11 +4,12 @@
  */
 
 import * as path from 'path';
+import { CfnOutput } from 'aws-cdk-lib';
 import {
   IVpc,
-} from '@aws-cdk/aws-ec2';
-import { CfnOutput, Construct } from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
 import { Repository } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 import { RenderStruct } from '../../../../lib/render-struct';
 import { StorageStruct } from '../../../../lib/storage-struct';
 import {

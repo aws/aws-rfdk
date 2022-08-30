@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { DockerImageAsset } from '@aws-cdk/aws-ecr-assets';
-import { ContainerImage } from '@aws-cdk/aws-ecs';
-import { Asset } from '@aws-cdk/aws-s3-assets';
-import { Construct } from '@aws-cdk/core';
+import { DockerImageAsset } from 'aws-cdk-lib/aws-ecr-assets';
+import { ContainerImage } from 'aws-cdk-lib/aws-ecs';
+import { Asset } from 'aws-cdk-lib/aws-s3-assets';
+import { Construct } from 'constructs';
 
 import {
   Installer,

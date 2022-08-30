@@ -1,11 +1,9 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-from aws_cdk.core import (
+from aws_cdk import (
     Stack,
-    Construct
 )
-
 from aws_cdk.aws_ec2 import (
     FlowLogDestination,
     FlowLogTrafficType,
@@ -15,9 +13,11 @@ from aws_cdk.aws_ec2 import (
     SubnetSelection,
     SubnetType
 )
-
 from aws_cdk.aws_route53 import (
     PrivateHostedZone
+)
+from constructs import (
+    Construct
 )
 
 from . import subnets

@@ -6,7 +6,7 @@
 
 import 'source-map-support/register';
 import { config } from './config';
-import * as cdk from '@aws-cdk/core';
+import * as cdk from 'aws-cdk-lib';
 import { NetworkTier } from '../lib/network-tier';
 import {
   ServiceTier,
@@ -22,7 +22,7 @@ import {
   InstanceSize,
   InstanceType,
   MachineImage,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import { ComputeTier } from '../lib/compute-tier';
 
   // ------------------------------ //
@@ -111,7 +111,7 @@ const service = new ServiceTier(app, 'ServiceTier', {
   ublLicenses: config.ublLicenses,
   rootCa: security.rootCa,
   dnsZone: network.dnsZone,
-  acceptAwsThinkboxEula: config.acceptAwsThinkboxEula,
+  userAwsCustomerAgreementAndIpLicenseAcceptance: config.acceptAwsCustomerAgreementAndIpLicense,
   enableSecretsManagement: config.enableSecretsManagement,
   secretsManagementSecretArn: config.secretsManagementSecretArn
 });

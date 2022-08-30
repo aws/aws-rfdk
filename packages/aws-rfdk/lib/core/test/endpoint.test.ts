@@ -3,7 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { expect as expectCDK, haveResource } from '@aws-cdk/assert';
+import {
+  Lazy,
+  Stack,
+  Token,
+} from 'aws-cdk-lib';
+import { Template } from 'aws-cdk-lib/assertions';
 import {
   Connections,
   IConnectable,
@@ -11,13 +16,8 @@ import {
   Protocol,
   SecurityGroup,
   Vpc,
-} from '@aws-cdk/aws-ec2';
-import { ApplicationProtocol } from '@aws-cdk/aws-elasticloadbalancingv2';
-import {
-  Lazy,
-  Stack,
-  Token,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
+import { ApplicationProtocol } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 
 import {
   ApplicationEndpoint,
@@ -214,7 +214,7 @@ describe('ConnectableApplicationEndpoint', () => {
     somethingConnectable.connections.allowTo(endpoint, Port.tcp(80), 'Connecting to endpoint');
 
     // THEN
-    expectCDK(stack).to(haveResource('AWS::EC2::SecurityGroupIngress'));
+    Template.fromStack(stack).resourceCountIs('AWS::EC2::SecurityGroupIngress', 1);
   });
 });
 

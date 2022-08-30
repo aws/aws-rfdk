@@ -5,10 +5,10 @@
 
 import * as path from 'path';
 
-import { OperatingSystemType } from '@aws-cdk/aws-ec2';
-import { Asset } from '@aws-cdk/aws-s3-assets';
-import { ISecret } from '@aws-cdk/aws-secretsmanager';
-import { Stack } from '@aws-cdk/core';
+import { Stack } from 'aws-cdk-lib';
+import { OperatingSystemType } from 'aws-cdk-lib/aws-ec2';
+import { Asset } from 'aws-cdk-lib/aws-s3-assets';
+import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 
 import { ConnectableApplicationEndpoint } from '../../core';
 

@@ -4,9 +4,12 @@
  */
 
 import {
+  Annotations,
+} from 'aws-cdk-lib';
+import {
   AutoScalingGroup,
   BlockDeviceVolume,
-} from '@aws-cdk/aws-autoscaling';
+} from 'aws-cdk-lib/aws-autoscaling';
 import {
   IConnectable,
   InstanceClass,
@@ -17,7 +20,7 @@ import {
   Port,
   SubnetSelection,
   SubnetType,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   CfnService,
   Cluster,
@@ -29,16 +32,13 @@ import {
   PlacementConstraint,
   TaskDefinition,
   UlimitName,
-} from '@aws-cdk/aws-ecs';
+} from 'aws-cdk-lib/aws-ecs';
 import {
   IGrantable,
   IPrincipal,
-} from '@aws-cdk/aws-iam';
-import { ISecret } from '@aws-cdk/aws-secretsmanager';
-import {
-  Annotations,
-  Construct,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-iam';
+import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
+import { Construct } from 'constructs';
 
 import {
   SecretsManagementRegistrationStatus,

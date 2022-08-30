@@ -7,20 +7,20 @@ import {
   BastionHostLinux,
   BlockDeviceVolume,
   IVpc,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   ApplicationProtocol,
-} from '@aws-cdk/aws-elasticloadbalancingv2';
+} from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import {
   IPrivateHostedZone,
-} from '@aws-cdk/aws-route53';
-import * as cdk from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-route53';
+import * as cdk from 'aws-cdk-lib';
 import {
   MountableEfs,
   X509CertificatePem,
 } from 'aws-rfdk';
 import {
-  AwsThinkboxEulaAcceptance,
+  AwsCustomerAgreementAndIpLicenseAcceptance,
   DatabaseConnection,
   RenderQueue,
   Repository,
@@ -31,8 +31,9 @@ import {
 } from 'aws-rfdk/deadline';
 import {
   Secret,
-} from '@aws-cdk/aws-secretsmanager';
+} from 'aws-cdk-lib/aws-secretsmanager';
 import { SessionManagerHelper } from 'aws-rfdk/lib/core';
+import { Construct } from 'constructs';
 
 import { Subnets } from './subnets';
 
@@ -84,9 +85,9 @@ export interface ServiceTierProps extends cdk.StackProps {
   readonly deadlineVersion?: string;
 
   /**
-   * Whether the AWS Thinkbox End-User License Agreement is accepted or not
+   * Whether the AWS Customer Agreement and AWS Intellectual Property License are agreed to.
    */
-  readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance;
+  readonly userAwsCustomerAgreementAndIpLicenseAcceptance: AwsCustomerAgreementAndIpLicenseAcceptance;
 
   /**
    * Whether to enable Deadline Secrets Management.
@@ -130,7 +131,7 @@ export class ServiceTier extends cdk.Stack {
    * @param id The ID of this construct.
    * @param props The properties for this construct.
    */
-  constructor(scope: cdk.Construct, id: string, props: ServiceTierProps) {
+  constructor(scope: Construct, id: string, props: ServiceTierProps) {
     super(scope, id, props);
 
     // Bastion instance for convenience (e.g. SSH into RenderQueue and WorkerFleet instances).
@@ -181,7 +182,7 @@ export class ServiceTier extends cdk.Stack {
 
     const images = new ThinkboxDockerImages(this, 'Images', {
       version: this.version,
-      userAwsThinkboxEulaAcceptance: props.acceptAwsThinkboxEula,
+      userAwsCustomerAgreementAndIpLicenseAcceptance: props.userAwsCustomerAgreementAndIpLicenseAcceptance,
     });
 
     const serverCert = new X509CertificatePem(this, 'RQCert', {

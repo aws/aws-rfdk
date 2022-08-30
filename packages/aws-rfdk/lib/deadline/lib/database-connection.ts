@@ -5,30 +5,30 @@
 
 import * as path from 'path';
 import {
+  Annotations,
+  Stack,
+} from 'aws-cdk-lib';
+import {
   CfnDBCluster,
   CfnDBInstance,
   DatabaseCluster,
   IDatabaseCluster,
-} from '@aws-cdk/aws-docdb';
+} from 'aws-cdk-lib/aws-docdb';
 import {
   IConnectable,
   ISecurityGroup,
   OperatingSystemType,
   Port,
   Volume,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   IGrantable,
-} from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-iam';
 import {
   ISecret,
-} from '@aws-cdk/aws-secretsmanager';
-import {
-  Annotations,
-  Construct,
-  IConstruct,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-secretsmanager';
+import { Construct, IConstruct } from 'constructs';
+
 import {
   IMongoDb,
   IX509CertificatePkcs12,

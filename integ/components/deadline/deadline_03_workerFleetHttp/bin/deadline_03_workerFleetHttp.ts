@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { App, Stack, Aspects } from '@aws-cdk/core';
+import { App, Stack, Aspects } from 'aws-cdk-lib';
 import {
   Stage,
   ThinkboxDockerRecipes,

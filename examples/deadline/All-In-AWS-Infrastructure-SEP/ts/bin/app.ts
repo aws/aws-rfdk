@@ -7,8 +7,8 @@
 import 'source-map-support/register';
 import * as path from 'path';
 import * as pkg from '../package.json';
-import { MachineImage } from '@aws-cdk/aws-ec2';
-import * as cdk from '@aws-cdk/core';
+import { MachineImage } from 'aws-cdk-lib/aws-ec2';
+import * as cdk from 'aws-cdk-lib';
 import { SEPStack } from '../lib/sep-stack';
 import { config } from './config';
 

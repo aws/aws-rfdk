@@ -3,14 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as fs from 'fs';
-
 import {
-  arrayWith,
-  expect as expectCDK,
-  haveResourceLike,
-  SynthUtils,
-} from '@aws-cdk/assert';
+  App,
+  Fn,
+  Resource,
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Annotations,
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   ExecuteFileOptions,
   IVpc,
@@ -20,16 +23,10 @@ import {
   SubnetType,
   UserData,
   Vpc,
-} from '@aws-cdk/aws-ec2';
-import { CfnRole } from '@aws-cdk/aws-iam';
-import { Asset } from '@aws-cdk/aws-s3-assets';
-import {
-  App,
-  Construct,
-  Fn,
-  Resource,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
+import { CfnRole } from 'aws-cdk-lib/aws-iam';
+import { Asset } from 'aws-cdk-lib/aws-s3-assets';
+import { Construct } from 'constructs';
 
 import { DeploymentInstance, DeploymentInstanceProps } from '../../core/lib/deployment-instance';
 
@@ -79,12 +76,6 @@ class MockDeploymentInstance extends DeploymentInstance {
     return this.mockUserData;
   }
 }
-
-function writeSynthedTemplate(stack: Stack, outputFile: string) {
-  const template = SynthUtils.synthesize(stack).template;
-  fs.writeFileSync(outputFile, JSON.stringify(template, null, 2), { encoding: 'utf8' });
-}
-
 const DEADLINE_CLIENT_SUBNET_NAME = 'DeadlineClient';
 const RENDER_QUEUE_ALB_SUBNET_NAME = 'RenderQueueALB';
 
@@ -100,12 +91,6 @@ describe('SecretsManagementIdentityRegistration', () => {
   let deploymentInstanceRole: CfnRole;
   let renderQueueSubnets: SelectedSubnets;
   let target: SecretsManagementIdentityRegistration;
-
-  // @ts-ignore
-  function writeSynthedTemplates() {
-    writeSynthedTemplate(deploymentInstanceStack, 'deployment-instance-stack.json');
-    writeSynthedTemplate(stack, 'secrets-management-stack.json');
-  }
 
   beforeEach(() => {
     app = new App();
@@ -173,9 +158,9 @@ describe('SecretsManagementIdentityRegistration', () => {
         createTarget();
 
         // THEN
-        expectCDK(deploymentInstanceStack).to(haveResourceLike('AWS::IAM::Policy', {
+        Template.fromStack(deploymentInstanceStack).hasResourceProperties('AWS::IAM::Policy', {
           PolicyDocument: {
-            Statement: arrayWith(
+            Statement: Match.arrayWith([
               {
                 Action: [
                   's3:GetObject*',
@@ -183,17 +168,17 @@ describe('SecretsManagementIdentityRegistration', () => {
                   's3:List*',
                 ],
                 Effect: 'Allow',
-                Resource: arrayWith(...deploymentInstanceStack.resolve([
+                Resource: Match.arrayWith([...deploymentInstanceStack.resolve([
                   version.linuxInstallers.client.s3Bucket.bucketArn,
                   version.linuxInstallers.client.s3Bucket.arnForObjects(version.linuxInstallers.client.objectKey),
-                ])),
+                ])]),
               },
-            ),
+            ]),
           },
           Roles: [
             deploymentInstanceStack.resolve(deploymentInstanceRole.ref),
           ],
-        }));
+        });
       });
 
       test('downloads and executes Client installer', () => {
@@ -235,18 +220,18 @@ describe('SecretsManagementIdentityRegistration', () => {
       createTarget();
 
       // THEN
-      expectCDK(deploymentInstanceStack).to(haveResourceLike('AWS::IAM::Policy', {
+      Template.fromStack(deploymentInstanceStack).hasResourceProperties('AWS::IAM::Policy', {
         PolicyDocument: {
-          Statement: arrayWith(
+          Statement: Match.arrayWith([
             {
               Action: 'ec2:DescribeSubnets',
               Effect: 'Allow',
               Resource: '*',
             },
-          ),
+          ]),
         },
         Roles: [stack.resolve(deploymentInstanceRole.ref)],
-      }));
+      });
     });
 
     test('configures direct repository connection', () => {
@@ -265,9 +250,9 @@ describe('SecretsManagementIdentityRegistration', () => {
       createTarget();
 
       // THEN
-      expectCDK(deploymentInstanceStack).to(haveResourceLike('AWS::IAM::Policy', {
+      Template.fromStack(deploymentInstanceStack).hasResourceProperties('AWS::IAM::Policy', {
         PolicyDocument: {
-          Statement: arrayWith(
+          Statement: Match.arrayWith([
             {
               Action: [
                 'secretsmanager:GetSecretValue',
@@ -276,12 +261,12 @@ describe('SecretsManagementIdentityRegistration', () => {
               Effect: 'Allow',
               Resource: deploymentInstanceStack.resolve(repository.secretsManagementSettings.credentials!.secretArn),
             },
-          ),
+          ]),
         },
         Roles: [
           deploymentInstanceStack.resolve(deploymentInstanceRole.ref),
         ],
-      }));
+      });
     });
 
     describe('Identity registration settings script', () => {
@@ -295,9 +280,9 @@ describe('SecretsManagementIdentityRegistration', () => {
         const identityRegistrationSettingsScript = getIdentityRegistrationSettingsScript();
 
         // THEN
-        expectCDK(deploymentInstanceStack).to(haveResourceLike('AWS::IAM::Policy', {
+        Template.fromStack(deploymentInstanceStack).hasResourceProperties('AWS::IAM::Policy', {
           PolicyDocument: {
-            Statement: arrayWith(
+            Statement: Match.arrayWith([
               {
                 Action: [
                   's3:GetObject*',
@@ -310,10 +295,10 @@ describe('SecretsManagementIdentityRegistration', () => {
                   identityRegistrationSettingsScript.bucket.arnForObjects('*'),
                 ]),
               },
-            ),
+            ]),
           },
           Roles: [deploymentInstanceStack.resolve(deploymentInstanceRole.ref)],
-        }));
+        });
       });
 
       test('DeploymentInstance downloads script', () => {
@@ -595,10 +580,10 @@ describe('SecretsManagementIdentityRegistration', () => {
           vpcSubnets,
         });
 
-        expect(dependent.node.metadataEntry).toContainEqual(expect.objectContaining({
-          type: 'aws:cdk:warning',
-          data: `Deadline Secrets Management is enabled on the Repository and VPC subnets of the Render Queue match the subnets of ${dependent.node.path}. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components`,
-        }));
+        Annotations.fromStack(stack).hasWarning(
+          `/${dependent.node.path}`,
+          `Deadline Secrets Management is enabled on the Repository and VPC subnets of the Render Queue match the subnets of ${dependent.node.path}. Using dedicated subnets is recommended. See https://github.com/aws/aws-rfdk/blobs/release/packages/aws-rfdk/lib/deadline/README.md#using-dedicated-subnets-for-deadline-components`,
+        );
       });
     });
 

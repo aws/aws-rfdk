@@ -8,7 +8,7 @@ from typing import (
 )
 
 from aws_rfdk.deadline import (
-    AwsThinkboxEulaAcceptance,
+    AwsCustomerAgreementAndIpLicenseAcceptance,
 )
 
 
@@ -19,12 +19,11 @@ class AppConfig:
     TODO: Fill these in with your own values.
     """
     def __init__(self):
-        # Change this value to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA if you wish to accept the EULA
-        # for Deadline and proceed with Deadline deployment. Users must explicitly accept the AWS Thinkbox EULA before
-        # using the AWS Thinkbox Deadline container images.
-        #
-        # See https://www.awsthinkbox.com/end-user-license-agreement for the terms of the agreement.
-        self.accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA
+        # By downloading or using the Deadline software, you agree to the AWS Customer Agreement (https://aws.amazon.com/agreement/)
+        # and AWS Intellectual Property License (https://aws.amazon.com/legal/aws-ip-license-terms/). You acknowledge that Deadline
+        # is AWS Content as defined in those Agreements.
+        # To accept these terms, change the value here to AwsCustomerAgreementAndIpLicenseAcceptance.USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE
+        self.accept_aws_customer_agreement_and_ip_license: AwsCustomerAgreementAndIpLicenseAcceptance = AwsCustomerAgreementAndIpLicenseAcceptance.USER_REJECTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE
 
         # The standard availability zones that the render farm will deploy into. It is recommended to use at least
         # two and they must be from the same region. The default values being provided are two of the four standard

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {Duration} from '@aws-cdk/core';
+import {Duration} from 'aws-cdk-lib';
 import {
   CloudWatchConfigBuilder,
   TimeZone,

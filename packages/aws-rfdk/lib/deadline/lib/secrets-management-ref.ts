@@ -6,8 +6,8 @@
 import {
   IVpc,
   SubnetSelection,
-} from '@aws-cdk/aws-ec2';
-import { Construct } from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
+import { Construct } from 'constructs';
 
 /**
  * Deadline Secrets Management roles.

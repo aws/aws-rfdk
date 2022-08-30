@@ -9,7 +9,7 @@ from typing import (
 
 from aws_rfdk import MongoDbSsplLicenseAcceptance
 from aws_rfdk.deadline import (
-    AwsThinkboxEulaAcceptance,
+    AwsCustomerAgreementAndIpLicenseAcceptance,
     UsageBasedLicense
 )
 
@@ -21,12 +21,11 @@ class AppConfig:
     TODO: Fill these in with your own values.
     """
     def __init__(self):
-        # Change this value to AwsThinkboxEulaAcceptance.USER_ACCEPTS_AWS_THINKBOX_EULA if you wish to accept the EULA
-        # for Deadline and proceed with Deadline deployment. Users must explicitly accept the AWS Thinkbox EULA before
-        # using the AWS Thinkbox Deadline container images.
-        #
-        # See https://www.awsthinkbox.com/end-user-license-agreement for the terms of the agreement.
-        self.accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance = AwsThinkboxEulaAcceptance.USER_REJECTS_AWS_THINKBOX_EULA
+        # By downloading or using the Deadline software, you agree to the AWS Customer Agreement (https://aws.amazon.com/agreement/)
+        # and AWS Intellectual Property License (https://aws.amazon.com/legal/aws-ip-license-terms/). You acknowledge that Deadline
+        # is AWS Content as defined in those Agreements.
+        # To accept these terms, change the value here to AwsCustomerAgreementAndIpLicenseAcceptance.USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE
+        self.accept_aws_customer_agreement_and_ip_license: AwsCustomerAgreementAndIpLicenseAcceptance = AwsCustomerAgreementAndIpLicenseAcceptance.USER_REJECTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE
 
         # Fill this in if you want to receive alarm emails when:
         # 1) You are crossing thresholds on decreasing burst Credits on the Amazon EFS that is
@@ -46,6 +45,7 @@ class AppConfig:
         self.deadline_client_linux_ami_map: Mapping[str, str] = {'us-west-2': 'ami-04ae356533dc07fb5'}
 
         # A secret (in binary form) in SecretsManager that stores the UBL certificates in a .zip file.
+        # This must be in the format `arn:<partition>:secretsmanager:<region>:<accountId>:secret:<secretName>-<6RandomCharacters`
         self.ubl_certificate_secret_arn: str =\
             ''
 

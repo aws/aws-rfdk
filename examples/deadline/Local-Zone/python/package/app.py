@@ -5,7 +5,7 @@
 
 import os
 
-from aws_cdk.core import (
+from aws_cdk import (
     App,
     Environment
 )
@@ -70,7 +70,7 @@ def main():
         root_ca=security.root_ca,
         dns_zone=network.dns_zone,
         deadline_version=config.config.deadline_version,
-        accept_aws_thinkbox_eula=config.config.accept_aws_thinkbox_eula
+        user_aws_customer_agreement_and_ip_license_acceptance=config.config.accept_aws_customer_agreement_and_ip_license
     )
     service = service_tier.ServiceTier(app, 'ServiceTier', props=service_props, env=env)
 

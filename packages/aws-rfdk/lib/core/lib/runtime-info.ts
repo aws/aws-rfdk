@@ -6,9 +6,9 @@
 import * as path from 'path';
 
 import {
-  Construct,
   Tags,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import { Construct } from 'constructs';
 
 /**
  * The name of the tag used to associate the RFDK version and construct that deploys a given resources.

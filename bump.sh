@@ -18,7 +18,13 @@
 # --------------------------------------------------------------------------------------------------
 
 set -euxo pipefail
-version=${1:-minor}
+current_version=$(node -p "require('./package.json').version")
+if test "${current_version}" = "0.42.0"; then
+  # The version after 0.42.0 will be 1.0.0
+  version=${1:-major}
+else
+  version=${1:-minor}
+fi
 
 cd "$(dirname "$0")"
 
@@ -66,7 +72,7 @@ deadline_version_section="\n\n\n### Officially Supported Deadline Versions\n\n* 
 sed -i "s|\($version_header\)|\1$deadline_version_section|" ./CHANGELOG.md
 
 # Add a section to the changelog that state the version of CDK being used
-cdk_version=$(node -p "require('./package.json').devDependencies['aws-cdk']")
+cdk_version=$(node -p "require('./package.json').devDependencies['aws-cdk-lib']")
 cdk_version_section="\n\n\n### Supported CDK Version\n\n* [$cdk_version](https://github.com/aws/aws-cdk/releases/tag/v$cdk_version)"
 sed -i "s|\($version_header\)|\1$cdk_version_section|" ./CHANGELOG.md
 

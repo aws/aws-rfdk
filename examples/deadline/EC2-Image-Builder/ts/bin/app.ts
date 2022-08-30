@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as cdk from '@aws-cdk/core';
+import * as cdk from 'aws-cdk-lib';
 
 import { config } from './config';
 
@@ -22,7 +22,7 @@ const app = new cdk.App();
 const baseFarm = new BaseFarmStack(app, 'BaseFarmStack', {
   env,
   deadlineVersion: config.deadlineVersion,
-  acceptAwsThinkboxEula: config.acceptAwsThinkboxEula,
+  userAwsCustomerAgreementAndIpLicenseAcceptance: config.acceptAwsCustomerAgreementAndIpLicense,
 });
 
 new ComputeStack(app, 'ComputeStack', {

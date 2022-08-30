@@ -4,9 +4,13 @@
  */
 
 import {
-  expect as cdkExpect,
-  haveResourceLike,
-} from '@aws-cdk/assert';
+  Size,
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   AmazonLinuxGeneration,
   Instance,
@@ -15,11 +19,7 @@ import {
   Volume,
   Vpc,
   WindowsVersion,
-} from '@aws-cdk/aws-ec2';
-import {
-  Size,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
 
 import {
   BlockVolumeFormat,
@@ -69,9 +69,9 @@ describe('Test MountableBlockVolume', () => {
     // THEN
 
     // Make sure the instance role has the correct permissions to get & run the script
-    cdkExpect(stack).to(haveResourceLike('AWS::IAM::Policy', {
+    Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
       PolicyDocument: {
-        Statement: [
+        Statement: Match.arrayWith([
           {
             Effect: 'Allow',
             Action: 'ec2:DescribeVolumes',
@@ -149,7 +149,7 @@ describe('Test MountableBlockVolume', () => {
                     },
                     ':s3:::',
                     {
-                      Ref: MOUNT_EBS_SCRIPT_LINUX.Bucket,
+                      'Fn::Sub': MOUNT_EBS_SCRIPT_LINUX.Bucket,
                     },
                   ],
                 ],
@@ -164,7 +164,7 @@ describe('Test MountableBlockVolume', () => {
                     },
                     ':s3:::',
                     {
-                      Ref: MOUNT_EBS_SCRIPT_LINUX.Bucket,
+                      'Fn::Sub': MOUNT_EBS_SCRIPT_LINUX.Bucket,
                     },
                     '/*',
                   ],
@@ -172,14 +172,14 @@ describe('Test MountableBlockVolume', () => {
               },
             ],
           },
-        ],
+        ]),
       },
-    }));
+    });
     // Make sure we download the mountEFS script asset bundle
-    const s3Copy = 'aws s3 cp \'s3://${Token[TOKEN.\\d+]}/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\' \'/tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\'';
+    const s3Copy = `aws s3 cp 's3://\${Token[TOKEN.\\d+]}/${MOUNT_EBS_SCRIPT_LINUX.Key}.zip' '/tmp/${MOUNT_EBS_SCRIPT_LINUX.Key}.zip'`;
     expect(userData).toMatch(new RegExp(escapeTokenRegex(s3Copy)));
-    expect(userData).toMatch(new RegExp(escapeTokenRegex('unzip /tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}')));
-    // Make sure we execute the script with the correct args
+    expect(userData).toMatch(new RegExp(escapeTokenRegex(`unzip /tmp/${MOUNT_EBS_SCRIPT_LINUX.Key}.zip`)));
+    // Make sure we run the script with the correct args
     expect(userData).toMatch(new RegExp(escapeTokenRegex('bash ./mountEbsBlockVolume.sh ${Token[TOKEN.\\d+]} xfs /mnt/fs rw')));
   });
 
@@ -300,7 +300,7 @@ describe('Test MountableBlockVolume', () => {
       location: '/mnt/fs',
     });
     const userData = instance.userData.render();
-    const s3Copy = 'aws s3 cp \'s3://${Token[TOKEN.\\d+]}/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\'';
+    const s3Copy = `aws s3 cp 's3://\${Token[TOKEN.\\d+]}/${MOUNT_EBS_SCRIPT_LINUX.Key}.zip'`;
     const regex = new RegExp(escapeTokenRegex(s3Copy), 'g');
     const matches = userData.match(regex) ?? [];
 

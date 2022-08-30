@@ -6,7 +6,11 @@
 import { randomBytes } from 'crypto';
 import * as path from 'path';
 
-import { Ec2Service } from '@aws-cdk/aws-ecs';
+import {
+  CustomResource,
+  Duration,
+} from 'aws-cdk-lib';
+import { Ec2Service } from 'aws-cdk-lib/aws-ecs';
 import {
   Effect,
   ManagedPolicy,
@@ -14,18 +18,14 @@ import {
   PolicyStatement,
   Role,
   ServicePrincipal,
-} from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-iam';
 import {
   Code,
   Function as LambdaFunction,
   Runtime,
-} from '@aws-cdk/aws-lambda';
-import { RetentionDays } from '@aws-cdk/aws-logs';
-import {
-  Construct,
-  CustomResource,
-  Duration,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-lambda';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { Construct } from 'constructs';
 import { WaitForStableServiceResourceProps } from '../../lambdas/nodejs/wait-for-stable-service';
 
 /**

@@ -7,31 +7,31 @@ import {
   IVpc,
   SubnetSelection,
   SubnetType,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   ApplicationProtocol,
-} from '@aws-cdk/aws-elasticloadbalancingv2';
+} from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import {
   IPrivateHostedZone,
-} from '@aws-cdk/aws-route53';
+} from 'aws-cdk-lib/aws-route53';
 import {
-  Construct,
   Duration,
   RemovalPolicy,
   Stack,
   StackProps,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
 import {
   SessionManagerHelper,
   X509CertificatePem,
 } from 'aws-rfdk';
 import {
-  AwsThinkboxEulaAcceptance,
+  AwsCustomerAgreementAndIpLicenseAcceptance,
   RenderQueue,
   Repository,
   ThinkboxDockerImages,
   VersionQuery,
 } from 'aws-rfdk/deadline';
+import { Construct } from 'constructs';
 
 /**
  * Properties for {@link ServiceTier}.
@@ -43,9 +43,9 @@ export interface ServiceTierProps extends StackProps {
   readonly vpc: IVpc;
 
   /**
-   * Whether the AWS Thinkbox End-User License Agreement is accepted or not
+   * Whether the AWS Customer Agreement and AWS Intellectual Property License are agreed to.
    */
-  readonly acceptAwsThinkboxEula: AwsThinkboxEulaAcceptance;
+  readonly userAwsCustomerAgreementAndIpLicenseAcceptance: AwsCustomerAgreementAndIpLicenseAcceptance;
 
   /**
    * The availability zones that components in this stack will be deployed into. These should all be in the same
@@ -114,7 +114,7 @@ export class ServiceTier extends Stack {
 
     const images = new ThinkboxDockerImages(this, 'Images', {
       version: this.version,
-      userAwsThinkboxEulaAcceptance: props.acceptAwsThinkboxEula,
+      userAwsCustomerAgreementAndIpLicenseAcceptance: props.userAwsCustomerAgreementAndIpLicenseAcceptance,
     });
 
     const serverCert = new X509CertificatePem(this, 'RQCert', {

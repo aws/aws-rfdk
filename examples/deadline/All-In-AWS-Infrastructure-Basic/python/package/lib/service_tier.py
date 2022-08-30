@@ -4,8 +4,7 @@
 import typing
 from dataclasses import dataclass
 
-from aws_cdk.core import (
-    Construct,
+from aws_cdk import (
     Duration,
     Stack,
     StackProps
@@ -26,7 +25,6 @@ from aws_cdk.aws_secretsmanager import (
 from aws_cdk.aws_route53 import (
     IPrivateHostedZone
 )
-
 from aws_rfdk import (
     DistinguishedName,
     MountableEfs,
@@ -34,7 +32,7 @@ from aws_rfdk import (
     X509CertificatePem
 )
 from aws_rfdk.deadline import (
-    AwsThinkboxEulaAcceptance,
+    AwsCustomerAgreementAndIpLicenseAcceptance,
     DatabaseConnection,
     RenderQueue,
     RenderQueueHostNameProps,
@@ -47,6 +45,10 @@ from aws_rfdk.deadline import (
     UsageBasedLicensing,
     VersionQuery,
 )
+from constructs import (
+    Construct
+)
+
 
 from . import subnets
 
@@ -72,8 +74,8 @@ class ServiceTierProps(StackProps):
     dns_zone: IPrivateHostedZone
     # Version of Deadline to use
     deadline_version: str
-    # Whether the AWS Thinkbox End-User License Agreement is accepted or not
-    accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance
+    # Whether the AWS Customer Agreement and AWS Intellectual Property License are agreed to.
+    user_aws_customer_agreement_and_ip_license_acceptance: AwsCustomerAgreementAndIpLicenseAcceptance
     # Whether to enable Deadline Secrets Management.
     enable_secrets_management: bool
     # The ARN of the AWS Secret containing the admin credentials for Deadline Secrets Management.
@@ -153,7 +155,7 @@ class ServiceTier(Stack):
             self,
             'Images',
             version=self.version,
-            user_aws_thinkbox_eula_acceptance=props.accept_aws_thinkbox_eula
+            user_aws_customer_agreement_and_ip_license_acceptance=props.user_aws_customer_agreement_and_ip_license_acceptance
         )
 
         server_cert = X509CertificatePem(
@@ -222,7 +224,7 @@ class ServiceTier(Stack):
         if props.ubl_licenses:
             if not props.ubl_certs_secret_arn:
                 raise ValueError('UBL certificates secret ARN is required when using UBL but was not specified.')
-            ubl_cert_secret = Secret.from_secret_arn(self, 'ublcertssecret', props.ubl_certs_secret_arn)
+            ubl_cert_secret = Secret.from_secret_complete_arn(self, 'ublcertssecret', props.ubl_certs_secret_arn)
             self.ubl_licensing = UsageBasedLicensing(
                 self,
                 'UsageBasedLicensing',

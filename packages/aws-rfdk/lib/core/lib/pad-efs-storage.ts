@@ -5,24 +5,31 @@
 
 import * as path from 'path';
 import {
+  Annotations,
+  Duration,
+  Size,
+  SizeRoundingBehavior,
+  Stack,
+} from 'aws-cdk-lib';
+import {
   ISecurityGroup,
   IVpc,
   SecurityGroup,
   SubnetSelection,
   SubnetType,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   IAccessPoint,
-} from '@aws-cdk/aws-efs';
+} from 'aws-cdk-lib/aws-efs';
 import {
   Code,
   FileSystem as LambdaFilesystem,
   Function as LambdaFunction,
   Runtime,
-} from '@aws-cdk/aws-lambda';
+} from 'aws-cdk-lib/aws-lambda';
 import {
   RetentionDays,
-} from '@aws-cdk/aws-logs';
+} from 'aws-cdk-lib/aws-logs';
 import {
   Choice,
   Condition,
@@ -30,24 +37,17 @@ import {
   InputType,
   StateMachine,
   Succeed,
-}from '@aws-cdk/aws-stepfunctions';
+}from 'aws-cdk-lib/aws-stepfunctions';
 import {
   LambdaInvoke,
-} from '@aws-cdk/aws-stepfunctions-tasks';
-import {
-  Annotations,
-  Construct,
-  Duration,
-  Size,
-  SizeRoundingBehavior,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import {
   AwsSdkCall,
   AwsCustomResource,
   AwsCustomResourcePolicy,
   PhysicalResourceId,
-} from '@aws-cdk/custom-resources';
+} from 'aws-cdk-lib/custom-resources';
+import { Construct } from 'constructs';
 import {
   tagConstruct,
 } from './runtime-info';

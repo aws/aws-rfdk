@@ -14,11 +14,12 @@ import {
   SubnetSelection,
   SubnetType,
   Vpc,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   PrivateHostedZone,
-} from '@aws-cdk/aws-route53';
-import * as cdk from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-route53';
+import * as cdk from 'aws-cdk-lib';
+import { Construct } from 'constructs';
 
 import { Subnets } from './subnets';
 
@@ -67,7 +68,7 @@ export class NetworkTier extends cdk.Stack {
    * @param id The ID of this construct.
    * @param props The stack properties.
    */
-  constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     this.vpc = new Vpc(this, 'Vpc', {

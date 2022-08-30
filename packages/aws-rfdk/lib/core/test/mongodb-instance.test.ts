@@ -4,42 +4,38 @@
  */
 
 import {
-  arrayWith,
-  countResources,
-  expect as cdkExpect,
-  haveResource,
-  haveResourceLike,
-  objectLike,
-} from '@aws-cdk/assert';
+  App,
+  Names,
+  Size,
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Match,
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   InstanceType,
   SecurityGroup,
   SubnetType,
   Volume,
   Vpc,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
   Role,
   ServicePrincipal,
-} from '@aws-cdk/aws-iam';
+} from 'aws-cdk-lib/aws-iam';
 import {
   Key,
-} from '@aws-cdk/aws-kms';
+} from 'aws-cdk-lib/aws-kms';
 import {
   RetentionDays,
-} from '@aws-cdk/aws-logs';
+} from 'aws-cdk-lib/aws-logs';
 import {
   PrivateHostedZone,
-} from '@aws-cdk/aws-route53';
+} from 'aws-cdk-lib/aws-route53';
 import {
   Secret,
-} from '@aws-cdk/aws-secretsmanager';
-import {
-  App,
-  Names,
-  Size,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-secretsmanager';
 
 import {
   MongoDbInstance,
@@ -49,14 +45,11 @@ import {
 } from '../lib';
 
 import {
-  CWA_ASSET_LINUX,
+  CWA_ASSET_LINUX, INSTALL_MONGODB_3_6_SCRIPT_LINUX, MONGODB_3_6_CONFIGURATION_SCRIPTS, MOUNT_EBS_SCRIPT_LINUX,
 } from './asset-constants';
 import {
   testConstructTags,
 } from './tag-helpers';
-import {
-  escapeTokenRegex,
-} from './token-regex-helpers';
 
 describe('Test MongoDbInstance', () => {
   let app: App;
@@ -106,23 +99,23 @@ describe('Test MongoDbInstance', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResource('AWS::AutoScaling::AutoScalingGroup'));
-    cdkExpect(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+    Template.fromStack(stack).resourceCountIs('AWS::AutoScaling::AutoScalingGroup', 1);
+    Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
       InstanceType: 'r5.large',
-      BlockDeviceMappings: arrayWith(
-        objectLike({
-          Ebs: objectLike({
+      BlockDeviceMappings: Match.arrayWith([
+        Match.objectLike({
+          Ebs: Match.objectLike({
             Encrypted: true,
           }),
         }),
-      ),
-    }));
+      ]),
+    });
 
-    cdkExpect(stack).to(haveResourceLike('AWS::Route53::RecordSet', {
+    Template.fromStack(stack).hasResourceProperties('AWS::Route53::RecordSet', {
       Name: hostname + '.' + zoneName + '.',
-    }));
+    });
 
-    cdkExpect(stack).to(haveResourceLike('AWS::SecretsManager::Secret', {
+    Template.fromStack(stack).hasResourceProperties('AWS::SecretsManager::Secret', {
       Description: `Admin credentials for the MongoDB database ${Names.uniqueId(instance)}`,
       GenerateSecretString: {
         ExcludeCharacters: '\"()$\'',
@@ -133,21 +126,28 @@ describe('Test MongoDbInstance', () => {
         RequireEachIncludedType: true,
         SecretStringTemplate: '{\"username\":\"admin\"}',
       },
-    }));
+    });
 
-    cdkExpect(stack).to(haveResourceLike('AWS::EC2::Volume', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Volume', {
       Encrypted: true,
-      Tags: arrayWith(
-        objectLike({
+      Tags: Match.arrayWith([
+        Match.objectLike({
           Key: 'VolumeGrantAttach-6238D22B12',
           Value: '6238d22b121db8094cb816e2a49d2b61',
         }),
-      ),
-    }));
+      ]),
+    });
 
-    cdkExpect(stack).to(haveResourceLike('AWS::IAM::Policy', {
-      PolicyDocument: objectLike({
-        Statement: arrayWith(
+    Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: Match.objectLike({
+        Statement: Match.arrayWith([
+          {
+            Action: 'cloudformation:SignalResource',
+            Effect: 'Allow',
+            Resource: {
+              Ref: 'AWS::StackId',
+            },
+          },
           {
             Action: [
               'logs:CreateLogStream',
@@ -200,7 +200,7 @@ describe('Test MongoDbInstance', () => {
                     },
                     ':s3:::',
                     {
-                      Ref: CWA_ASSET_LINUX.Bucket,
+                      'Fn::Sub': CWA_ASSET_LINUX.Bucket,
                     },
                   ],
                 ],
@@ -215,13 +215,45 @@ describe('Test MongoDbInstance', () => {
                     },
                     ':s3:::',
                     {
-                      Ref: CWA_ASSET_LINUX.Bucket,
+                      'Fn::Sub': CWA_ASSET_LINUX.Bucket,
                     },
                     '/*',
                   ],
                 ],
               },
             ],
+          },
+          {
+            Action: [
+              'ssm:DescribeParameters',
+              'ssm:GetParameters',
+              'ssm:GetParameter',
+              'ssm:GetParameterHistory',
+            ],
+            Effect: 'Allow',
+            Resource: {
+              'Fn::Join': [
+                '',
+                [
+                  'arn:',
+                  {
+                    Ref: 'AWS::Partition',
+                  },
+                  ':ssm:',
+                  {
+                    Ref: 'AWS::Region',
+                  },
+                  ':',
+                  {
+                    Ref: 'AWS::AccountId',
+                  },
+                  ':parameter/',
+                  {
+                    Ref: Match.stringLikeRegexp('^MongoDbInstanceStringParameter.*'),
+                  },
+                ],
+              ],
+            },
           },
           {
             Action: [
@@ -269,7 +301,7 @@ describe('Test MongoDbInstance', () => {
             ],
             Effect: 'Allow',
             Resource: {
-              Ref: 'ServerCertPassphraseE4C3CB38',
+              Ref: Match.stringLikeRegexp('^ServerCertPassphrase.*'),
             },
           },
           {
@@ -279,114 +311,169 @@ describe('Test MongoDbInstance', () => {
             ],
             Effect: 'Allow',
             Resource: {
-              Ref: 'MongoDbInstanceAdminUser54147F2B',
+              Ref: Match.stringLikeRegexp('^MongoDbInstanceAdminUser.*'),
             },
           },
-
-        ),
+        ]),
       }),
-    }));
+    });
 
-    cdkExpect(stack).to(haveResourceLike('Custom::LogRetention', {
+    Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: '/renderfarm/MongoDbInstance',
-    }));
+    });
 
     const cloudInitLogPath = '/var/log/cloud-init-output.log';
     const cloudInitLogPrefix = 'cloud-init-output';
     const mongoLogPath = '/var/log/mongodb/mongod.log';
     const mongoLogPrefix = 'MongoDB';
 
-    cdkExpect(stack).to(haveResourceLike('AWS::SSM::Parameter', {
+    Template.fromStack(stack).hasResourceProperties('AWS::SSM::Parameter', {
       Description: 'config file for Repository logs config',
-      Value: objectLike({
-        'Fn::Join': arrayWith(
-          arrayWith(
-            '\",\"log_stream_name\":\"' + cloudInitLogPrefix + '-{instance_id}\",\"file_path\":\"' + cloudInitLogPath + '\",' +
+      Value: {
+        'Fn::Join': [
+          '',
+          Match.arrayWith([
+            `\",\"log_stream_name\":\"${cloudInitLogPrefix}-{instance_id}\",\"file_path\":\"${cloudInitLogPath}\",` +
             '\"timezone\":\"Local\"},{\"log_group_name\":\"',
-            '\",\"log_stream_name\":\"' + mongoLogPrefix + '-{instance_id}\",\"file_path\":\"' + mongoLogPath + '\"' +
+            `\",\"log_stream_name\":\"${mongoLogPrefix}-{instance_id}\",\"file_path\":\"${mongoLogPath}\"` +
             ',\"timezone\":\"Local\"}]}},\"log_stream_name\":\"DefaultLogStream-{instance_id}\",\"force_flush_interval\":15}}',
-          ),
-        ),
-      }),
-    }));
+          ]),
+        ],
+      },
+    });
 
-    const userData = instance.userData.render();
-    const token = '${Token[TOKEN.\\d+]}';
-
-    // Make sure we add signal on exit
-    const exitTrap = '#!/bin/bash\n' +
-                     'function exitTrap(){\n' +
-                     'exitCode=$?\n' +
-                     '/opt/aws/bin/cfn-signal --stack Stack --resource MongoDbInstanceServerAsgASG2643AD1D --region ' + token +
-                      ' -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n' +
-                      'test \"${MONGO_SETUP_DIR} != \"\" && sudo umount \"${MONGO_SETUP_DIR}\n' +
-                      '}';
-    expect(userData).toMatch(new RegExp(escapeTokenRegex(exitTrap)));
-
-    const callExitTrap = 'trap exitTrap EXIT';
-    expect(userData).toMatch(new RegExp(callExitTrap));
-
-    const settings = 'set -xefuo pipefail';
-    expect(userData).toMatch(new RegExp(settings));
-
-    const createTempDir = 'mkdir -p $\\(dirname \'/tmp/' + token + token + '\'\\)\n';
-    const s3Copy = 'aws s3 cp \'s3://' + token + '/' + token + token + '\' \'/tmp/' + token + token + '\'\n';
-
-    // CloudWatch Agent
-    const setE = 'set -e\n';
-    const setChmod = 'chmod \\+x \'/tmp/' + token + token + '\'\n';
-    const execute = '\'/tmp/' + token + token + '\' -i ${Token[AWS.Region.\\d+]} ' + token + '\n';
-    expect(userData).toMatch(new RegExp(escapeTokenRegex(createTempDir + s3Copy + setE + setChmod + execute)));
-
-    // Make sure we mount EBS volume
-    const mount = 'TMPDIR=$\\(mktemp -d\\)\n' +
-                  'pushd \"$TMPDIR\"\n' +
-                  'unzip /tmp/' + token + token + '\n' +
-                  'bash ./mountEbsBlockVolume.sh ' + token + ' xfs /var/lib/mongo rw \"\"\n' +
-                  'popd\n' +
-                  'rm -f /tmp/' + token + token;
-    expect(userData).toMatch(new RegExp(escapeTokenRegex(createTempDir + s3Copy + mount)));
-
-    // install mongodb
-    const bashCmd = 'bash /tmp/' + token + token;
-    expect(userData).toMatch(new RegExp(escapeTokenRegex(createTempDir + s3Copy + bashCmd)));
-
-    // configureMongoDb
-    const monogdbConfig = 'which mongod && test -f /etc/mongod.conf\n' +
-                          'sudo service mongod stop\n' +
-                          'MONGO_SETUP_DIR=$\\(mktemp -d\\)\n' +
-                          'mkdir -p \"${MONGO_SETUP_DIR}\"\n' +
-                          'sudo mount -t tmpfs -o size=50M tmpfs \"${MONGO_SETUP_DIR}\"\n' +
-                          'pushd \"${MONGO_SETUP_DIR}\"\n' +
-                          'unzip /tmp/' + token + token + '\n' +
-                          'cp /etc/mongod.conf .';
-    expect(userData).toMatch(new RegExp(escapeTokenRegex(createTempDir + s3Copy + monogdbConfig)));
-
-    // Getting the server certificate
-    const serverCertCmd = 'bash serverCertFromSecrets.sh \\"' + token + '\\" \\"' + token + '\\" \\"' + token + '\\" \\"' + token + '\\"';
-    expect(userData).toMatch(new RegExp(escapeTokenRegex(serverCertCmd)));
-
-    // set mongodb certificates and credentials
-    const monogdbCredentials = 'sudo mkdir -p /etc/mongod_certs\n' +
-                               'sudo mv ./ca.crt ./key.pem /etc/mongod_certs\n' +
-                               'sudo chown root.mongod -R /etc/mongod_certs/\n' +
-                               'sudo chmod 640 -R /etc/mongod_certs/\n' +
-                               'sudo chmod 750 /etc/mongod_certs/\n' +
-                               'sudo chown mongod.mongod -R /var/lib/mongo\n' +
-                               'bash ./setMongoLimits.sh\n' +
-                               'bash ./setStoragePath.sh \"/var/lib/mongo\"\n' +
-                               'bash ./setMongoNoAuth.sh\n' +
-                               'sudo service mongod start\n' +
-                               'bash ./setAdminCredentials.sh \"' + token + '\"';
-    expect(userData).toMatch(new RegExp(escapeTokenRegex(monogdbCredentials)));
-
-    // Setup for live deployment, and start mongod
-    const startMongo = 'sudo service mongod stop\n' +
-                       'bash ./setLiveConfiguration.sh\n' +
-                       'sudo systemctl enable mongod\n' +
-                       'sudo service mongod start\n' +
-                       'popd';
-    expect(userData).toMatch(new RegExp(escapeTokenRegex(startMongo)));
+    Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
+      UserData: {
+        'Fn::Base64': {
+          'Fn::Join': [
+            '',
+            Match.arrayWith([
+              // Make sure we add signal on exit
+              '#!/bin/bash\n' +
+              'function exitTrap(){\n' +
+              'exitCode=$?\n' +
+              '/opt/aws/bin/cfn-signal --stack Stack --resource MongoDbInstanceServerAsgASG2643AD1D --region ',
+              {
+                Ref: 'AWS::Region',
+              },
+              ' -e $exitCode || echo \'Failed to send Cloudformation Signal\'\n' +
+              'test "${MONGO_SETUP_DIR}" != "" && sudo umount "${MONGO_SETUP_DIR}"\n' +
+              '}\n' +
+              // Set up the exit trap
+              'trap exitTrap EXIT\n' +
+              // Script settings
+              'set -xefuo pipefail\n' +
+              // Setup CloudWatch agent
+              `mkdir -p $(dirname '/tmp/${CWA_ASSET_LINUX.Key}.sh')\n` +
+              'aws s3 cp \'s3://',
+              {
+                'Fn::Sub': CWA_ASSET_LINUX.Bucket,
+              },
+              `/${CWA_ASSET_LINUX.Key}.sh' '/tmp/${CWA_ASSET_LINUX.Key}.sh'\n` +
+              'set -e\n' +
+              `chmod +x '/tmp/${CWA_ASSET_LINUX.Key}.sh'\n'/tmp/${CWA_ASSET_LINUX.Key}.sh' -i `,
+              {
+                Ref: 'AWS::Region',
+              },
+              ' ',
+              {
+                Ref: Match.stringLikeRegexp('^MongoDbInstanceStringParameter.*'),
+              },
+              // Make sure we mount the EBS Volume
+              `\nmkdir -p $(dirname '/tmp/${MOUNT_EBS_SCRIPT_LINUX.Key}.zip')\n` +
+              'aws s3 cp \'s3://',
+              {
+                'Fn::Sub': MOUNT_EBS_SCRIPT_LINUX.Bucket,
+              },
+              `/${MOUNT_EBS_SCRIPT_LINUX.Key}.zip' '/tmp/${MOUNT_EBS_SCRIPT_LINUX.Key}.zip'\n` +
+              'TMPDIR=$(mktemp -d)\n' +
+              'pushd "$TMPDIR"\n' +
+              `unzip /tmp/${MOUNT_EBS_SCRIPT_LINUX.Key}.zip\n` +
+              'bash ./mountEbsBlockVolume.sh ',
+              {
+                Ref: Match.stringLikeRegexp('^MongoDbInstanceMongoDbData.*'),
+              },
+              ' xfs /var/lib/mongo rw ""\n' +
+              'popd\n' +
+              `rm -f /tmp/${MOUNT_EBS_SCRIPT_LINUX.Key}.zip\n` +
+              // Install MongoDB
+              `mkdir -p $(dirname '/tmp/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh')\n` +
+              'aws s3 cp \'s3://',
+              {
+                'Fn::Sub': INSTALL_MONGODB_3_6_SCRIPT_LINUX.Bucket,
+              },
+              `/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh' '/tmp/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh'\n` +
+              `bash /tmp/${INSTALL_MONGODB_3_6_SCRIPT_LINUX.Key}.sh\n` +
+              // Fetching the MongoDB configuration scripts
+              `mkdir -p $(dirname '/tmp/${MONGODB_3_6_CONFIGURATION_SCRIPTS.Key}.zip')\n` +
+              'aws s3 cp \'s3://',
+              {
+                'Fn::Sub': MONGODB_3_6_CONFIGURATION_SCRIPTS.Bucket,
+              },
+              `/${MONGODB_3_6_CONFIGURATION_SCRIPTS.Key}.zip' '/tmp/${MONGODB_3_6_CONFIGURATION_SCRIPTS.Key}.zip'\n` +
+              // Configure MongoDB
+              'which mongod && test -f /etc/mongod.conf\n' +
+              'sudo service mongod stop\n' +
+              'MONGO_SETUP_DIR=$(mktemp -d)\n' +
+              'mkdir -p "${MONGO_SETUP_DIR}"\n' +
+              'sudo mount -t tmpfs -o size=50M tmpfs "${MONGO_SETUP_DIR}"\n' +
+              'pushd "${MONGO_SETUP_DIR}"\n' +
+              `unzip /tmp/${MONGODB_3_6_CONFIGURATION_SCRIPTS.Key}.zip\n` +
+              'cp /etc/mongod.conf .\n' +
+              // Getting the server certificate
+              'bash serverCertFromSecrets.sh \"',
+              {
+                'Fn::GetAtt': [
+                  'ServerCert',
+                  'Cert',
+                ],
+              },
+              '" "',
+              {
+                'Fn::GetAtt': [
+                  'ServerCert',
+                  'CertChain',
+                ],
+              },
+              '" "',
+              {
+                'Fn::GetAtt': [
+                  'ServerCert',
+                  'Key',
+                ],
+              },
+              '" "',
+              {
+                Ref: Match.stringLikeRegexp('^ServerCertPassphrase.*'),
+              },
+              '"\n' +
+              // Set mongodb certificates and credentials
+              'sudo mkdir -p /etc/mongod_certs\n' +
+              'sudo mv ./ca.crt ./key.pem /etc/mongod_certs\n' +
+              'sudo chown root.mongod -R /etc/mongod_certs/\n' +
+              'sudo chmod 640 -R /etc/mongod_certs/\n' +
+              'sudo chmod 750 /etc/mongod_certs/\n' +
+              'sudo chown mongod.mongod -R /var/lib/mongo\n' +
+              'bash ./setMongoLimits.sh\n' +
+              'bash ./setStoragePath.sh "/var/lib/mongo"\n' +
+              'bash ./setMongoNoAuth.sh\n' +
+              'sudo service mongod start\n' +
+              'bash ./setAdminCredentials.sh \"',
+              {
+                Ref: Match.stringLikeRegexp('^MongoDbInstanceAdminUser.*'),
+              },
+              '"\n' +
+              // Setup for live deployment, and start mongod
+              'sudo service mongod stop\n' +
+              'bash ./setLiveConfiguration.sh\n' +
+              'sudo systemctl enable mongod\n' +
+              'sudo service mongod start\n' +
+              'popd',
+            ]),
+          ],
+        },
+      },
+    });
 
     // Make sure all the required public members are set
     expect(instance.version).toBe(version);
@@ -449,9 +536,9 @@ describe('Test MongoDbInstance', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+    Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
       InstanceType: expectedInstanceType,
-    }));
+    });
   });
 
   test('allowing ssh connection with key name', () => {
@@ -472,9 +559,9 @@ describe('Test MongoDbInstance', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
+    Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
       KeyName: expectedKeyName,
-    }));
+    });
   });
 
   test('using custom admin user works correctly', () => {
@@ -530,7 +617,7 @@ describe('Test MongoDbInstance', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(countResources('AWS::EC2::SecurityGroup', 1));
+    Template.fromStack(stack).resourceCountIs('AWS::EC2::SecurityGroup', 1);
   });
 
   test('setting role works correctly', () => {
@@ -581,7 +668,7 @@ describe('Test MongoDbInstance', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(countResources('AWS::EC2::Volume', 1));
+    Template.fromStack(stack).resourceCountIs('AWS::EC2::Volume', 1);
   });
 
   test('setting custom encryption key for data volume works correctly', () => {
@@ -609,14 +696,14 @@ describe('Test MongoDbInstance', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResourceLike('AWS::EC2::Volume', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Volume', {
       Encrypted: true,
-      KmsKeyId: objectLike({
-        'Fn::GetAtt': arrayWith(
+      KmsKeyId: Match.objectLike({
+        'Fn::GetAtt': Match.arrayWith([
           'Key961B73FD',
-        ),
+        ]),
       }),
-    }));
+    });
   });
 
   test('setting custom size for data volume works correctly', () => {
@@ -641,9 +728,9 @@ describe('Test MongoDbInstance', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResourceLike('AWS::EC2::Volume', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::Volume', {
       Size: volumeSize,
-    }));
+    });
   });
 
   test('setting LogGroup bucket name enables export to S3', () => {
@@ -665,11 +752,11 @@ describe('Test MongoDbInstance', () => {
       },
     });
 
-    cdkExpect(stack).to(haveResource('AWS::Events::Rule', {
-      Targets: arrayWith(objectLike({
+    Template.fromStack(stack).hasResourceProperties('AWS::Events::Rule', {
+      Targets: Match.arrayWith([Match.objectLike({
         Input: '{\"BucketName\":\"' + bucketName + '\",\"ExportFrequencyInHours\":1,\"LogGroupName\":\"/renderfarm/MongoDbInstance\",\"RetentionInHours\":72}',
-      })),
-    }));
+      })]),
+    });
   });
 
   test.each([
@@ -695,9 +782,9 @@ describe('Test MongoDbInstance', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResource('Custom::LogRetention', {
+    Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: testPrefix + id,
-    }));
+    });
   });
 
   test('is created with correct LogGroup retention', () => {
@@ -720,9 +807,9 @@ describe('Test MongoDbInstance', () => {
     });
 
     // THEN
-    cdkExpect(stack).to(haveResource('Custom::LogRetention', {
+    Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       RetentionInDays: retention,
-    }));
+    });
   });
 
   test('adds security group', () => {
@@ -745,9 +832,9 @@ describe('Test MongoDbInstance', () => {
     instance.addSecurityGroup(securityGroup);
 
     // THEN
-    cdkExpect(stack).to(haveResourceLike('AWS::AutoScaling::LaunchConfiguration', {
-      SecurityGroups: arrayWith(stack.resolve(securityGroup.securityGroupId)),
-    }));
+    Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
+      SecurityGroups: Match.arrayWith([stack.resolve(securityGroup.securityGroupId)]),
+    });
   });
 
   testConstructTags({

@@ -6,8 +6,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { DockerImageAsset } from '@aws-cdk/aws-ecr-assets';
-import { Construct } from '@aws-cdk/core';
+import { DockerImageAsset } from 'aws-cdk-lib/aws-ecr-assets';
+import { Construct } from 'constructs';
 
 import {
   IVersion,

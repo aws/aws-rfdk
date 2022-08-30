@@ -8,8 +8,8 @@ import {
   IMachineImage,
   IVpc,
   Port,
-} from '@aws-cdk/aws-ec2';
-import * as cdk from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
+import * as cdk from 'aws-cdk-lib';
 import {
   IHost,
   InstanceUserDataProvider,
@@ -24,7 +24,8 @@ import {
   IHealthMonitor,
   SessionManagerHelper,
 } from 'aws-rfdk';
-import { Asset } from '@aws-cdk/aws-s3-assets';
+import { Asset } from 'aws-cdk-lib/aws-s3-assets';
+import { Construct } from 'constructs';
 import * as path from 'path'
 
 import { Subnets } from './subnets';
@@ -83,7 +84,7 @@ class UserDataProvider extends InstanceUserDataProvider {
     host.userData.addCommands('echo postWorkerLaunch');
     if (host.node.scope != undefined) {
       const testScript = new Asset(
-        host.node.scope as cdk.Construct,
+        host.node.scope as Construct,
         'SampleAsset',
         {path: path.join(__dirname, '..', '..', 'scripts', 'configure_worker.sh')},
       );
@@ -120,7 +121,7 @@ export class ComputeTier extends cdk.Stack {
    * @param id The ID of this construct.
    * @param props The properties of this construct.
    */
-  constructor(scope: cdk.Construct, id: string, props: ComputeTierProps) {
+  constructor(scope: Construct, id: string, props: ComputeTierProps) {
     super(scope, id, props);
 
     this.healthMonitor = new HealthMonitor(this, 'HealthMonitor', {

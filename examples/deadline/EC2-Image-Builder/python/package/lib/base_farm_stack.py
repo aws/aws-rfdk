@@ -3,8 +3,7 @@
 
 from dataclasses import dataclass
 
-from aws_cdk.core import (
-    Construct,
+from aws_cdk import (
     RemovalPolicy,
     Stack,
     StackProps
@@ -13,19 +12,22 @@ from aws_cdk.aws_ec2 import (
     Vpc,
 )
 from aws_rfdk.deadline import (
-    AwsThinkboxEulaAcceptance,
+    AwsCustomerAgreementAndIpLicenseAcceptance,
     RenderQueue,
     Repository,
     RepositoryRemovalPolicies,
     ThinkboxDockerImages,
     VersionQuery,
 )
+from constructs import (
+    Construct
+)
 
 
 @dataclass
 class BaseFarmStackProps(StackProps):
-    # Whether the AWS Thinkbox End-User License Agreement is accepted or not
-    accept_aws_thinkbox_eula: AwsThinkboxEulaAcceptance
+    # Whether the AWS Customer Agreement and AWS Intellectual Property License are agreed to.
+    accept_aws_customer_agreement_and_ip_license: AwsCustomerAgreementAndIpLicenseAcceptance
 
     # Version of Deadline to use
     deadline_version: str
@@ -59,7 +61,7 @@ class BaseFarmStack(Stack):
             self,
             'Images',
             version=version,
-            user_aws_thinkbox_eula_acceptance=props.accept_aws_thinkbox_eula,
+            user_aws_customer_agreement_and_ip_license_acceptance=props.accept_aws_customer_agreement_and_ip_license,
         )
 
         repository = Repository(

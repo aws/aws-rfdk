@@ -6,6 +6,9 @@ from enum import Enum
 import os
 from typing import List
 
+from aws_cdk import (
+    Token
+)
 from aws_cdk.aws_ec2 import (
     IMachineImage,
     OperatingSystemType
@@ -24,9 +27,8 @@ from aws_cdk.aws_imagebuilder import (
     CfnImageRecipe,
     CfnInfrastructureConfiguration
 )
-from aws_cdk.core import (
-    Construct,
-    Token
+from constructs import (
+    Construct
 )
 
 from . import template

@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { CloudFormation } from '@aws-sdk/client-cloudformation';
+import { SecretsManager } from '@aws-sdk/client-secrets-manager';
 import {
   CidrBlock,
   NetworkUtils,
-} from '@aws-cdk/aws-ec2/lib/network-util';
-import { CloudFormation } from '@aws-sdk/client-cloudformation';
-import { SecretsManager } from '@aws-sdk/client-secrets-manager';
+} from 'aws-cdk-lib/aws-ec2/lib/network-util';
 import { ssmCommand } from '../../common/functions/awaitSsmCommand';
 
 // Name of testing stack is derived from env variable to ensure uniqueness

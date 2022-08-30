@@ -7,8 +7,7 @@ from typing import (
     Optional
 )
 
-from aws_cdk.core import (
-    Construct,
+from aws_cdk import (
     Stack,
     StackProps
 )
@@ -21,7 +20,6 @@ from aws_cdk.aws_ec2 import (
     SubnetSelection,
     SubnetType
 )
-
 from aws_rfdk import (
     HealthMonitor,
     SessionManagerHelper
@@ -31,7 +29,9 @@ from aws_rfdk.deadline import (
     IRenderQueue,
     WorkerInstanceFleet
 )
-
+from constructs import (
+    Construct
+)
 
 @dataclass
 class ComputeTierProps(StackProps):

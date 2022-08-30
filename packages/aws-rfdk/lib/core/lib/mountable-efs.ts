@@ -6,23 +6,22 @@
 import * as path from 'path';
 
 import {
-  OperatingSystemType,
-  Port,
-} from '@aws-cdk/aws-ec2';
-import * as efs from '@aws-cdk/aws-efs';
-import {
-  PolicyStatement,
-} from '@aws-cdk/aws-iam';
-import {
-  Asset,
-} from '@aws-cdk/aws-s3-assets';
-import {
-  Construct,
-  IConstruct,
   IResolvable,
   Stack,
   isResolvableObject,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib';
+import {
+  OperatingSystemType,
+  Port,
+} from 'aws-cdk-lib/aws-ec2';
+import * as efs from 'aws-cdk-lib/aws-efs';
+import {
+  PolicyStatement,
+} from 'aws-cdk-lib/aws-iam';
+import {
+  Asset,
+} from 'aws-cdk-lib/aws-s3-assets';
+import { Construct, IConstruct } from 'constructs';
 
 import {
   MountPermissionsHelper,

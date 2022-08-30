@@ -4,9 +4,12 @@
  */
 
 import {
-  expect as cdkExpect,
-  haveResourceLike,
-} from '@aws-cdk/assert';
+  App,
+  Stack,
+} from 'aws-cdk-lib';
+import {
+  Template,
+} from 'aws-cdk-lib/assertions';
 import {
   AmazonLinuxGeneration,
   Instance,
@@ -15,18 +18,17 @@ import {
   SecurityGroup,
   Vpc,
   WindowsVersion,
-} from '@aws-cdk/aws-ec2';
-import * as fsx from '@aws-cdk/aws-fsx';
-import {
-  App,
-  Stack,
-} from '@aws-cdk/core';
+} from 'aws-cdk-lib/aws-ec2';
+import * as fsx from 'aws-cdk-lib/aws-fsx';
 
 import {
   MountableFsxLustre,
   MountPermissions,
 } from '../lib';
 
+import {
+  MOUNT_FSX_SCRIPT_LINUX,
+} from './asset-constants';
 import {
   escapeTokenRegex,
 } from './token-regex-helpers';
@@ -81,17 +83,17 @@ describe('MountableFsxLustre', () => {
 
     // THEN
     // Make sure the instance has been granted ingress to the FSxL's security group
-    cdkExpect(stack).to(haveResourceLike('AWS::EC2::SecurityGroupIngress', {
+    Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
       IpProtocol: 'tcp',
       FromPort: 988,
       ToPort: 1023,
       SourceSecurityGroupId: stack.resolve(instanceSecurityGroup.securityGroupId),
       GroupId: stack.resolve(fsSecurityGroup.securityGroupId),
-    }));
+    });
     // Make sure we download the mountFsxLustre script asset bundle
-    const s3Copy = 'aws s3 cp \'s3://${Token[TOKEN.\\d+]}/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\' \'/tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\'';
+    const s3Copy = `aws s3 cp 's3://\${Token[TOKEN.\\d+]}/${MOUNT_FSX_SCRIPT_LINUX.Key}.zip' '/tmp/${MOUNT_FSX_SCRIPT_LINUX.Key}.zip'`;
     expect(userData).toMatch(new RegExp(escapeTokenRegex(s3Copy)));
-    expect(userData).toMatch(new RegExp(escapeTokenRegex('unzip /tmp/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}')));
+    expect(userData).toMatch(new RegExp(escapeTokenRegex(`unzip /tmp/${MOUNT_FSX_SCRIPT_LINUX.Key}.zip`)));
     // Make sure we install the Lustre client
     expect(userData).toMatch('bash ./installLustreClient.sh');
     // Make sure we execute the script with the correct args
@@ -172,7 +174,7 @@ describe('MountableFsxLustre', () => {
       location: '/mnt/fsx/fs1',
     });
     const userData = instance.userData.render();
-    const s3Copy = 'aws s3 cp \'s3://${Token[TOKEN.\\d+]}/${Token[TOKEN.\\d+]}${Token[TOKEN.\\d+]}\'';
+    const s3Copy = `aws s3 cp 's3://\${Token[TOKEN.\\d+]}/${MOUNT_FSX_SCRIPT_LINUX.Key}.zip'`;
     const regex = new RegExp(escapeTokenRegex(s3Copy), 'g');
     const matches = userData.match(regex) ?? [];
 

@@ -9,22 +9,21 @@ import {
   InstanceSize,
   InstanceType,
   Vpc,
-} from '@aws-cdk/aws-ec2';
+} from 'aws-cdk-lib/aws-ec2';
 import {
-  Construct,
   Duration,
   RemovalPolicy,
   Stack,
   StackProps,
   Tags,
-} from '@aws-cdk/core';
-import { ApplicationProtocol } from '@aws-cdk/aws-elasticloadbalancingv2';
+} from 'aws-cdk-lib';
+import { ApplicationProtocol } from 'aws-cdk-lib/aws-elasticloadbalancingv2';
 import {
   ManagedPolicy,
   Role,
   ServicePrincipal,
-} from '@aws-cdk/aws-iam';
-import { PrivateHostedZone } from '@aws-cdk/aws-route53';
+} from 'aws-cdk-lib/aws-iam';
+import { PrivateHostedZone } from 'aws-cdk-lib/aws-route53';
 import {
   ConfigureSpotEventPlugin,
   RenderQueue,
@@ -34,6 +33,7 @@ import {
   ThinkboxDockerRecipes,
 } from 'aws-rfdk/deadline';
 import { X509CertificatePem } from 'aws-rfdk';
+import { Construct } from 'constructs';
 
 /**
  * Properties for {@link SEPStack}.
