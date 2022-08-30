@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.0.0](https://github.com/aws/aws-rfdk/compare/v0.42.0...v1.0.0) (2022-08-30)
+
+This release marks the first official stable release of RFDK. All RFDK APIs in this release are
+considered to be stable and will only be removed through a deprecation process that allows
+consumers to phase out their usage for at least one **minor** RFDK version.
+
+**NOTE:** Future minor RFDK releases may still introduce backwards-incompatible breaking
+changes. RFDK will continue to announce these breaking changes in this CHANGELOG and on each
+GitHub release along with documentation and guidance on navigating the change.
+
+### Supported CDK Version
+
+* [2.33.0](https://github.com/aws/aws-cdk/releases/tag/v2.33.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.1.23.6](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### ⚠ BREAKING CHANGES
+
+This change migrates the RFDK to be based on CDK v2.
+All apps that adopt RFDK 1.x will have to be migrated to CDK v2 as well.
+To update your app, follow the [CDK v2 migration guide](https://docs.aws.amazon.com/cdk/v2/guide/migrating-v2.html).
+
+Additional breaking changes:
+
+* **deadline:** The `userAwsThinkboxEulaAcceptance` property of the `ThinkboxDockerImages`
+construct has been removed and replaced with `userAwsCustomerAgreementAndIpLicenseAcceptance`.
+The licensing terms of Deadline have been retroactively changed with the
+release of Deadline 10.1.23, and these new terms must be agreed to by a
+code change in your applications.
+
+### Features
+
+* **all:** migrate to CDKv2 ([#738](https://github.com/aws/aws-rfdk/issues/738)) ([7c06857](https://github.com/aws/aws-rfdk/commit/7c06857f6315dcd59ccb3ac0c12f7094ef6be706))
+* **deadline:** adds UserData property to WorkerInstanceFleet ([#781](https://github.com/aws/aws-rfdk/issues/781)) ([b7e48b0](https://github.com/aws/aws-rfdk/commit/b7e48b04f09f504d4fd85ed61f3befc8ec843e55))
+* **deadline:** update to Deadline licensing terms ([#742](https://github.com/aws/aws-rfdk/issues/742)) ([03bc8ee](https://github.com/aws/aws-rfdk/commit/03bc8ee2e02bbf88df92b0cebef41a765c39a906))
+
 ## [0.42.0](https://github.com/aws/aws-rfdk/compare/v0.41.0...v0.42.0) (2022-06-18)
 
 
