@@ -21,8 +21,24 @@ describe('log group', () => {
     // THEN
     Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: 'testLogGroup',
+      SdkRetry: {
+        maxRetries: 7,
+        base: 200,
+      },
       RetentionInDays: 3,
     });
+
+    expect(Object.keys(Template.fromStack(stack).findResources('AWS::Lambda::Function', {
+      Properties: {
+        Role: {
+          'Fn::GetAtt': [
+            'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB',
+            'Arn',
+          ],
+        },
+        Timeout: 30,
+      },
+    })).length).toEqual(1);
     Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function',  Match.not({
       Role: {
         'Fn::GetAtt': [
@@ -44,8 +60,25 @@ describe('log group', () => {
     // THEN
     Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: 'prefix-testLogGroup',
+      SdkRetry: {
+        maxRetries: 7,
+        base: 200,
+      },
       RetentionInDays: 3,
     });
+
+    expect(Object.keys(Template.fromStack(stack).findResources('AWS::Lambda::Function', {
+      Properties: {
+        Role: {
+          'Fn::GetAtt': [
+            'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB',
+            'Arn',
+          ],
+        },
+        Timeout: 30,
+      },
+    })).length).toEqual(1);
+
     Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function',  Match.not({
       Role: {
         'Fn::GetAtt': [
@@ -67,8 +100,25 @@ describe('log group', () => {
     // THEN
     Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: 'testLogGroup',
+      SdkRetry: {
+        maxRetries: 7,
+        base: 200,
+      },
       RetentionInDays: 7,
     });
+
+    expect(Object.keys(Template.fromStack(stack).findResources('AWS::Lambda::Function', {
+      Properties: {
+        Role: {
+          'Fn::GetAtt': [
+            'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB',
+            'Arn',
+          ],
+        },
+        Timeout: 30,
+      },
+    })).length).toEqual(1);
+
     Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function',  Match.not({
       Role: {
         'Fn::GetAtt': [
@@ -92,8 +142,24 @@ describe('exporting log group', () => {
     // THEN
     Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: 'testLogGroup',
+      SdkRetry: {
+        maxRetries: 7,
+        base: 200,
+      },
       RetentionInDays: 3,
     });
+
+    expect(Object.keys(Template.fromStack(stack).findResources('AWS::Lambda::Function', {
+      Properties: {
+        Role: {
+          'Fn::GetAtt': [
+            'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB',
+            'Arn',
+          ],
+        },
+        Timeout: 30,
+      },
+    })).length).toEqual(1);
 
     Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function',  {
       Role: {
@@ -124,8 +190,24 @@ describe('exporting log group', () => {
     // THEN
     Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: 'prefix-testLogGroup',
+      SdkRetry: {
+        maxRetries: 7,
+        base: 200,
+      },
       RetentionInDays: 3,
     });
+
+    expect(Object.keys(Template.fromStack(stack).findResources('AWS::Lambda::Function', {
+      Properties: {
+        Role: {
+          'Fn::GetAtt': [
+            'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB',
+            'Arn',
+          ],
+        },
+        Timeout: 30,
+      },
+    })).length).toEqual(1);
 
     Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function',  {
       Role: {
@@ -157,8 +239,24 @@ describe('exporting log group', () => {
     // THEN
     Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
       LogGroupName: 'testLogGroup',
+      SdkRetry: {
+        maxRetries: 7,
+        base: 200,
+      },
       RetentionInDays: 7,
     });
+
+    expect(Object.keys(Template.fromStack(stack).findResources('AWS::Lambda::Function', {
+      Properties: {
+        Role: {
+          'Fn::GetAtt': [
+            'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aServiceRole9741ECFB',
+            'Arn',
+          ],
+        },
+        Timeout: 30,
+      },
+    })).length).toEqual(1);
 
     Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function',  {
       Role: {

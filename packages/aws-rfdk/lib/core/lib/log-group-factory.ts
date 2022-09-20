@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { Duration, Stack } from 'aws-cdk-lib';
+import { CfnFunction } from 'aws-cdk-lib/aws-lambda';
 import {
   ILogGroup,
   LogGroup,
@@ -52,7 +54,12 @@ export class LogGroupFactory {
     const fullLogGroupName = props?.logGroupPrefix ? `${props.logGroupPrefix}${logGroupName}` : logGroupName;
     const retention = props?.retention ? props.retention : LogGroupFactory.DEFAULT_LOG_RETENTION;
 
-    return props?.bucketName
+    // Define log retention retry options to reduce the risk of the rate exceed error
+    // as the default create log group TPS is only 5. Make sure to set the timeout of log retention function
+    // to be greater than total retry time. That's because if the function that is used for a custom resource
+    // doesn't exit properly, it'd end up in retries and may take cloud formation an hour to realize that
+    // the custom resource failed.
+    const logGroup = props?.bucketName
       ? new ExportingLogGroup(scope, logWrapperId, {
         bucketName: props.bucketName,
         logGroupName: fullLogGroupName,
@@ -64,7 +71,20 @@ export class LogGroupFactory {
         new LogRetention(scope, logWrapperId, {
           logGroupName: fullLogGroupName,
           retention,
+          logRetentionRetryOptions: {
+            base: Duration.millis(200),
+            maxRetries: 7,
+          },
         }).logGroupArn);
+
+    const logRetentionFunctionLogicalId = 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a';
+    const logRetentionFunction = Stack.of(scope).node.tryFindChild(logRetentionFunctionLogicalId);
+    if (logRetentionFunction) {
+      const cfnFunction = logRetentionFunction.node.defaultChild as CfnFunction;
+      cfnFunction.addPropertyOverride('Timeout', 30);
+    }
+
+    return logGroup;
   }
 
   /**
