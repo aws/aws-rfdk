@@ -76,21 +76,11 @@ export class LogGroupFactory {
             maxRetries: 7,
           },
         }).logGroupArn);
-<<<<<<< HEAD
-
-    const logRetentionFunctionLogicalId = 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a';
-    const logRetentionFunction = Stack.of(scope).node.tryFindChild(logRetentionFunctionLogicalId);
-    if (logRetentionFunction) {
-      const cfnFunction = logRetentionFunction.node.defaultChild as CfnFunction;
-      cfnFunction.addPropertyOverride('Timeout', 30);
-    }
-=======
     // referenced from cdk code: https://github.com/aws/aws-cdk/blob/main/packages/@aws-cdk/aws-logs/lib/log-retention.ts#L123
     const logRetentionFunctionConstructId = 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a';
     const logRetentionFunction = Stack.of(scope).node.tryFindChild(logRetentionFunctionConstructId)!;
     const cfnFunction = logRetentionFunction.node.defaultChild as CfnFunction;
     cfnFunction.addPropertyOverride('Timeout', 30);
->>>>>>> 5e33236 (fix(core): fix rate limit errors when deploying cloudwatch log groups)
 
     return logGroup;
   }
