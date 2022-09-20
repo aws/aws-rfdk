@@ -126,9 +126,9 @@ export class ExportingLogGroup extends Construct {
         maxRetries: 7,
       },
     });
-    // referenced from cdk code: https://github.com/aws/aws-cdk/blob/main/packages/@aws-cdk/aws-logs/lib/log-retention.ts#L123
+    // referenced from cdk code: https://github.com/aws/aws-cdk/blob/v2.33.0/packages/@aws-cdk/aws-logs/lib/log-retention.ts#L116
     const logRetentionFunctionConstructId = 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a';
-    const logRetentionFunction = Stack.of(this).node.tryFindChild(logRetentionFunctionConstructId)!;
+    const logRetentionFunction = Stack.of(this).node.findChild(logRetentionFunctionConstructId);
     const cfnFunction = logRetentionFunction.node.defaultChild as CfnFunction;
     cfnFunction.addPropertyOverride('Timeout', 30);
 
