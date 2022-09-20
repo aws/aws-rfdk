@@ -126,12 +126,11 @@ export class ExportingLogGroup extends Construct {
         maxRetries: 7,
       },
     });
-    const logRetentionFunctionLogicalId = 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a';
-    const logRetentionFunction = Stack.of(this).node.tryFindChild(logRetentionFunctionLogicalId);
-    if (logRetentionFunction) {
-      const cfnFunction = logRetentionFunction.node.defaultChild as CfnFunction;
-      cfnFunction.addPropertyOverride('Timeout', 30);
-    }
+    // referenced from cdk code: https://github.com/aws/aws-cdk/blob/main/packages/@aws-cdk/aws-logs/lib/log-retention.ts#L123
+    const logRetentionFunctionConstructId = 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a';
+    const logRetentionFunction = Stack.of(this).node.tryFindChild(logRetentionFunctionConstructId)!;
+    const cfnFunction = logRetentionFunction.node.defaultChild as CfnFunction;
+    cfnFunction.addPropertyOverride('Timeout', 30);
 
     this.logGroup = LogGroup.fromLogGroupArn(scope, `${props.logGroupName}LogGroup`, logRetention.logGroupArn);
     this.logGroup.grant(exportLogsFunction, 'logs:CreateExportTask');
