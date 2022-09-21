@@ -17,6 +17,7 @@ import {
   Code,
   Runtime,
   SingletonFunction,
+  CfnFunction,
 } from 'aws-cdk-lib/aws-lambda';
 import {
   ILogGroup,
@@ -24,6 +25,7 @@ import {
   LogRetention,
   RetentionDays,
 } from 'aws-cdk-lib/aws-logs';
+import { Stack } from 'aws-cdk-lib/core';
 import { Construct } from 'constructs';
 
 /**
@@ -111,10 +113,24 @@ export class ExportingLogGroup extends Construct {
       threshold: 1,
     });
 
+    // Define log retention retry options to reduce the risk of the rate exceed error
+    // as the default create log group TPS is only 5. Make sure to set the timeout of log retention function
+    // to be greater than total retry time. That's because if the function that is used for a custom resource
+    // doesn't exit properly, it'd end up in retries and may take cloud formation an hour to realize that
+    // the custom resource failed.
     const logRetention = new LogRetention(this, 'LogRetention', {
       logGroupName: props.logGroupName,
       retention: retentionInDays,
+      logRetentionRetryOptions: {
+        base: Duration.millis(200),
+        maxRetries: 7,
+      },
     });
+    // referenced from cdk code: https://github.com/aws/aws-cdk/blob/v2.33.0/packages/@aws-cdk/aws-logs/lib/log-retention.ts#L116
+    const logRetentionFunctionConstructId = 'LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8a';
+    const logRetentionFunction = Stack.of(this).node.findChild(logRetentionFunctionConstructId);
+    const cfnFunction = logRetentionFunction.node.defaultChild as CfnFunction;
+    cfnFunction.addPropertyOverride('Timeout', 30);
 
     this.logGroup = LogGroup.fromLogGroupArn(scope, `${props.logGroupName}LogGroup`, logRetention.logGroupArn);
     this.logGroup.grant(exportLogsFunction, 'logs:CreateExportTask');

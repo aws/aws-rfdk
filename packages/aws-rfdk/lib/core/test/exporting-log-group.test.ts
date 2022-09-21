@@ -31,6 +31,10 @@ test('default exporting log group is created correctly', () => {
       ],
     },
     LogGroupName: 'logGroup',
+    SdkRetry: {
+      maxRetries: 7,
+      base: 200,
+    },
     RetentionInDays: 3,
   });
   Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
@@ -147,6 +151,10 @@ test('custom set retention is created correctly', () => {
       ],
     },
     LogGroupName: 'logGroup',
+    SdkRetry: {
+      maxRetries: 7,
+      base: 200,
+    },
     RetentionInDays: 7,
   });
   Template.fromStack(stack).resourceCountIs('AWS::Lambda::Function', 2);
