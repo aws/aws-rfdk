@@ -4,7 +4,7 @@
  */
 
 import * as path from 'path';
-import { Duration } from 'aws-cdk-lib';
+import { Duration, Stack } from 'aws-cdk-lib';
 import { Alarm } from 'aws-cdk-lib/aws-cloudwatch';
 import {
   Rule,
@@ -25,7 +25,6 @@ import {
   LogRetention,
   RetentionDays,
 } from 'aws-cdk-lib/aws-logs';
-import { Stack } from 'aws-cdk-lib/core';
 import { Construct } from 'constructs';
 
 /**
