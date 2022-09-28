@@ -8,6 +8,7 @@ import {
   Stage,
   ThinkboxDockerRecipes,
 } from 'aws-rfdk/deadline';
+import { LogRetentionRetryAspect } from '../../../../lib/log-retention-retry-aspect';
 
 import { RenderStruct } from '../../../../lib/render-struct';
 import { SSMInstancePolicyAspect } from '../../../../lib/ssm-policy-aspect';
@@ -61,3 +62,5 @@ new RenderQueueTestingTier(app, 'RFDKInteg-RQ-TestingTier' + integStackTag, { en
 
 // Adds IAM Policy to Instance and ASG Roles
 Aspects.of(app).add(new SSMInstancePolicyAspect());
+// Adds log retention retry to all functions
+Aspects.of(app).add(new LogRetentionRetryAspect());

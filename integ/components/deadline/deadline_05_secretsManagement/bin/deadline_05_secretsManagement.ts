@@ -12,6 +12,7 @@ import {
   ThinkboxDockerRecipes,
   UsageBasedLicense,
 } from 'aws-rfdk/deadline';
+import { LogRetentionRetryAspect } from '../../../../lib/log-retention-retry-aspect';
 import {
   RenderStruct,
   RenderStructUsageBasedLicensingProps,
@@ -79,6 +80,8 @@ async function main() {
 
   // Adds IAM Policy to Instance and ASG Roles
   Aspects.of(app).add(new SSMInstancePolicyAspect());
+  // Adds log retention retry to all functions
+  Aspects.of(app).add(new LogRetentionRetryAspect());
 }
 
 /**
