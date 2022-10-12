@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@aws-sdk/client-ssm": "^3.137.0",
-    "@aws-sdk/client-cloudformation": "^3.137.0",
+    "@aws-sdk/client-cloudformation": "^3.186.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.186.0",
     "@aws-sdk/client-secrets-manager": "^3.186.0",
     "@types/jest": "^27.5.2",
