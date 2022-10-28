@@ -137,7 +137,7 @@ class ServiceTier(Stack):
             self,
             'RenderQueue',
             vpc=props.vpc,
-            images=images,
+            images=images.for_render_queue(),
             repository=repository,
             hostname=RenderQueueHostNameProps(
                 hostname='renderqueue',

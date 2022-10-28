@@ -80,7 +80,7 @@ class BaseFarmStack(Stack):
             'RenderQueue',
             vpc=self.vpc,
             version=version,
-            images=images,
+            images=images.for_render_queue(),
             repository=repository,
             deletion_protection=False,
         )
