@@ -24,9 +24,9 @@ These instructions assume that your working directory is `examples/deadline/EC2-
     ```bash
     # Navigate to the root directory of the RFDK repository
     pushd ../../../..
-    # Enter the Docker container to run the build and pack scripts
-    ./scripts/rfdk_build_environment.sh
     ./build.sh
+    # Enter the Docker container to run the pack scripts
+    ./scripts/rfdk_build_environment.sh
     ./pack.sh
     # Exit the Docker container
     exit

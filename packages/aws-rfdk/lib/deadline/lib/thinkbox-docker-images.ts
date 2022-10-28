@@ -256,14 +256,18 @@ USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE to signify your acceptance of
    * Returns container images for use with the {@link RenderQueue} construct
    */
   public forRenderQueue(): RenderQueueImages {
-    return this;
+    return {
+      remoteConnectionServer: this.remoteConnectionServer,
+    };
   }
 
   /**
    * Returns container images for use with the {@link UsageBasedLicensing} construct
    */
   public forUsageBasedLicensing(): UsageBasedLicensingImages {
-    return this;
+    return {
+      licenseForwarder: this.licenseForwarder,
+    };
   }
 
   /**

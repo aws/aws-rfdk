@@ -209,7 +209,7 @@ const repository = new Repository(stack, 'Repository', { /* ...*/});
 
 const renderQueue = new RenderQueue(stack, 'RenderQueue', {
   vpc: vpc,
-  images: images,
+  images: images.forRenderQueue(),
   version: version,
   repository: repository,
 });
