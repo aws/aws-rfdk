@@ -117,6 +117,12 @@ test('Generate cert', () => {
       },
     },
   });
+  // Expect Table to have point in time recovery set to true
+  Template.fromStack(stack).hasResourceProperties('AWS::DynamoDB::Table', {
+    PointInTimeRecoverySpecification: {
+      PointInTimeRecoveryEnabled: true,
+    },
+  });
 
   // Should not be any errors.
   Annotations.fromStack(stack).hasNoInfo(`/${cert.node.path}`, Match.anyValue());
