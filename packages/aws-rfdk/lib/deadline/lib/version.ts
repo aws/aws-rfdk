@@ -23,6 +23,11 @@ export class Version implements IPatchVersion {
   public static readonly MINIMUM_SECRETS_MANAGEMENT_VERSION = new Version([10, 1, 19, 0]);
 
   /**
+   * The minimum Deadline version which uses Install Builder instead of Bitrock Installer.
+   */
+  public static readonly MINIMUM_VERSION_USING_NEW_INSTALLBUILDER_LOG = new Version([10, 2, 0, 0]);
+
+  /**
    * This method parses the input string and returns the version object.
    *
    * @param version version string to parse

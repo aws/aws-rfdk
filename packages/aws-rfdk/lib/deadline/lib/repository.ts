@@ -955,7 +955,7 @@ export class Repository extends Construct implements IRepository {
       '/var/log/cloud-init-output.log');
     cloudWatchConfigurationBuilder.addLogsCollectList(logGroup.logGroupName,
       'deadlineRepositoryInstallationLogs',
-      '/tmp/bitrock_installer.log');
+      this.version.isLessThan(Version.MINIMUM_VERSION_USING_NEW_INSTALLBUILDER_LOG) ? '/tmp/bitrock_installer.log' : '/tmp/installbuilder_installer.log');
 
     new CloudWatchAgent(this, 'RepositoryInstallerLogsConfig', {
       cloudWatchConfig: cloudWatchConfigurationBuilder.generateCloudWatchConfiguration(),
