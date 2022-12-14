@@ -41,10 +41,6 @@ import { ComputeTier } from '../lib/compute-tier';
     console.log('EC2 key pair name not specified. You will not have SSH access to the render farm.');
   }
 
-  if (config.deadlineClientLinuxAmiMap === {['region']: 'ami-id'}) {
-    throw new Error('Deadline Client Linux AMI map is required but was not specified.');
-  }
-
   if (!config.enableSecretsManagement && config.secretsManagementSecretArn) {
     console.warn('Deadline Secrets Management is disabled, so the admin credentials specified in the provided secret will not be used.');
   }
