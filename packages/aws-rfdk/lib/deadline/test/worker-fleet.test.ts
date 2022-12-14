@@ -1315,7 +1315,7 @@ describe('secrets management enabled', () => {
     const workerInstanceFleet = new WorkerInstanceFleet(wfstack, 'WorkerInstanceFleet', {
       ...props,
       vpcSubnets: {
-        subnetType: SubnetType.PRIVATE_WITH_NAT,
+        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       },
     });
 

@@ -45,7 +45,7 @@ describe('WaitForStableService', () => {
     isolatedStack = new Stack(app, 'IsolatedStack');
     cluster = new Cluster(stack, 'Cluster');
     cluster.addCapacity('ASG', {
-      vpcSubnets: { subnetType: SubnetType.PRIVATE_WITH_NAT },
+      vpcSubnets: { subnetType: SubnetType.PRIVATE_WITH_EGRESS },
       instanceType: InstanceType.of(InstanceClass.C5, InstanceSize.LARGE),
       minCapacity: 1,
       maxCapacity: 1,

@@ -2764,7 +2764,7 @@ describe('RenderQueue', () => {
           registrationStatus: SecretsManagementRegistrationStatus.REGISTERED,
           role: SecretsManagementRole.CLIENT,
           vpc,
-          vpcSubnets: { subnetType: SubnetType.PRIVATE_WITH_NAT },
+          vpcSubnets: { subnetType: SubnetType.PRIVATE_WITH_EGRESS },
         };
         launchConfiguration = (
           // @ts-ignore

@@ -96,7 +96,7 @@ export class NetworkTier extends cdk.Stack {
         },
         {
           name: 'Private',
-          subnetType: SubnetType.PRIVATE_WITH_NAT,
+          subnetType: SubnetType.PRIVATE_WITH_EGRESS,
           cidrMask: 18,
         },
       ],

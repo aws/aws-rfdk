@@ -122,7 +122,7 @@ describe('UsageBasedLicensing', () => {
   test('vpcSubnets specified => does not emit warnings', () => {
     // GIVEN
     const vpcSubnets: SubnetSelection = {
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     };
 
     // WHEN
@@ -158,7 +158,7 @@ describe('UsageBasedLicensing', () => {
         registrationStatus: SecretsManagementRegistrationStatus.REGISTERED,
         role: SecretsManagementRole.CLIENT,
         vpc,
-        vpcSubnets: { subnetType: SubnetType.PRIVATE_WITH_NAT },
+        vpcSubnets: { subnetType: SubnetType.PRIVATE_WITH_EGRESS },
       };
 
       // THEN

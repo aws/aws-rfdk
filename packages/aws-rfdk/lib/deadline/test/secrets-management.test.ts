@@ -101,7 +101,7 @@ describe('SecretsManagementIdentityRegistration', () => {
       subnetConfiguration: [
         {
           name: RENDER_QUEUE_ALB_SUBNET_NAME,
-          subnetType: SubnetType.PRIVATE_WITH_NAT,
+          subnetType: SubnetType.PRIVATE_WITH_EGRESS,
           cidrMask: 28,
         },
         {

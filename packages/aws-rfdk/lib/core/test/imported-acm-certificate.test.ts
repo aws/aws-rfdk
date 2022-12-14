@@ -10,7 +10,7 @@ import {
 } from 'aws-cdk-lib/assertions';
 import {
   Metric,
-  Statistic,
+  Stats,
 } from 'aws-cdk-lib/aws-cloudwatch';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { CfnSecret } from 'aws-cdk-lib/aws-secretsmanager';
@@ -262,7 +262,7 @@ describe('ImportedAcmCertificate', () => {
       // THEN
       expect(metricExpiry.metricName).toEqual('DaysToExpiry');
       expect(metricExpiry.namespace).toEqual('AWS/CertificateManager');
-      expect(metricExpiry.statistic).toEqual(Statistic.MINIMUM);
+      expect(metricExpiry.statistic).toEqual(Stats.MINIMUM);
     });
   });
 });

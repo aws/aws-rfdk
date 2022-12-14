@@ -11,7 +11,7 @@ export class Subnets {
    */
    public static readonly INFRASTRUCTURE: SubnetConfiguration = {
     name: 'Infrastructure',
-    subnetType: SubnetType.PRIVATE_WITH_NAT,
+    subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     // 1,022 IP addresses
     cidrMask: 22,
   };
@@ -41,7 +41,7 @@ export class Subnets {
    */
   public static readonly RENDER_QUEUE_ALB: SubnetConfiguration = {
     name: 'RenderQueueALB',
-    subnetType: SubnetType.PRIVATE_WITH_NAT,
+    subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     // 62 IP addresses
     cidrMask: 26,
   };
@@ -51,7 +51,7 @@ export class Subnets {
    */
   public static readonly USAGE_BASED_LICENSING: SubnetConfiguration = {
     name: 'UsageBasedLicensing',
-    subnetType: SubnetType.PRIVATE_WITH_NAT,
+    subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     // 14 IP addresses
     cidrMask: 28,
   };
@@ -61,7 +61,7 @@ export class Subnets {
    */
   public static readonly WORKERS: SubnetConfiguration = {
     name: 'Workers',
-    subnetType: SubnetType.PRIVATE_WITH_NAT,
+    subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     // 4,094 IP addresses
     cidrMask: 20,
   };

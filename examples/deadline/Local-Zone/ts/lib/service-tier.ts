@@ -99,7 +99,7 @@ export class ServiceTier extends Stack {
     // EFS filesystem and DocDB cluster, both of which aren't available in any local zones at this time.
     const repositorySubnets: SubnetSelection = {
       availabilityZones: props.availabilityZones,
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     };
     const repository = new Repository(this, 'Repository', {
       vpc: props.vpc,
@@ -131,11 +131,11 @@ export class ServiceTier extends Stack {
     // all the standard zones we're using.
     const renderQueueSubnets: SubnetSelection = {
       availabilityZones: [ props.availabilityZones[0] ],
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     };
     const renderQueueAlbSubnets: SubnetSelection = {
       availabilityZones: props.availabilityZones,
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       onePerAz: true,
     };
     this.renderQueue = new RenderQueue(this, 'RenderQueue', {

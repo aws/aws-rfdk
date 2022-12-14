@@ -96,7 +96,7 @@ export class ComputeTier extends cdk.Stack {
     // We can put the health monitor and worker fleet in all of the local zones we're using
     const subnets: SubnetSelection = {
       availabilityZones: props.availabilityZones,
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       onePerAz: true,
     };
 
