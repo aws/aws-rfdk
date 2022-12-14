@@ -498,7 +498,7 @@ describe('Test MongoDbInstance', () => {
   test('throw exception when no available subnets', () => {
     // GIVEN
     const invalidSubnets = {
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       availabilityZones: ['dummy zone'],
     };
 

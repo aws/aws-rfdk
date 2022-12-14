@@ -104,7 +104,7 @@ beforeEach(() => {
       },
       {
         name: 'Private',
-        subnetType: SubnetType.PRIVATE_WITH_NAT,
+        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       },
       {
         name: 'Isolated',
@@ -541,7 +541,7 @@ test('repository warns if removal policy for database when database provided', (
     vpc,
     vpcSubnets: {
       onePerAz: true,
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     },
   });
 
@@ -642,7 +642,7 @@ test('repository warns if databaseAuditLogging defined and database is specified
     vpc,
     vpcSubnets: {
       onePerAz: true,
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     },
   });
 
@@ -750,7 +750,7 @@ test('warns if both retention period and database provided', () => {
     vpc,
     vpcSubnets: {
       onePerAz: true,
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     },
   });
 
@@ -784,7 +784,7 @@ test('repository creates filesystem if none provided', () => {
     vpc,
     vpcSubnets: {
       onePerAz: true,
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     },
     backup: {
       retention: Duration.days(15),

@@ -7,7 +7,7 @@ from aws_cdk.aws_ec2 import SubnetConfiguration, SubnetType
 # Subnets for undistinguished render farm back-end infrastructure
 INFRASTRUCTURE = SubnetConfiguration(
     name='Infrastructure',
-    subnet_type=SubnetType.PRIVATE_WITH_NAT,
+    subnet_type=SubnetType.PRIVATE_WITH_EGRESS,
     # 1,022 IP addresses
     cidr_mask=22
 )
@@ -33,7 +33,7 @@ PUBLIC = SubnetConfiguration(
 # - https://github.com/aws/aws-rfdk/blob/release/packages/aws-rfdk/lib/deadline/README.md#render-queue-subnet-placement
 RENDER_QUEUE_ALB = SubnetConfiguration(
     name='RenderQueueALB',
-    subnet_type=SubnetType.PRIVATE_WITH_NAT,
+    subnet_type=SubnetType.PRIVATE_WITH_EGRESS,
     # 62 IP addresses
     cidr_mask=26
 )
@@ -41,7 +41,7 @@ RENDER_QUEUE_ALB = SubnetConfiguration(
 # Subnets for the Usage-Based Licensing
 USAGE_BASED_LICENSING = SubnetConfiguration(
     name='UsageBasedLicensing',
-    subnet_type=SubnetType.PRIVATE_WITH_NAT,
+    subnet_type=SubnetType.PRIVATE_WITH_EGRESS,
     # 14 IP addresses
     cidr_mask=28
 )
@@ -49,7 +49,7 @@ USAGE_BASED_LICENSING = SubnetConfiguration(
 # Subnets for the Worker instances
 WORKERS = SubnetConfiguration(
     name='Workers',
-    subnet_type=SubnetType.PRIVATE_WITH_NAT,
+    subnet_type=SubnetType.PRIVATE_WITH_EGRESS,
     # 4,094 IP addresses
     cidr_mask=20
 )

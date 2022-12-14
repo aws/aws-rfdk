@@ -371,7 +371,7 @@ describe('SpotEventPluginFleet', () => {
 
     test('creates launch template configs for each subnet id', () => {
       // WHEN
-      const subnets = vpc.selectSubnets({ subnetType: SubnetType.PRIVATE_WITH_NAT });
+      const subnets = vpc.selectSubnets({ subnetType: SubnetType.PRIVATE_WITH_EGRESS });
       const fleet = new SpotEventPluginFleet(spotFleetStack, 'SpotFleet', {
         vpc,
         renderQueue,
@@ -720,7 +720,7 @@ describe('SpotEventPluginFleet', () => {
     test('uses provided subnets', () => {
       // GIVEN
       const privateSubnets: SubnetSelection = {
-        subnetType: SubnetType.PRIVATE_WITH_NAT,
+        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       };
 
       // WHEN
@@ -742,7 +742,7 @@ describe('SpotEventPluginFleet', () => {
     test('.defaultSubnets is false when subnets provided', () => {
       // GIVEN
       const privateSubnets: SubnetSelection = {
-        subnetType: SubnetType.PRIVATE_WITH_NAT,
+        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       };
 
       // WHEN
@@ -1163,7 +1163,7 @@ describe('SpotEventPluginFleet', () => {
       test('error if no subnets provided', () => {
         // GIVEN
         const invalidSubnets = {
-          subnetType: SubnetType.PRIVATE_WITH_NAT,
+          subnetType: SubnetType.PRIVATE_WITH_EGRESS,
           availabilityZones: ['dummy zone'],
         };
 

@@ -95,7 +95,7 @@ describe('DeploymentInstance', () => {
 
       test('uses private subnets', () => {
         // GIVEN
-        const privateSubnetIDs = vpc.selectSubnets({ subnetType: SubnetType.PRIVATE_WITH_NAT }).subnetIds;
+        const privateSubnetIDs = vpc.selectSubnets({ subnetType: SubnetType.PRIVATE_WITH_EGRESS }).subnetIds;
 
         // THEN
         Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::AutoScalingGroup', {

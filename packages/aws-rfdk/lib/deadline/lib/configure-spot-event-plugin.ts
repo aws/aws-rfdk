@@ -440,7 +440,7 @@ export class ConfigureSpotEventPlugin extends Construct {
     const timeoutMins = 15;
     const configurator = new LambdaFunction(this, 'Configurator', {
       vpc: props.vpc,
-      vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_NAT },
+      vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_EGRESS },
       description: `Used by a ConfigureSpotEventPlugin ${this.node.addr} to perform configuration of Deadline Spot Event Plugin`,
       code: Code.fromAsset(path.join(__dirname, '..', '..', 'lambdas', 'nodejs'), {
       }),

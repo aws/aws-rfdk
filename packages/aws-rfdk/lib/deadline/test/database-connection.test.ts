@@ -86,7 +86,7 @@ describe('DocumentDB', () => {
       vpc,
       vpcSubnets: {
         onePerAz: true,
-        subnetType: SubnetType.PRIVATE_WITH_NAT,
+        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       },
       backup: {
         retention: Duration.days(15),
@@ -367,7 +367,7 @@ describe('DocumentDB Version Checks', () => {
       vpc,
       vpcSubnets: {
         onePerAz: true,
-        subnetType: SubnetType.PRIVATE_WITH_NAT,
+        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       },
       backup: {
         retention: Duration.days(15),
@@ -423,7 +423,7 @@ describe('DocumentDB Version Checks', () => {
       vpc,
       vpcSubnets: {
         onePerAz: true,
-        subnetType: SubnetType.PRIVATE_WITH_NAT,
+        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       },
       backup: {
         retention: Duration.days(15),
@@ -453,7 +453,7 @@ describe('DocumentDB Version Checks', () => {
       vpc,
       vpcSubnets: {
         onePerAz: true,
-        subnetType: SubnetType.PRIVATE_WITH_NAT,
+        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       },
       backup: {
         retention: Duration.days(15),

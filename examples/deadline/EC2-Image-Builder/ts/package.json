@@ -15,12 +15,12 @@
   },
   "devDependencies": {
     "@types/node": "^18.0.0",
-    "aws-cdk": "2.33.0",
+    "aws-cdk": "2.54.0",
     "ts-node": "^10.8.1",
     "typescript": "~4.7.3"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.33.0",
+    "aws-cdk-lib": "2.54.0",
     "aws-rfdk": "1.0.0",
     "constructs": "^10.0.0",
     "source-map-support": "^0.5.21"

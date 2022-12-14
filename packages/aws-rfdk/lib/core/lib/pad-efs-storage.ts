@@ -201,7 +201,7 @@ export class PadEfsStorage extends Construct {
       // Required for access point...
       vpc: props.vpc,
       vpcSubnets: props.vpcSubnets ?? {
-        subnetType: SubnetType.PRIVATE_WITH_NAT,
+        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       },
       securityGroups: [ securityGroup ],
       filesystem: LambdaFilesystem.fromEfsAccessPoint(props.accessPoint, efsMountPoint),
