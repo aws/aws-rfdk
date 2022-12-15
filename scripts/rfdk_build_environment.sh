@@ -8,7 +8,7 @@
 # repository.
 
 # Make sure we're running from the root of the CDK repo
-if ! test -f package.json || ! grep '"name": "aws-rfdk-project",' package.json > /dev/null || ! grep '"private": true,' package.json > /dev/null
+if ! test -f package.json || ! grep '"name": "aws-rfdk",' package.json > /dev/null || ! grep '"private": true,' package.json > /dev/null
 then
     echo "Usage: Run from the root of the RFDK repository"
     exit 1
