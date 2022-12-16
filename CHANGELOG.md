@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.1.0](https://github.com/aws/aws-rfdk/compare/v1.0.0...v1.1.0) (2022-12-16)
+
+
+### Supported CDK Version
+
+* [2.54.0](https://github.com/aws/aws-cdk/releases/tag/v2.54.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.2.0.10](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **deadline:** allow minor version upgrades in Repository construct ([#896](https://github.com/aws/aws-rfdk/issues/896)) ([9e0b7e0](https://github.com/aws/aws-rfdk/commit/9e0b7e06243c19f8685c86773b96b520d7b41d0a))
+
+
+### Bug Fixes
+
+* **core:** add point in time recovery to X509Certificate DynamoDB tables ([#883](https://github.com/aws/aws-rfdk/issues/883)) ([89523ba](https://github.com/aws/aws-rfdk/commit/89523baa64ed3d694e87a6d319a94c501dd7f634))
+* **core:** fix rate limit errors when deploying cloudwatch log groups  ([#822](https://github.com/aws/aws-rfdk/issues/822)) ([38df77f](https://github.com/aws/aws-rfdk/commit/38df77fa10b109774b114b86b482ae82f2584738))
+* **deadline:** Fix Python bindings of ThinkboxDockerImages ([#880](https://github.com/aws/aws-rfdk/issues/880)) ([b283e67](https://github.com/aws/aws-rfdk/commit/b283e67a9976d2f3a66eac399d1e4baecf868c7a))
+* **deadline:** typo in license acceptance error messsage  ([#898](https://github.com/aws/aws-rfdk/issues/898)) ([f20549e](https://github.com/aws/aws-rfdk/commit/f20549eefda2969b6c39b37707c7b30fe117fd8a))
+* **deadline:** use new repository installer log path for Deadline 10.2.* ([#895](https://github.com/aws/aws-rfdk/issues/895)) ([c6db7c0](https://github.com/aws/aws-rfdk/commit/c6db7c0abce9567619b28a898eeb0466f334f9b7))
+* **integ:** fix rate limit errors when deploying cloudwatch log groups in integration tests ([#827](https://github.com/aws/aws-rfdk/issues/827)) ([fd842b7](https://github.com/aws/aws-rfdk/commit/fd842b710aed904f309eb14c4f354de0d51dcb9c))
+
 ## [1.0.0](https://github.com/aws/aws-rfdk/compare/v0.42.0...v1.0.0) (2022-08-30)
 
 This release marks the first official stable release of RFDK. All RFDK APIs in this release are
