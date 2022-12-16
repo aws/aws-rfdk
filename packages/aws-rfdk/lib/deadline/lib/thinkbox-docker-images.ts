@@ -145,7 +145,7 @@ By downloading or using the Deadline software, you agree to the AWS Customer Agr
 and AWS Intellectual Property License (https://aws.amazon.com/legal/aws-ip-license-terms/). You acknowledge that Deadline
 is AWS Content as defined in those Agreements.
 
-Please set the userAcceptsAwsCustomerAgreementAndIpLicense property to
+Please set the userAwsCustomerAgreementAndIpLicenseAcceptance property to
 USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE to signify your acceptance of these terms.
 `;
 
@@ -256,14 +256,18 @@ USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE to signify your acceptance of
    * Returns container images for use with the {@link RenderQueue} construct
    */
   public forRenderQueue(): RenderQueueImages {
-    return this;
+    return {
+      remoteConnectionServer: this.remoteConnectionServer,
+    };
   }
 
   /**
    * Returns container images for use with the {@link UsageBasedLicensing} construct
    */
   public forUsageBasedLicensing(): UsageBasedLicensingImages {
-    return this;
+    return {
+      licenseForwarder: this.licenseForwarder,
+    };
   }
 
   /**

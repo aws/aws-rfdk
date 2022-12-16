@@ -482,7 +482,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     });
 
     this.blockDevices = props.blockDevices;
-    this.subnets = props.vpc.selectSubnets(props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_NAT });
+    this.subnets = props.vpc.selectSubnets(props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_EGRESS });
     this.instanceTypes = props.instanceTypes;
     this.allocationStrategy = props.allocationStrategy ?? SpotFleetAllocationStrategy.LOWEST_PRICE;
     this.maxCapacity = props.maxCapacity;

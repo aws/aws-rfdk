@@ -1,6 +1,6 @@
 {
   "name": "integ",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": false,
   "description": "Integration tests for RFDK constructs",
   "bin": {
@@ -55,33 +55,33 @@
   "devDependencies": {
     "@types/jest": "^27.5.2",
     "@types/node": "^18.0.0",
-    "@typescript-eslint/eslint-plugin": "^5.33.1",
-    "@typescript-eslint/parser": "^5.31.0",
-    "aws-cdk": "2.33.0",
-    "eslint": "^8.22.0",
+    "@typescript-eslint/eslint-plugin": "^5.40.1",
+    "@typescript-eslint/parser": "^5.40.1",
+    "aws-cdk": "2.54.0",
+    "eslint": "^8.26.0",
     "eslint-import-resolver-node": "^0.3.6",
-    "eslint-import-resolver-typescript": "^3.4.2",
-    "eslint-plugin-deprecation": "^1.3.2",
+    "eslint-import-resolver-typescript": "^3.5.1",
+    "eslint-plugin-deprecation": "^1.3.3",
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-jest": "^26.8.3",
     "eslint-plugin-license-header": "^0.6.0",
     "jest": "^27.5.1",
-    "pkglint": "1.0.0",
-    "ts-jest": "^28.0.8",
-    "typescript": "~4.7.4"
+    "pkglint": "1.1.0",
+    "ts-jest": "^29.0.3",
+    "typescript": "~4.8.4"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudformation": "^3.137.0",
-    "@aws-sdk/client-cloudwatch-logs": "^3.137.0",
-    "@aws-sdk/client-secrets-manager": "^3.137.0",
-    "@aws-sdk/client-ssm": "^3.137.0",
-    "aws-cdk-lib": "2.33.0",
-    "aws-rfdk": "1.0.0",
+    "@aws-sdk/client-cloudformation": "^3.222.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.222.0",
+    "@aws-sdk/client-secrets-manager": "^3.222.0",
+    "@aws-sdk/client-ssm": "^3.222.0",
+    "aws-cdk-lib": "2.54.0",
+    "aws-rfdk": "1.1.0",
     "constructs": "^10.0.0"
   },
   "peerDependencies": {
-    "aws-cdk-lib": "2.33.0",
-    "aws-rfdk": "1.0.0",
+    "aws-cdk-lib": "2.54.0",
+    "aws-rfdk": "1.1.0",
     "constructs": "^10.0.0"
   },
   "engines": {

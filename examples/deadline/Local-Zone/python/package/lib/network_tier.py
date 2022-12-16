@@ -88,7 +88,7 @@ class NetworkTier(Stack):
                 ),
                 SubnetConfiguration(
                     name='Private',
-                    subnet_type=SubnetType.PRIVATE_WITH_NAT,
+                    subnet_type=SubnetType.PRIVATE_WITH_EGRESS,
                     cidr_mask=18
                 )
             ],

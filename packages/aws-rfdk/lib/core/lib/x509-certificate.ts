@@ -167,6 +167,7 @@ abstract class X509CertificateBase extends Construct {
       removalPolicy: RemovalPolicy.DESTROY,
       encryption: TableEncryption.AWS_MANAGED,
       billingMode: BillingMode.PAY_PER_REQUEST,
+      pointInTimeRecovery: true,
     });
 
     this.passphrase = new Secret(this, 'Passphrase', {

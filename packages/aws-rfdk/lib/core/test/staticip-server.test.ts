@@ -241,7 +241,7 @@ describe('Test StaticIpServer', () => {
         instanceType: new InstanceType('t3.small'),
         machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
         vpcSubnets: {
-          subnetType: SubnetType.PRIVATE_WITH_NAT,
+          subnetType: SubnetType.PRIVATE_WITH_EGRESS,
           availabilityZones: ['dummy zone'],
         },
       });

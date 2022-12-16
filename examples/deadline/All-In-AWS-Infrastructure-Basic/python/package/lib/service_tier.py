@@ -189,7 +189,7 @@ class ServiceTier(Stack):
             vpc_subnets_alb=SubnetSelection(
                 subnet_group_name=subnets.RENDER_QUEUE_ALB.name
             ),
-            images=images,
+            images=images.for_render_queue(),
             repository=repository,
             hostname=RenderQueueHostNameProps(
                 hostname='renderqueue',
@@ -232,7 +232,7 @@ class ServiceTier(Stack):
                 vpc_subnets=SubnetSelection(
                     subnet_group_name=subnets.USAGE_BASED_LICENSING.name
                 ),
-                images=images,
+                images=images.for_usage_based_licensing(),
                 licenses=props.ubl_licenses,
                 render_queue=self.render_queue,
                 certificate_secret=ubl_cert_secret,

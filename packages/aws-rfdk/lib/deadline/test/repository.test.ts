@@ -72,12 +72,25 @@ let app: App;
 let stack: Stack;
 let vpc: IVpc;
 let version: IVersion;
+let installers: PlatformInstallers;
 
 function escapeTokenRegex(s: string): string {
   // A CDK Token looks like: ${Token[TOKEN.12]}
   // This contains the regex special characters: ., $, {, }, [, and ]
   // Escape those for use in a regex.
   return s.replace(/[.${}[\]]/g, '\\$&');
+}
+
+function create_version(version_array: number[]): IVersion {
+  class MockVersion extends Version implements IVersion {
+    readonly linuxInstallers: PlatformInstallers = installers;
+
+    public linuxFullVersionString() {
+      return this.toString();
+    }
+  }
+
+  return new MockVersion(version_array);
 }
 
 beforeEach(() => {
@@ -91,7 +104,7 @@ beforeEach(() => {
       },
       {
         name: 'Private',
-        subnetType: SubnetType.PRIVATE_WITH_NAT,
+        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       },
       {
         name: 'Isolated',
@@ -99,26 +112,18 @@ beforeEach(() => {
       },
     ],
   });
-
-  class MockVersion extends Version implements IVersion {
-    readonly linuxInstallers: PlatformInstallers = {
-      patchVersion: 0,
-      repository: {
-        objectKey: 'testInstaller',
-        s3Bucket: new Bucket(stack, 'LinuxInstallerBucket'),
-      },
-      client: {
-        objectKey: 'testClientInstaller',
-        s3Bucket: new Bucket(stack, 'LinuxClientInstallerBucket'),
-      },
-    };
-
-    public linuxFullVersionString() {
-      return this.toString();
-    }
-  }
-
-  version = new MockVersion([10,1,19,4]);
+  installers = {
+    patchVersion: 0,
+    repository: {
+      objectKey: 'testInstaller',
+      s3Bucket: new Bucket(stack, 'LinuxInstallerBucket'),
+    },
+    client: {
+      objectKey: 'testClientInstaller',
+      s3Bucket: new Bucket(stack, 'LinuxClientInstallerBucket'),
+    },
+  };
+  version = create_version([10,1,19,4]);
 });
 
 test('can create two repositories', () => {
@@ -403,11 +408,17 @@ test('default repository installer log group created correctly', () => {
   });
 });
 
-test('repository installer logs all required files', () => {
+test.each([
+  [[10,1,19,4]],
+  [[10,2,0,9]],
+])('repository installer logs all required files', (version_array: number[]) => {
+  // GIVEN
+  const repository_version = create_version(version_array);
+
   // WHEN
   new Repository(stack, 'repositoryInstaller', {
     vpc,
-    version,
+    version: repository_version,
   });
 
   // THEN
@@ -424,7 +435,9 @@ test('repository installer logs all required files', () => {
           {}, // log group name. checked in another test.
           '\",\"log_stream_name\":\"cloud-init-output-{instance_id}\",\"file_path\":\"/var/log/cloud-init-output.log\",\"timezone\":\"Local\"},{\"log_group_name\":\"',
           {}, // log group name again.
-          '\",\"log_stream_name\":\"deadlineRepositoryInstallationLogs-{instance_id}\",\"file_path\":\"/tmp/bitrock_installer.log\",\"timezone\":\"Local\"}]}},\"log_stream_name\":\"DefaultLogStream-{instance_id}\",\"force_flush_interval\":15}}',
+          '\",\"log_stream_name\":\"deadlineRepositoryInstallationLogs-{instance_id}\",\"file_path\":\"/tmp/'+
+          (repository_version.isLessThan(Version.MINIMUM_VERSION_USING_NEW_INSTALLBUILDER_LOG) ? 'bitrock' : 'installbuilder') +
+          '_installer.log\",\"timezone\":\"Local\"}]}},\"log_stream_name\":\"DefaultLogStream-{instance_id}\",\"force_flush_interval\":15}}',
         ],
       ],
     },
@@ -528,7 +541,7 @@ test('repository warns if removal policy for database when database provided', (
     vpc,
     vpcSubnets: {
       onePerAz: true,
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     },
   });
 
@@ -629,7 +642,7 @@ test('repository warns if databaseAuditLogging defined and database is specified
     vpc,
     vpcSubnets: {
       onePerAz: true,
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     },
   });
 
@@ -737,7 +750,7 @@ test('warns if both retention period and database provided', () => {
     vpc,
     vpcSubnets: {
       onePerAz: true,
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     },
   });
 
@@ -771,7 +784,7 @@ test('repository creates filesystem if none provided', () => {
     vpc,
     vpcSubnets: {
       onePerAz: true,
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     },
     backup: {
       retention: Duration.days(15),

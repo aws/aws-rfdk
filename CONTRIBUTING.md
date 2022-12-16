@@ -70,42 +70,40 @@ The [official installation instructions](https://docs.docker.com/engine/install/
 
 ## Building the packages
 
-It is recommended you build the packages within a docker container on a Linux-compatible system.
+It is recommended you perform the packaging step of the build process within a docker container on a Linux-compatible system.
 The developers actively use Linux for development, but macOS and the Windows Subsystem for Linux #2 may also work.
 
-To build, we use the [jsii/superchain docker container](https://hub.docker.com/r/jsii/superchain).
-
-1. Acquire the latest `jsii/superchain:1-buster-slim-node14` docker image, if you do not already have it.
+1. Build the RFDK and ensure that all unit tests pass:
 
     ```bash
-    docker pull jsii/superchain:1-buster-slim-node14
+    # From the root directory of this repository
+    ./build.sh
+
+    # Once you've run ./build.sh from the root directory at least once, then
+    # you can do subsequent build & test iterations from the RFDK package directory to save time.
+    cd packages/aws-rfdk
+    yarn build+test
     ```
 
-2. Enter the docker container
+2. When you're ready to package the build artifacts into installable packages (e.g. For running
+   integration tests, using with an example app, or for using with your own app) then first
+   enter the docker container:
 
     ```bash
     cd <directory containing this file>
+    # This will also do a docker pull of the required container image
+    # the first time that you run it.
     ./scripts/rfdk_build_environment.sh
     >>> bash-4.2#
     ```
 
-3. Now that you are in the docker container you can build.
+3. Now, to create the npm and python packages:
 
     ```bash
-    # To build the required build tools, and all packages:
-    >>> bash-4.2$
-    ./build.sh
+    # From within the docker container at the root directory of this repository
+    >>> bash-4.2# ./pack.sh
 
-    # To package the npm and python packages (they will be built into dist/)
-    >>> bash-4.2$
-    ./pack.sh
-
-    # To build & test your changes to the RFDK package
-    # Note: Must have done at least one run of ./build.sh to build the build tools.
-    >>> bash-4.2$
-    cd packages/aws-rfdk
-    >>> bash-4.2$
-    yarn build+test
+    # The resulting artifacts will be located in the dist/ directory.
     ```
 
 ### Using your self-built RFDK packages

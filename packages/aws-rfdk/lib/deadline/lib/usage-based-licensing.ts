@@ -526,7 +526,7 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
       );
     }
 
-    const vpcSubnets = props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_NAT };
+    const vpcSubnets = props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_EGRESS };
 
     this.asg = this.cluster.addCapacity('ASG', {
       vpcSubnets,

@@ -57,10 +57,7 @@ These instructions assume that your working directory is `examples/deadline/Loca
     ```bash
     # Navigate to the root directory of the RFDK repository (assumes you started in the example's directory)
     pushd ../../../..
-    # Enter the Docker container, run the build, and then exit
-    ./scripts/rfdk_build_environment.sh
     ./build.sh
-    exit
     # Navigate back to the example directory
     popd
     # Run the example's build

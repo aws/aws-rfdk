@@ -26,12 +26,12 @@ export class NetworkTier extends Stack {
   public static readonly subnetConfig: NetworkTierSubnetConfiguration = {
     testRunner: {
       name: 'TestRunnerSubnets',
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       cidrMask: 26, // 2^(32-26)-2 = 62 IP addresses
     },
     renderQueueAlb: {
       name: 'RenderQueueAlbSubnets',
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       // Current RenderQueueStructs:
       //   deadline_02_renderQueue: 2
       //   deadline_03_workerFleetHttp: 2
@@ -48,15 +48,15 @@ export class NetworkTier extends Stack {
     },
     sepFleet: {
       name: 'SepFleetSubnets',
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     },
     ubl: {
       name: 'UblSubnets',
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     },
     workerInstanceFleet: {
       name: 'WorkerInstanceFleetSubnets',
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
     },
   };
 

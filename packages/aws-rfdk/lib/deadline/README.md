@@ -120,7 +120,7 @@ const vpc = new Vpc(this, 'Vpc', {
     // Provide a subnet configuration for the SpotEventPluginFleet subnet group
     {
       name: 'SpotEventPluginFleetSubnets',
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       cidrMask: 20,
     },
 
@@ -209,7 +209,7 @@ const repository = new Repository(stack, 'Repository', { /* ...*/});
 
 const renderQueue = new RenderQueue(stack, 'RenderQueue', {
   vpc: vpc,
-  images: images,
+  images: images.forRenderQueue(),
   version: version,
   repository: repository,
 });
@@ -265,7 +265,7 @@ const vpc = new Vpc(this, 'Vpc', {
     // Provide a subnet configuration for the Render Queue subnet group
     {
       name: 'RenderQueueALBSubnets',
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       cidrMask: 27,
     },
 
@@ -769,7 +769,7 @@ const vpc = new Vpc(this, 'Vpc', {
     // Provide a subnet configuration for the WorkerInstanceFleet subnet group
     {
       name: 'WorkerInstanceFleetSubnets',
-      subnetType: SubnetType.PRIVATE_WITH_NAT,
+      subnetType: SubnetType.PRIVATE_WITH_EGRESS,
       cidrMask: 20,
     },
 
