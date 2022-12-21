@@ -480,7 +480,7 @@ describe('HealthMonitor', () => {
     });
     expect(() => {
       healthMonitor.registerFleet(fleet, {});
-    }).toThrowError(/AWS service limit \"targets-per-application-load-balancer\" reached. Limit: 1/);
+    }).toThrow(/AWS service limit \"targets-per-application-load-balancer\" reached. Limit: 1/);
   });
 
   test('validating deletion protection', () => {

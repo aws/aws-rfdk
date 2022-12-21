@@ -421,7 +421,7 @@ test('default worker fleet is not created with incorrect spot config', () => {
       renderQueue,
       spotPrice: WorkerInstanceFleet.SPOT_PRICE_MAX_LIMIT + 1,
     });
-  }).toThrowError(/Invalid value: 256 for property 'spotPrice'. Valid values can be any decimal between 0.001 and 255./);
+  }).toThrow(/Invalid value: 256 for property 'spotPrice'. Valid values can be any decimal between 0.001 and 255./);
 
   // WHEN
   expect(() => {
@@ -433,7 +433,7 @@ test('default worker fleet is not created with incorrect spot config', () => {
       renderQueue,
       spotPrice: WorkerInstanceFleet.SPOT_PRICE_MIN_LIMIT / 2,
     });
-  }).toThrowError(/Invalid value: 0.0005 for property 'spotPrice'. Valid values can be any decimal between 0.001 and 255./);
+  }).toThrow(/Invalid value: 0.0005 for property 'spotPrice'. Valid values can be any decimal between 0.001 and 255./);
 });
 
 test('default worker fleet is created correctly custom Instance type', () => {
@@ -757,7 +757,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
       renderQueue,
       groups: ['A', 'none'],
     });
-  }).toThrowError();
+  }).toThrow();
 
   // group name with whitespace
   expect(() => {
@@ -769,7 +769,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
       renderQueue,
       groups: ['A', 'no ne'],
     });
-  }).toThrowError(/Invalid value: no ne for property 'groups'/);
+  }).toThrow(/Invalid value: no ne for property 'groups'/);
 
   // pool name with whitespace
   expect(() => {
@@ -781,7 +781,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
       renderQueue,
       pools: ['A', 'none'],
     });
-  }).toThrowError(/Invalid value: none for property 'pools'/);
+  }).toThrow(/Invalid value: none for property 'pools'/);
 
   // pool name as 'none'
   expect(() => {
@@ -793,7 +793,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
       renderQueue,
       pools: ['A', 'none'],
     });
-  }).toThrowError(/Invalid value: none for property 'pools'/);
+  }).toThrow(/Invalid value: none for property 'pools'/);
 
   // region as 'none'
   expect(() => {
@@ -805,7 +805,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
       renderQueue,
       region: 'none',
     });
-  }).toThrowError(/Invalid value: none for property 'region'/);
+  }).toThrow(/Invalid value: none for property 'region'/);
 
   // region as 'all'
   expect(() => {
@@ -817,7 +817,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
       renderQueue,
       region: 'all',
     });
-  }).toThrowError(/Invalid value: all for property 'region'/);
+  }).toThrow(/Invalid value: all for property 'region'/);
 
   // region as 'unrecognized'
   expect(() => {
@@ -829,7 +829,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
       renderQueue,
       region: 'unrecognized',
     });
-  }).toThrowError(/Invalid value: unrecognized for property 'region'/);
+  }).toThrow(/Invalid value: unrecognized for property 'region'/);
 
   // region with invalid characters
   expect(() => {
@@ -841,7 +841,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
       renderQueue,
       region: 'none@123',
     });
-  }).toThrowError(/Invalid value: none@123 for property 'region'/);
+  }).toThrow(/Invalid value: none@123 for property 'region'/);
 
   // region with reserved name as substring
   expect(() => {
@@ -853,7 +853,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
       renderQueue,
       region: 'none123',
     });
-  }).not.toThrowError();
+  }).not.toThrow();
 
   // region with case-insensitive name
   expect(() => {
@@ -865,7 +865,7 @@ test('worker fleet does validation correctly with groups, pools and region', () 
       renderQueue,
       region: 'None',
     });
-  }).toThrowError(/Invalid value: None for property 'region'/);
+  }).toThrow(/Invalid value: None for property 'region'/);
 });
 describe('Block Device Tests', () => {
   let healthMonitor: HealthMonitor;

@@ -164,7 +164,7 @@ describe('SEPConfiguratorResource', () => {
       // THEN
       expect(result).toBeUndefined();
       expect(mockSaveServerData.mock.calls.length).toBe(1);
-      expect(mockSaveServerData).toBeCalledWith(JSON.stringify(validSepConfiguration.spotFleetRequestConfigurations));
+      expect(mockSaveServerData).toHaveBeenCalledWith(JSON.stringify(validSepConfiguration.spotFleetRequestConfigurations));
     });
 
     test('save spot event plugin configs', async () => {
@@ -281,7 +281,7 @@ describe('SEPConfiguratorResource', () => {
       // THEN
       await expect(promise)
         .rejects
-        .toThrowError(`Failed to add Deadline group(s) ${validSepConfiguration.deadlineGroups}`);
+        .toThrow(`Failed to add Deadline group(s) ${validSepConfiguration.deadlineGroups}`);
     });
 
     test('throw when cannot add pools', async () => {
@@ -294,7 +294,7 @@ describe('SEPConfiguratorResource', () => {
       // THEN
       await expect(promise)
         .rejects
-        .toThrowError(`Failed to add Deadline pool(s) ${validSepConfiguration.deadlinePools}`);
+        .toThrow(`Failed to add Deadline pool(s) ${validSepConfiguration.deadlinePools}`);
     });
 
     test('throw when cannot save spot fleet request configs', async () => {
@@ -308,7 +308,7 @@ describe('SEPConfiguratorResource', () => {
       // THEN
       await expect(promise)
         .rejects
-        .toThrowError(/Failed to save spot fleet request with configuration/);
+        .toThrow(/Failed to save spot fleet request with configuration/);
     });
 
     test('throw when cannot save spot event plugin configs', async () => {
@@ -322,7 +322,7 @@ describe('SEPConfiguratorResource', () => {
       // THEN
       await expect(promise)
         .rejects
-        .toThrowError(/Failed to save Spot Event Plugin Configurations/);
+        .toThrow(/Failed to save Spot Event Plugin Configurations/);
     });
   });
 
@@ -603,7 +603,7 @@ describe('SEPConfiguratorResource', () => {
       }
 
       // THEN
-      expect(toKeyValueArray).toThrowError();
+      expect(toKeyValueArray).toThrow();
     });
   });
 });

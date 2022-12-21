@@ -254,7 +254,7 @@ describe('DocumentDB', () => {
     // THEN
     expect(() => {
       connection.addChildDependency(instance);
-    }).toThrowError(/The internal implementation of the AWS CDK's DocumentDB cluster construct may have changed./);
+    }).toThrow(/The internal implementation of the AWS CDK's DocumentDB cluster construct may have changed./);
   });
 
   test('asserts linux-only', () => {
@@ -271,10 +271,10 @@ describe('DocumentDB', () => {
     // THEN
     expect(() => {
       connection.addInstallerDBArgs(instance);
-    }).toThrowError('Can only install Deadline from a Linux instance.');
+    }).toThrow('Can only install Deadline from a Linux instance.');
     expect(() => {
       connection.addConnectionDBArgs(instance);
-    }).toThrowError('Connecting to the Deadline Database is currently only supported for Linux.');
+    }).toThrow('Connecting to the Deadline Database is currently only supported for Linux.');
   });
 
   test('adds warning annotation when a security group cannot be added due to unsupported IDatabaseCluster implementation', () => {
@@ -684,10 +684,10 @@ describe('MongoDB', () => {
     // THEN
     expect(() => {
       connection.addInstallerDBArgs(instance);
-    }).toThrowError('Can only install Deadline from a Linux instance.');
+    }).toThrow('Can only install Deadline from a Linux instance.');
     expect(() => {
       connection.addConnectionDBArgs(instance);
-    }).toThrowError('Connecting to the Deadline Database is currently only supported for Linux.');
+    }).toThrow('Connecting to the Deadline Database is currently only supported for Linux.');
   });
 
   test('adds security group', () => {

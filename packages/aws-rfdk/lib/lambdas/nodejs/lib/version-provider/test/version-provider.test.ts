@@ -61,7 +61,7 @@ test('get Uri for platform - bad version', async () => {
     productSection,
     Platform.linux,
     badVersion,
-  )).toThrowError(`Couldn't parse version from ${badVersion}`);
+  )).toThrow(`Couldn't parse version from ${badVersion}`);
 });
 
 test('get deadline version', async () => {
@@ -90,7 +90,7 @@ test('get deadline version', async () => {
 test('product is not in file', async () => {
   await expect(versionProvider.getVersionUris({
     product: Product.deadlineDocker,
-  })).rejects.toThrowError(/Information about product DeadlineDocker can't be found/);
+  })).rejects.toThrow(/Information about product DeadlineDocker can't be found/);
 });
 
 test('get deadline version for all platforms', async () => {
@@ -141,19 +141,19 @@ test('get deadline version for all platforms', async () => {
 });
 
 test('not defined file path', () => {
-  expect(() => (new VersionProvider())['readInstallersIndex']()).toThrowError(/File path should be defined./);
+  expect(() => (new VersionProvider())['readInstallersIndex']()).toThrow(/File path should be defined./);
 });
 
 test('invalid file path', () => {
-  expect(() => (new VersionProvider('test.txt'))['readInstallersIndex']()).toThrowError(/File test.txt was not found/);
+  expect(() => (new VersionProvider('test.txt'))['readInstallersIndex']()).toThrow(/File test.txt was not found/);
 });
 
 test('get latest version without latest section', () => {
-  expect(() => versionProvider['getLatestVersion']('linux',{})).toThrowError(/Information about latest version can not be found/);
+  expect(() => versionProvider['getLatestVersion']('linux',{})).toThrow(/Information about latest version can not be found/);
 });
 
 test('get latest version without informtion for platform', () => {
-  expect(() => versionProvider['getLatestVersion']('linux',{ latest: {} })).toThrowError(/Information about latest version for platform linux can not be found/);
+  expect(() => versionProvider['getLatestVersion']('linux',{ latest: {} })).toThrow(/Information about latest version for platform linux can not be found/);
 });
 
 test('get requested Uri version for existing product.', () => {

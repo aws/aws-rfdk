@@ -245,7 +245,7 @@ describe('Test StaticIpServer', () => {
           availabilityZones: ['dummy zone'],
         },
       });
-    }).toThrowError(/Did not find any subnets matching/);
+    }).toThrow(/Did not find any subnets matching/);
   });
 
   test('resource signal count', () => {
@@ -273,6 +273,6 @@ describe('Test StaticIpServer', () => {
         machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
         resourceSignalTimeout: Duration.seconds(12 * 60 * 60 + 1),
       });
-    }).toThrowError('Resource signal timeout cannot exceed 12 hours.');
+    }).toThrow('Resource signal timeout cannot exceed 12 hours.');
   });
 });

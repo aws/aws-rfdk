@@ -81,7 +81,7 @@ describe('SpotEventPluginClient', () => {
     // THEN
     expect(result).toBeTruthy();
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(1);
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).toHaveBeenCalledTimes(1);
     expect(consoleLogMock.mock.calls.length).toBe(2);
     expect(consoleLogMock.mock.calls[0][0]).toMatch(/Saving server data configuration:/);
     expect(consoleLogMock.mock.calls[1][0]).toMatch(configuration);
@@ -141,7 +141,7 @@ describe('SpotEventPluginClient', () => {
     // THEN
     expect(result).toBeTruthy();
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(1);
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).toHaveBeenCalledTimes(1);
     expect(consoleLogMock.mock.calls.length).toBe(2);
     expect(consoleLogMock.mock.calls[0][0]).toMatch(/Saving plugin configuration:/);
     expect(consoleLogMock.mock.calls[1][0]).toEqual(configs);
@@ -229,7 +229,7 @@ describe('SpotEventPluginClient', () => {
     const promise = spotEventPluginClient['concurrencyToken']();
 
     // THEN
-    await expect(promise).rejects.toThrowError(`Failed to receive a ConcurrencyToken. Invalid response: ${invalidDescribeDataResponse.data}.`);
+    await expect(promise).rejects.toThrow(`Failed to receive a ConcurrencyToken. Invalid response: ${invalidDescribeDataResponse.data}.`);
   });
 
   test('successful describeServerData', async () => {
@@ -272,9 +272,9 @@ describe('SpotEventPluginClient', () => {
     // THEN
     expect(result).toEqual(expectedResult);
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(1);
-    expect(consoleLogMock).toBeCalledTimes(1);
-    expect(consoleLogMock).toBeCalledWith(expect.stringMatching(`Getting ${type} collection:`));
+    expect(spotEventPluginClient['deadlineClient'].GetRequest).toHaveBeenCalledTimes(1);
+    expect(consoleLogMock).toHaveBeenCalledTimes(1);
+    expect(consoleLogMock).toHaveBeenCalledWith(expect.stringMatching(`Getting ${type} collection:`));
   });
 
   test('failed getCollection', async () => {
@@ -288,8 +288,8 @@ describe('SpotEventPluginClient', () => {
 
     // THEN
     expect(result).toBeUndefined();
-    expect(consoleErrorMock).toBeCalledTimes(1);
-    expect(consoleErrorMock).toBeCalledWith(expect.stringMatching(`Failed to get group collection. Reason: ${statusMessage}`));
+    expect(consoleErrorMock).toHaveBeenCalledTimes(1);
+    expect(consoleErrorMock).toHaveBeenCalledWith(expect.stringMatching(`Failed to get group collection. Reason: ${statusMessage}`));
   });
 
   test('failed getCollection with invalid response', async () => {
@@ -308,8 +308,8 @@ describe('SpotEventPluginClient', () => {
 
     // THEN
     expect(result).toBeUndefined();
-    expect(consoleErrorMock).toBeCalledTimes(1);
-    expect(consoleErrorMock).toBeCalledWith(expect.stringMatching(`Failed to receive a group collection. Invalid response: ${JSON.stringify(invalidGroupResponse.data)}.`));
+    expect(consoleErrorMock).toHaveBeenCalledTimes(1);
+    expect(consoleErrorMock).toHaveBeenCalledWith(expect.stringMatching(`Failed to receive a group collection. Invalid response: ${JSON.stringify(invalidGroupResponse.data)}.`));
   });
 
   test.each([
@@ -327,10 +327,10 @@ describe('SpotEventPluginClient', () => {
     // THEN
     expect(result).toBeTruthy();
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(1);
-    expect(consoleLogMock).toBeCalledTimes(2);
-    expect(consoleLogMock).toBeCalledWith(expect.stringMatching(`Saving ${type} collection:`));
-    expect(consoleLogMock).toBeCalledWith(expectedResult);
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).toHaveBeenCalledTimes(1);
+    expect(consoleLogMock).toHaveBeenCalledTimes(2);
+    expect(consoleLogMock).toHaveBeenCalledWith(expect.stringMatching(`Saving ${type} collection:`));
+    expect(consoleLogMock).toHaveBeenCalledWith(expectedResult);
   });
 
   test('failed saveCollection', async () => {
@@ -346,8 +346,8 @@ describe('SpotEventPluginClient', () => {
 
     // THEN
     expect(result).toBeFalsy();
-    expect(consoleErrorMock).toBeCalledTimes(1);
-    expect(consoleErrorMock).toBeCalledWith(expect.stringMatching(`Failed to save group collection. Reason: ${statusMessage}`));
+    expect(consoleErrorMock).toHaveBeenCalledTimes(1);
+    expect(consoleErrorMock).toHaveBeenCalledWith(expect.stringMatching(`Failed to save group collection. Reason: ${statusMessage}`));
   });
 
   test.each([
@@ -376,13 +376,13 @@ describe('SpotEventPluginClient', () => {
     // THEN
     const requestsCount = addedGroupsCollection.length > 0 ? 1 : 0;
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(requestsCount);
+    expect(spotEventPluginClient['deadlineClient'].GetRequest).toHaveBeenCalledTimes(requestsCount);
 
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(requestsCount);
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).toHaveBeenCalledTimes(requestsCount);
     if (requestsCount>0) {
       // eslint-disable-next-line dot-notation, jest/no-conditional-expect
-      expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledWith(
+      expect(spotEventPluginClient['deadlineClient'].PostRequest).toHaveBeenCalledWith(
         '/db/settings/collections/groups/save',
         {
           Pools: Array.from(new Set(currentGroupsCollection.concat(addedGroupsCollection))),
@@ -421,13 +421,13 @@ describe('SpotEventPluginClient', () => {
     // THEN
     const requestsCount = addedPoolsCollection.length > 0 ? 1 : 0;
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(requestsCount);
+    expect(spotEventPluginClient['deadlineClient'].GetRequest).toHaveBeenCalledTimes(requestsCount);
 
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledTimes(requestsCount);
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).toHaveBeenCalledTimes(requestsCount);
     if (requestsCount>0) {
       // eslint-disable-next-line dot-notation, jest/no-conditional-expect
-      expect(spotEventPluginClient['deadlineClient'].PostRequest).toBeCalledWith(
+      expect(spotEventPluginClient['deadlineClient'].PostRequest).toHaveBeenCalledWith(
         '/db/settings/collections/pools/save',
         {
           Pools: Array.from(new Set(currentPoolsCollection.concat(addedPoolsCollection))),
@@ -450,9 +450,9 @@ describe('SpotEventPluginClient', () => {
 
     // THEN
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(1);
+    expect(spotEventPluginClient['deadlineClient'].GetRequest).toHaveBeenCalledTimes(1);
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].PostRequest).not.toBeCalled();
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).not.toHaveBeenCalled();
     expect(added).toBe(false);
   });
 
@@ -466,9 +466,9 @@ describe('SpotEventPluginClient', () => {
 
     // THEN
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].GetRequest).toBeCalledTimes(1);
+    expect(spotEventPluginClient['deadlineClient'].GetRequest).toHaveBeenCalledTimes(1);
     // eslint-disable-next-line dot-notation
-    expect(spotEventPluginClient['deadlineClient'].PostRequest).not.toBeCalled();
+    expect(spotEventPluginClient['deadlineClient'].PostRequest).not.toHaveBeenCalled();
     expect(added).toBe(false);
   });
 });

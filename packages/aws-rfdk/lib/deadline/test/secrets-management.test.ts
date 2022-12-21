@@ -428,7 +428,7 @@ describe('SecretsManagementIdentityRegistration', () => {
 
         // THEN
         expect(when)
-          .toThrowError('The Administrator role cannot be set using a Deadline identity registration setting');
+          .toThrow('The Administrator role cannot be set using a Deadline identity registration setting');
       });
 
       test('throws when two rules for same source subnet with different roles', () => {
@@ -459,7 +459,7 @@ describe('SecretsManagementIdentityRegistration', () => {
 
         // THEN
         expect(when)
-          .toThrowError(`Subnet is already registered with role "${existingRole}" but another caller requested "${newRole}"`);
+          .toThrow(`Subnet is already registered with role "${existingRole}" but another caller requested "${newRole}"`);
       });
 
       test('throws when two rules for same source subnet with different registration statuses', () => {
@@ -491,7 +491,7 @@ describe('SecretsManagementIdentityRegistration', () => {
 
         // THEN
         expect(when)
-          .toThrowError(`Subnet is already registered with registrationStatus "${existingStatus}" but another caller requested "${newStatus}"`);
+          .toThrow(`Subnet is already registered with registrationStatus "${existingStatus}" but another caller requested "${newStatus}"`);
       });
 
       test('de-duplicates subnets', () => {
@@ -609,7 +609,7 @@ describe('SecretsManagementIdentityRegistration', () => {
       const when = createTarget;
 
       // THEN
-      expect(when).toThrowError('Repository does not contain secrets management credentials');
+      expect(when).toThrow('Repository does not contain secrets management credentials');
     });
   });
 

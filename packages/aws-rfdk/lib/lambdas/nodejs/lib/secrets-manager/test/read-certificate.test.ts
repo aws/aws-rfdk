@@ -54,7 +54,7 @@ describe('readCertificateData', () => {
     const promise = readCertificateData(secretPartialArn, client);
 
     // THEN
-    await expect(promise).rejects.toThrowError(/must contain a Certificate in PEM format/);
+    await expect(promise).rejects.toThrow(/must contain a Certificate in PEM format/);
   });
 
   test('binary data', async () => {
@@ -71,6 +71,6 @@ describe('readCertificateData', () => {
     const promise = readCertificateData(secretPartialArn, client);
 
     // THEN
-    await expect(promise).rejects.toThrowError(/must contain a Certificate in PEM format/);
+    await expect(promise).rejects.toThrow(/must contain a Certificate in PEM format/);
   });
 });

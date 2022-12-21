@@ -66,7 +66,7 @@ describe('VersionProviderResource', () => {
       's3://bucketName',
       'bucketName',
     ])('malformed input: %p', (s3Uri: string) => {
-      expect(() => versionProviderResource['parseS3BucketName'](s3Uri)).toThrowError(/Could not parse S3 bucket name/);
+      expect(() => versionProviderResource['parseS3BucketName'](s3Uri)).toThrow(/Could not parse S3 bucket name/);
     });
   });
 
@@ -86,7 +86,7 @@ describe('VersionProviderResource', () => {
       's3://bucketName',
       'bucketName',
     ])('malformed input: %p', (s3Uri: string) => {
-      expect(() => versionProviderResource['parseS3ObjectKey'](s3Uri)).toThrowError(/Could not parse S3 object key/);
+      expect(() => versionProviderResource['parseS3ObjectKey'](s3Uri)).toThrow(/Could not parse S3 object key/);
     });
   });
 });

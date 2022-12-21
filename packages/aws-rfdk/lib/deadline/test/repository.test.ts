@@ -1079,7 +1079,7 @@ test('windows client cannot direct connect to repository', () => {
       host: instance,
       mountPoint: 'd:\\',
     });
-  }).toThrowError('Deadline direct connect on Windows hosts is not yet supported by the RFDK.');
+  }).toThrow('Deadline direct connect on Windows hosts is not yet supported by the RFDK.');
 });
 
 describe('tagging', () => {

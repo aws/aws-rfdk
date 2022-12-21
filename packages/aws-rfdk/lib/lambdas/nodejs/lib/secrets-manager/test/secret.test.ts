@@ -111,7 +111,7 @@ describe('Secret class', () => {
       const name = 'SecretName';
       const client = new AWS.SecretsManager();
 
-      await expect(Secret.create({ name, client })).rejects.toThrowError();
+      await expect(Secret.create({ name, client })).rejects.toThrow();
     });
   });
 
@@ -143,7 +143,7 @@ describe('Secret class', () => {
       const secret = Secret.fromArn(arn, client);
 
       await secret.delete();
-      await expect(() => secret.delete()).rejects.toThrowError('Secret has already been deleted');
+      await expect(() => secret.delete()).rejects.toThrow('Secret has already been deleted');
       expect(fakeDeleteSecret.callCount).toEqual(1);
     });
 
@@ -158,7 +158,7 @@ describe('Secret class', () => {
       const client = new AWS.SecretsManager();
       const secret = Secret.fromArn(arn, client);
 
-      await expect(() => secret.delete()).rejects.toThrowError();
+      await expect(() => secret.delete()).rejects.toThrow();
     });
   });
 
@@ -225,7 +225,7 @@ describe('Secret class', () => {
 
       const value = 'value';
       await secret.delete();
-      await expect(() => secret.putValue(value)).rejects.toThrowError('Secret has been deleted');
+      await expect(() => secret.putValue(value)).rejects.toThrow('Secret has been deleted');
       expect(fakePutSecretValue.callCount).toEqual(0);
     });
 
@@ -241,7 +241,7 @@ describe('Secret class', () => {
       const secret = Secret.fromArn(arn, client);
 
       const value = 'Super secret value';
-      await expect(() => secret.putValue(value)).rejects.toThrowError();
+      await expect(() => secret.putValue(value)).rejects.toThrow();
       expect(fakePutSecretValue.callCount).toEqual(1);
     });
   });
@@ -338,7 +338,7 @@ describe('Secret class', () => {
       const client = new AWS.SecretsManager();
       const secret = Secret.fromArn(arn, client);
 
-      await expect(() => secret.getValue()).rejects.toThrowError('Unknown type for SecretBinary data');
+      await expect(() => secret.getValue()).rejects.toThrow('Unknown type for SecretBinary data');
       expect(fakeGetSecretValue.callCount).toEqual(1);
     });
 
@@ -361,7 +361,7 @@ describe('Secret class', () => {
       const secret = Secret.fromArn(arn, client);
 
       await secret.delete();
-      await expect(() => secret.getValue()).rejects.toThrowError('Secret has been deleted');
+      await expect(() => secret.getValue()).rejects.toThrow('Secret has been deleted');
       expect(fakeGetSecretValue.callCount).toEqual(0);
     });
 
@@ -376,7 +376,7 @@ describe('Secret class', () => {
       const client = new AWS.SecretsManager();
       const secret = Secret.fromArn(arn, client);
 
-      await expect(() => secret.getValue()).rejects.toThrowError();
+      await expect(() => secret.getValue()).rejects.toThrow();
       expect(fakeGetSecretValue.callCount).toEqual(1);
     });
   });
@@ -385,7 +385,7 @@ describe('Secret class', () => {
 test('fromArn invalid ARN', async () => {
   const invalidArn = 'notAnArn';
   const client = new AWS.SecretsManager();
-  expect(() => Secret.fromArn(invalidArn, client)).toThrowError(`Not a Secret ARN: ${invalidArn}`);
+  expect(() => Secret.fromArn(invalidArn, client)).toThrow(`Not a Secret ARN: ${invalidArn}`);
 });
 
 test.each([
