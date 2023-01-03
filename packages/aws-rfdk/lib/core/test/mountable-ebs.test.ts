@@ -200,7 +200,7 @@ describe('Test MountableBlockVolume', () => {
         location: '/mnt/fs',
         permissions: MountPermissions.READONLY,
       });
-    }).toThrowError('Target instance must be Linux.');
+    }).toThrow('Target instance must be Linux.');
   });
 
   test('readonly mount', () => {
@@ -280,7 +280,7 @@ describe('Test MountableBlockVolume', () => {
         location: '/mnt/fs',
         permissions: MountPermissions.READONLY,
       });
-    }).toThrowError(/Target instance must be a construct./);
+    }).toThrow(/Target instance must be a construct./);
   });
 
   test('asset is singleton', () => {

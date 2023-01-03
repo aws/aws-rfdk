@@ -77,5 +77,5 @@ test('bad type', () => {
   const value = true;
 
   // THEN
-  expect(() => calculateSha256Hash(value)).toThrowError(`Unexpected value type: ${typeof(value)}`);
+  expect(() => calculateSha256Hash(value)).toThrow(`Unexpected value type: ${typeof(value)}`);
 });

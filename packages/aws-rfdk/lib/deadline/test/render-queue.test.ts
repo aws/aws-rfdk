@@ -2549,7 +2549,7 @@ describe('RenderQueue', () => {
       }))
 
         // THEN
-        .toThrowError(/The internal protocol on the Render Queue is not HTTPS./);
+        .toThrow(/The internal protocol on the Render Queue is not HTTPS./);
     });
 
     test('throws if external TLS is not enabled', () => {
@@ -2562,7 +2562,7 @@ describe('RenderQueue', () => {
       }))
 
         // THEN
-        .toThrowError(/External TLS on the Render Queue is not enabled./);
+        .toThrow(/External TLS on the Render Queue is not enabled./);
     });
 
     test('throws if repository does not have SM credentials', () => {
@@ -2579,7 +2579,7 @@ describe('RenderQueue', () => {
       }))
 
         // THEN
-        .toThrowError(/The Repository does not have Secrets Management credentials/);
+        .toThrow(/The Repository does not have Secrets Management credentials/);
     });
 
     test('throws if deadline version is too low', () => {
@@ -2594,7 +2594,7 @@ describe('RenderQueue', () => {
 
         // THEN
         /* eslint-disable-next-line dot-notation */
-        .toThrowError(`The supplied Deadline version (${oldVersion.versionString}) does not support Deadline Secrets Management in RFDK. Either upgrade Deadline to the minimum required version (${Version.MINIMUM_SECRETS_MANAGEMENT_VERSION.versionString}) or disable the feature in the Repository's construct properties.`);
+        .toThrow(`The supplied Deadline version (${oldVersion.versionString}) does not support Deadline Secrets Management in RFDK. Either upgrade Deadline to the minimum required version (${Version.MINIMUM_SECRETS_MANAGEMENT_VERSION.versionString}) or disable the feature in the Repository's construct properties.`);
     });
 
     test('grants read permissions to secrets management credentials', () => {

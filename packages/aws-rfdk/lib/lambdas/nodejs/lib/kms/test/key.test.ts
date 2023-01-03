@@ -13,5 +13,5 @@ test('success', () => {
 
 test('bad arn', () => {
   const arn = 'badArn';
-  expect(() => Key.fromArn(arn)).toThrowError(`Not a KMS ARN: ${arn}`);
+  expect(() => Key.fromArn(arn)).toThrow(`Not a KMS ARN: ${arn}`);
 });

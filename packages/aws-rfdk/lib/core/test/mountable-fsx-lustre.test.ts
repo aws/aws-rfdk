@@ -117,7 +117,7 @@ describe('MountableFsxLustre', () => {
         location: '/mnt/fsx/fs1',
         permissions: MountPermissions.READONLY,
       });
-    }).toThrowError('Target instance must be Linux.');
+    }).toThrow('Target instance must be Linux.');
   });
 
   test('readonly mount', () => {

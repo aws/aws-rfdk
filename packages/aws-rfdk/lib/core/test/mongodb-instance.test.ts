@@ -515,7 +515,7 @@ describe('Test MongoDbInstance', () => {
         vpc,
         vpcSubnets: invalidSubnets,
       });
-    }).toThrowError(/Did not find any subnets matching/);
+    }).toThrow(/Did not find any subnets matching/);
   });
 
   test('changing instance type works correctly', () => {

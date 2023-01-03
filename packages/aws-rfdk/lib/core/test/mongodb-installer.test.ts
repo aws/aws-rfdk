@@ -57,14 +57,14 @@ Please set the userSsplAcceptance property to USER_ACCEPTS_SSPL to signify your 
       new MongoDbInstaller(stack, {
         version: MongoDbVersion.COMMUNITY_3_6,
       });
-    }).toThrowError(errorString);
+    }).toThrow(errorString);
     // Must throw when explicitly rejecting the SSPL.
     expect(() => {
       new MongoDbInstaller(stack, {
         version: MongoDbVersion.COMMUNITY_3_6,
         userSsplAcceptance: MongoDbSsplLicenseAcceptance.USER_REJECTS_SSPL,
       });
-    }).toThrowError(errorString);
+    }).toThrow(errorString);
 
   });
 
@@ -165,7 +165,7 @@ Please set the userSsplAcceptance property to USER_ACCEPTS_SSPL to signify your 
     // THEN
     expect(() => {
       installer.installOnLinuxInstance(windowsInstance);
-    }).toThrowError('Target instance must be Linux.');
+    }).toThrow('Target instance must be Linux.');
   });
 
   test('asset is singleton', () => {

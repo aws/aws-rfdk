@@ -65,7 +65,7 @@ describe('WaitForStableServiceResource', () => {
       const promise = handler.doCreate('physicalId', props);
 
       // THEN
-      await expect(promise).rejects.toThrowError(/ECS services failed to stabilize in expected time:/);
+      await expect(promise).rejects.toThrow(/ECS services failed to stabilize in expected time:/);
     });
   });
 
