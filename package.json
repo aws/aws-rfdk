@@ -35,7 +35,7 @@
     "aws-cdk-lib": "2.54.0",
     "aws-sdk": "^2.1278.0",
     "constructs": "^10.0.0",
-    "fs-extra": "^10.1.0",
+    "fs-extra": "^11.1.0",
     "jest": "^27.5.1",
     "jest-junit": "^14.0.1",
     "lerna": "^6.1.0",
