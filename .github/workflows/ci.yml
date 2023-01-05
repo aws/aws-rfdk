@@ -5,13 +5,12 @@ name: CI
 
 on:
   push:
-    branches: [ mainline, 'feature*' ]
+    branches: [mainline, 'feature*']
   pull_request:
-    branches: [ mainline, 'feature*' ]
+    branches: [mainline, 'feature*']
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     container:
       image: jsii/superchain:1-buster-slim-node14
@@ -21,12 +20,16 @@ jobs:
         node-version: [14.x, 16.x, 18.x]
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-    - run: npm install --global yarn
-    - run: yarn global add typescript
-    - run: yarn build
-    - run: ./pack.sh
+      - uses: actions/checkout@v3
+      - name: SAM Dependency Fix https://github.com/aws/aws-sam-cli/issues/4527#issuecomment-1368871248
+        uses: aws-actions/setup-sam@v2
+        with:
+          version: 1.37.0
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm install --global yarn
+      - run: yarn global add typescript
+      - run: yarn build
+      - run: ./pack.sh
