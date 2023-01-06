@@ -28,8 +28,4 @@ jobs:
       - run: npm install --global yarn
       - run: yarn global add typescript
       - run: yarn build
-      - name: SAM Dependency Fix https://github.com/aws/aws-sam-cli/issues/4527#issuecomment-1368871248
-        uses: aws-actions/setup-sam@v2
-        with:
-          version: 1.37.0
       - run: ./pack.sh
