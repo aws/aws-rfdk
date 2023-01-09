@@ -4074,10 +4074,10 @@ aws-sdk-mock@5.5.0:
     sinon "^11.1.1"
     traverse "^0.6.6"
 
-aws-sdk@^2.1278.0, aws-sdk@^2.928.0:
-  version "2.1278.0"
-  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.1278.0.tgz#887692f4518e8ef0ed7c185d9de468dfd0423fe9"
-  integrity sha512-keh0FXU6kP5j5vkWDgizZCSggmRfyRLUxmDKDVuiWb64H9FHIgoDBTMnYzKnQr6trHdBMopQdQ7RxnjYZ3BblA==
+aws-sdk@^2.1290.0, aws-sdk@^2.928.0:
+  version "2.1290.0"
+  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.1290.0.tgz#cb4e56656cb4ad08a645cd016380df4b324f8261"
+  integrity sha512-qRrXLgK4FpkdxeagjrHuhtEEvYrvRbddTBg1I7KBuMCIhXHzSS3nEUmdZjdyMuQJEvt0BCJjwVkNh8e/5TauDQ==
   dependencies:
     buffer "4.9.2"
     events "1.1.1"
