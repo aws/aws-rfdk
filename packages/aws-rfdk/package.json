@@ -70,7 +70,7 @@
     "@types/jest": "^27.5.2",
     "@types/sinon": "^10.0.13",
     "aws-cdk-lib": "2.54.0",
-    "aws-sdk": "^2.1278.0",
+    "aws-sdk": "^2.1292.0",
     "aws-sdk-mock": "5.5.0",
     "awslint": "2.54.0",
     "constructs": "^10.0.0",
