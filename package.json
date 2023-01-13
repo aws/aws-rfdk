@@ -25,6 +25,10 @@
       "precommit": "git add ."
     }
   },
+  "resolutions-json5": "json5 <= 2.2.1 has a security vulnerability, and is a transitive dep of several packages. Remove the resolution when able.",
+  "resolutions": {
+    "json5": "^2.2.2"
+  },
   "devDependencies": {
     "@aws-sdk/client-ssm": "^3.234.0",
     "@aws-sdk/client-cloudformation": "^3.222.0",
