@@ -4108,6 +4108,13 @@ aws-cdk@2.54.0:
   optionalDependencies:
     fsevents "2.3.2"
 
+aws-cdk@2.62.0:
+  version "2.62.0"
+  resolved "https://registry.yarnpkg.com/aws-cdk/-/aws-cdk-2.62.0.tgz#7c9be256a827a4a67e90d5c70e16418a5dfd65c3"
+  integrity sha512-CkUynyMxoOxDmMV3Y2nsoUGmXgDUQkAf72b7/+rxfRJvIdd8jQTqslei1EgZXgmoHiqYrCDcu7jYJipxWDtxMA==
+  optionalDependencies:
+    fsevents "2.3.2"
+
 aws-sdk-mock@5.5.0:
   version "5.5.0"
   resolved "https://registry.yarnpkg.com/aws-sdk-mock/-/aws-sdk-mock-5.5.0.tgz#6b7df9f1b71747e448983ff9e2e1aa2150b403cc"
