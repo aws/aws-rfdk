@@ -57,7 +57,7 @@
     "@types/node": "^18.0.0",
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.48.2",
-    "aws-cdk": "2.54.0",
+    "aws-cdk": "2.63.0",
     "eslint": "^8.32.0",
     "eslint-import-resolver-node": "^0.3.7",
     "eslint-import-resolver-typescript": "^3.5.3",
