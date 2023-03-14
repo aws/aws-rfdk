@@ -16,8 +16,8 @@
 
 /* eslint-disable no-console */
 
-import { LambdaContext } from '../aws-lambda';
 
+import { LambdaContext } from '../aws-lambda';
 import { calculateSha256Hash } from './hash';
 import { CfnResponseStatus, sendCfnResponse } from './reply';
 import { CfnRequestEvent } from './types';

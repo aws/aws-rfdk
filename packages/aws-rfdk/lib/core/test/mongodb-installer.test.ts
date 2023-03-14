@@ -24,10 +24,10 @@ import {
   MongoDbSsplLicenseAcceptance,
   MongoDbVersion,
 } from '../lib';
-
 import {
   INSTALL_MONGODB_3_6_SCRIPT_LINUX,
 } from './asset-constants';
+
 
 describe('Test MongoDbInstaller', () => {
   let stack: Stack;

@@ -90,10 +90,8 @@ module.exports = {
 
     // Require an ordering on all imports -- unfortunately a different ordering than TSLint used to
     // enforce, but there are no compatible ESLint rules as far as I can tell :(
-    //
-    // WARNING for now, otherwise this will mess up all open PRs. Make it into an error after a transitionary period.
-    'import/order': ['warn', {
-      groups: ['builtin', 'external'],
+    'import/order': ['error', {
+      groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index', 'object', 'type'],
       alphabetize: { order: 'asc', caseInsensitive: true },
     }],
 

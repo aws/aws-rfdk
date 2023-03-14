@@ -17,16 +17,16 @@ import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 
 import {
+  ScriptAsset,
+} from '../../core';
+import { DeploymentInstance } from '../../core/lib/deployment-instance';
+import {
   IRepository,
   IVersion,
   SecretsManagementRole,
   SecretsManagementRegistrationStatus,
   SubnetIdentityRegistrationSettingsProps,
 } from '.';
-import {
-  ScriptAsset,
-} from '../../core';
-import { DeploymentInstance } from '../../core/lib/deployment-instance';
 
 /**
  * A data structure that contains the desired Deadline Secrets Management role and registration status to be applied to

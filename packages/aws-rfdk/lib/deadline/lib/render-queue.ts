@@ -62,18 +62,7 @@ import {
 } from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct, IConstruct } from 'constructs';
 
-import {
-  ECSConnectOptions,
-  InstanceConnectOptions,
-  IRepository,
-  IVersion,
-  RenderQueueExternalTLSProps,
-  RenderQueueHostNameProps,
-  RenderQueueProps,
-  RenderQueueSizeConstraints,
-  SubnetIdentityRegistrationSettingsProps,
-  VersionQuery,
-} from '.';
+
 import {
   ConnectableApplicationEndpoint,
   ImportedAcmCertificate,
@@ -82,7 +71,6 @@ import {
   X509CertificatePem,
   X509CertificatePkcs12,
 } from '../../core';
-
 import { DeploymentInstance } from '../../core/lib/deployment-instance';
 import {
   tagConstruct,
@@ -97,6 +85,18 @@ import { Version } from './version';
 import {
   WaitForStableService,
 } from './wait-for-stable-service';
+import {
+  ECSConnectOptions,
+  InstanceConnectOptions,
+  IRepository,
+  IVersion,
+  RenderQueueExternalTLSProps,
+  RenderQueueHostNameProps,
+  RenderQueueProps,
+  RenderQueueSizeConstraints,
+  SubnetIdentityRegistrationSettingsProps,
+  VersionQuery,
+} from '.';
 
 /**
  * Interface for Deadline Render Queue.

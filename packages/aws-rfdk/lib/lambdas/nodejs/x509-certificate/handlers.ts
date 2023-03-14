@@ -10,6 +10,7 @@ import { randomBytes } from 'crypto';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { DynamoDB, SecretsManager } from 'aws-sdk';
 
+
 import { LambdaContext } from '../lib/aws-lambda';
 import { CfnRequestEvent, DynamoBackedCustomResource } from '../lib/custom-resource';
 import { CompositeStringIndexTable } from '../lib/dynamodb';
@@ -22,7 +23,6 @@ import {
   Certificate,
   DistinguishedName,
 } from '../lib/x509-certs';
-
 import {
   implementsIX509CertificateEncodePkcs12,
   implementsIX509CertificateGenerate,
@@ -30,6 +30,7 @@ import {
   IX509CertificateGenerate,
   IX509ResourceProperties,
 } from './types';
+
 
 const DYNAMODB_VERSION = '2012-08-10';
 const SECRETS_MANAGER_VERSION = '2017-10-17';

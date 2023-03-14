@@ -14,11 +14,11 @@ import { BackoffGenerator } from '../lib/backoff-generator';
 import { CfnRequestEvent, DynamoBackedCustomResource } from '../lib/custom-resource';
 import { CompositeStringIndexTable } from '../lib/dynamodb';
 import { Certificate } from '../lib/x509-certs';
-
 import {
   IAcmImportCertProps,
   implementsIAcmImportCertProps,
 } from './types';
+
 
 const ACM_VERSION = '2015-12-08';
 const DYNAMODB_VERSION = '2012-08-10';
