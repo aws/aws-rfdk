@@ -88,7 +88,7 @@
     "jsii-reflect": "^1.77.0",
     "pkglint": "1.1.0",
     "sinon": "^15.0.2",
-    "ts-jest": "^29.0.3",
+    "ts-jest": "^29.0.5",
     "typescript": "~4.8.4"
   },
   "dependencies": {
