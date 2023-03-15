@@ -21,11 +21,11 @@ import {
 } from 'aws-cdk-lib/aws-ec2';
 import * as fsx from 'aws-cdk-lib/aws-fsx';
 
+
 import {
   MountableFsxLustre,
   MountPermissions,
 } from '../lib';
-
 import {
   MOUNT_FSX_SCRIPT_LINUX,
 } from './asset-constants';

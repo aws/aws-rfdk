@@ -22,8 +22,8 @@ import {
 } from 'aws-cdk-lib/aws-ec2';
 
 import { ScriptAsset } from '../lib/script-assets';
-
 import { CWA_ASSET_LINUX, CWA_ASSET_WINDOWS } from './asset-constants';
+
 
 const instanceType = InstanceType.of(InstanceClass.T3, InstanceSize.MICRO);
 const linuxImage = new AmazonLinuxImage();

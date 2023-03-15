@@ -41,10 +41,6 @@ import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 
 import {
-  SecretsManagementRegistrationStatus,
-  SecretsManagementRole,
-} from '.';
-import {
   LogGroupFactory,
   LogGroupFactoryProps,
 } from '../../core';
@@ -52,6 +48,10 @@ import {
   tagConstruct,
 } from '../../core/lib/runtime-info';
 import {IRenderQueue} from './render-queue';
+import {
+  SecretsManagementRegistrationStatus,
+  SecretsManagementRole,
+} from '.';
 
 /**
  * Properties for constructing a {@link UsageBasedLicense} instance.

@@ -60,6 +60,7 @@ import {
   Secret,
 } from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct, IConstruct } from 'constructs';
+
 import {
   CloudWatchAgent,
   CloudWatchConfigBuilder,
@@ -73,7 +74,6 @@ import {
 import {
   tagConstruct,
 } from '../../core/lib/runtime-info';
-
 import { DatabaseConnection } from './database-connection';
 import { IHost } from './host-ref';
 import { Version } from './version';

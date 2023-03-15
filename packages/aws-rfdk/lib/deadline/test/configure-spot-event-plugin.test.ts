@@ -46,8 +46,8 @@ import {
 import {
   SpotEventPluginFleet,
 } from '../lib/spot-event-plugin-fleet';
-
 import { resourcePropertiesCountIs } from './test-helper';
+
 
 describe('ConfigureSpotEventPlugin', () => {
   let stack: Stack;

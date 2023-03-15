@@ -27,17 +27,16 @@ import {
   MountableEfs,
   MountPermissions,
 } from '../lib';
-
 import {
   MountPermissionsHelper,
 } from '../lib/mount-permissions-helper';
-
 import {
   MOUNT_EFS_SCRIPT_LINUX,
 } from './asset-constants';
 import {
   escapeTokenRegex,
 } from './token-regex-helpers';
+
 
 describe('Test MountableEFS', () => {
   let app: App;

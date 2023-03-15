@@ -32,14 +32,14 @@ import {
 import { Construct } from 'constructs';
 
 import {
-  IMongoDb,
-} from '.';
-import {
   ARNS,
 } from '../../lambdas/lambdaLayerVersionArns';
 import {
   IMongoDbConfigureResource,
 } from '../../lambdas/nodejs/mongodb';
+import {
+  IMongoDb,
+} from '.';
 
 /**
  * User added to the $external admin database.
