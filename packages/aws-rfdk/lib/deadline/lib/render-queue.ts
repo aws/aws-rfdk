@@ -132,7 +132,7 @@ export interface IRenderQueue extends IConstruct, IConnectable {
    * Configure a rule to automatically register all Deadline Secrets Management identities connecting from a given
    * subnet to a specified role and status.
    *
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-registration-settings-ref-label
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-registration-settings-ref-label
    * for details.
    *
    * All RFDK constructs that require Deadline Secrets Management identity registration call this method internally.
@@ -680,7 +680,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
   /**
    * Adds AWS Managed Policies to the Render Queue so it is able to control Deadline's Spot Event Plugin.
    *
-   * See: https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html for additonal information.
+   * See: https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html for additonal information.
    *
    * @param includeResourceTracker Whether or not the Resource tracker admin policy should also be added (Default: True)
    */

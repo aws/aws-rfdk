@@ -12,7 +12,7 @@ import { Construct } from 'constructs';
 /**
  * Deadline Secrets Management roles.
  *
- * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles
+ * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles
  */
 export enum SecretsManagementRole {
   /**
@@ -25,22 +25,22 @@ export enum SecretsManagementRole {
 
   /**
    * The Server role is intended to be granted to your machine(s) running the
-   * [Remote Connection Server](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/remote-connection-server.html#remote-connection-server-ref-label)
+   * [Remote Connection Server](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/remote-connection-server.html#remote-connection-server-ref-label)
    * application. The Server role is granted to a registered machine by an administrator in the
-   * [Monitor UI](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-assigning-ref-label).
+   * [Monitor UI](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-assigning-ref-label).
    * In order to encrypt and decrypt secrets, the master key must be assigned to the Server by an Administrator user
-   * running the [GrantKeyAccessToServer command](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#deadline-secrets-management-command-grantkeyaccesstoserver).
+   * running the [GrantKeyAccessToServer command](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#deadline-secrets-management-command-grantkeyaccesstoserver).
    * Servers can encrypt and decrypt all secrets, and are responsible for providing secrets to approved clients.
    */
   SERVER = 'Server',
 
   /**
    * The Client role is typically intended to be granted to any of your machines running the
-   * [Worker](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/worker.html#worker-ref-label)
+   * [Worker](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/worker.html#worker-ref-label)
    * application. The Client role is granted to a registered machine by an administrator in the
-   * [Monitor UI](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-assigning-ref-label).
+   * [Monitor UI](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-assigning-ref-label).
    * Clients can request storage of secrets not in the
-   * [Administrator Secret Access Level](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#deadline-secrets-management-secret-namespace-ref-label),
+   * [Administrator Secret Access Level](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#deadline-secrets-management-secret-namespace-ref-label),
    * and can retrieve secrets from all namespaces when authenticating through the server.
    */
   CLIENT = 'Client',
@@ -50,7 +50,7 @@ export enum SecretsManagementRole {
  * The different possible Deadline Secrets Management registration statuses that a Deadline Client's identity can be set
  * to.
  *
- * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#registration-status
+ * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#registration-status
  */
 export enum SecretsManagementRegistrationStatus {
   /**
@@ -60,7 +60,7 @@ export enum SecretsManagementRegistrationStatus {
 
   /**
    * This status allows Identities to make use of the Secrets API, so long as they have the appropriate
-   * [Identity Role](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-roles-ref-label).
+   * [Identity Role](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-roles-ref-label).
    */
   REGISTERED = 'Registered',
 
@@ -83,14 +83,14 @@ export interface SubnetIdentityRegistrationSettingsProps {
    * The Deadline Secrets Management registration status to be applied to the Deadline Client identities that connect
    * from the specified VPC subnets.
    *
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#registration-status
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#registration-status
    */
   readonly registrationStatus: SecretsManagementRegistrationStatus;
 
   /**
    * The role to be assigned to the Deadline Client identities that connect from the specified VPC subnets.
    *
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles
    */
   readonly role: SecretsManagementRole;
 

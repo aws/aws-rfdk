@@ -298,7 +298,7 @@ describe('Deadline Secrets Management tests', () => {
  * Parses a line containing data from the ListAllMachines Deadline Secrets Command into an object.
  * @param line The line to parse.
  * @returns An object containing the data from a Deadline Secrets Command ListAllMachines output line.
- * @see https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#listallmachines
+ * @see https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#listallmachines
  */
 function parseListAllMachinesLine(line: string): {
   readonly machineName: string,

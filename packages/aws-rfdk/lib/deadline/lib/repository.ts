@@ -284,7 +284,7 @@ export interface RepositorySecurityGroupsOptions {
  * Settings used by Deadline Secrets Management, a feature introduced in Deadline 10.1.10 for securely managing storage
  * and access of Secrets for your render farm.
  * More details at:
- * https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html
+ * https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html
  * Using Secrets Management requires TLS to be enabled between the RenderQueue and its clients. If this feature is enabled, the
  * `externalTLS` on the `RenderQueueTrafficEncryptionProps` interface on the RenderQueue cannot be disabled.
  */
@@ -429,7 +429,7 @@ export interface RepositoryProps {
 
   /**
    * The Deadline Repository settings file to import.
-   * @see https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/repository-settings-importer-exporter.html
+   * @see https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/repository-settings-importer-exporter.html
    *
    * @default Repository settings are not imported.
    */
@@ -439,7 +439,7 @@ export interface RepositoryProps {
    * Define the settings used by Deadline Secrets Management, a feature introduced in Deadline 10.1.10 for securely managing storage
    * and access of Secrets for your render farm.
    * More details at:
-   * https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html
+   * https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html
    * @default: Secrets Management will be enabled and a username and password will be automatically generated if none are supplied.
    */
   readonly secretsManagementSettings?: SecretsManagementProps;

@@ -22,7 +22,7 @@ These instructions assume that your working directory is `examples/deadline/Loca
     public readonly acceptAwsCustomerAgreementAndIpLicense: AwsCustomerAgreementAndIpLicenseAcceptance = AwsCustomerAgreementAndIpLicenseAcceptance.USER_REJECTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE;
     ```
 
-3. Change the value of the `deadlineVersion` variable in `bin/config.ts` to specify the desired version of Deadline to be deployed to your render farm. RFDK is compatible with Deadline versions 10.1.9.x and later. To see the available versions of Deadline, consult the [Deadline release notes](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html). It is recommended to use the latest version of Deadline available when building your farm, but to pin this version when the farm is ready for production use. For example, to pin to the latest `10.1.15.x` release of Deadline, use:
+3. Change the value of the `deadlineVersion` variable in `bin/config.ts` to specify the desired version of Deadline to be deployed to your render farm. RFDK is compatible with Deadline versions 10.1.9.x and later. To see the available versions of Deadline, consult the [Deadline release notes](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/release-notes.html). It is recommended to use the latest version of Deadline available when building your farm, but to pin this version when the farm is ready for production use. For example, to pin to the latest `10.1.15.x` release of Deadline, use:
 
     ```ts
     public readonly deadlineVersion: string = '10.1.15';
@@ -50,7 +50,7 @@ These instructions assume that your working directory is `examples/deadline/Loca
     ```
 
    4. Add user-data to mount the NFS on the compute tier. This can be provided in the `UserDataProvider` in the `ComputeTier`.
-   5. (optional) Set up [path mapping rules in Deadline](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/cross-platform.html).
+   5. (optional) Set up [path mapping rules in Deadline](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/cross-platform.html).
 
 7. Build the `aws-rfdk` package, and then build the sample app. The `tsconfig.json` for this example app contains a reference to the local `aws-rfdk` package and will link your build artifacts:
 

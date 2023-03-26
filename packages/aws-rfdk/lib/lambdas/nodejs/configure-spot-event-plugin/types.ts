@@ -14,13 +14,13 @@ export interface SEPConfiguratorResourceProps {
 
   /**
    * The Spot Fleet Request Configurations.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#example-spot-fleet-request-configurations
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#example-spot-fleet-request-configurations
    */
   readonly spotFleetRequestConfigurations?: SpotFleetRequestConfiguration;
 
   /**
    * The Spot Event Plugin settings.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
    */
   readonly spotPluginConfigurations?: PluginSettings;
 
@@ -124,7 +124,7 @@ export interface PluginSettings {
 }
 
 /**
- * The interface representing the Spot Fleet Request Configurations (see https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#spot-fleet-request-configurations).
+ * The interface representing the Spot Fleet Request Configurations (see https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#spot-fleet-request-configurations).
  * Used for communication between Lambda and ConfigureSpotEventPlugin construct.
  */
 export interface SpotFleetRequestConfiguration {
