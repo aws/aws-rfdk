@@ -84,7 +84,7 @@ export interface SpotEventPluginFleetProps {
 
   /**
    * The  the maximum capacity that the Spot Fleet can grow to.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#spot-fleet-requests
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#spot-fleet-requests
    */
   readonly maxCapacity: number;
 
@@ -97,7 +97,7 @@ export interface SpotEventPluginFleetProps {
    * Deadline groups these workers need to be assigned to.
    *
    * Also, note that the Spot Fleet configuration does not allow using wildcards as part of the Group name
-   * as described here https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#wildcards
+   * as described here https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#wildcards
    */
   readonly deadlineGroups: string[];
 
@@ -111,7 +111,7 @@ export interface SpotEventPluginFleetProps {
   /**
    * Deadline region these workers needs to be assigned to.
    * Note that this is not an AWS region but a Deadline region used for path mapping.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/cross-platform.html#regions
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/cross-platform.html#regions
    *
    * @default - Worker is not assigned to any Deadline region.
    */
@@ -241,7 +241,7 @@ export interface ISpotEventPluginFleet extends IConnectable, IScriptHost, IGrant
    * Allow access to the Worker's remote command listener port (configured as a part of the
    * WorkerConfiguration) for an IConnectable that is either in this stack, or in a stack that
    * depends on this stack. If this stack depends on the other stack, use allowRemoteControlTo().
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/remote-control.html
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/remote-control.html
    *
    * Common uses are:
    *
@@ -257,7 +257,7 @@ export interface ISpotEventPluginFleet extends IConnectable, IScriptHost, IGrant
    * Allow access to the Worker's remote command listener port (configured as a part of the
    * WorkerConfiguration) for an IConnectable that is either in this stack, or in a stack that this
    * stack depends on. If the other stack depends on this stack, use allowRemoteControlFrom().
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/remote-control.html
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/remote-control.html
    *
    * Common uses are:
    *
@@ -396,7 +396,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
 
   /**
    * The  the maximum capacity that the Spot Fleet can grow to.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#spot-fleet-requests
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#spot-fleet-requests
    */
   public readonly maxCapacity: number;
 

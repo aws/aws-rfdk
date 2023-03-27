@@ -32,21 +32,21 @@ import {
  * A data structure that contains the desired Deadline Secrets Management role and registration status to be applied to
  * Deadline Clients.
  *
- * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html
+ * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html
  */
 interface RegistrationSettingEffect {
   /**
    * The Deadline Secrets Management registration status to be applied to the Deadline Client identities that connect
    * from the specified VPC subnets.
    *
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#registration-status
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#registration-status
    */
   readonly registrationStatus: SecretsManagementRegistrationStatus;
 
   /**
    * The role to be assigned to the Deadline Client identities that connect from the specified VPC subnets.
    *
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles
    */
   readonly role: SecretsManagementRole;
 }
