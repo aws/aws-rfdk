@@ -12,10 +12,10 @@ available-typed-arrays@^1.0.5:
   resolved "https://registry.yarnpkg.com/available-typed-arrays/-/available-typed-arrays-1.0.5.tgz#92f95616501069d07d10edb2fc37d3e1c65123b7"
   integrity sha512-DMD0KiN46eipeziST1LPP/STfDU0sufISXmjSgvVsoU2tqxctQeASejWcfNtxYKqETM1UxQ8sp2OrSBWpHY6sw==
 
-aws-sdk@^2.1272.0:
-  version "2.1276.0"
-  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.1276.0.tgz#60d32305b687a1c8367370574d2b0d1c40d30e26"
-  integrity sha512-0TGPsW/uMQy0trfYZD+dvSQ9Bf8NmKK9ISj5xQJGopNt/Kxh0vLKBPy2mFmKdxeFtis6wn4c9uTp7/3p0ADa1w==
+aws-sdk@^2.1334.0:
+  version "2.1345.0"
+  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.1345.0.tgz#0b34784fe8d15858a8f9a6903217621364133868"
+  integrity sha512-qQGQgHH/cDFvr3bMGVIqcU38IlRQv1jGt4JBxOXtnf9NZ1AO/CRTKfZs9TmbkID3YbfYHJjYAlQKmmRL6/MZdg==
   dependencies:
     buffer "4.9.2"
     events "1.1.1"
@@ -387,10 +387,10 @@ string.prototype.trimstart@^1.0.5:
     define-properties "^1.1.4"
     es-abstract "^1.19.5"
 
-typescript@~4.8.4:
-  version "4.8.4"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.8.4.tgz#c464abca159669597be5f96b8943500b238e60e6"
-  integrity sha512-QCh+85mCy+h0IGff8r5XWzOVSbBO+KfeYrMQh7NJ58QujwcE22u+NUSmUxqF+un70P9GXKxa2HCNiTTMJknyjQ==
+typescript@~4.9.5:
+  version "4.9.5"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.9.5.tgz#095979f9bcc0d09da324d58d03ce8f8374cbe65a"
+  integrity sha512-1FXk9E2Hm+QzZQ7z+McJiHL4NW1F2EzMu9Nq9i3zAaGqibafqYwCVU6WyWAuyQRRzOlxou8xZSyXLEN8oKj24g==
 
 unbox-primitive@^1.0.2:
   version "1.0.2"
