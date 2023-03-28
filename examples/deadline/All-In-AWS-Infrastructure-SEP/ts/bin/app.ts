@@ -12,14 +12,6 @@ import * as cdk from 'aws-cdk-lib';
 import { SEPStack } from '../lib/sep-stack';
 import { config } from './config';
 
-// ------------------------------ //
-// --- Validate Config Values --- //
-// ------------------------------ //
-
-if (config.deadlineClientLinuxAmiMap === {['region']: 'ami-id'}) {
-  throw new Error('Deadline Client Linux AMI map is required but was not specified.');
-}
-
 // ------------------- //
 // --- Application --- //
 // ------------------- //

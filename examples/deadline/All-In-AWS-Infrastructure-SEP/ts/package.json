@@ -5,7 +5,7 @@
     "app": "bin/app.js"
   },
   "config": {
-    "deadline_ver": "10.1",
+    "deadline_ver": "10.2",
     "stage_path": "stage"
   },
   "scripts": {
