@@ -647,7 +647,7 @@ describe('SpotEventPluginFleet', () => {
       }
 
       // THEN
-      expect(createSpotEventPluginFleet).toThrowError('Fleet instance role should be created on the same stack as SpotEventPluginFleet to avoid circular dependencies.');
+      expect(createSpotEventPluginFleet).toThrow('Fleet instance role should be created on the same stack as SpotEventPluginFleet to avoid circular dependencies.');
     });
 
     test('uses provided spot fleet role', () => {
@@ -1135,7 +1135,7 @@ describe('SpotEventPluginFleet', () => {
         }
 
         // THEN
-        expect(createSpotEventPluginFleet).toThrowError(/At least one instance type is required for a Spot Fleet Request Configuration/);
+        expect(createSpotEventPluginFleet).toThrow(/At least one instance type is required for a Spot Fleet Request Configuration/);
       });
 
       test('passes with at least one', () => {
@@ -1155,7 +1155,7 @@ describe('SpotEventPluginFleet', () => {
         }
 
         // THEN
-        expect(createSpotEventPluginFleet).not.toThrowError();
+        expect(createSpotEventPluginFleet).not.toThrow();
       });
     });
 
@@ -1204,7 +1204,7 @@ describe('SpotEventPluginFleet', () => {
         }
 
         // THEN
-        expect(createSpotEventPluginFleet).toThrowError(/At least one Deadline Group is required for a Spot Fleet Request Configuration/);
+        expect(createSpotEventPluginFleet).toThrow(/At least one Deadline Group is required for a Spot Fleet Request Configuration/);
       });
 
       test.each([
@@ -1225,7 +1225,7 @@ describe('SpotEventPluginFleet', () => {
         }
 
         // THEN
-        expect(createSpotEventPluginFleet).toThrowError(/Invalid value: .+ for property 'deadlineGroups'/);
+        expect(createSpotEventPluginFleet).toThrow(/Invalid value: .+ for property 'deadlineGroups'/);
       });
 
       test('passes with valid group name', () => {
@@ -1242,7 +1242,7 @@ describe('SpotEventPluginFleet', () => {
         }
 
         // THEN
-        expect(createSpotEventPluginFleet).not.toThrowError();
+        expect(createSpotEventPluginFleet).not.toThrow();
       });
     });
 
@@ -1268,7 +1268,7 @@ describe('SpotEventPluginFleet', () => {
         }
 
         // THEN
-        expect(createSpotEventPluginFleet).toThrowError(/Invalid value: .+ for property 'deadlineRegion'/);
+        expect(createSpotEventPluginFleet).toThrow(/Invalid value: .+ for property 'deadlineRegion'/);
       });
 
       test('passes with reserved name as substring', () => {
@@ -1289,7 +1289,7 @@ describe('SpotEventPluginFleet', () => {
         }
 
         // THEN
-        expect(createSpotEventPluginFleet).not.toThrowError();
+        expect(createSpotEventPluginFleet).not.toThrow();
       });
     });
 
@@ -1462,7 +1462,7 @@ describe('SpotEventPluginFleet', () => {
         }
 
         // THEN
-        expect(createSpotEventPluginFleet).toThrowError(/iops property is required with volumeType: EbsDeviceVolumeType.IO1/);
+        expect(createSpotEventPluginFleet).toThrow(/iops property is required with volumeType: EbsDeviceVolumeType.IO1/);
       });
 
       test('warning if block devices with iops and wrong volume type', () => {

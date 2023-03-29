@@ -41,10 +41,6 @@ import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Construct } from 'constructs';
 
 import {
-  SecretsManagementRegistrationStatus,
-  SecretsManagementRole,
-} from '.';
-import {
   LogGroupFactory,
   LogGroupFactoryProps,
 } from '../../core';
@@ -52,6 +48,10 @@ import {
   tagConstruct,
 } from '../../core/lib/runtime-info';
 import {IRenderQueue} from './render-queue';
+import {
+  SecretsManagementRegistrationStatus,
+  SecretsManagementRole,
+} from '.';
 
 /**
  * Properties for constructing a {@link UsageBasedLicense} instance.
@@ -435,7 +435,7 @@ export interface UsageBasedLicensingProps {
 
 /**
  * This construct is an implementation of the Deadline component that is required for Usage-based Licensing (UBL)
- * (see: https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/licensing-usage-based.html )
+ * (see: https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/licensing-usage-based.html )
  * in a render farm.
  *
  * Internally this is implemented as one or more instances of the Deadline License Forwarder application set up

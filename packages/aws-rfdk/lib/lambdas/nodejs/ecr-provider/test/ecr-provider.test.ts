@@ -209,7 +209,7 @@ describe('ThinkboxEcrProvider', () => {
       // THEN
       // should make an HTTPS request for the ECR index
       expect(jest.requireMock('https').get)
-        .toBeCalledWith(
+        .toHaveBeenCalledWith(
           EXPECTED_URL,
           expect.any(Function),
         );
@@ -258,7 +258,7 @@ describe('ThinkboxEcrProvider', () => {
         // THEN
         await expect(promise)
           .rejects
-          .toThrowError(error);
+          .toThrow(error);
       });
 
       test.each([
@@ -277,7 +277,7 @@ describe('ThinkboxEcrProvider', () => {
         // THEN
         await expect(promise)
           .rejects
-          .toThrowError(`Expected status code 200, but got ${statusCode}`);
+          .toThrow(`Expected status code 200, but got ${statusCode}`);
       });
 
       test('fails on bad JSON', async () => {
@@ -305,7 +305,7 @@ describe('ThinkboxEcrProvider', () => {
           // THEN
           await expect(promise)
             .rejects
-            .toThrowError(/^expected .+ to be an? .+ but got .+$/);
+            .toThrow(/^expected .+ to be an? .+ but got .+$/);
         });
       });
     });
@@ -355,8 +355,8 @@ describe('ThinkboxEcrProvider', () => {
         // THEN
         await expect(baseURIPromise)
           .resolves.toEqual(globalURIPrefix);
-        expect(fs.existsSync).toBeCalledTimes(1);
-        expect(fs.readFileSync).toBeCalledWith(indexPath, 'utf8');
+        expect(fs.existsSync).toHaveBeenCalledTimes(1);
+        expect(fs.readFileSync).toHaveBeenCalledWith(indexPath, 'utf8');
       });
 
       test('returns correct prefix', async () => {
@@ -382,7 +382,7 @@ describe('ThinkboxEcrProvider', () => {
         // THEN
         await expect(baseURIPromise)
           .rejects
-          .toThrowError(error);
+          .toThrow(error);
       });
 
       describe('index schema validation', () => {
@@ -397,7 +397,7 @@ describe('ThinkboxEcrProvider', () => {
           // THEN
           await expect(baseURIPromise)
             .rejects
-            .toThrowError(/^expected .+ to be an? .+ but got .+$/);
+            .toThrow(/^expected .+ to be an? .+ but got .+$/);
         });
       });
 
@@ -412,7 +412,7 @@ describe('ThinkboxEcrProvider', () => {
         // THEN
         await expect(baseURIPromise)
           .rejects
-          .toThrowError(`File "${indexPath}" was not found`);
+          .toThrow(`File "${indexPath}" was not found`);
       });
 
       test('fails on bad JSON', async () => {

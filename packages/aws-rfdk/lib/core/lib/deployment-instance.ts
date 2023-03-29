@@ -33,6 +33,7 @@ import {
 } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 
+import { tagConstruct } from './runtime-info';
 import {
   CloudWatchConfigBuilder,
   CloudWatchAgent,
@@ -40,7 +41,6 @@ import {
   LogGroupFactory,
   LogGroupFactoryProps,
 } from '.';
-import { tagConstruct } from './runtime-info';
 
 
 /**

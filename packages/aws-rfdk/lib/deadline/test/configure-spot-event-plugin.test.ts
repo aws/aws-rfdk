@@ -46,8 +46,8 @@ import {
 import {
   SpotEventPluginFleet,
 } from '../lib/spot-event-plugin-fleet';
-
 import { resourcePropertiesCountIs } from './test-helper';
+
 
 describe('ConfigureSpotEventPlugin', () => {
   let stack: Stack;
@@ -431,7 +431,7 @@ describe('ConfigureSpotEventPlugin', () => {
     }
 
     // THEN
-    expect(createConfigureSpotEventPlugin).toThrowError(/Only one ConfigureSpotEventPlugin construct is allowed per render queue./);
+    expect(createConfigureSpotEventPlugin).toThrow(/Only one ConfigureSpotEventPlugin construct is allowed per render queue./);
   });
 
   test('can create multiple objects with different render queues', () => {
@@ -486,7 +486,7 @@ describe('ConfigureSpotEventPlugin', () => {
     }
 
     // THEN
-    expect(createConfigureSpotEventPlugin).toThrowError(/The provided render queue is not an instance of RenderQueue class. Some functionality is not supported./);
+    expect(createConfigureSpotEventPlugin).toThrow(/The provided render queue is not an instance of RenderQueue class. Some functionality is not supported./);
   });
 
   test('tagSpecifications returns undefined if fleet does not have tags', () => {
@@ -631,7 +631,7 @@ describe('ConfigureSpotEventPlugin', () => {
     }
 
     // THEN
-    expect(createConfigureSpotEventPlugin).toThrowError(`Bad Group Name: ${groupName}. Group names in Spot Fleet Request Configurations should be unique.`);
+    expect(createConfigureSpotEventPlugin).toThrow(`Bad Group Name: ${groupName}. Group names in Spot Fleet Request Configurations should be unique.`);
   });
 
   test('uses selected subnets', () => {
@@ -691,7 +691,7 @@ describe('ConfigureSpotEventPlugin', () => {
       }
 
       // THEN
-      expect(createConfigureSpotEventPlugin).toThrowError(`Minimum supported Deadline version for ConfigureSpotEventPlugin is 10.1.12.0. Received: ${versionString}.`);
+      expect(createConfigureSpotEventPlugin).toThrow(`Minimum supported Deadline version for ConfigureSpotEventPlugin is 10.1.12.0. Received: ${versionString}.`);
     });
   });
 

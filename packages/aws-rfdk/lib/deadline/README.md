@@ -45,22 +45,22 @@ _**Note:** RFDK constructs currently support Deadline 10.1.9 and later, unless o
 
 ![architecture diagram](../../docs/diagrams/deadline/ConfigureSpotEventPlugin.svg)
 
-The [Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html) can scale cloud-based EC2 Spot instances dynamically based on the queued Jobs and Tasks in the Deadline Database. It associates a Spot Fleet Request with named Deadline Worker Groups, allowing multiple Spot Fleets with different hardware and software specifications to be launched for different types of Jobs based on their Group assignment.
+The [Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html) can scale cloud-based EC2 Spot instances dynamically based on the queued Jobs and Tasks in the Deadline Database. It associates a Spot Fleet Request with named Deadline Worker Groups, allowing multiple Spot Fleets with different hardware and software specifications to be launched for different types of Jobs based on their Group assignment.
 
 The `ConfigureSpotEventPlugin` construct has two main responsibilities:
 - Construct a [Spot Fleet Request](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-fleet-requests.html) configuration from the list of [Spot Event Plugin Fleets](#spot-event-plugin-fleet).
-- Modify and save the options of the Spot Event Plugin itself. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options).
+- Modify and save the options of the Spot Event Plugin itself. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options).
 
 ---
 
 **Note:** This construct will configure the Spot Event Plugin, but the Spot Fleet Requests will not be created unless you:
-- Submit the job with the assigned Deadline Group and Deadline Pool. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/job-submitting.html#submitting-jobs).
+- Submit the job with the assigned Deadline Group and Deadline Pool. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/job-submitting.html#submitting-jobs).
 
 ---
 
 ---
 
-_**Note:** Disable 'Allow Workers to Perform House Cleaning If Pulse is not Running' in the 'Configure Repository Options' when using Spot Event Plugin. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#prerequisites)._
+_**Note:** Disable 'Allow Workers to Perform House Cleaning If Pulse is not Running' in the 'Configure Repository Options' when using Spot Event Plugin. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#prerequisites)._
 
 ---
 
@@ -156,9 +156,9 @@ new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
 
 ### Using Dedicated Subnets for Deadline Components
 
-When Secrets Management is enabled on the `Repository` construct, RFDK will handle configuring [identity registration settings](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#automatically-registering-identities-and-adding-roles)
+When Secrets Management is enabled on the `Repository` construct, RFDK will handle configuring [identity registration settings](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#automatically-registering-identities-and-adding-roles)
 using the subnets of the RFDK constructs involved. Because a construct's resources can be assigned any IP address in the subnet range, RFDK must create rules that cover the entire subnet.
-These identity registration settings work like an IP-address-based allowlist that give machines with IP addresses that match a rule access to secrets in Deadline, based on their [assigned role](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles).
+These identity registration settings work like an IP-address-based allowlist that give machines with IP addresses that match a rule access to secrets in Deadline, based on their [assigned role](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles).
 The components that need identity registration settings created for them include, but are not limited to, the following:
 
 - The Application Load Balancer of the [`RenderQueue`](#render-queue)
@@ -168,7 +168,7 @@ The components that need identity registration settings created for them include
 RFDK creates auto-registration rules based on the Classless Inter-Domain Routing (CIDR) range of the subnet(s) that a component can be deployed into. Therefore, we highly recommend
 creating a dedicated subnet for each component above for the following reasons:
 
-1. RFDK automatically configures Deadline Secrets Management [identity registration settings](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-registration-settings-ref-label).
+1. RFDK automatically configures Deadline Secrets Management [identity registration settings](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#identity-management-registration-settings-ref-label).
 These settings are configured such that the Render Queue will register identities that are created by Deadline Clients (e.g. `UsageBasedLicensing`, `WorkerInstanceFleet`, and `SpotEventPluginFleet`)
 connecting via the Render Queue's Application Load Balancer (ALB). Deadline requires that you specify trusted load balancers when configuring identity registration settings by their connecting
 IP address. Application Load Balancers can scale to use any available IP address in the subnets, so the full subnet IP range is used by RFDK. For this reason, we recommend dedicating subnets
@@ -293,8 +293,8 @@ have a CIDR block with at least a `/27` bitmask and at least 8 free IP addresses
 
 ### Configuring Deadline Secrets Management on the Render Queue
 
-When [Deadline Secrets Management](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) is enabled on the `Repository` construct,
-the `RenderQueue` will automatically configure itself as a [Server role](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles) in Deadline Secrets Management.
+When [Deadline Secrets Management](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) is enabled on the `Repository` construct,
+the `RenderQueue` will automatically configure itself as a [Server role](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html#assigned-roles) in Deadline Secrets Management.
 
 For more information on using Deadline Secrets Management in RFDK, please see the [RFDK Developer Guide](https://docs.aws.amazon.com/rfdk/latest/guide/deadline-secrets-management-rfdk.html).
 
@@ -363,7 +363,7 @@ repository.configureClientInstance({
 
 ### Configuring Deadline Secrets Management on the Repository
 
-When using Deadline 10.1.19 or higher, RFDK enables [Deadline Secrets Management](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) on the `Repository` by default. To perform administrator functions for Deadline Secrets Management, credentials need to be created. You can either create your own in an AWS Secrets Manager Secret and have it imported into your RFDK app, or have RFDK generate the credentials and create the Secret for you.
+When using Deadline 10.1.19 or higher, RFDK enables [Deadline Secrets Management](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) on the `Repository` by default. To perform administrator functions for Deadline Secrets Management, credentials need to be created. You can either create your own in an AWS Secrets Manager Secret and have it imported into your RFDK app, or have RFDK generate the credentials and create the Secret for you.
 
 When RFDK generates the administrator credentials, it sets the Secret's removal policy to `RETAIN` so that you will not lose them if you destroy the CloudFormation Stack that they are in. If you do want to delete this Secret, you will have to destroy it manually or change the `credentialsRemovalPolicy` to `DESTROY`. If you destroy the Stack that contains your Secret and its policy set to `RETAIN`, your existing Secret will be orphaned from your RFDK application and re-deploying the Stack will generate a new one. To help prevent orphaning a Secret that contains administrator credentials that are still in use, RFDK places it in the Stack that contains your database, so that their lifecycles are in sync.
 
@@ -414,7 +414,7 @@ For further details, please consult the RFDK developer guide topic on [using Dea
 
 ![architecture diagram](../../docs/diagrams/deadline/SpotEventPluginFleet.svg)
 
-This construct represents a Spot Fleet launched by the [Deadline's Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html) from the [Spot Fleet Request Configuration](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#spot-fleet-request-configurations). The construct itself doesn't create a Spot Fleet Request, but creates all the required resources to be used in the Spot Fleet Request Configuration.
+This construct represents a Spot Fleet launched by the [Deadline's Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html) from the [Spot Fleet Request Configuration](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#spot-fleet-request-configurations). The construct itself doesn't create a Spot Fleet Request, but creates all the required resources to be used in the Spot Fleet Request Configuration.
 
 This construct is expected to be used as an input to the [ConfigureSpotEventPlugin](#configure-spot-event-plugin) construct. `ConfigureSpotEventPlugin` construct will generate a Spot Fleet Request Configuration from each provided `SpotEventPluginFleet` and will set these configurations to the Spot Event Plugin.
 
@@ -632,7 +632,7 @@ const ubl = new UsageBasedLicensing(scope, 'RenderQueue', {
 
 ![architecture diagram](../../docs/diagrams/deadline/UsageBasedLicensing.svg)
 
-Usage-Based Licensing is an on-demand licensing model (see [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/licensing-usage-based.html)). The RFDK supports this type of licensing with the `UsageBasedLicensing` construct. This construct contains the following components:
+Usage-Based Licensing is an on-demand licensing model (see [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/licensing-usage-based.html)). The RFDK supports this type of licensing with the `UsageBasedLicensing` construct. This construct contains the following components:
 
 - **Deadline License Forwarder** - Forwards licenses to Deadline Workers that are rendering jobs.
 

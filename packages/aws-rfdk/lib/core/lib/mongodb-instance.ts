@@ -49,6 +49,9 @@ import {
 import { Construct, IConstruct } from 'constructs';
 
 import {
+  tagConstruct,
+} from './runtime-info';
+import {
   BlockVolumeFormat,
   CloudWatchAgent,
   CloudWatchConfigBuilder,
@@ -62,9 +65,6 @@ import {
   MountableBlockVolume,
   StaticPrivateIpServer,
 } from './';
-import {
-  tagConstruct,
-} from './runtime-info';
 
 /**
  * Specification for a when a new volume is being created by a MongoDbInstance.

@@ -618,7 +618,7 @@ describe('UsageBasedLicensing', () => {
       // Without any licenses
       expect(() => {
         createUbl({ licenses: [] });
-      }).toThrowError('Should be specified at least one license with defined limit.');
+      }).toThrow('Should be specified at least one license with defined limit.');
     });
   });
 

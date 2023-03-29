@@ -392,7 +392,7 @@ describe('MongoDbPostInstall', () => {
         mongoDb,
         users,
       });
-    }).toThrowError(/MongoDbPostInstallSetup: Could not parse JSON role for x509 user:/);
+    }).toThrow(/MongoDbPostInstallSetup: Could not parse JSON role for x509 user:/);
   });
 
 });

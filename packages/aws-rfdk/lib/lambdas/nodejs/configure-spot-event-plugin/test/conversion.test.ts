@@ -128,7 +128,7 @@ describe('convertToInt()', () => {
     }
 
     // THEN
-    expect(callingConvertToInt).toThrowError(`The value of ${propertyName} should be an integer. Received: ${input}`);
+    expect(callingConvertToInt).toThrow(`The value of ${propertyName} should be an integer. Received: ${input}`);
   });
 });
 
@@ -159,7 +159,7 @@ describe('convertToBoolean()', () => {
     }
 
     // THEN
-    expect(callingConvertToBoolean).toThrowError(`The value of ${propertyName} should be a boolean. Received: ${input}`);
+    expect(callingConvertToBoolean).toThrow(`The value of ${propertyName} should be a boolean. Received: ${input}`);
   });
 });
 
@@ -188,7 +188,7 @@ describe('validateString()', () => {
     }
 
     // THEN
-    expect(callingValidateString).toThrowError(`The value of ${propertyName} should be a string. Received: ${input} of type ${typeof(input)}`);
+    expect(callingValidateString).toThrow(`The value of ${propertyName} should be a string. Received: ${input} of type ${typeof(input)}`);
   });
 });
 
@@ -217,7 +217,7 @@ describe('validateStringOptional()', () => {
     }
 
     // THEN
-    expect(callingValidateStringOptional).toThrowError(`The value of ${propertyName} should be a string. Received: ${input} of type ${typeof(input)}`);
+    expect(callingValidateStringOptional).toThrow(`The value of ${propertyName} should be a string. Received: ${input} of type ${typeof(input)}`);
   });
 });
 
@@ -233,7 +233,7 @@ describe('validateArray', () => {
     }
 
     // THEN
-    expect(callingValidateArray).toThrowError(`${propertyName} should be an array with at least one element.`);
+    expect(callingValidateArray).toThrow(`${propertyName} should be an array with at least one element.`);
   });
 
   test('passes with not empty array', () => {
@@ -246,7 +246,7 @@ describe('validateArray', () => {
     }
 
     // THEN
-    expect(callingValidateArray).not.toThrowError();
+    expect(callingValidateArray).not.toThrow();
   });
 });
 
@@ -348,7 +348,7 @@ describe('validateProperty', () => {
     }
 
     // THEN
-    expect(callingValidateProperty).toThrowError(`${propertyName} type is not valid.`);
+    expect(callingValidateProperty).toThrow(`${propertyName} type is not valid.`);
   });
 
   test('passes with a valid input', () => {
@@ -361,7 +361,7 @@ describe('validateProperty', () => {
     }
 
     // THEN
-    expect(callingValidateProperty).not.toThrowError();
+    expect(callingValidateProperty).not.toThrow();
   });
 });
 
@@ -408,7 +408,7 @@ describe('validateLaunchTemplateSpecification', () => {
     expect(() => validateLaunchTemplateSpecification(spec, propertyName))
 
       // THEN
-      .toThrowError(`Exactly one of ${propertyName}.LaunchTemplateId or ${propertyName}.LaunchTemplateName must be specified, but got: ${id} and ${name} respectively`);
+      .toThrow(`Exactly one of ${propertyName}.LaunchTemplateId or ${propertyName}.LaunchTemplateName must be specified, but got: ${id} and ${name} respectively`);
   });
 
   test('throws if neither id or name are specified', () => {
@@ -421,7 +421,7 @@ describe('validateLaunchTemplateSpecification', () => {
     expect(() => validateLaunchTemplateSpecification(spec, propertyName))
 
       // THEN
-      .toThrowError(`Exactly one of ${propertyName}.LaunchTemplateId or ${propertyName}.LaunchTemplateName must be specified, but got: ${undefined} and ${undefined} respectively`);
+      .toThrow(`Exactly one of ${propertyName}.LaunchTemplateId or ${propertyName}.LaunchTemplateName must be specified, but got: ${undefined} and ${undefined} respectively`);
   });
 
   test('throws if id is invalid', () => {
@@ -437,7 +437,7 @@ describe('validateLaunchTemplateSpecification', () => {
     expect(() => validateLaunchTemplateSpecification(spec, propertyName))
 
       // THEN
-      .toThrowError(new RegExp(`The value of ${propertyName}.LaunchTemplateId should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
+      .toThrow(new RegExp(`The value of ${propertyName}.LaunchTemplateId should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
   });
 
   test('throws if name is invalid', () => {
@@ -453,7 +453,7 @@ describe('validateLaunchTemplateSpecification', () => {
     expect(() => validateLaunchTemplateSpecification(spec, propertyName))
 
       // THEN
-      .toThrowError(new RegExp(`The value of ${propertyName}.LaunchTemplateName should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
+      .toThrow(new RegExp(`The value of ${propertyName}.LaunchTemplateName should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
   });
 
   test('throws if version is invalid', () => {
@@ -469,7 +469,7 @@ describe('validateLaunchTemplateSpecification', () => {
     expect(() => validateLaunchTemplateSpecification(spec, propertyName))
 
       // THEN
-      .toThrowError(`The value of ${propertyName}.Version should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`);
+      .toThrow(`The value of ${propertyName}.Version should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`);
   });
 });
 
@@ -503,7 +503,7 @@ describe('validateLaunchTemplateOverrides', () => {
     expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
 
       // THEN
-      .toThrowError(new RegExp(`The value of ${propertyName}.AvailabilityZone should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
+      .toThrow(new RegExp(`The value of ${propertyName}.AvailabilityZone should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
   });
 
   test('throws if InstanceType is invalid', () => {
@@ -518,7 +518,7 @@ describe('validateLaunchTemplateOverrides', () => {
     expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
 
       // THEN
-      .toThrowError(new RegExp(`The value of ${propertyName}.InstanceType should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
+      .toThrow(new RegExp(`The value of ${propertyName}.InstanceType should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
   });
 
   test('throws if SpotPrice is invalid', () => {
@@ -533,7 +533,7 @@ describe('validateLaunchTemplateOverrides', () => {
     expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
 
       // THEN
-      .toThrowError(new RegExp(`The value of ${propertyName}.SpotPrice should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
+      .toThrow(new RegExp(`The value of ${propertyName}.SpotPrice should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
   });
 
   test('throws if SubnetId is invalid', () => {
@@ -548,7 +548,7 @@ describe('validateLaunchTemplateOverrides', () => {
     expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
 
       // THEN
-      .toThrowError(new RegExp(`The value of ${propertyName}.SubnetId should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
+      .toThrow(new RegExp(`The value of ${propertyName}.SubnetId should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`));
   });
 
   test('throws if WeightedCapacity is invalid', () => {
@@ -563,7 +563,7 @@ describe('validateLaunchTemplateOverrides', () => {
     expect(() => validateLaunchTemplateOverrides(overrides, propertyName))
 
       // THEN
-      .toThrowError(`${propertyName}.WeightedCapacity type is not valid.`);
+      .toThrow(`${propertyName}.WeightedCapacity type is not valid.`);
   });
 });
 
@@ -596,7 +596,7 @@ describe('validateLaunchTemplateConfigs', () => {
     })
 
       // THEN
-      .toThrowError(`${propertyName} should be an array with at least one element.`);
+      .toThrow(`${propertyName} should be an array with at least one element.`);
   });
 
   test('throws when LaunchTemplateSpecification is the wrong type', () => {
@@ -612,7 +612,7 @@ describe('validateLaunchTemplateConfigs', () => {
     expect(() => validateLaunchTemplateConfigs([config], propertyName))
 
       // THEN
-      .toThrowError(`${propertyName}[0].LaunchTemplateSpecification type is not valid.`);
+      .toThrow(`${propertyName}[0].LaunchTemplateSpecification type is not valid.`);
   });
 
   test('throws when Version is invalid', () => {
@@ -631,7 +631,7 @@ describe('validateLaunchTemplateConfigs', () => {
     expect(() => validateLaunchTemplateConfigs([config], propertyName))
 
       // THEN
-      .toThrowError(`The value of ${propertyName}[0].LaunchTemplateSpecification.Version should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`);
+      .toThrow(`The value of ${propertyName}[0].LaunchTemplateSpecification.Version should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`);
   });
 
   test('throws when Overrides is not an array', () => {
@@ -646,7 +646,7 @@ describe('validateLaunchTemplateConfigs', () => {
     expect(() => validateLaunchTemplateConfigs([config], propertyName))
 
       // THEN
-      .toThrowError(`${propertyName}[0].Overrides type is not valid.`);
+      .toThrow(`${propertyName}[0].Overrides type is not valid.`);
   });
 
   test('throws when a LaunchTemplateOverride is invalid', () => {
@@ -664,6 +664,6 @@ describe('validateLaunchTemplateConfigs', () => {
     expect(() => validateLaunchTemplateConfigs([config], propertyName))
 
       // THEN
-      .toThrowError(`The value of ${propertyName}[0].Overrides[0].AvailabilityZone should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`);
+      .toThrow(`The value of ${propertyName}[0].Overrides[0].AvailabilityZone should be a string. Received: ${invalidValue} of type ${typeof(invalidValue)}`);
   });
 });

@@ -21,13 +21,13 @@ import {
   WindowsVersion,
 } from 'aws-cdk-lib/aws-ec2';
 
+
 import {
   BlockVolumeFormat,
   IMountingInstance,
   MountableBlockVolume,
   MountPermissions,
 } from '../lib';
-
 import {
   MOUNT_EBS_SCRIPT_LINUX,
 } from './asset-constants';
@@ -200,7 +200,7 @@ describe('Test MountableBlockVolume', () => {
         location: '/mnt/fs',
         permissions: MountPermissions.READONLY,
       });
-    }).toThrowError('Target instance must be Linux.');
+    }).toThrow('Target instance must be Linux.');
   });
 
   test('readonly mount', () => {
@@ -280,7 +280,7 @@ describe('Test MountableBlockVolume', () => {
         location: '/mnt/fs',
         permissions: MountPermissions.READONLY,
       });
-    }).toThrowError(/Target instance must be a construct./);
+    }).toThrow(/Target instance must be a construct./);
   });
 
   test('asset is singleton', () => {

@@ -77,7 +77,7 @@ describe('convertToFullVersionString', () => {
       '-1',
       '9',
       '2',
-    )).toThrowError(/A component of the version was not in the correct format/);
+    )).toThrow(/A component of the version was not in the correct format/);
   });
 
   test('non-numeric value', () => {
@@ -86,6 +86,6 @@ describe('convertToFullVersionString', () => {
       'test',
       '9',
       '2',
-    )).toThrowError(/A component of the version was not in the correct format/);
+    )).toThrow(/A component of the version was not in the correct format/);
   });
 });

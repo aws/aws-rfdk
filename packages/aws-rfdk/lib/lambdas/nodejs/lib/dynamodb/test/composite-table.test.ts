@@ -164,7 +164,7 @@ describe('Tests using dynalite', () => {
       sk,
     );
     expect(table.tableName).toBeDefined();
-    await expect(table.deleteTable()).resolves.not.toThrowError();
+    await expect(table.deleteTable()).resolves.not.toThrow();
     expect(table.tableName).toBeUndefined();
   });
 
@@ -332,7 +332,7 @@ describe('Tests using aws-sdk-mock', () => {
 
       await expect(CompositeStringIndexTable.fromExisting(client, tableName))
         .rejects
-        .toThrowError(`Could not describeTable for Table '${tableName}'`);
+        .toThrow(`Could not describeTable for Table '${tableName}'`);
     });
 
     test('KeySchema not found', async () => {
@@ -342,7 +342,7 @@ describe('Tests using aws-sdk-mock', () => {
 
       await expect(CompositeStringIndexTable.fromExisting(client, tableName))
         .rejects
-        .toThrowError(`Could not get KeySchema for Table '${tableName}'`);
+        .toThrow(`Could not get KeySchema for Table '${tableName}'`);
     });
 
     test('AttributeDefinitions not found', async () => {
@@ -357,7 +357,7 @@ describe('Tests using aws-sdk-mock', () => {
 
       await expect(CompositeStringIndexTable.fromExisting(client, tableName))
         .rejects
-        .toThrowError(`Could not get Attributes for Table '${tableName}'`);
+        .toThrow(`Could not get Attributes for Table '${tableName}'`);
     });
 
     test('PrimaryKey not found', async () => {
@@ -377,7 +377,7 @@ describe('Tests using aws-sdk-mock', () => {
 
       await expect(CompositeStringIndexTable.fromExisting(client, tableName))
         .rejects
-        .toThrowError(`Could not find PrimaryKey of Table '${tableName}'`);
+        .toThrow(`Could not find PrimaryKey of Table '${tableName}'`);
     });
 
     test('SortKey not found', async () => {
@@ -397,7 +397,7 @@ describe('Tests using aws-sdk-mock', () => {
 
       await expect(CompositeStringIndexTable.fromExisting(client, tableName))
         .rejects
-        .toThrowError(`Could not find SortKey of Table '${tableName}'`);
+        .toThrow(`Could not find SortKey of Table '${tableName}'`);
     });
 
     test('PrimaryKey AttributeDefinition not found', async () => {
@@ -426,7 +426,7 @@ describe('Tests using aws-sdk-mock', () => {
 
       await expect(CompositeStringIndexTable.fromExisting(client, tableName))
         .rejects
-        .toThrowError("Primary key 'PrimaryKey' must be string type");
+        .toThrow("Primary key 'PrimaryKey' must be string type");
     });
 
     test('SortKey AttributeDefinition not found', async () => {
@@ -455,7 +455,7 @@ describe('Tests using aws-sdk-mock', () => {
 
       await expect(CompositeStringIndexTable.fromExisting(client, tableName))
         .rejects
-        .toThrowError("Sort key 'SortKey' must be string type");
+        .toThrow("Sort key 'SortKey' must be string type");
     });
   });
 
@@ -552,7 +552,7 @@ describe('Tests using aws-sdk-mock', () => {
         primaryKeyName,
         sortKeyName,
       );
-      await expect(subject.deleteTable()).rejects.toThrowError();
+      await expect(subject.deleteTable()).rejects.toThrow();
     });
   });
 
@@ -577,7 +577,7 @@ describe('Tests using aws-sdk-mock', () => {
 
       await expect(subject.putItem({ primaryKeyValue: 'TestPrimVal', sortKeyValue: 'TestSortVal' }))
         .rejects
-        .toThrowError('Attempt to PutItem in deleted table');
+        .toThrow('Attempt to PutItem in deleted table');
       expect(deleteFake.callCount).toEqual(1);
       expect(putFake.notCalled).toBeTruthy();
     });
@@ -594,7 +594,7 @@ describe('Tests using aws-sdk-mock', () => {
         primaryKeyName,
         sortKeyName,
       );
-      await expect(subject.putItem({ primaryKeyValue: 'TestPrimVal', sortKeyValue: 'TestSortVal' })).rejects.toThrowError();
+      await expect(subject.putItem({ primaryKeyValue: 'TestPrimVal', sortKeyValue: 'TestSortVal' })).rejects.toThrow();
     });
   });
 
@@ -619,7 +619,7 @@ describe('Tests using aws-sdk-mock', () => {
 
       await expect(subject.getItem({ primaryKeyValue: 'TestPrimVal', sortKeyValue: 'TestSortVal' }))
         .rejects
-        .toThrowError('Attempt to GetItem from deleted table');
+        .toThrow('Attempt to GetItem from deleted table');
       expect(deleteFake.callCount).toEqual(1);
       expect(getFake.notCalled).toBeTruthy();
     });
@@ -636,7 +636,7 @@ describe('Tests using aws-sdk-mock', () => {
         primaryKeyName,
         sortKeyName,
       );
-      await expect(subject.getItem({ primaryKeyValue: 'TestPrimVal', sortKeyValue: 'TestSortVal' })).rejects.toThrowError();
+      await expect(subject.getItem({ primaryKeyValue: 'TestPrimVal', sortKeyValue: 'TestSortVal' })).rejects.toThrow();
     });
   });
 
@@ -661,7 +661,7 @@ describe('Tests using aws-sdk-mock', () => {
 
       await expect(subject.deleteItem({ primaryKeyValue: 'TestPrimVal', sortKeyValue: 'TestSortVal' }))
         .rejects
-        .toThrowError('Attempt to DeleteItem from deleted table');
+        .toThrow('Attempt to DeleteItem from deleted table');
       expect(deleteTableFake.callCount).toEqual(1);
       expect(deleteItemFake.notCalled).toBeTruthy();
     });
@@ -678,7 +678,7 @@ describe('Tests using aws-sdk-mock', () => {
         primaryKeyName,
         sortKeyName,
       );
-      await expect(subject.deleteItem({ primaryKeyValue: 'TestPrimVal', sortKeyValue: 'TestSortVal' })).rejects.toThrowError();
+      await expect(subject.deleteItem({ primaryKeyValue: 'TestPrimVal', sortKeyValue: 'TestSortVal' })).rejects.toThrow();
     });
   });
 
@@ -724,7 +724,7 @@ describe('Tests using aws-sdk-mock', () => {
 
       await expect(subject.query('TestPrimVal'))
         .rejects
-        .toThrowError('Attempt to Query a deleted table');
+        .toThrow('Attempt to Query a deleted table');
       expect(deleteTableFake.callCount).toEqual(1);
       expect(queryFake.notCalled).toBeTruthy();
     });
@@ -741,7 +741,7 @@ describe('Tests using aws-sdk-mock', () => {
         primaryKeyName,
         sortKeyName,
       );
-      await expect(subject.query('TestPrimVal')).rejects.toThrowError();
+      await expect(subject.query('TestPrimVal')).rejects.toThrow();
     });
   });
 });

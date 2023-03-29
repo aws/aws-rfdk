@@ -22,10 +22,10 @@ import {
 } from 'aws-cdk-lib/aws-s3';
 import { Construct } from 'constructs';
 
+
 import {
   IVersionProviderResourceProperties,
 } from '../../lambdas/nodejs/version-provider';
-
 import { Version } from './version';
 import {
   IReleaseVersion,

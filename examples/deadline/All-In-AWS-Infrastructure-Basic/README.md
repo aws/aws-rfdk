@@ -95,15 +95,15 @@ The Repository component contains the database and file system that store persis
 
 #### Render Queue
 
-The Render Queue component contains the fleet of [Deadline Remote Connection Server](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/remote-connection-server.html) instances behind an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html). This acts as the central service for Deadline applications and is the only component that interacts with the Repository.
+The Render Queue component contains the fleet of [Deadline Remote Connection Server](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/remote-connection-server.html) instances behind an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html). This acts as the central service for Deadline applications and is the only component that interacts with the Repository.
 
 #### Usage-Based Licensing
 
-The Usage-Based Licensing component contains the fleet of [Deadline License Forwarder](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/license-forwarder.html) instances behind an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html). This provides [usage-based licenses](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/licensing-usage-based.html) to Deadline Workers that are rendering jobs and communicates with the Render Queue to store/retrieve licensing information.
+The Usage-Based Licensing component contains the fleet of [Deadline License Forwarder](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/license-forwarder.html) instances behind an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html). This provides [usage-based licenses](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/licensing-usage-based.html) to Deadline Workers that are rendering jobs and communicates with the Render Queue to store/retrieve licensing information.
 
 #### Worker Fleet
 
-The Worker Fleet component contains the fleet of [Deadline Worker](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/worker.html) instances behind an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html). These are the compute power of the render farm that perform render jobs. They communicate with the Render Queue to carry out render jobs and with the Usage-Based Licensing component to obtain any licenses required for the jobs.
+The Worker Fleet component contains the fleet of [Deadline Worker](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/worker.html) instances behind an [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html). These are the compute power of the render farm that perform render jobs. They communicate with the Render Queue to carry out render jobs and with the Usage-Based Licensing component to obtain any licenses required for the jobs.
 
 #### Health Monitor
 
@@ -124,7 +124,7 @@ Network ACLs act as a firewall for controlling traffic in or out of your VPC sub
 
 ## Prerequisites
 
-- The WorkerInstanceFleet construct requires an [Amazon Machine Image (AMI)](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html) with the Deadline Worker application installed. The code below has an invalid AMI ID your-ami-id which must be replaced with your desired AMI ID. Conveniently, AWS Thinkbox creates public AWS Portal AMIs you can use for this. Follow the steps in the Deadline guide for [finding AWS Portal AMIs](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/aws-custom-ami.html#finding-which-ami-to-start-from) (these steps instruct you to specifically search for "Deadline Worker Base" images, but you can use any Linux-based Deadline Worker image for this tutorial) and copy over your desired AMI ID.
+- The WorkerInstanceFleet construct requires an [Amazon Machine Image (AMI)](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html) with the Deadline Worker application installed. The code below has an invalid AMI ID your-ami-id which must be replaced with your desired AMI ID. Conveniently, AWS Thinkbox creates public AWS Portal AMIs you can use for this. Follow the steps in the Deadline guide for [finding AWS Portal AMIs](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/aws-custom-ami.html#finding-which-ami-to-start-from) (these steps instruct you to specifically search for "Deadline Worker Base" images, but you can use any Linux-based Deadline Worker image for this tutorial) and copy over your desired AMI ID.
 - You have setup and configured the AWS CLI
 - Your AWS account already has CDK bootstrapped in the desired region by running `cdk bootstrap`
 - You must have NodeJS installed on your system

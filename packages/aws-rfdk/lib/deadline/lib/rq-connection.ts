@@ -10,8 +10,8 @@ import { OperatingSystemType } from 'aws-cdk-lib/aws-ec2';
 import { Asset } from 'aws-cdk-lib/aws-s3-assets';
 import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
 
-import { ConnectableApplicationEndpoint } from '../../core';
 
+import { ConnectableApplicationEndpoint } from '../../core';
 import { IHost } from './host-ref';
 import {
   ECSConnectOptions,

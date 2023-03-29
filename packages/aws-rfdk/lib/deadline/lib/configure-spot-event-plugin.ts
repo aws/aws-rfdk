@@ -95,7 +95,7 @@ export enum SpotEventPluginLoggingLevel {
 
 /**
  * How the Spot Event Plugin should handle Pre Job Tasks.
- * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/job-scripts.html
+ * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/job-scripts.html
  */
 export enum SpotEventPluginPreJobTaskMode {
   /**
@@ -117,8 +117,8 @@ export enum SpotEventPluginPreJobTaskMode {
 /**
  * The Worker Extra Info column to be used to display AWS Instance Status
  * if the instance has been marked to be stopped or terminated by EC2 or Spot Event Plugin.
- * See "AWS Instance Status" option at https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
- * and https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/worker-config.html#extra-info
+ * See "AWS Instance Status" option at https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
+ * and https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/worker-config.html#extra-info
  */
 export enum SpotEventPluginDisplayInstanceStatus {
   DISABLED = 'Disabled',
@@ -136,7 +136,7 @@ export enum SpotEventPluginDisplayInstanceStatus {
 
 /**
  * The settings of the Spot Event Plugin.
- * For more details see https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
+ * For more details see https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
  */
 export interface SpotEventPluginSettings {
   /**
@@ -154,7 +154,7 @@ export interface SpotEventPluginSettings {
    * property of the `SpotEventPluginFleet` construct, which is `true` by default. You can set that property to `false` for fleets that you would like to opt out of the
    * Resource Tracker.
    *
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/resource-tracker-overview.html
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/resource-tracker-overview.html
    *
    * @default true
    */
@@ -214,7 +214,7 @@ export interface SpotEventPluginSettings {
 
   /**
    * Determines how the Spot Event Plugin should handle Pre Job Tasks.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/job-scripts.html
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/job-scripts.html
    *
    * @default SpotEventPluginPreJobTaskMode.CONSERVATIVE
    */
@@ -261,7 +261,7 @@ export interface ConfigureSpotEventPluginProps {
 
   /**
    * The Spot Event Plugin settings.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
    *
    * @default Default values of SpotEventPluginSettings will be set.
    */
@@ -323,11 +323,11 @@ export interface ConfigureSpotEventPluginProps {
  * Logs for all AWS Lambdas are automatically recorded in Amazon CloudWatch.
  *
  * This construct will configure the Spot Event Plugin, but the Spot Fleet Requests will not be created unless you:
- * - Submit the job with the assigned Deadline Group and Deadline Pool. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/job-submitting.html#submitting-jobs).
+ * - Submit the job with the assigned Deadline Group and Deadline Pool. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/job-submitting.html#submitting-jobs).
  *
  * Important: Disable 'Allow Workers to Perform House Cleaning If Pulse is not Running' in the 'Configure Repository Options'
  * when using Spot Event Plugin.
- * See https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/event-spot.html#prerequisites
+ * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#prerequisites
  *
  * Important: Any resources created by the Spot Event Plugin will not be deleted with 'cdk destroy'.
  * Make sure that all such resources (e.g. Spot Fleet Request or Fleet Instances) are cleaned up, before destroying the stacks.

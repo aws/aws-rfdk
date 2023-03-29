@@ -80,7 +80,7 @@ describe('DeadlineClient', () => {
       // THEN
       // should make an HTTP request
       expect(jest.requireMock('http').request)
-        .toBeCalledWith(
+        .toHaveBeenCalledWith(
           {
             agent: undefined,
             method: 'GET',
@@ -121,7 +121,7 @@ describe('DeadlineClient', () => {
       // THEN
       // should make an HTTP request
       expect(jest.requireMock('http').request)
-        .toBeCalledWith(
+        .toHaveBeenCalledWith(
           {
             agent: undefined,
             headers: {
@@ -161,13 +161,13 @@ describe('DeadlineClient', () => {
       // THEN
       const agentMock = jest.requireMock('https').Agent as jest.Mock;
       expect(agentMock).toHaveBeenCalledTimes(1);
-      expect(agentMock).toBeCalledWith(expect.not.objectContaining({ ca: expect.any(String) }));
-      expect(agentMock).toBeCalledWith(expect.not.objectContaining({ pfx: expect.any(String) }));
-      expect(agentMock).toBeCalledWith(expect.not.objectContaining({ passphrase: expect.any(String) }));
+      expect(agentMock).toHaveBeenCalledWith(expect.not.objectContaining({ ca: expect.any(String) }));
+      expect(agentMock).toHaveBeenCalledWith(expect.not.objectContaining({ pfx: expect.any(String) }));
+      expect(agentMock).toHaveBeenCalledWith(expect.not.objectContaining({ passphrase: expect.any(String) }));
 
       // should make an HTTPS request
       expect(jest.requireMock('https').request)
-        .toBeCalledWith(
+        .toHaveBeenCalledWith(
           {
             agent: agentMock.mock.instances[0],
             method: 'GET',
@@ -209,7 +209,7 @@ describe('DeadlineClient', () => {
       // THEN
       const agentMock = jest.requireMock('https').Agent as jest.Mock;
       expect(agentMock).toHaveBeenCalledTimes(1);
-      expect(agentMock).toBeCalledWith(
+      expect(agentMock).toHaveBeenCalledWith(
         expect.objectContaining({
           ca: 'cacontent',
           pfx: 'pfxcontent',
@@ -218,7 +218,7 @@ describe('DeadlineClient', () => {
       );
       // should make an HTTPS request
       expect(jest.requireMock('https').request)
-        .toBeCalledWith(
+        .toHaveBeenCalledWith(
           {
             agent: agentMock.mock.instances[0],
             method: 'GET',
@@ -255,7 +255,7 @@ describe('DeadlineClient', () => {
       // THEN
       // should make an HTTP request
       expect(jest.requireMock('http').request)
-        .toBeCalledWith(
+        .toHaveBeenCalledWith(
           {
             agent: undefined,
             method: 'POST',
@@ -292,13 +292,13 @@ describe('DeadlineClient', () => {
       // THEN
       const agentMock = jest.requireMock('https').Agent as jest.Mock;
       expect(agentMock).toHaveBeenCalledTimes(1);
-      expect(agentMock).toBeCalledWith(expect.not.objectContaining({ ca: expect.any(String) }));
-      expect(agentMock).toBeCalledWith(expect.not.objectContaining({ pfx: expect.any(String) }));
-      expect(agentMock).toBeCalledWith(expect.not.objectContaining({ passphrase: expect.any(String) }));
+      expect(agentMock).toHaveBeenCalledWith(expect.not.objectContaining({ ca: expect.any(String) }));
+      expect(agentMock).toHaveBeenCalledWith(expect.not.objectContaining({ pfx: expect.any(String) }));
+      expect(agentMock).toHaveBeenCalledWith(expect.not.objectContaining({ passphrase: expect.any(String) }));
 
       // should make an HTTP request
       expect(jest.requireMock('https').request)
-        .toBeCalledWith(
+        .toHaveBeenCalledWith(
           {
             agent: agentMock.mock.instances[0],
             method: 'POST',
@@ -340,7 +340,7 @@ describe('DeadlineClient', () => {
       // THEN
       const agentMock = jest.requireMock('https').Agent as jest.Mock;
       expect(agentMock).toHaveBeenCalledTimes(1);
-      expect(agentMock).toBeCalledWith(
+      expect(agentMock).toHaveBeenCalledWith(
         expect.objectContaining({
           ca: 'cacontent',
           pfx: 'pfxcontent',
@@ -349,7 +349,7 @@ describe('DeadlineClient', () => {
       );
       // should make an HTTPS request
       expect(jest.requireMock('https').request)
-        .toBeCalledWith(
+        .toHaveBeenCalledWith(
           {
             agent: agentMock.mock.instances[0],
             method: 'POST',

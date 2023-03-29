@@ -376,7 +376,7 @@ describe('Stage', () => {
       }
 
       // THEN
-      expect(when).toThrowError(`No such recipe: ${invalidRecipeName}`);
+      expect(when).toThrow(`No such recipe: ${invalidRecipeName}`);
     });
   });
 

@@ -43,7 +43,7 @@ describe('readCertificateData', () => {
 
     // THEN
     // tslint:disable-next-line: no-string-literal
-    await expect(handler['readCertificateData'](secretPartialArn)).rejects.toThrowError(/must contain a Certificate in PEM format/);
+    await expect(handler['readCertificateData'](secretPartialArn)).rejects.toThrow(/must contain a Certificate in PEM format/);
   });
 });
 
@@ -89,7 +89,7 @@ describe('readLoginCredentials', () => {
 
     // THEN
     // tslint:disable-next-line: no-string-literal
-    await expect(handler['readLoginCredentials'](secretPartialArn)).rejects.toThrowError(/must be a JSON encoded string/);
+    await expect(handler['readLoginCredentials'](secretPartialArn)).rejects.toThrow(/must be a JSON encoded string/);
   });
 
   test.each([
@@ -117,7 +117,7 @@ describe('readLoginCredentials', () => {
 
     // THEN
     // tslint:disable-next-line: no-string-literal
-    await expect(handler['readLoginCredentials'](secretPartialArn)).rejects.toThrowError(expected);
+    await expect(handler['readLoginCredentials'](secretPartialArn)).rejects.toThrow(expected);
   });
 });
 
@@ -221,7 +221,7 @@ describe('readPasswordAuthUserInfo', () => {
 
     // THEN
     // tslint:disable-next-line: no-string-literal
-    await expect(handler['readPasswordAuthUserInfo'](secretPartialArn)).rejects.toThrowError(/must be a JSON encoded string/);
+    await expect(handler['readPasswordAuthUserInfo'](secretPartialArn)).rejects.toThrow(/must be a JSON encoded string/);
   });
 
   test.each([
@@ -258,7 +258,7 @@ describe('readPasswordAuthUserInfo', () => {
 
     // THEN
     // tslint:disable-next-line: no-string-literal
-    await expect(handler['readPasswordAuthUserInfo'](secretPartialArn)).rejects.toThrowError(expected);
+    await expect(handler['readPasswordAuthUserInfo'](secretPartialArn)).rejects.toThrow(expected);
   });
 });
 
@@ -324,7 +324,7 @@ describe('userExists', () => {
 
     // THEN
     // tslint:disable-next-line: no-string-literal
-    await expect(handler['userExists'](mockDb, 'test')).rejects.toThrowError(/MongoDB error checking whether user exists 'test'/);
+    await expect(handler['userExists'](mockDb, 'test')).rejects.toThrow(/MongoDB error checking whether user exists 'test'/);
   });
 });
 
@@ -414,7 +414,7 @@ describe('createUser', () => {
 
     // THEN
     // tslint:disable-next-line: no-string-literal
-    await expect(handler['createUser'](mockDb, credentials)).rejects.toThrowError(/MongoDB error when adding user 'test'/);
+    await expect(handler['createUser'](mockDb, credentials)).rejects.toThrow(/MongoDB error when adding user 'test'/);
   });
 });
 

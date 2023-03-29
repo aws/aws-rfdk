@@ -21,11 +21,11 @@ import {
 } from 'aws-cdk-lib/aws-ec2';
 import * as fsx from 'aws-cdk-lib/aws-fsx';
 
+
 import {
   MountableFsxLustre,
   MountPermissions,
 } from '../lib';
-
 import {
   MOUNT_FSX_SCRIPT_LINUX,
 } from './asset-constants';
@@ -117,7 +117,7 @@ describe('MountableFsxLustre', () => {
         location: '/mnt/fsx/fs1',
         permissions: MountPermissions.READONLY,
       });
-    }).toThrowError('Target instance must be Linux.');
+    }).toThrow('Target instance must be Linux.');
   });
 
   test('readonly mount', () => {
