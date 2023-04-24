@@ -40,7 +40,7 @@
     "@types/jest": "^27.5.2",
     "@types/semver": "^7.3.13",
     "@types/yargs": "^15.0.14",
-    "eslint": "^8.37.0",
+    "eslint": "^8.39.0",
     "eslint-import-resolver-node": "^0.3.7",
     "eslint-import-resolver-typescript": "^3.5.3",
     "eslint-plugin-import": "^2.27.5",
