@@ -39,7 +39,7 @@
     "@types/glob": "^8.1.0",
     "@types/jest": "^27.5.2",
     "@types/semver": "^7.5.0",
-    "@types/yargs": "^15.0.14",
+    "@types/yargs": "^17.0.24",
     "eslint": "^8.42.0",
     "eslint-import-resolver-node": "^0.3.7",
     "eslint-import-resolver-typescript": "^3.5.5",
@@ -58,6 +58,6 @@
     "colors": "1.4.0",
     "fs-extra": "^11.1.0",
     "semver": "^7.5.3",
-    "yargs": "^16.2.0"
+    "yargs": "^17.7.2"
   }
 }
