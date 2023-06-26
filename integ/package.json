@@ -75,12 +75,12 @@
     "@aws-sdk/client-cloudwatch-logs": "^3.359.0",
     "@aws-sdk/client-secrets-manager": "^3.359.0",
     "@aws-sdk/client-ssm": "^3.300.0",
-    "aws-cdk-lib": "2.70.0",
+    "aws-cdk-lib": "2.80.0",
     "aws-rfdk": "1.2.0",
     "constructs": "^10.0.0"
   },
   "peerDependencies": {
-    "aws-cdk-lib": "2.70.0",
+    "aws-cdk-lib": "2.80.0",
     "aws-rfdk": "1.2.0",
     "constructs": "^10.0.0"
   },
