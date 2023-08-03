@@ -153,7 +153,7 @@ function getDeadlineInstaller(deadlineInstallerUri: string) {
     if (types.isNativeError(e)) {
       errorMsg = e.message;
     } else {
-      errorMsg = e.toString();
+      errorMsg = String(e);
     }
     console.error(`ERROR: ${errorMsg}`);
     exitAndCleanup(1);
@@ -190,7 +190,7 @@ function getDockerRecipe(dockerRecipesUri: string) {
     if (types.isNativeError(e)) {
       errorMsg = e.message;
     } else {
-      errorMsg = e.toString();
+      errorMsg = String(e);
     }
     console.error(`ERROR: ${errorMsg}`);
     exitAndCleanup(1);
@@ -216,7 +216,7 @@ function makeExecutable(filePath: string) {
     if (e instanceof Error) {
       errorDetail = e.message;
     } else {
-      errorDetail = e.toString();
+      errorDetail = String(e);
     }
     throw new Error(`Could not add executable permission to Deadline installer: ${errorDetail}`);
   }

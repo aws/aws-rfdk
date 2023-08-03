@@ -124,6 +124,7 @@ describe('Test PadEfsStorage', () => {
       Retry: [
         {
           ErrorEquals: [
+            'Lambda.ClientExecutionTimeoutException',
             'Lambda.ServiceException',
             'Lambda.AWSLambdaException',
             'Lambda.SdkClientException',

@@ -29,10 +29,10 @@
   "stability": "stable",
   "maturity": "stable",
   "devDependencies": {
-    "@types/node": "^18.0.0",
-    "typescript": "~5.1.3"
+    "@types/node": "18.11.19",
+    "typescript": "~5.1.6"
   },
   "dependencies": {
-    "aws-sdk": "^2.1391.0"
+    "aws-sdk": "^2.1423.0"
   }
 }
