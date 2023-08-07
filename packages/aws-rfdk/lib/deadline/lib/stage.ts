@@ -18,9 +18,7 @@ import {
 /**
  * Build arguments to supply to a Docker image build
  */
-export interface BuildArgs {
-  readonly [name: string]: string;
-}
+export type BuildArgs = Record<string, string>;
 
 /**
  * Docker container image recipe
@@ -54,12 +52,7 @@ export interface Recipe {
 /**
  * A collection of Deadline Docker recipes
  */
-export interface DeadlineDockerRecipes {
-  /**
-   * A mapping of name to recipe
-   */
-  readonly [name: string]: Recipe;
-}
+export type DeadlineDockerRecipes = Record<string, Recipe>;
 
 /**
  * The manifest included with Deadline Docker image recipes

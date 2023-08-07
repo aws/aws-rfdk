@@ -220,3 +220,49 @@ test('continues when complete lifecycle errors', async () => {
   await expect(handler(event)).resolves.not.toThrow();
   expect(console.error).toHaveBeenCalledTimes(4); // 4 = each of the two records printing two error messages
 });
+
+test('continues when complete lifecycle errors non-error thrown', async () => {
+  // GIVEN
+  const event = {
+    Records: [
+      {
+        Sns: {
+          Message: JSON.stringify({
+            LifecycleTransition: 'autoscaling:EC2_INSTANCE_LAUNCHING',
+            AutoScalingGroupName: 'ASG-Name-1',
+            LifecycleHookName: 'Hook-Name-1',
+            EC2InstanceId: 'i-0000000000',
+            LifecycleActionToken: 'Action-Token-1',
+            NotificationMetadata: JSON.stringify({
+              eniId: 'eni-000000000',
+            }),
+          }),
+        },
+      },
+      {
+        Sns: {
+          Message: JSON.stringify({
+            LifecycleTransition: 'autoscaling:EC2_INSTANCE_LAUNCHING',
+            AutoScalingGroupName: 'ASG-Name-1',
+            LifecycleHookName: 'Hook-Name-1',
+            EC2InstanceId: 'i-0000000000',
+            LifecycleActionToken: 'Action-Token-1',
+            NotificationMetadata: JSON.stringify({
+              eniId: 'eni-000000000',
+            }),
+          }),
+        },
+      },
+    ],
+  };
+
+  attachSpy = jest.fn( (request) => successRequestMock(request) );
+  mock('EC2', 'attachNetworkInterface', attachSpy);
+
+  jest.spyOn(JSON, 'parse').mockImplementation(jest.fn( () => {throw 47;} ));
+
+  // THEN
+  // eslint-disable-next-line: no-floating-promises
+  await expect(handler(event)).resolves.not.toThrow();
+  expect(console.error).toHaveBeenCalledTimes(2); // 2 = each of the two records printing one error message.
+});

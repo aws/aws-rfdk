@@ -5,8 +5,9 @@
 
 /* eslint-disable no-console */
 
+import { isUint8Array } from 'util/types';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { SecretsManager } from 'aws-sdk';
+import { SecretsManager, AWSError } from 'aws-sdk';
 
 import { Key } from '../kms';
 import { isArn } from './validation';
@@ -59,7 +60,7 @@ export class Secret {
       return undefined;
     } catch (e) {
       throw new Error(`CreateSecret '${args.name}' failed in region '${args.client.config.region}': ` +
-        `${e.code} -- ${e.message}`);
+        `${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
     }
   }
 
@@ -94,7 +95,7 @@ export class Secret {
       this.arn = undefined;
     } catch (e) {
       throw new Error(`DeleteSecret '${this.arn}' failed in region '${this.client.config.region}':` +
-        `${e.code} -- ${e.message}`);
+        `${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
     }
   }
 
@@ -121,7 +122,7 @@ export class Secret {
       console.debug(`PutSecret response: ${JSON.stringify(response)}`);
     } catch (e) {
       throw new Error(`PutSecret '${this.arn}' failed in region '${this.client.config.region}':` +
-        `${e.code} -- ${e.message}`);
+        `${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
     }
   }
 
@@ -146,7 +147,7 @@ export class Secret {
           return data;
         } else if (typeof data === 'string') {
           return Buffer.from(data, 'binary');
-        } else if (ArrayBuffer.isView(data)) {
+        } else if (isUint8Array(data)) {
           return Buffer.from(data);
         } else {
           throw new Error('Unknown type for SecretBinary data');
@@ -155,7 +156,7 @@ export class Secret {
       return response.SecretString;
     } catch (e) {
       throw new Error(`GetSecret '${this.arn}' failed in region '${this.client.config.region}':` +
-        `${e.code} -- ${e.message}`);
+        `${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
     }
   }
 }

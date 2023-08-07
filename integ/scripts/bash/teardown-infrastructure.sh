@@ -14,7 +14,7 @@ cd "$INFRASTRUCTURE_APP"
 mkdir -p "${INTEG_TEMP_DIR}/infrastructure"
 
 # Hide the destroy log unless something goes wrong (save the scrollback buffer)
-npx cdk destroy "*" -f &> "${INTEG_TEMP_DIR}/infrastructure/destroy.txt"
+npx cdk destroy "*" --app "$(pwd)/cdk.out" -f &> "${INTEG_TEMP_DIR}/infrastructure/destroy.txt"
 destroy_exit_code=$?
 
 # If an exit code was returned from the destroy, output the destroy log

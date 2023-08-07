@@ -5,6 +5,7 @@
 
 /* eslint-disable no-console */
 
+import { isNativeError } from 'util/types';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import {AutoScaling} from 'aws-sdk';
 
@@ -79,7 +80,7 @@ export async function handler(event: AWSLambda.SNSEvent, context: AWSLambda.Cont
     console.error(`ERROR: Exception while processing the event: ${e}`);
     return {
       status: 'ERROR',
-      reason: e.message,
+      reason: isNativeError(e) ? e.message : String(e),
     };
   }
 

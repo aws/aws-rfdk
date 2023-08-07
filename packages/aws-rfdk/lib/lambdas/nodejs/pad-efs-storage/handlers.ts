@@ -103,7 +103,7 @@ export async function shrinkFilesystem(numFilesToRemove: number, mountPoint: str
           await fsp.unlink(filename);
           numFilesDeleted += 1;
         } catch (err) {
-          console.error(`Unable to delete: ${filename} -- Error: ${err.message}`);
+          console.error(`Unable to delete: ${filename} -- Error: ${(err as Error)?.message}`);
         }
       }
     } catch (err) {

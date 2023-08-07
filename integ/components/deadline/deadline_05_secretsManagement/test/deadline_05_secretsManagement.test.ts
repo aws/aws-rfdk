@@ -3,12 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { BlockList } from 'net';
 import { CloudFormation } from '@aws-sdk/client-cloudformation';
 import { SecretsManager } from '@aws-sdk/client-secrets-manager';
-import {
-  CidrBlock,
-  NetworkUtils,
-} from 'aws-cdk-lib/aws-ec2/lib/network-util';
 import { ssmCommand } from '../../common/functions/awaitSsmCommand';
 
 // Name of testing stack is derived from env variable to ensure uniqueness
@@ -281,14 +278,17 @@ describe('Deadline Secrets Management tests', () => {
     // source IP and connection IP are within the expected subnet CIDR blocks.
     expect(identityInfos.some(identityInfo => {
       return expectedSubnetCidrPairs.some(expected => {
-        const connectionIpNum = NetworkUtils.ipToNum(identityInfo.connectionIpAddress);
-        const connectionSubnetCidr = new CidrBlock(expected.connectionSubnetCidrBlock);
+        const connectionSubnet = expected.connectionSubnetCidrBlock.split('/');
 
-        const sourceIpNum = NetworkUtils.ipToNum(identityInfo.sourceIpAddress);
-        const sourceIpSubnetCidr = new CidrBlock(expected.sourceSubnetCidrBlock);
+        const connectionSubnetRange = new BlockList();
+        connectionSubnetRange.addSubnet(connectionSubnet[0], parseInt(connectionSubnet[1]));
 
-        return sourceIpSubnetCidr.minAddress() <= sourceIpNum && sourceIpNum <= sourceIpSubnetCidr.maxAddress() &&
-          connectionSubnetCidr.minAddress() <= connectionIpNum && connectionIpNum <= connectionSubnetCidr.maxAddress();
+        const sourceSubnet = expected.sourceSubnetCidrBlock.split('/');
+
+        const sourceSubnetRange = new BlockList();
+        sourceSubnetRange.addSubnet(sourceSubnet[0], parseInt(sourceSubnet[1]));
+
+        return sourceSubnetRange.check(identityInfo.sourceIpAddress) && connectionSubnetRange.check(identityInfo.connectionIpAddress);
       });
     })).toBeTruthy();
   });

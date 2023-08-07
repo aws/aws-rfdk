@@ -40,7 +40,7 @@
     "build+test": "yarn run build",
     "build+test+package": "yarn run build+test",
     "watch": "tsc -w",
-    "test": "jest",
+    "test": "npx jest",
     "cdk": "cdk",
     "e2e": "./scripts/bash/rfdk-integ-e2e.sh",
     "e2e-automated": "./scripts/bash/run-e2e-automated.sh",
@@ -85,6 +85,6 @@
     "constructs": "^10.0.0"
   },
   "engines": {
-    "node": ">= 14.15.0"
+    "node": ">= 18.0.0"
   }
 }

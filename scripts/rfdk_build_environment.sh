@@ -42,5 +42,5 @@ docker run --rm \
     ${USER_OPT} \
     --net=host -it \
     --env DOTNET_CLI_TELEMETRY_OPTOUT=1 \
-    jsii/superchain:1-buster-slim-node14
+    jsii/superchain:1-buster-slim-node18
 

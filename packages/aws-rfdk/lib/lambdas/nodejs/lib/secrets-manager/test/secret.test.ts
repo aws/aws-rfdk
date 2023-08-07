@@ -304,8 +304,8 @@ describe('Secret class', () => {
       expect(fakeGetSecretValue.callCount).toEqual(1);
     });
 
-    test('SecretBinary ArrayBuffer success', async () => {
-      const value: ArrayBufferView = new Int32Array();
+    test('SecretBinary Uint8Array success', async () => {
+      const value: Uint8Array = new Uint8Array();
 
       const arn = 'arn:aws:secretsmanager:fake0secret1:123:secret:1a2b/';
       const fakeGetSecretValue = fake.resolves({
@@ -319,7 +319,7 @@ describe('Secret class', () => {
       const client = new AWS.SecretsManager();
       const secret = Secret.fromArn(arn, client);
 
-      await expect(secret.getValue()).resolves.toEqual(Buffer.from(value.buffer));
+      await expect(secret.getValue()).resolves.toEqual(Buffer.from(value));
       expect(fakeGetSecretValue.callCount).toEqual(1);
     });
 
