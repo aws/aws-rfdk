@@ -8,7 +8,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { randomBytes } from 'crypto';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { DynamoDB, SecretsManager } from 'aws-sdk';
+import { DynamoDB, SecretsManager, AWSError } from 'aws-sdk';
 
 
 import { LambdaContext } from '../lib/aws-lambda';
@@ -64,7 +64,7 @@ abstract class X509Common extends DynamoBackedCustomResource {
         // AccessDeniedException can happen if either:
         //  a) We legit do not have the required permission to delete the secret (very unlikely)
         //  b) The Secret has already been deleted (much more likely; so we continue)
-        if (e.message.indexOf('AccessDeniedException')) {
+        if ((e as AWSError)?.message.indexOf('AccessDeniedException')) {
           console.warn(`Could not delete Secret ${arn}. Please ensure it has been deleted.`);
         }
         throw e; // Rethrow so the custom resource handler will error-out.

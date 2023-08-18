@@ -50,7 +50,7 @@ async function confirmTaskCompletion(taskId: string): Promise<void> {
     } catch (e) {
       // Retry 3 times before giving up
       if (errorCount < 3) {
-        console.error(`${taskId}: Encountered failure #${errorCount} with message: ${e.message}`);
+        console.error(`${taskId}: Encountered failure #${errorCount} with message: ${(e as Error)?.message}`);
         errorCount++;
       } else {
         throw e;

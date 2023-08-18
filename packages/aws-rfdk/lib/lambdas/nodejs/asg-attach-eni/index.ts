@@ -5,8 +5,9 @@
 
 /* eslint-disable no-console */
 
+import { types } from 'util';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import {AutoScaling, EC2} from 'aws-sdk';
+import {AutoScaling, EC2, AWSError} from 'aws-sdk';
 
 /**
  * Contents of the Message sent from Sns in response to a lifecycle event.
@@ -45,7 +46,7 @@ async function completeLifecycle(success: boolean, message: SnsLaunchInstanceMes
     const response = await autoscaling.completeLifecycleAction(request).promise();
     console.log('Got response: ' + JSON.stringify(response));
   } catch (e) {
-    throw new Error(`Error sending completeLifecycleAction: ${e.code} -- ${e.message}`);
+    throw new Error(`Error sending completeLifecycleAction: ${(e as AWSError)?.code} -- ${(e as Error)?.message}`);
   }
 }
 
@@ -64,7 +65,7 @@ async function attachEniToInstance(instanceId: string, eniId: string): Promise<v
     const response = await ec2.attachNetworkInterface(request).promise();
     console.log('Got response: ' + JSON.stringify(response));
   } catch (e) {
-    throw new Error(`Error attaching network interface to instance: ${e.code} -- ${e.message}`);
+    throw new Error(`Error attaching network interface to instance: ${(e as AWSError)?.code} -- ${(e as Error)?.message}`);
   }
 }
 
@@ -85,8 +86,8 @@ export async function handler(event: { [key: string]: any }): Promise<void> {
           await attachEniToInstance(message.EC2InstanceId, eniId);
           success = true;
         } catch (e) {
-          console.error(e.toString());
-          console.error(e.stack);
+          console.error(String(e));
+          console.error((e as Error)?.stack);
         } finally {
           // Note: Instance stays in 'Pending: Wait' state unless this lambda signals a lifecycle transition, so we must **always** send one.
           //  https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_CompleteLifecycleAction.html
@@ -94,8 +95,12 @@ export async function handler(event: { [key: string]: any }): Promise<void> {
         }
       }
     } catch (e) {
-      console.error(e.toString());
-      console.error(e.stack);
+      if (types.isNativeError(e)) {
+        console.error(e.toString());
+        console.error(e.stack);
+      } else {
+        console.error(String(e));
+      }
     }
   }
 }

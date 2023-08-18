@@ -183,7 +183,8 @@ export class DeadlineClient {
     try {
       return await this.performRequest(options, data);
     } catch(exception) {
-      const { statusCode, statusMessage } = exception;
+      const statusCode = (exception as any)?.statusCode;
+      const statusMessage = (exception as any)?.statusMessage;
       if (statusCode !== undefined && statusMessage !== undefined) {
         if (statusCode >= 500 && retriesLeft > 0) {
           console.log(`Request failed with ${statusCode}: ${statusMessage}. Will retry after ${retryDelayMs} ms.`);

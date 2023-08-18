@@ -6,7 +6,7 @@
 /* eslint-disable no-console */
 
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { DynamoDB } from 'aws-sdk';
+import { DynamoDB, AWSError } from 'aws-sdk';
 
 export class CompositeStringIndexTable {
   public static readonly API_VERSION = '2012-08-10';
@@ -110,7 +110,7 @@ export class CompositeStringIndexTable {
       );
       return table;
     } catch (e) {
-      throw new Error(`CreateTable '${args.name}': ${e.code} -- ${e.message}`);
+      throw new Error(`CreateTable '${args.name}': ${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
     }
   }
 
@@ -149,11 +149,11 @@ export class CompositeStringIndexTable {
       this.tableName = undefined;
 
     } catch (e) {
-      if (e.code === 'ResourceNotFoundException') {
+      if ((e as AWSError)?.code === 'ResourceNotFoundException') {
         // Already gone. We're good.
         this.tableName = undefined;
       } else {
-        throw new Error(`DeleteTable '${this.tableName}': ${e.code} -- ${e.message}`);
+        throw new Error(`DeleteTable '${this.tableName}': ${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
       }
     }
   }
@@ -207,11 +207,11 @@ export class CompositeStringIndexTable {
       const response = await this.client.putItem(request).promise();
       console.debug(`PutItem response: ${JSON.stringify(response)}`);
     } catch (e) {
-      if (e.code === 'ConditionalCheckFailedException' && !props.allow_overwrite) {
+      if ((e as AWSError)?.code === 'ConditionalCheckFailedException' && !props.allow_overwrite) {
         return false;
       }
       throw new Error(`PutItem '${props.primaryKeyValue}' '${props.sortKeyValue}:" ` +
-        `${e.code} -- ${e.message}`);
+        `${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
     }
     return true;
   }
@@ -256,7 +256,7 @@ export class CompositeStringIndexTable {
       return item;
     } catch (e) {
       throw new Error(`GetItem '${props.primaryKeyValue}' '${props.sortKeyValue}:" ` +
-        `${e.code} -- ${e.message}`);
+        `${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
     }
   }
 
@@ -296,7 +296,7 @@ export class CompositeStringIndexTable {
       return false;
     } catch (e) {
       throw new Error(`DeleteItem '${props.primaryKeyValue}' '${props.sortKeyValue}:" ` +
-        `${e.code} -- ${e.message}`);
+        `${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
     }
   }
 
@@ -356,7 +356,7 @@ export class CompositeStringIndexTable {
       } while (request.ExclusiveStartKey);
       return items;
     } catch (e) {
-      throw new Error(`Query '${primaryKeyValue}':" ${e.code} -- ${e.message}`);
+      throw new Error(`Query '${primaryKeyValue}':" ${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
     }
   }
 }
