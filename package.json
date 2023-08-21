@@ -15,6 +15,7 @@
   "private": true,
   "scripts": {
     "build": "./build.sh",
+    "pack": "./pack.sh",
     "clean": "./scripts/clean-stale-files.sh && lerna run clean && bash ./clean.sh",
     "package": "lerna run package",
     "release": "standard-version"
