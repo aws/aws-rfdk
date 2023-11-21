@@ -131,7 +131,7 @@ export class UsageBasedLicense {
   public static forCinema4D(limit?: number): UsageBasedLicense {
     return new UsageBasedLicense({
       licenseName: 'cinema4d',
-      ports: [Port.tcp(5057), Port.tcp(7057)],
+      ports: [Port.tcp(5057), Port.tcp(5058), Port.tcp(7057), Port.tcp(7058)],
       limit,
     });
   }
