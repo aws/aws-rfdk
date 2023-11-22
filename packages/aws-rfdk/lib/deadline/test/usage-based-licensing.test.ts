@@ -569,7 +569,7 @@ describe('UsageBasedLicensing', () => {
     test.each([
       ['3dsMax', UsageBasedLicense.for3dsMax(10), [27002]],
       ['Arnold', UsageBasedLicense.forArnold(10), [5056, 7056]],
-      ['Cinema4D', UsageBasedLicense.forCinema4D(10), [5057, 7057]],
+      ['Cinema4D', UsageBasedLicense.forCinema4D(10), [5057, 5058, 7057, 7058]],
       ['Clarisse', UsageBasedLicense.forClarisse(10), [40500]],
       ['Houdini', UsageBasedLicense.forHoudini(10), [1715]],
       ['Katana', UsageBasedLicense.forKatana(10), [4151, 6101]],
