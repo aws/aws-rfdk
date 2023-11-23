@@ -10,10 +10,10 @@ phases:
       - yarn install --frozen-lockfile
   build:
     commands:
-      - yarn build
+      - yarn run build
   post_build:
     commands:
-      - "[ -f .BUILD_COMPLETED ] && yarn pack"
+      - "[ -f .BUILD_COMPLETED ] && yarn run pack"
 artifacts:
   files:
     - "**/*"
