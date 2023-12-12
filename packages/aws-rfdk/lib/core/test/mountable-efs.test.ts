@@ -14,7 +14,6 @@ import {
   Template,
 } from 'aws-cdk-lib/assertions';
 import {
-  AmazonLinuxGeneration,
   Instance,
   InstanceType,
   MachineImage,
@@ -53,7 +52,7 @@ describe('Test MountableEFS', () => {
     instance = new Instance(stack, 'Instance', {
       vpc,
       instanceType: new InstanceType('t3.small'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
     });
   });
 

@@ -13,7 +13,6 @@ import {
   Template,
 } from 'aws-cdk-lib/assertions';
 import {
-  AmazonLinuxGeneration,
   InstanceType,
   MachineImage,
   SubnetType,
@@ -37,7 +36,7 @@ describe('Test StaticIpServer', () => {
     new StaticPrivateIpServer(stack, 'Instance', {
       vpc,
       instanceType: new InstanceType('t3.small'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
     });
 
     // THEN
@@ -197,12 +196,12 @@ describe('Test StaticIpServer', () => {
     new StaticPrivateIpServer(stack, 'Instance1', {
       vpc,
       instanceType: new InstanceType('t3.small'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
     });
     new StaticPrivateIpServer(stack, 'Instance2', {
       vpc,
       instanceType: new InstanceType('t3.small'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
     });
 
     // THEN
@@ -239,7 +238,7 @@ describe('Test StaticIpServer', () => {
       new StaticPrivateIpServer(stack, 'Instance', {
         vpc,
         instanceType: new InstanceType('t3.small'),
-        machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+        machineImage: MachineImage.latestAmazonLinux2(),
         vpcSubnets: {
           subnetType: SubnetType.PRIVATE_WITH_EGRESS,
           availabilityZones: ['dummy zone'],
@@ -253,7 +252,7 @@ describe('Test StaticIpServer', () => {
     new StaticPrivateIpServer(stack, 'Instance', {
       vpc,
       instanceType: new InstanceType('t3.small'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
       resourceSignalTimeout: Duration.hours(12),
     });
 
@@ -270,7 +269,7 @@ describe('Test StaticIpServer', () => {
       new StaticPrivateIpServer(stack, 'InstanceFail', {
         vpc,
         instanceType: new InstanceType('t3.small'),
-        machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+        machineImage: MachineImage.latestAmazonLinux2(),
         resourceSignalTimeout: Duration.seconds(12 * 60 * 60 + 1),
       });
     }).toThrow('Resource signal timeout cannot exceed 12 hours.');

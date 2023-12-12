@@ -10,7 +10,7 @@ fi
 find . -name package.json | grep -v node_modules | xargs node scripts/sync-peer-deps.js
 
 # must build first so .jsii is aligned
-/bin/bash ./build.sh --skip-tests
+yarn run build --skip-tests
 
 # now, run jsii-fix-peers to add all missing peers based on the jsii spec
 npx lerna exec "$PWD/tools/cdk-build-tools/node_modules/.bin/jsii-fix-peers 2>/dev/null || true"

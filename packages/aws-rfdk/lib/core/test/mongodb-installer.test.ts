@@ -11,7 +11,6 @@ import {
   Template,
 } from 'aws-cdk-lib/assertions';
 import {
-  AmazonLinuxGeneration,
   Instance,
   InstanceType,
   MachineImage,
@@ -73,7 +72,7 @@ Please set the userSsplAcceptance property to USER_ACCEPTS_SSPL to signify your 
     const instance = new Instance(stack, 'Instance', {
       vpc,
       instanceType: new InstanceType('t3.small'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
     });
     const installer = new MongoDbInstaller(stack, {
       version: MongoDbVersion.COMMUNITY_3_6,
@@ -173,7 +172,7 @@ Please set the userSsplAcceptance property to USER_ACCEPTS_SSPL to signify your 
     const instance = new Instance(stack, 'Instance', {
       vpc,
       instanceType: new InstanceType('t3.small'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
     });
     const installer1 = new MongoDbInstaller(stack, {
       version: MongoDbVersion.COMMUNITY_3_6,

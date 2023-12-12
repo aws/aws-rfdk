@@ -20,7 +20,6 @@ import {
   IDatabaseCluster,
 } from 'aws-cdk-lib/aws-docdb';
 import {
-  AmazonLinuxGeneration,
   Connections,
   Instance,
   InstanceClass,
@@ -129,7 +128,7 @@ describe('DocumentDB', () => {
     const instance = new Instance(stack, 'Instance', {
       vpc,
       instanceType: new InstanceType('t3.small'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
     });
 
     // WHEN
@@ -182,7 +181,7 @@ describe('DocumentDB', () => {
     const instance = new Instance(stack, 'Instance', {
       vpc,
       instanceType: new InstanceType('t3.small'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
     });
 
     // WHEN
@@ -214,7 +213,7 @@ describe('DocumentDB', () => {
     const instance = new Instance(stack, 'Instance', {
       vpc,
       instanceType: new InstanceType('t3.small'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
     });
 
     // WHEN
@@ -245,7 +244,7 @@ describe('DocumentDB', () => {
     const instance = new Instance(stack, 'Instance', {
       vpc,
       instanceType: new InstanceType('t3.small'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
     });
 
     // WHEN
@@ -567,7 +566,7 @@ describe('MongoDB', () => {
     const instance = new Instance(stack, 'Instance', {
       vpc,
       instanceType: new InstanceType('t3.small'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
     });
 
     // WHEN
@@ -593,7 +592,7 @@ describe('MongoDB', () => {
     const instance = new Instance(stack, 'Instance', {
       vpc,
       instanceType: new InstanceType('t3.small'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
     });
 
     // WHEN
@@ -655,7 +654,7 @@ describe('MongoDB', () => {
     const instance = new Instance(stack, 'Instance', {
       vpc,
       instanceType: new InstanceType('t3.small'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
     });
 
     // WHEN

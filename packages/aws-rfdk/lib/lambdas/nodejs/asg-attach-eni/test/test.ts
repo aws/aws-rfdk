@@ -110,24 +110,24 @@ test('processes all correct records', async () => {
   // THEN
   expect(attachSpy).toHaveBeenCalledTimes(2);
   expect(completeSpy).toHaveBeenCalledTimes(2);
-  expect(attachSpy.mock.calls[0][0]).toStrictEqual({
+  expect(attachSpy.mock.calls[0][0]).toEqual({
     DeviceIndex: 1,
     InstanceId: 'i-0000000000',
     NetworkInterfaceId: 'eni-000000000',
   });
-  expect(attachSpy.mock.calls[1][0]).toStrictEqual({
+  expect(attachSpy.mock.calls[1][0]).toEqual({
     DeviceIndex: 1,
     InstanceId: 'i-1111111111',
     NetworkInterfaceId: 'eni-1111111111',
   });
-  expect(completeSpy.mock.calls[0][0]).toStrictEqual({
+  expect(completeSpy.mock.calls[0][0]).toEqual({
     AutoScalingGroupName: 'ASG-Name-1',
     LifecycleHookName: 'Hook-Name-1',
     InstanceId: 'i-0000000000',
     LifecycleActionToken: 'Action-Token-1',
     LifecycleActionResult: 'CONTINUE',
   });
-  expect(completeSpy.mock.calls[1][0]).toStrictEqual({
+  expect(completeSpy.mock.calls[1][0]).toEqual({
     AutoScalingGroupName: 'ASG-Name-2',
     LifecycleHookName: 'Hook-Name-2',
     InstanceId: 'i-1111111111',
@@ -166,7 +166,7 @@ test('abandons launch when attach fails', async () => {
   await handler(event);
 
   // THEN
-  expect(completeSpy.mock.calls[0][0]).toStrictEqual({
+  expect(completeSpy.mock.calls[0][0]).toEqual({
     AutoScalingGroupName: 'ASG-Name-1',
     LifecycleHookName: 'Hook-Name-1',
     InstanceId: 'i-0000000000',
