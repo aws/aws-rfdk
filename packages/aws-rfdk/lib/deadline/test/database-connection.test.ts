@@ -436,38 +436,7 @@ describe('DocumentDB Version Checks', () => {
     // THEN
     Annotations.fromStack(stack).hasError(
       `/${database.node.path}`,
-      'engineVersion must be 3.6.0 to be compatible with Deadline',
-    );
-  });
-
-  test('engineVersion not 3.6.0', () => {
-    // GIVEN
-    const database = new DatabaseCluster(stack, 'DbCluster', {
-      masterUser: {
-        username: 'master',
-      },
-      instanceType: InstanceType.of(
-        InstanceClass.R5,
-        InstanceSize.XLARGE,
-      ),
-      vpc,
-      vpcSubnets: {
-        onePerAz: true,
-        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
-      },
-      backup: {
-        retention: Duration.days(15),
-      },
-      engineVersion: '4.0.0',
-    });
-
-    // WHEN
-    DatabaseConnection.forDocDB({database, login: database.secret!});
-
-    // THEN
-    Annotations.fromStack(stack).hasError(
-      `/${database.node.path}`,
-      'engineVersion must be 3.6.0 to be compatible with Deadline',
+      'engineVersion must be one of 3.6.0, 4.0.0 or 5.0.0 to be compatible with Deadline',
     );
   });
 });

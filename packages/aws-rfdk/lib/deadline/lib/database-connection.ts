@@ -46,7 +46,7 @@ export interface DocDBConnectionOptions {
 
   /**
    * The Document DB Cluster this connection is for.
-   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6.
+   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6, 4.0, 5.0.
    */
   readonly database: IDatabaseCluster;
 
@@ -63,7 +63,7 @@ export interface DocDBConnectionOptions {
 export interface MongoDbInstanceConnectionOptions {
   /**
    * The MongoDB database to connect to.
-   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6.
+   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6, 4.0, 5.0.
    */
   readonly database: IMongoDb;
 
@@ -85,7 +85,7 @@ export interface MongoDbInstanceConnectionOptions {
 export abstract class DatabaseConnection {
   /**
    * Creates a DatabaseConnection which allows Deadline to connect to Amazon DocumentDB.
-   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6.
+   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6, 4.0, 5.0.
    *
    * Resources Deployed
    * ------------------------
@@ -97,7 +97,7 @@ export abstract class DatabaseConnection {
 
   /**
    * Creates a DatabaseConnection which allows Deadline to connect to MongoDB.
-   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6.
+   * Note: Deadline officially supports only databases that are compatible with MongoDB 3.6, 4.0, 5.0.
    *
    * Resources Deployed
    * ------------------------
@@ -188,7 +188,7 @@ class DocDBDatabaseConnection extends DatabaseConnection {
     super();
 
     if (!this.isCompatibleDocDBVersion()) {
-      Annotations.of(props.database).addError('engineVersion must be 3.6.0 to be compatible with Deadline');
+      Annotations.of(props.database).addError('engineVersion must be one of 3.6.0, 4.0.0 or 5.0.0 to be compatible with Deadline');
     }
 
     this.containerEnvironment = {
@@ -326,7 +326,7 @@ class DocDBDatabaseConnection extends DatabaseConnection {
   }
 
   /**
-   * Deadline is only compatible with MongoDB 3.6. This function attempts to determine whether
+   * Deadline is compatible with MongoDB 3.6, 4.0 and 5.0. This function attempts to determine whether
    * the given DocDB version is compatible.
    */
   protected isCompatibleDocDBVersion(): boolean {
@@ -335,7 +335,7 @@ class DocDBDatabaseConnection extends DatabaseConnection {
     // checking the value of the engineVersion property of that object.
     if (this.props.database.node.defaultChild) {
       const cluster = this.props.database.node.defaultChild! as CfnDBCluster;
-      return cluster.engineVersion?.startsWith('3.6') ?? false;
+      return ( cluster.engineVersion?.startsWith('3.6') || cluster.engineVersion?.startsWith('4.0') || cluster.engineVersion?.startsWith('5.0') )?? false;
     }
 
     return true; // No information, assume it's compatible.
