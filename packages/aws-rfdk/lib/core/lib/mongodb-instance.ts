@@ -14,7 +14,6 @@ import {
   BlockDeviceVolume,
 } from 'aws-cdk-lib/aws-autoscaling';
 import {
-  AmazonLinuxGeneration,
   Connections,
   IConnectable,
   InstanceType,
@@ -421,7 +420,7 @@ export class MongoDbInstance extends Construct implements IMongoDb, IGrantable {
       vpc: props.vpc,
       vpcSubnets: { subnets: [ subnet ] },
       instanceType: props.instanceType ?? new InstanceType('r5.large'),
-      machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+      machineImage: MachineImage.latestAmazonLinux2(),
       blockDevices: [
         {
           deviceName: '/dev/xvda', // Root volume

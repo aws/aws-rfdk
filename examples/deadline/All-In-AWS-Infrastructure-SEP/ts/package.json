@@ -19,12 +19,12 @@
   },
   "devDependencies": {
     "@types/node": "18.11.19",
-    "aws-cdk": "2.89.0",
-    "ts-node": "^10.9.1",
+    "aws-cdk": "2.114.1",
+    "ts-node": "^10.9.2",
     "typescript": "~5.1.6"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.89.0",
+    "aws-cdk-lib": "2.114.1",
     "aws-rfdk": "1.2.0",
     "constructs": "^10.0.0",
     "source-map-support": "^0.5.21"

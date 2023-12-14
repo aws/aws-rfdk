@@ -441,7 +441,7 @@ export class HealthMonitor extends HealthMonitorBase {
       label: 'UnhealthyHostPercent',
       expression: 'IF(fleetCapacity, 100*(unhealthyHostCount/fleetCapacity), 0)',
       usingMetrics: {
-        unhealthyHostCount: targetGroup.metricUnhealthyHostCount({
+        unhealthyHostCount: targetGroup.metrics.unhealthyHostCount({
           statistic: 'max',
         }),
         fleetCapacity: monitorableFleet.targetCapacityMetric,
@@ -465,7 +465,7 @@ export class HealthMonitor extends HealthMonitorBase {
       label: 'UnhealthyHostPercent',
       expression: 'IF(fleetCapacity, 100*(unhealthyHostCount/fleetCapacity), 0)',
       usingMetrics: {
-        unhealthyHostCount: targetGroup.metricUnhealthyHostCount({
+        unhealthyHostCount: targetGroup.metrics.unhealthyHostCount({
           statistic: 'max',
         }),
         fleetCapacity: monitorableFleet.targetCapacityMetric,

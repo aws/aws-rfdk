@@ -20,7 +20,6 @@ import {
   Certificate,
 } from 'aws-cdk-lib/aws-certificatemanager';
 import {
-  AmazonLinuxGeneration,
   AmazonLinuxImage,
   Instance,
   InstanceClass,
@@ -210,7 +209,7 @@ describe('RenderQueue', () => {
           InstanceClass.R4,
           InstanceSize.LARGE,
         ),
-        machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+        machineImage: MachineImage.latestAmazonLinux2(),
       });
 
       // WHEN
@@ -517,7 +516,7 @@ describe('RenderQueue', () => {
       // GIVEN
       const instance = new Instance(dependencyStack, 'BackendConnectionInstance', {
         instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.MICRO),
-        machineImage: MachineImage.latestAmazonLinux(),
+        machineImage: MachineImage.latestAmazonLinux2(),
         vpc,
       });
       const portNumber = 5555;
@@ -1210,7 +1209,7 @@ describe('RenderQueue', () => {
             InstanceClass.R4,
             InstanceSize.LARGE,
           ),
-          machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+          machineImage: MachineImage.latestAmazonLinux2(),
         })];
         const role = new Role(stack, 'Role', {assumedBy: new AccountRootPrincipal()});
 
@@ -1250,7 +1249,7 @@ describe('RenderQueue', () => {
             InstanceClass.R4,
             InstanceSize.LARGE,
           ),
-          machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+          machineImage: MachineImage.latestAmazonLinux2(),
         });
 
         renderQueue.configureClientInstance({
@@ -1417,7 +1416,7 @@ describe('RenderQueue', () => {
             InstanceClass.R4,
             InstanceSize.LARGE,
           ),
-          machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+          machineImage: MachineImage.latestAmazonLinux2(),
         })];
         const role = new Role(stack, 'Role', {assumedBy: new AccountRootPrincipal()});
 
@@ -1451,7 +1450,7 @@ describe('RenderQueue', () => {
             InstanceClass.R4,
             InstanceSize.LARGE,
           ),
-          machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+          machineImage: MachineImage.latestAmazonLinux2(),
         });
 
         renderQueue.configureClientInstance({
