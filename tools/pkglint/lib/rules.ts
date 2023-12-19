@@ -428,7 +428,7 @@ export class MustHaveNodeEnginesDeclaration extends ValidationRule {
   public readonly name = 'package-info/engines';
 
   public validate(pkg: PackageJson): void {
-    expectJSON(this.name, pkg, 'engines.node', '>= 18.0.0');
+    expectJSON(this.name, pkg, 'engines.node', '>= 14.15.0');
   }
 }
 
