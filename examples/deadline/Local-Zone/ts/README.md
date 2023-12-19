@@ -57,7 +57,7 @@ These instructions assume that your working directory is `examples/deadline/Loca
     ```bash
     # Navigate to the root directory of the RFDK repository (assumes you started in the example's directory)
     pushd ../../../..
-    ./build.sh
+    yarn build
     # Navigate back to the example directory
     popd
     # Run the example's build

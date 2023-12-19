@@ -77,9 +77,9 @@ The developers actively use Linux for development, but macOS and the Windows Sub
 
     ```bash
     # From the root directory of this repository
-    ./build.sh
+    yarn build
 
-    # Once you've run ./build.sh from the root directory at least once, then
+    # Once you've run "yarn build" from the root directory at least once, then
     # you can do subsequent build & test iterations from the RFDK package directory to save time.
     cd packages/aws-rfdk
     yarn build+test
@@ -155,7 +155,7 @@ yarn clean
 ./clean.sh
 
 # Rebuild
-./build.sh
+yarn build
 ```
 
 If that does not work, then you might try the following nuclear option. **WARNING** -- this will
