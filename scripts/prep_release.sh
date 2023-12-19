@@ -53,7 +53,7 @@ PULL_AL_FROM_ECR_ARGS=(
 /bin/bash ${SCRIPT_DIR}/pull_amazonlinux_from_ecr.sh "${PULL_AL_FROM_ECR_ARGS[@]}"
 
 # Run integ tests
-/bin/bash ${ROOT_DIR}/build.sh
+(cd "${ROOT_DIR}" && yarn run build)
 pushd $TESTS_DIR
 yarn run e2e-automated
 popd

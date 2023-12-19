@@ -2,7 +2,7 @@
 
 To run all test suites:
 
-1. Build and install dependencies by running build.sh from the top-level RFDK directory
+1. Build and install dependencies by running `yarn build` from the top-level RFDK directory
 1. Configure AWS credentials. There are a few options for this:
     *   Configure credentials [using environment variables](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/loading-node-credentials-environment.html)
     *   Run the integration tests on an [EC2 Instance with an IAM role](https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/loading-node-credentials-iam.html)
