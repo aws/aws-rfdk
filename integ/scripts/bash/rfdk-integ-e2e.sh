@@ -106,8 +106,8 @@ cleanup_on_failure () {
 }
 
 get_component_dirs () {
-  # Find all "cdk.json" files (indicates parent dir is a CDK app)
-  find . -name "cdk.json"           | \
+  # Find all "test_marker" files (indicates parent dir is a CDK test app)
+  find . -name "test_marker"        | \
   # Filter out node_modules
   grep -v node_modules              | \
   # Extract the directory name

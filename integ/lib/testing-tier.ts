@@ -39,10 +39,6 @@ export interface TestingTierProps extends StackProps {
    * The unique suffix given to all stacks in the testing app
    */
   readonly integStackTag: string;
-  /**
-   * The unique discriminator for constructs created in the testing app
-   */
-  readonly discriminator: string;
 }
 
 /**
@@ -79,7 +75,7 @@ export abstract class TestingTier extends Stack {
 
     // Create an instance that can be used for testing; SSM commands are communicated to the
     // host instance to run test scripts installed during setup of the instance
-    this.testInstance = new BastionHostLinux(this, 'Bastion' + props.discriminator + props.integStackTag, {
+    this.testInstance = new BastionHostLinux(this, 'Bastion', {
       vpc: this.vpc,
       subnetSelection: { subnetGroupName: NetworkTier.subnetConfig.testRunner.name },
       instanceType: new InstanceType('t3.small'),

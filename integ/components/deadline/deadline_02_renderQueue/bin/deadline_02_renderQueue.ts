@@ -60,7 +60,7 @@ const structs: Array<RenderStruct> = [
   }),
 ];
 
-new RenderQueueTestingTier(app, 'RFDKInteg-RQ-TestingTier' + integStackTag, { env, integStackTag, structs, discriminator: 'RQ' });
+new RenderQueueTestingTier(app, 'RFDKInteg-RQ-TestingTier' + integStackTag, { env, integStackTag, structs });
 
 // Adds IAM Policy to Instance and ASG Roles
 Aspects.of(app).add(new SSMInstancePolicyAspect());
