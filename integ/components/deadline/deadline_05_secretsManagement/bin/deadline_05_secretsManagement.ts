@@ -78,6 +78,7 @@ async function main() {
     integStackTag,
     renderStruct,
     storageStruct,
+    discriminator: 'SM',
   });
 
   // Adds IAM Policy to Instance and ASG Roles
