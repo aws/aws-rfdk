@@ -49,7 +49,7 @@ const structs: Array<StorageStruct> = [
   }),
 ];
 
-new RepositoryTestingTier(app, 'RFDKInteg-DL-TestingTier' + integStackTag, { env, integStackTag, structs });
+new RepositoryTestingTier(app, 'RFDKInteg-DL-TestingTier' + integStackTag, { env, integStackTag, structs, discriminator: 'DL' });
 
 // Adds IAM Policy to Instance and ASG Roles
 Aspects.of(app).add(new SSMInstancePolicyAspect());

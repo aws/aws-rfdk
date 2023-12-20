@@ -64,7 +64,7 @@ oss.forEach( (os, index) => {
   }));
 });
 
-new WorkerFleetTestingTier(app, 'RFDKInteg-WFS-TestingTier' + integStackTag, {env, integStackTag, structs});
+new WorkerFleetTestingTier(app, 'RFDKInteg-WFS-TestingTier' + integStackTag, {env, integStackTag, structs, discriminator: 'WFS'});
 
 // Adds IAM Policy to Instance and ASG Roles
 Aspects.of(app).add(new SSMInstancePolicyAspect());
