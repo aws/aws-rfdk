@@ -179,9 +179,12 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
       **********************************************************************************************************/
       let expectedVersion: string;
       switch (deadlineVersion) {
-        // Special case for Deadline 10.1.18.5 since it appears as 10.1.18.4 due to known issues in Deadline's build pipeline
+        // Special cases for Deadline version that appear different due to known issues in Deadline's build pipeline
         case '10.1.18.5':
           expectedVersion = '10.1.18.4';
+          break;
+        case '10.3.1.4':
+          expectedVersion = '10.3.1.3';
           break;
 
         default:
