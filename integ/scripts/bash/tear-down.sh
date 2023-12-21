@@ -34,12 +34,7 @@ source $BASH_SCRIPTS/set-test-variables.sh
 # the others. Disable the exit on error option
 set +e
 
-for COMPONENT in **/cdk.json; do
-    # In case the yarn install was done inside this integ package, there are some example cdk.json files in the aws-cdk
-    # package we want to avoid.
-    if [[ $COMPONENT == *"node_modules"* ]]; then
-        continue
-    fi
+for COMPONENT in **/test_marker; do
     COMPONENT_ROOT="$(dirname "$COMPONENT")"
     COMPONENT_NAME=$(basename "$COMPONENT_ROOT")
     # Use a pattern match to exclude the infrastructure app from the results

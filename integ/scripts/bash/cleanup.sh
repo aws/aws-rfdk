@@ -12,13 +12,7 @@ shopt -s globstar
 
 INTEG_ROOT="$(pwd)"
 
-for COMPONENT in **/cdk.json; do
-    # In case the yarn install was done inside this integ package, there are some example cdk.json files in the aws-cdk
-    # package we want to avoid.
-    if [[ $COMPONENT == *"node_modules"* ]]; then
-        continue
-    fi
-
+for COMPONENT in **/test_marker; do
     COMPONENT_ROOT="$(dirname "$COMPONENT")"
     rm -f "${COMPONENT_ROOT}/cdk.context.json"
     rm -rf "${COMPONENT_ROOT}/cdk.out"
