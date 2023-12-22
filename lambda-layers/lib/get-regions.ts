@@ -6,12 +6,20 @@
 import { SSM } from 'aws-sdk';
 
 // These regions need to be enabled for the AWS account being used for publishing, so we skip them
+// See https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-regions.html
 const REGION_DENY_LIST = [
   'af-south-1',
   'ap-east-1',
+  'ap-south-2',
   'ap-southeast-3',
+  'ap-southeast-4',
+  'ca-west-1',
   'eu-south-1',
+  'eu-south-2',
+  'eu-central-2',
+  'il-central-1',
   'me-south-1',
+  'me-central-1',
 ];
 
 function isValidRegion(region: string): boolean {
