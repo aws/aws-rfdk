@@ -1,6 +1,6 @@
 {
   "name": "aws-rfdk",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": false,
   "description": "Package for core render farm constructs",
   "main": "lib/index.js",
@@ -86,7 +86,7 @@
     "jsii": "~5.2.41",
     "jsii-pacmak": "1.93.0",
     "jsii-reflect": "1.93.0",
-    "pkglint": "1.2.0",
+    "pkglint": "1.3.0",
     "sinon": "^17.0.1",
     "ts-jest": "^29.1.1",
     "typescript": "~5.1.6"

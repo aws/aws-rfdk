@@ -64,7 +64,7 @@ fi
 version_header="# \[$new_version](.*) (.*)"
 
 # Add a section to the changelog that states the supported Deadline versions
-DEADLINE_RELEASE_NOTE_URL="https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/release-notes.html"
+DEADLINE_RELEASE_NOTE_URL="https://docs.thinkboxsoftware.com/products/deadline/10.3/1_User%20Manual/manual/release-notes.html"
 DEADLINE_SUPPORTED_VERSIONS=$(node ./scripts/getSupportedDeadlineVersions.ts)
 MIN_DEADLINE_VERSION=$(echo "$DEADLINE_SUPPORTED_VERSIONS" | grep 'Min' | cut -f 2 -d ' ')
 MAX_DEADLINE_VERSION=$(echo "$DEADLINE_SUPPORTED_VERSIONS" | grep 'Max' | cut -f 2 -d ' ')
