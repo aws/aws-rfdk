@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/aws/aws-rfdk/compare/v1.2.0...v1.3.0) (2023-12-22)
+
+Note: Node 14 is End of Life and RFDK >= 1.3.x no longer officially supports it. Node.js 18.0.0 is now
+the minimum officially supported version that RFDK now supports. See our documentation on [upgrading to RFDK 1.3](https://github.com/aws/aws-rfdk/blob/v1.3.0/packages/aws-rfdk/docs/upgrade/upgrading-1.3.md).
+
+### Supported CDK Version
+
+* [2.114.1](https://github.com/aws/aws-cdk/releases/tag/v2.114.1)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.3.1.4](https://docs.thinkboxsoftware.com/products/deadline/10.3/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **deadline:** DocumentDB engine version support upgraded upto version 5.0 ([#1155](https://github.com/aws/aws-rfdk/issues/1155)) ([7905f91](https://github.com/aws/aws-rfdk/commit/7905f9192f0c370f2c5be1e23a176e8f33800d75))
+
+
+### Bug Fixes
+
+* add usage-based licensing ports for new Cinema4d versions ([#1142](https://github.com/aws/aws-rfdk/pull/1142)) ([213605d](https://github.com/aws/aws-rfdk/commit/213605d2862c524a2b32718286d28e9a8203596a))
+
 ## [1.2.0](https://github.com/aws/aws-rfdk/compare/v1.1.0...v1.2.0) (2023-03-28)
 
 
