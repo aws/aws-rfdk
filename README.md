@@ -8,7 +8,7 @@ It offers high-level object-oriented abstractions to define render farm infrastr
 using the power of Python and Typescript.
 
 The RFDK is available in:
-- Javascript, Typescript ([Node.js >= 14.19.3](https://nodejs.org/download/release/latest-v14.x/))
+- Javascript, Typescript ([Node.js >= 18.0.0](https://nodejs.org/download/release/latest-v18.x/) officially supported, [Node.js >= 14.15.0](https://nodejs.org/download/release/latest-v14.x/) unofficially supported)
   - We recommend using an [Active LTS Release](https://nodejs.org/en/about/releases/)
 - Python ([Python >= 3.6](https://www.python.org/downloads/))
 

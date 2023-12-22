@@ -19,7 +19,6 @@ import {
 import {AutoScalingGroup} from 'aws-cdk-lib/aws-autoscaling';
 import {DatabaseCluster} from 'aws-cdk-lib/aws-docdb';
 import {
-  AmazonLinuxGeneration,
   Instance,
   InstanceClass,
   InstanceSize,
@@ -931,7 +930,7 @@ test('repository configure client instance', () => {
   const instance = new Instance(stack, 'Instance', {
     vpc,
     instanceType: new InstanceType('t3.small'),
-    machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+    machineImage: MachineImage.latestAmazonLinux2(),
   });
   const instanceRole = (
     instance
@@ -990,12 +989,12 @@ test('configureClientInstance uses singleton for repo config script', () => {
   const instance1 = new Instance(stack, 'Instance1', {
     vpc,
     instanceType: new InstanceType('t3.small'),
-    machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+    machineImage: MachineImage.latestAmazonLinux2(),
   });
   const instance2 = new Instance(stack, 'Instance2', {
     vpc,
     instanceType: new InstanceType('t3.small'),
-    machineImage: MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 }),
+    machineImage: MachineImage.latestAmazonLinux2(),
   });
 
   // WHEN

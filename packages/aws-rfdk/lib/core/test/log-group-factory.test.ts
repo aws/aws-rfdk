@@ -23,7 +23,6 @@ describe('log group', () => {
       LogGroupName: 'testLogGroup',
       SdkRetry: {
         maxRetries: 7,
-        base: 200,
       },
       RetentionInDays: 3,
     });
@@ -62,7 +61,6 @@ describe('log group', () => {
       LogGroupName: 'prefix-testLogGroup',
       SdkRetry: {
         maxRetries: 7,
-        base: 200,
       },
       RetentionInDays: 3,
     });
@@ -102,7 +100,6 @@ describe('log group', () => {
       LogGroupName: 'testLogGroup',
       SdkRetry: {
         maxRetries: 7,
-        base: 200,
       },
       RetentionInDays: 7,
     });
@@ -144,7 +141,6 @@ describe('exporting log group', () => {
       LogGroupName: 'testLogGroup',
       SdkRetry: {
         maxRetries: 7,
-        base: 200,
       },
       RetentionInDays: 3,
     });
@@ -192,7 +188,6 @@ describe('exporting log group', () => {
       LogGroupName: 'prefix-testLogGroup',
       SdkRetry: {
         maxRetries: 7,
-        base: 200,
       },
       RetentionInDays: 3,
     });
@@ -241,7 +236,6 @@ describe('exporting log group', () => {
       LogGroupName: 'testLogGroup',
       SdkRetry: {
         maxRetries: 7,
-        base: 200,
       },
       RetentionInDays: 7,
     });

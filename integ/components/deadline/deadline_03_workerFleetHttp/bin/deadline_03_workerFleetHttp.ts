@@ -4,6 +4,8 @@
  */
 
 import { App, Stack, Aspects } from 'aws-cdk-lib';
+import { AutoScalingGroupRequireImdsv2Aspect } from 'aws-cdk-lib/aws-autoscaling';
+import { InstanceRequireImdsv2Aspect, LaunchTemplateRequireImdsv2Aspect } from 'aws-cdk-lib/aws-ec2';
 import {
   Stage,
   ThinkboxDockerRecipes,
@@ -68,3 +70,7 @@ new WorkerFleetTestingTier(app, 'RFDKInteg-WF-TestingTier' + integStackTag, {env
 Aspects.of(app).add(new SSMInstancePolicyAspect());
 // Adds log retention retry to all functions
 Aspects.of(app).add(new LogRetentionRetryAspect());
+// Require IMDSv2 on EC2
+Aspects.of(app).add(new AutoScalingGroupRequireImdsv2Aspect());
+Aspects.of(app).add(new InstanceRequireImdsv2Aspect({ suppressLaunchTemplateWarning: true }));
+Aspects.of(app).add(new LaunchTemplateRequireImdsv2Aspect());

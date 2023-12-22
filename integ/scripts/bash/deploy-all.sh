@@ -39,7 +39,7 @@ npx cdk deploy "*" --require-approval=never
 
 cd "$INTEG_ROOT"
 
-for COMPONENT in **/cdk.json; do
+for COMPONENT in **/test_marker; do
     COMPONENT_ROOT="$(dirname "$COMPONENT")"
     COMPONENT_NAME=$(basename "$COMPONENT_ROOT")
     # Use a pattern match to exclude the infrastructure app from the results

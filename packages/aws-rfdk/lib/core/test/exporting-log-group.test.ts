@@ -33,7 +33,6 @@ test('default exporting log group is created correctly', () => {
     LogGroupName: 'logGroup',
     SdkRetry: {
       maxRetries: 7,
-      base: 200,
     },
     RetentionInDays: 3,
   });
@@ -153,7 +152,6 @@ test('custom set retention is created correctly', () => {
     LogGroupName: 'logGroup',
     SdkRetry: {
       maxRetries: 7,
-      base: 200,
     },
     RetentionInDays: 7,
   });

@@ -4,10 +4,10 @@ import * as yargs from 'yargs';
 import { findPackageJsons, ValidationRule } from '../lib';
 
 /* eslint-disable no-shadow */
-const argv = yargs
+const argv = yargs()
   .usage('$0 [directory]')
   .option('fix', { type: 'boolean', alias: 'f', desc: 'Fix package.json in addition to reporting mistakes' })
-  .argv;
+  .parseSync();
 
 // Our version of yargs doesn't support positional arguments yet
 const directory = argv._[0] as string || '.';

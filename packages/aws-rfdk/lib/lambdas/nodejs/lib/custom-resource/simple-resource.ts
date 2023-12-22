@@ -17,6 +17,7 @@
 /* eslint-disable no-console */
 
 
+import { types } from 'util';
 import { LambdaContext } from '../aws-lambda';
 import { calculateSha256Hash } from './hash';
 import { CfnResponseStatus, sendCfnResponse } from './reply';
@@ -51,7 +52,7 @@ export abstract class SimpleCustomResource {
    * @param resourceProperties The ResourceProperties given to the handler.
    * @returns The Data to send back to CloudFormation as attributes of this CfnCustomResource
    */
-  public abstract async doCreate(physicalId: string, resourceProperties: object): Promise<object|undefined>;
+  public abstract doCreate(physicalId: string, resourceProperties: object): Promise<object|undefined>;
 
   /**
    * Called to perform the 'Delete' action. There are three locations in the state-diagram
@@ -64,7 +65,7 @@ export abstract class SimpleCustomResource {
    * @param physicalId A stable hash value derived from the value of ResourceProperties
    * @param resourceProperties The ResourceProperties given to the handler.
    */
-  public abstract async doDelete(physicalId: string, resourceProperties: object): Promise<void>;
+  public abstract doDelete(physicalId: string, resourceProperties: object): Promise<void>;
 
   /**
    * Handler/engine for the CustomResource state machine. Users of this class should
@@ -118,7 +119,11 @@ export abstract class SimpleCustomResource {
       // failure to notify results in a stuck stack that takes at least an hour to
       // timeout.
       status = CfnResponseStatus.FAILED;
-      failReason = `${e.message}\n${e.stack}`;
+      if (types.isNativeError(e)) {
+        failReason = `${e.message}\n${e.stack}`;
+      } else {
+        failReason = String(e);
+      }
     } finally {
       // Always send a response to CloudFormation, signal success or
       // failure based on whether or not we had an exception.

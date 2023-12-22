@@ -110,24 +110,24 @@ test('processes all correct records', async () => {
   // THEN
   expect(attachSpy).toHaveBeenCalledTimes(2);
   expect(completeSpy).toHaveBeenCalledTimes(2);
-  expect(attachSpy.mock.calls[0][0]).toStrictEqual({
+  expect(attachSpy.mock.calls[0][0]).toEqual({
     DeviceIndex: 1,
     InstanceId: 'i-0000000000',
     NetworkInterfaceId: 'eni-000000000',
   });
-  expect(attachSpy.mock.calls[1][0]).toStrictEqual({
+  expect(attachSpy.mock.calls[1][0]).toEqual({
     DeviceIndex: 1,
     InstanceId: 'i-1111111111',
     NetworkInterfaceId: 'eni-1111111111',
   });
-  expect(completeSpy.mock.calls[0][0]).toStrictEqual({
+  expect(completeSpy.mock.calls[0][0]).toEqual({
     AutoScalingGroupName: 'ASG-Name-1',
     LifecycleHookName: 'Hook-Name-1',
     InstanceId: 'i-0000000000',
     LifecycleActionToken: 'Action-Token-1',
     LifecycleActionResult: 'CONTINUE',
   });
-  expect(completeSpy.mock.calls[1][0]).toStrictEqual({
+  expect(completeSpy.mock.calls[1][0]).toEqual({
     AutoScalingGroupName: 'ASG-Name-2',
     LifecycleHookName: 'Hook-Name-2',
     InstanceId: 'i-1111111111',
@@ -166,7 +166,7 @@ test('abandons launch when attach fails', async () => {
   await handler(event);
 
   // THEN
-  expect(completeSpy.mock.calls[0][0]).toStrictEqual({
+  expect(completeSpy.mock.calls[0][0]).toEqual({
     AutoScalingGroupName: 'ASG-Name-1',
     LifecycleHookName: 'Hook-Name-1',
     InstanceId: 'i-0000000000',
@@ -219,4 +219,50 @@ test('continues when complete lifecycle errors', async () => {
   // eslint-disable-next-line: no-floating-promises
   await expect(handler(event)).resolves.not.toThrow();
   expect(console.error).toHaveBeenCalledTimes(4); // 4 = each of the two records printing two error messages
+});
+
+test('continues when complete lifecycle errors non-error thrown', async () => {
+  // GIVEN
+  const event = {
+    Records: [
+      {
+        Sns: {
+          Message: JSON.stringify({
+            LifecycleTransition: 'autoscaling:EC2_INSTANCE_LAUNCHING',
+            AutoScalingGroupName: 'ASG-Name-1',
+            LifecycleHookName: 'Hook-Name-1',
+            EC2InstanceId: 'i-0000000000',
+            LifecycleActionToken: 'Action-Token-1',
+            NotificationMetadata: JSON.stringify({
+              eniId: 'eni-000000000',
+            }),
+          }),
+        },
+      },
+      {
+        Sns: {
+          Message: JSON.stringify({
+            LifecycleTransition: 'autoscaling:EC2_INSTANCE_LAUNCHING',
+            AutoScalingGroupName: 'ASG-Name-1',
+            LifecycleHookName: 'Hook-Name-1',
+            EC2InstanceId: 'i-0000000000',
+            LifecycleActionToken: 'Action-Token-1',
+            NotificationMetadata: JSON.stringify({
+              eniId: 'eni-000000000',
+            }),
+          }),
+        },
+      },
+    ],
+  };
+
+  attachSpy = jest.fn( (request) => successRequestMock(request) );
+  mock('EC2', 'attachNetworkInterface', attachSpy);
+
+  jest.spyOn(JSON, 'parse').mockImplementation(jest.fn( () => {throw 47;} ));
+
+  // THEN
+  // eslint-disable-next-line: no-floating-promises
+  await expect(handler(event)).resolves.not.toThrow();
+  expect(console.error).toHaveBeenCalledTimes(2); // 2 = each of the two records printing one error message.
 });

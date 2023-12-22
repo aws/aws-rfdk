@@ -23,7 +23,7 @@ function deploy_component_stacks () {
   # (https://docs.aws.amazon.com/cdk/latest/guide/context.html#context_methods)
   # in our case this is for stack.availabilityZones
 
-  npx cdk synth &> "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/synth.log"
+  npx cdk synth --output "$(pwd)/cdk.out" --app "npx ts-node --cwd $(pwd) bin/${COMPONENT_NAME}.ts" &> "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/synth.log"
   SYNTH_EXIT_CODE=$?
   echo $SYNTH_EXIT_CODE > "${INTEG_TEMP_DIR}/${COMPONENT_NAME}/synth-exit-code"
   if [[ $SYNTH_EXIT_CODE -ne 0 ]]
@@ -42,7 +42,7 @@ function deploy_component_stacks () {
 
   for stack in $(cdk_stack_deploy_order); do
     echo "$(timestamp) [${COMPONENT_NAME}] -> [${stack}] stack deployment started"
-    npx cdk deploy --app cdk.out --require-approval=never -e "${stack}" &>> "${deploy_log_path}"
+    npx cdk deploy --concurrency 10 --app $(pwd)/cdk.out --require-approval=never -e "${stack}" &>> "${deploy_log_path}"
     STACK_DEPLOY_EXIT_CODE=$?
     if [[ $STACK_DEPLOY_EXIT_CODE -ne 0 ]]
     then
@@ -93,7 +93,7 @@ function destroy_component_stacks () {
   cp /dev/null "${destroy_log_path}"
   for stack in $(cdk_stack_destroy_order); do
     echo "$(timestamp) [${COMPONENT_NAME}] -> [${stack}] stack destroy started"
-    npx cdk destroy --app cdk.out -e -f "${stack}" &>> "${destroy_log_path}"
+    npx cdk destroy --app $(pwd)/cdk.out -e -f "${stack}" &>> "${destroy_log_path}"
     STACK_DESTROY_EXIT_CODE=$?
     if [[ $STACK_DESTROY_EXIT_CODE -ne 0 ]]
     then

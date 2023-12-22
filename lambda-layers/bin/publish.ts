@@ -40,6 +40,7 @@ async function publishLayerToRegion(
   })
   if (await isDescriptionUpdated(descriptionText, lambda, layerName)) {
     try {
+      console.log(`Publishing to: ${region}`);
       const publishResult = await lambda.publishLayerVersion({
         LayerName: layerName,
         Content: {
@@ -98,6 +99,9 @@ getRegions().then(regions => {
       licenseText,
       region,
       runtimes,
-    );
+    ).catch(e => {
+      console.error(`Failed publishing in ${region}, which may be due to the REGION_DENY_LIST needing updating. Error: ${e}`);
+      throw e;
+    });
   }
 });

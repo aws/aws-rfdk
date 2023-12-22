@@ -10,7 +10,6 @@ import {
 } from 'aws-cdk-lib/assertions';
 import { CfnLaunchConfiguration } from 'aws-cdk-lib/aws-autoscaling';
 import {
-  AmazonLinuxGeneration,
   AmazonLinuxImage,
   ExecuteFileOptions,
   InstanceType,
@@ -159,7 +158,7 @@ describe('DeploymentInstance', () => {
 
       test('uses latest Amazon Linux machine image', () => {
         // GIVEN
-        const amazonLinux = MachineImage.latestAmazonLinux({ generation: AmazonLinuxGeneration.AMAZON_LINUX_2 });
+        const amazonLinux = MachineImage.latestAmazonLinux2();
         const imageId: { Ref: string } = stack.resolve(amazonLinux.getImage(stack)).imageId;
 
         // THEN

@@ -16,7 +16,7 @@ echo "$(date "+%Y-%m-%dT%H:%M:%S") [infrastructure] deployment started"
 set +e
 
 # Hide the deploy log unless something goes wrong (save the scrollback buffer)
-npx cdk deploy "*" --require-approval=never &> "${INTEG_TEMP_DIR}/infrastructure/deploy.txt"
+npx cdk deploy "*" --concurrency 10 --require-approval=never --output "$(pwd)/cdk.out" --app "npx ts-node --cwd $(pwd) bin/_infrastructure.ts" &> "${INTEG_TEMP_DIR}/infrastructure/deploy.txt"
 deploy_exit_code=$?
 
 # If an exit code was returned from the deployment, output the deploy log

@@ -7,7 +7,7 @@
 
 import * as crypto from 'crypto';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { ACM, DynamoDB, SecretsManager } from 'aws-sdk';
+import { ACM, DynamoDB, SecretsManager, AWSError } from 'aws-sdk';
 
 import { LambdaContext } from '../lib/aws-lambda';
 import { BackoffGenerator } from '../lib/backoff-generator';
@@ -115,7 +115,7 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
         // AccessDeniedException can happen if either:
         //  a) We do not have the required permission to delete the Certificate (unlikely)
         //  b) The Certificate has already been deleted (more likely)
-        if (e.message.indexOf('AccessDeniedException')) {
+        if ((e as AWSError)?.message.indexOf('AccessDeniedException')) {
           console.warn(`Could not delete Certificate ${arn}. Please ensure it has been deleted.`);
         }
         throw e; // Rethrow so the custom resource handler will error-out.

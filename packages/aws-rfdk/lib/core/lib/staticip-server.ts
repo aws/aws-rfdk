@@ -263,7 +263,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
     this.privateIpAddress = eni.attrPrimaryPrivateIpAddress;
 
     // We need to be sure that the ENI is created before the instance would be brought up; otherwise, we cannot attach it.
-    (this.autoscalingGroup.node.defaultChild as CfnResource).addDependsOn(eni);
+    (this.autoscalingGroup.node.defaultChild as CfnResource).addDependency(eni);
 
     this.attachEniLifecyleTarget(eni);
 

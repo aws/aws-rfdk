@@ -27,7 +27,7 @@ and let us know if it's not up-to-date (even better, submit a PR with your  corr
 The RFDK is written in Typescript and converted, using [jsii](https://github.com/aws/jsii), into Python. Thus, the
 minimal development environment must include:
 
-- Node.js >= 14.19.3
+- Node.js >= 18.0.0
 - docker >= 18
 
 We also recommend developing on a Linux system.
@@ -39,10 +39,10 @@ the [instructions](https://github.com/nvm-sh/nvm#installing-and-updating) to ins
 then you can install a version of Node.js and set your shell to make it available when you login:
 
 ```bash
-# For example, the latest version of Node.js 14.x
+# For example, the latest version of Node.js 18.x
 
 # Find out the version number for latest
-LATEST_VERSION=$(nvm ls-remote | grep v14 | grep 'Latest' | awk '{print $1}')
+LATEST_VERSION=$(nvm ls-remote | grep v18 | grep 'Latest' | awk '{print $1}')
 
 # Install it
 nvm install ${LATEST_VERSION}
@@ -77,9 +77,9 @@ The developers actively use Linux for development, but macOS and the Windows Sub
 
     ```bash
     # From the root directory of this repository
-    ./build.sh
+    yarn build
 
-    # Once you've run ./build.sh from the root directory at least once, then
+    # Once you've run "yarn build" from the root directory at least once, then
     # you can do subsequent build & test iterations from the RFDK package directory to save time.
     cd packages/aws-rfdk
     yarn build+test
@@ -155,7 +155,7 @@ yarn clean
 ./clean.sh
 
 # Rebuild
-./build.sh
+yarn build
 ```
 
 If that does not work, then you might try the following nuclear option. **WARNING** -- this will

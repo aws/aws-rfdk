@@ -6,7 +6,7 @@
 /* eslint-disable no-console */
 
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { ECS } from 'aws-sdk';
+import { ECS, AWSError } from 'aws-sdk';
 import { LambdaContext } from '../lib/aws-lambda';
 import {
   CfnRequestEvent,
@@ -61,7 +61,7 @@ export class WaitForStableServiceResource extends SimpleCustomResource {
       await this.ecsClient.waitFor('servicesStable', options).promise();
       console.log('Finished waiting. ECS services are stable.');
     } catch (e) {
-      throw new Error(`ECS services failed to stabilize in expected time: ${e.code} -- ${e.message}`);
+      throw new Error(`ECS services failed to stabilize in expected time: ${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
     }
 
     return undefined;

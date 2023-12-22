@@ -30,7 +30,7 @@ const sampleEvent = {
       MessageAttributes: {},
     },
   }],
-};
+} as AWSLambda.SNSEvent;
 
 const context = {
   functionName: 'provider',

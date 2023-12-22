@@ -1,5 +1,6 @@
 {
   "app": "npx ts-node bin/_infrastructure.ts",
   "context": {
+    "@aws-cdk/aws-ec2:uniqueImdsv2TemplateName": true
   }
 }
