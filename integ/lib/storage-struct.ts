@@ -8,7 +8,10 @@ import {
   RemovalPolicy,
   Stack,
 } from 'aws-cdk-lib';
-import { DatabaseCluster } from 'aws-cdk-lib/aws-docdb';
+import {
+  CfnDBInstance,
+  DatabaseCluster,
+} from 'aws-cdk-lib/aws-docdb';
 import {
   InstanceClass,
   InstanceSize,
@@ -107,8 +110,8 @@ export class StorageStruct extends Construct {
     });
 
     let cacert;
-    let database;
-    let databaseConnection;
+    let database: DatabaseCluster | MongoDbInstance | undefined;
+    let databaseConnection: DatabaseConnection | undefined;
     let databaseSecret: ISecret;
 
     // Check if the test requires a DocDB or MongoDB to be created. If neither is provided, the Repository construct will create a DocDB itself.
@@ -132,6 +135,11 @@ export class StorageStruct extends Construct {
         removalPolicy: RemovalPolicy.DESTROY,
       });
       databaseSecret = database.secret!;
+
+      // Use new CA certificate on DB instances, expiring in 2121
+      // See https://docs.aws.amazon.com/documentdb/latest/developerguide/ca_cert_rotation.html
+      const dbInstances = database.instanceIdentifiers.map((_, i) => database!.node.findChild(`Instance${i+1}`) as CfnDBInstance);
+      applyNewRdsCaCertificate(dbInstances);
 
       // Create a database connection for the DocDB
       databaseConnection = DatabaseConnection.forDocDB({
@@ -244,6 +252,22 @@ export class StorageStruct extends Construct {
       },
     });
 
+    if (database === undefined && databaseConnection === undefined) {
+      // Repository should have created a DocDB for us, so apply the new RDS CA cert to its instances
+      const dbConstruct = this.repo.databaseConnection.databaseConstruct;
+      if (!(dbConstruct instanceof DatabaseCluster)) {
+        throw new Error(
+          'Cannot apply new RDS CA certificates to DocDB instances created by Repository construct. Expected DatabaseConnection.databaseConstruct' +
+          ` to be a DatabaseCluster construct, but got ${dbConstruct} (${typeof dbConstruct})`,
+        );
+      }
+
+      // Use new CA certificate on DB instances, expiring in 2121
+      // See https://docs.aws.amazon.com/documentdb/latest/developerguide/ca_cert_rotation.html
+      const dbInstances = dbConstruct.instanceIdentifiers.map((_, i) => dbConstruct.node.findChild(`Instance${i+1}`) as CfnDBInstance);
+      applyNewRdsCaCertificate(dbInstances);
+    }
+
     if( !database ) {
       database = this.repo.node.findChild('DocumentDatabase') as DatabaseCluster;
       databaseSecret = database.secret!;
@@ -255,4 +279,8 @@ export class StorageStruct extends Construct {
     };
     this.efs = ( deadlineEfs || this.repo.node.findChild('FileSystem') as FileSystem );
   }
+}
+
+function applyNewRdsCaCertificate(instances: CfnDBInstance[]): void {
+  instances.forEach(instance => instance.caCertificateIdentifier = 'rds-ca-rsa4096-g1');
 }
