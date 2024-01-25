@@ -73,7 +73,7 @@
   "dependencies": {
     "@aws-sdk/client-cloudformation": "^3.470.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.470.0",
-    "@aws-sdk/client-secrets-manager": "^3.470.0",
+    "@aws-sdk/client-secrets-manager": "^3.499.0",
     "@aws-sdk/client-ssm": "^3.470.0",
     "aws-cdk-lib": "2.114.1",
     "aws-rfdk": "1.3.0",
