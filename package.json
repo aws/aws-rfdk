@@ -30,7 +30,7 @@
     "@aws-sdk/client-ssm": "^3.470.0",
     "@aws-sdk/client-cloudformation": "^3.470.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.470.0",
-    "@aws-sdk/client-secrets-manager": "^3.470.0",
+    "@aws-sdk/client-secrets-manager": "^3.529.1",
     "@types/jest": "^29.5.11",
     "@types/node": "18.11.19",
     "aws-cdk-lib": "2.114.1",
