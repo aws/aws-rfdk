@@ -99,8 +99,8 @@ test('processes all correct records', async () => {
       },
     ],
   };
-  attachSpy = jest.fn( (request) => successRequestMock(request) );
-  completeSpy = jest.fn( (request) => successRequestMock(request) );
+  attachSpy = jest.fn( (request, _callback) => successRequestMock(request) );
+  completeSpy = jest.fn( (request, _callback) => successRequestMock(request) );
   mock('EC2', 'attachNetworkInterface', attachSpy);
   mock('AutoScaling', 'completeLifecycleAction', completeSpy);
 
@@ -158,7 +158,7 @@ test('abandons launch when attach fails', async () => {
   };
 
   attachSpy = jest.fn( () => errorRequestMock() );
-  completeSpy = jest.fn( (request) => successRequestMock(request) );
+  completeSpy = jest.fn( (request, _callback) => successRequestMock(request) );
   mock('EC2', 'attachNetworkInterface', attachSpy);
   mock('AutoScaling', 'completeLifecycleAction', completeSpy);
 

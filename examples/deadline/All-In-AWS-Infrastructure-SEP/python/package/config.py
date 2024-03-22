@@ -12,10 +12,10 @@ class AppConfig:
     TODO: Fill these in with your own values.
     """
     def __init__(self):
-        # A map of regions to Deadline Client Linux AMIs. As an example, the base Linux Deadline 10.3.1.3 AMI ID
+        # A map of regions to Deadline Client Linux AMIs. As an example, the base Linux Deadline 10.3.2.1 AMI ID
         # from us-west-2 is filled in. It can be used as-is, added to, or replaced. Ideally the version here
         #  should match the one used for staging the render queue and usage based licensing recipes.
-        self.deadline_client_linux_ami_map: Mapping[str, str] = {'us-west-2': 'ami-08a66350b8a662070'}
+        self.deadline_client_linux_ami_map: Mapping[str, str] = {'us-west-2': 'ami-0b2bbe30ea8642cdd'}
 
         # Whether the DeadlineResourceTrackerAccessRole IAM role required by Deadline's Resource Tracker should be created in this CDK app.
         #
