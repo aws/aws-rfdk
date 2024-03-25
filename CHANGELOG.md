@@ -14,7 +14,7 @@ the minimum officially supported version that RFDK now supports. See our documen
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.3.1.4](https://docs.thinkboxsoftware.com/products/deadline/10.3/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.3.2.1](https://docs.thinkboxsoftware.com/products/deadline/10.3/1_User%20Manual/manual/release-notes.html)
 
 
 ### Features
