@@ -23,7 +23,6 @@ import {
   ISecurityGroup,
   IVpc,
   LaunchTemplate,
-  LaunchTemplateSpecialVersions,
   OperatingSystemType,
   Port,
   SecurityGroup,
@@ -206,6 +205,13 @@ export interface SpotEventPluginFleetProps {
    * @default - the Spot Fleet request remains until you cancel it.
    */
   readonly validUntil?: Expiration;
+
+  /**
+   * Reserved
+   *
+   * @default - No context string
+   */
+  readonly context?: string;
 
   /**
    * Properties for setting up the Deadline Worker's LogGroup
@@ -430,6 +436,13 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
   public readonly validUntil?: Expiration;
 
   /**
+   * Reserved
+   *
+   * @default - No context string
+   */
+  public readonly context?: string;
+
+  /**
    * The Block devices that will be attached to your workers.
    *
    * @default - The default devices of the provided ami will be used.
@@ -488,6 +501,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
     this.maxCapacity = props.maxCapacity;
     this.validUntil = props.validUntil;
     this.keyName = props.keyName;
+    this.context = props.context;
 
     const imageConfig = props.workerMachineImage.getImage(this);
     this.osType = imageConfig.osType;
@@ -563,7 +577,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
       this.subnets.subnetIds.forEach(subnetId => {
         launchTemplateConfigs.push({
           LaunchTemplateSpecification: {
-            Version: LaunchTemplateSpecialVersions.LATEST_VERSION,
+            Version: this.launchTemplate.versionNumber,
             LaunchTemplateId: this.launchTemplate.launchTemplateId,
             LaunchTemplateName: this.launchTemplate.launchTemplateName,
           },
