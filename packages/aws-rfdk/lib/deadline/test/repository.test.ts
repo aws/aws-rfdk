@@ -122,7 +122,7 @@ beforeEach(() => {
       s3Bucket: new Bucket(stack, 'LinuxClientInstallerBucket'),
     },
   };
-  version = create_version([10,1,19,4]);
+  version = create_version([10,3,2,1]);
 });
 
 test('can create two repositories', () => {
@@ -165,7 +165,7 @@ test('repository installer instance is created correctly', () => {
     CreationPolicy: {
       ResourceSignal: {
         Count: 1,
-        Timeout: 'PT15M',
+        Timeout: 'PT30M',
       },
     },
     UpdatePolicy: {
@@ -181,7 +181,7 @@ test('repository installer instance is created correctly', () => {
     ]),
   });
   Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
-    InstanceType: 't3.large',
+    InstanceType: 't3.2xlarge',
   });
 
   Template.fromStack(stack).hasResourceProperties('AWS::EC2::SecurityGroupIngress', {

@@ -620,7 +620,10 @@ export class Repository extends Construct implements IRepository {
         }) : undefined),
     };
 
+    let isEfsUsed = false;
+
     this.fileSystem = props.fileSystem ?? (() => {
+      isEfsUsed = true;
       const fs = new EfsFileSystem(this, 'FileSystem', {
         vpc: props.vpc,
         vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_EGRESS },
@@ -677,7 +680,7 @@ export class Repository extends Construct implements IRepository {
        */
       const parameterGroup = databaseAuditLogging ? new ClusterParameterGroup(this, 'ParameterGroup', {
         description: 'DocDB cluster parameter group with enabled audit logs',
-        family: 'docdb3.6',
+        family: 'docdb5.0',
         parameters: {
           audit_logs: 'enabled',
         },
@@ -686,7 +689,7 @@ export class Repository extends Construct implements IRepository {
       const instances = props.documentDbInstanceCount ?? Repository.DEFAULT_NUM_DOCDB_INSTANCES;
       const dbCluster = new DatabaseCluster(this, 'DocumentDatabase', {
         masterUser: {username: 'DocDBUser'},
-        engineVersion: '3.6.0',
+        engineVersion: '5.0.0',
         instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
         vpc: props.vpc,
         vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_EGRESS, onePerAz: true },
@@ -729,7 +732,7 @@ export class Repository extends Construct implements IRepository {
 
     // Launching the instance which installs the deadline repository in the stack.
     this.installerGroup = new AutoScalingGroup(this, 'Installer', {
-      instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
+      instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.XLARGE2),
       machineImage: new AmazonLinuxImage({
         generation: AmazonLinuxGeneration.AMAZON_LINUX_2,
       }),
@@ -741,7 +744,7 @@ export class Repository extends Construct implements IRepository {
       maxCapacity: 1,
       updatePolicy: UpdatePolicy.replacingUpdate(),
       signals: Signals.waitForAll({
-        timeout: (props.repositoryInstallationTimeout || Duration.minutes(15)),
+        timeout: (props.repositoryInstallationTimeout || Duration.minutes(30)),
       }),
       securityGroup: props.securityGroupsOptions?.installer,
     });
@@ -773,6 +776,7 @@ export class Repository extends Construct implements IRepository {
       // Change ownership of the Deadline repository files if-and-only-if the mounted file-system
       // uses the POSIX permissions based on the process' user UID/GID
       this.fileSystem.usesUserPosixPermissions() ? Repository.REPOSITORY_OWNER : undefined,
+      isEfsUsed,
     );
 
     this.configureSelfTermination();
@@ -1010,6 +1014,7 @@ export class Repository extends Construct implements IRepository {
     version: IVersion,
     settings?: Asset,
     owner?: { uid: number, gid: number },
+    isEfsUsed?: boolean,
   ) {
     const installerScriptAsset = ScriptAsset.fromPathConvention(this, 'DeadlineRepositoryInstallerScript', {
       osType: installerGroup.osType,
@@ -1049,6 +1054,10 @@ export class Repository extends Construct implements IRepository {
     /* istanbul ignore next */
     if (owner) {
       installerArgs.push('-o', `${owner.uid}:${owner.gid}`);
+    }
+
+    if (isEfsUsed) {
+      installerArgs.push('-n');
     }
 
     installerScriptAsset.executeOn({

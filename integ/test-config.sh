@@ -5,7 +5,7 @@
 
 # Accept SSPL license to install MongoDB
 #   - If not set to `true` here, the Repository test component will fail immediately on execution
-export USER_ACCEPTS_SSPL_FOR_RFDK_TESTS=false
+export USER_ACCEPTS_SSPL_FOR_RFDK_TESTS=true
 
 # Version of Deadline to install on farm resources.
 #   -  If not set here, will default to the latest

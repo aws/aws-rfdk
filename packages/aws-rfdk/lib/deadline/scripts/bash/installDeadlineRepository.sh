@@ -20,9 +20,11 @@ Optional arguments
   -s Deadline Repository settings file to import.
   -o The UID[:GID] that this script will chown the Repository files for. If GID is not specified, it defults to be the same as UID.
   -c Secrets management admin credentials ARN. If this parameter is specified, secrets management will be enabled.
-  -r Region where stacks are deployed. Required to get secret management credentials."
+  -r Region where stacks are deployed. Required to get secret management credentials.
+  -n Setting to poll NFS connection before running the installer. Does not need an argument passed in."
 
-while getopts "i:p:v:s:o:c:r:" opt; do
+IS_NFS_POLLING_ENABLED=false
+while getopts "i:p:v:s:o:c:r:n" opt; do
   case $opt in
     i) S3PATH="$OPTARG"
     ;;
@@ -37,6 +39,8 @@ while getopts "i:p:v:s:o:c:r:" opt; do
     c) SECRET_MANAGEMENT_ARN="$OPTARG"
     ;;
     r) AWS_REGION="$OPTARG"
+    ;;
+    n) IS_NFS_POLLING_ENABLED=true
     ;;
     /?)
       echo "$USAGE"
@@ -179,11 +183,44 @@ if [[ -n "${DEADLINE_REPOSITORY_OWNER+x}" ]]; then
   fi
 fi
 
+
+df -h
+free -m
+ls -l /mnt/efs/fs1
+sleep 120
+#if [ "$IS_NFS_POLLING_ENABLED" = true ]; then
+
+  echo "Polling NFS drive for connection..."
+  # Poll for an NFS connection before running the installer, as the installer can silently fail if the NFS is not yet mounted.
+  MAX_NFS_POLL_ATTEMPTS=5
+  NFS_POLL_ATTEMPT=0
+  IS_NFS_MOUNT_FOUND=false
+  
+  while [ "$NFS_POLL_ATTEMPT" -le "$MAX_NFS_POLL_ATTEMPTS" ]; do
+      echo "Attempt $NFS_POLL_ATTEMPT of $MAX_NFS_POLL_ATTEMPTS"
+      # Check if any NFS mount is present
+      NFS_MOUNT=$(nfsstat -m)
+      if [ -n "$NFS_MOUNT" ]; then
+          echo "NFS mount(s) found: $NFS_MOUNT"
+          IS_NFS_MOUNT_FOUND=true
+          break
+      fi
+      sleep 5
+      NFS_POLL_ATTEMPT=$((NFS_POLL_ATTEMPT + 1))
+  done
+  
+  if [ "$IS_NFS_MOUNT_FOUND" = false ]; then
+      echo "Failed to mount to the NFS file system!"
+      exit 1
+  fi
+  echo "Mounting to the NFS file system succeeded!"
+#fi
+
 # The syntax ${array[@]+"${array[@]}"} is a way to get around the expansion of an empty array raising an unbound variable error since this script
 # sets the "u" shell option above. This is a use of the ${parameter+word} shell expansion. If the value of "parameter" is unset, nothing will be
 # substituted in its place. If "parameter" is set, then the value of "word" is used, which is the expansion of the populated array.
 # Since bash treats the expansion of an empty array as an unset variable, we can use this pattern expand the array only if it is populated.
-$INSTALL_AS_NON_ROOT_CMD $REPO_INSTALLER --mode unattended --setpermissions false --prefix "$PREFIX" --installmongodb false --backuprepo false ${REPO_ARGS[@]+"${REPO_ARGS[@]}"}
+$INSTALL_AS_NON_ROOT_CMD $REPO_INSTALLER --mode unattended --setpermissions false --prefix "$PREFIX" --installmongodb false --backuprepo false --debuglevel 4 ${REPO_ARGS[@]+"${REPO_ARGS[@]}"}
 
 if [[ -z "$INSTALL_AS_NON_ROOT_CMD" ]] && [[ -n "${REPOSITORY_OWNER_UID+x}" ]]; then
   echo "Changing ownership of Deadline Repository files to UID=$REPOSITORY_OWNER_UID GID=$REPOSITORY_OWNER_GID"
