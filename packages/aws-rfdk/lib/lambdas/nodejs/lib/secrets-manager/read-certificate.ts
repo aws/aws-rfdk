@@ -3,8 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { SecretsManager } from 'aws-sdk';
+/* eslint-disable import/no-extraneous-dependencies */
+import {
+  SecretsManagerClient,
+} from '@aws-sdk/client-secrets-manager';
+/* eslint-enable import/no-extraneous-dependencies */
+
 import { Secret } from './secret';
 
 /**
@@ -12,7 +16,7 @@ import { Secret } from './secret';
  * @param arn ARN of the Secret containing the certificate
  * @param client An instance of the SecretsManager class
  */
-export async function readCertificateData(arn: string, client: SecretsManager): Promise<string> {
+export async function readCertificateData(arn: string, client: SecretsManagerClient): Promise<string> {
   const data = await Secret.fromArn(arn, client).getValue();
   if (Buffer.isBuffer(data) || !/BEGIN CERTIFICATE/.test(data as string)) {
     throw new Error(`Certificate Secret (${arn}) must contain a Certificate in PEM format.`);

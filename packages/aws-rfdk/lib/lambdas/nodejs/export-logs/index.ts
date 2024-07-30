@@ -5,8 +5,13 @@
 
 /* eslint-disable no-console */
 
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { CloudWatchLogs } from 'aws-sdk';
+/* eslint-disable import/no-extraneous-dependencies */
+import {
+  CloudWatchLogsClient,
+  CreateExportTaskCommand,
+  DescribeExportTasksCommand,
+} from '@aws-sdk/client-cloudwatch-logs';
+/* eslint-enable import/no-extraneous-dependencies */
 
 function sleep(timeout: number): Promise<void> {
   return new Promise((resolve) => {
@@ -19,16 +24,13 @@ function sleep(timeout: number): Promise<void> {
  * quite a bit, but Lambdas are cheap and we want to know if our logs are exporting properly.
  */
 async function confirmTaskCompletion(taskId: string): Promise<void> {
-  const cloudwatchlogs = new CloudWatchLogs({ apiVersion: '2014-03-28' });
+  const cloudwatchlogs = new CloudWatchLogsClient();
 
   let errorCount = 0;
   let complete = false;
   while (!complete) {
     try {
-      const response = await cloudwatchlogs.describeExportTasks({ taskId }).promise();
-      if (response.$response.error) {
-        throw new Error(`Task ${taskId} failed with message: ${response.$response.error.message}`);
-      }
+      const response = await cloudwatchlogs.send(new DescribeExportTasksCommand({ taskId }));
       if (response.exportTasks?.length !== 1) {
         throw new Error(`Received ${response.exportTasks?.length} export tasks from DescribeExportTasks for task ${taskId}.`);
       }
@@ -71,7 +73,7 @@ async function exportToS3Task(
   exportFrequencyInHours: number,
   logGroupName: string,
   retentionInHours: number): Promise<void> {
-  const cloudwatchlogs = new CloudWatchLogs({ apiVersion: '2014-03-28' });
+  const cloudwatchlogs = new CloudWatchLogsClient();
 
   // End time is now minus the retention period in CloudWatch plus one hour. This creates an extra hour buffer to
   // make sure no logs expire before they get exported.
@@ -93,11 +95,7 @@ async function exportToS3Task(
     logGroupName,
     to: endTime.getTime(),
   };
-  const response = await cloudwatchlogs.createExportTask(params).promise();
-
-  if (response.$response.error) {
-    throw new Error(response.$response.error.message);
-  }
+  const response = await cloudwatchlogs.send(new CreateExportTaskCommand(params));
   if (response.taskId) {
     console.log(`${response.taskId}: Successfully created export task for ${logGroupName}.`);
     console.log(`Exporting into ${bucketName} from ${startTime} to ${endTime}.`);

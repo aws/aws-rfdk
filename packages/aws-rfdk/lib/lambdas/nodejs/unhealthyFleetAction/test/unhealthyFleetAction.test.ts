@@ -5,11 +5,14 @@
 
 /* eslint-disable no-console */
 
-import * as AWS from 'aws-sdk-mock';
-import * as sinon from 'sinon';
+import {
+  AutoScalingClient, UpdateAutoScalingGroupCommand, ScalingActivityInProgressFault,
+} from '@aws-sdk/client-auto-scaling';
+import { mockClient } from 'aws-sdk-client-mock';
 import * as lambdaCode from '../index';
+import 'aws-sdk-client-mock-jest';
 
-AWS.setSDK(require.resolve('aws-sdk'));
+const autoScalingMock = mockClient(AutoScalingClient);
 
 const sampleEvent = {
   Records: [{
@@ -43,20 +46,19 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  AWS.restore();
+  autoScalingMock.reset();
 });
 
 test('success scenario single fleet', async () => {
   // WHEN
-  const updateAutoScalingGroupFake = sinon.fake.resolves({});
-  AWS.mock('AutoScaling', 'updateAutoScalingGroup', updateAutoScalingGroupFake);
+  autoScalingMock.on(UpdateAutoScalingGroupCommand).resolves({});
 
   const result = (await lambdaCode.handler(sampleEvent, context));
 
   // THEN
   expect(result.status).toEqual('OK');
 
-  sinon.assert.calledWith(updateAutoScalingGroupFake, {
+  expect(autoScalingMock).toHaveReceivedCommandWith(UpdateAutoScalingGroupCommand, {
     AutoScalingGroupName: 'testFleetId',
     MaxSize: 0,
     MinSize: 0,
@@ -66,11 +68,9 @@ test('success scenario single fleet', async () => {
 
 test('failure scenario, AWS api returns failure', async () => {
   // WHEN
-  const error = new Error() as NodeJS.ErrnoException;
-  error.code = 'AccessDeniedException';
+  const error = new ScalingActivityInProgressFault({message: 'test error', $metadata: {}});
 
-  const updateAutoScalingGroupFake = sinon.fake.rejects(error);
-  AWS.mock('AutoScaling', 'updateAutoScalingGroup', updateAutoScalingGroupFake);
+  autoScalingMock.on(UpdateAutoScalingGroupCommand).rejects(error);
 
   const result = (await lambdaCode.handler(sampleEvent, context));
 
@@ -78,7 +78,7 @@ test('failure scenario, AWS api returns failure', async () => {
   expect(result.status).toEqual('ERROR');
   expect(result.reason).toMatch(/Exception while suspending fleet/);
 
-  sinon.assert.calledWith(updateAutoScalingGroupFake, {
+  expect(autoScalingMock).toHaveReceivedCommandWith(UpdateAutoScalingGroupCommand, {
     AutoScalingGroupName: 'testFleetId',
     MaxSize: 0,
     MinSize: 0,
@@ -91,15 +91,14 @@ test('failure scenario, MetricStat not found', async () => {
   const successEventSingle = JSON.parse(JSON.stringify(sampleEvent));
   successEventSingle.Records[0].Sns.Message = '{"AlarmName":"testAlarm","AlarmDescription":null,"NewStateValue":"ALARM","NewStateReason":"Threshold Crossed: 5 out of the last 5 datapoints were less than the threshold (65.0). The most recent datapoints which crossed the threshold: [0.0 (29/04/20 23:32:00), 0.0 (29/04/20 23:31:00), 0.0 (29/04/20 23:30:00), 0.0 (29/04/20 23:29:00), 0.0 (29/04/20 23:28:00)] (minimum 5 datapoints for OK -> ALARM transition).","StateChangeTime":"2020-04-29T23:33:34.876+0000","Region":"US West (Oregon)","AlarmArn":"test-arn","OldStateValue":"INSUFFICIENT_DATA","Trigger":{"Period":60,"EvaluationPeriods":5,"ComparisonOperator":"LessThanThreshold","Threshold":65.0,"TreatMissingData":"- TreatMissingData:                    missing","EvaluateLowSampleCountPercentile":"","Metrics":[{"Expression":"100*(healthyHostCount/fleetCapacity)","Id":"expr_1","ReturnData":true},{"Id":"healthyHostCount","Label":"HealthyHostCount","MetricStat":{"Metric":{"Dimensions":[{"value":"testTargetGroup","name":"TargetGroup"},{"value":"testLoadBalancer","name":"LoadBalancer"}],"MetricName":"HealthyHostCount","Namespace":"AWS/NetworkELB"},"Period":60,"Stat":"Average"},"ReturnData":false},{"Id":"fleetCapacity","Label":"GroupDesiredCapacity","M":{"Metric":{"Dimensions":[{"value":"testFleetId2","name":"AutoScalingGroupName"}],"MetricName":"GroupDesiredCapacity","Namespace":"AWS/AutoScaling"},"Period":60,"Stat":"Average"},"ReturnData":false}]}}';
 
-  const updateAutoScalingGroupFake = sinon.fake.resolves({});
-  AWS.mock('AutoScaling', 'updateAutoScalingGroup', updateAutoScalingGroupFake);
+  autoScalingMock.on(UpdateAutoScalingGroupCommand).resolves({});
 
   const result = (await lambdaCode.handler(successEventSingle, context));
 
   // THEN
   expect(result.status).toEqual('ERROR');
 
-  sinon.assert.notCalled(updateAutoScalingGroupFake);
+  expect(autoScalingMock).not.toHaveReceivedCommand(UpdateAutoScalingGroupCommand);
 });
 
 test('Error if 2 records are found', async () => {
@@ -107,8 +106,7 @@ test('Error if 2 records are found', async () => {
   const successEventSingle = JSON.parse(JSON.stringify(sampleEvent));
   successEventSingle.Records.push(JSON.parse(JSON.stringify(successEventSingle.Records[0])));
 
-  const updateAutoScalingGroupFake = sinon.fake.resolves({});
-  AWS.mock('AutoScaling', 'updateAutoScalingGroup', updateAutoScalingGroupFake);
+  autoScalingMock.on(UpdateAutoScalingGroupCommand).resolves({});
 
   const result = (await lambdaCode.handler(successEventSingle, context));
 
@@ -116,7 +114,7 @@ test('Error if 2 records are found', async () => {
   expect(result.status).toEqual('ERROR');
   expect(result.reason).toMatch(/Expecting a single record in SNS Event/);
 
-  sinon.assert.notCalled(updateAutoScalingGroupFake);
+  expect(autoScalingMock).not.toHaveReceivedCommand(UpdateAutoScalingGroupCommand);
 });
 
 test('Error if exactly 3 metrics are not found', async () => {
@@ -124,8 +122,7 @@ test('Error if exactly 3 metrics are not found', async () => {
   const successEventSingle = JSON.parse(JSON.stringify(sampleEvent));
   successEventSingle.Records[0].Sns.Message = '{"AlarmName":"testAlarm","AlarmDescription":null,"NewStateValue":"ALARM","NewStateReason":"Threshold Crossed: 5 out of the last 5 datapoints were less than the threshold (65.0). The most recent datapoints which crossed the threshold: [0.0 (29/04/20 23:32:00), 0.0 (29/04/20 23:31:00), 0.0 (29/04/20 23:30:00), 0.0 (29/04/20 23:29:00), 0.0 (29/04/20 23:28:00)] (minimum 5 datapoints for OK -> ALARM transition).","StateChangeTime":"2020-04-29T23:33:34.876+0000","Region":"US West (Oregon)","AlarmArn":"test-arn","OldStateValue":"INSUFFICIENT_DATA","Trigger":{"Period":60,"EvaluationPeriods":5,"ComparisonOperator":"LessThanThreshold","Threshold":65.0,"TreatMissingData":"- TreatMissingData:                    missing","EvaluateLowSampleCountPercentile":"","Metrics":[{"Id":"healthyHostCount","Label":"HealthyHostCount","MetricStat":{"Metric":{"Dimensions":[{"value":"testTargetGroup","name":"TargetGroup"},{"value":"testLoadBalancer","name":"LoadBalancer"}],"MetricName":"HealthyHostCount","Namespace":"AWS/NetworkELB"},"Period":60,"Stat":"Average"},"ReturnData":false},{"Id":"fleetCapacity","Label":"GroupDesiredCapacity","MetricStat":{"Metric":{"Dimensions":[{"value":"testFleetId2","name":"AutoScalingGroupName"}],"MetricName":"GroupDesiredCapacity","Namespace":"AWS/AutoScaling"},"Period":60,"Stat":"Average"},"ReturnData":false}]}}';
 
-  const updateAutoScalingGroupFake = sinon.fake.resolves({});
-  AWS.mock('AutoScaling', 'updateAutoScalingGroup', updateAutoScalingGroupFake);
+  autoScalingMock.on(UpdateAutoScalingGroupCommand).resolves({});
 
   const result = (await lambdaCode.handler(successEventSingle, context));
 
@@ -133,21 +130,20 @@ test('Error if exactly 3 metrics are not found', async () => {
   expect(result.status).toEqual('ERROR');
   expect(result.reason).toMatch(/Exactly 3 metrics should be present in the alarm message/);
 
-  sinon.assert.notCalled(updateAutoScalingGroupFake);
+  expect(autoScalingMock).not.toHaveReceivedCommand(UpdateAutoScalingGroupCommand);
 });
 
 test('failure scenario, incorrect dimension, metrics and message', async () => {
   // WHEN
   const successEventSingle = JSON.parse(JSON.stringify(sampleEvent));
 
-  const updateAutoScalingGroupFake = sinon.fake.resolves({});
-  AWS.mock('AutoScaling', 'updateAutoScalingGroup', updateAutoScalingGroupFake);
+  autoScalingMock.on(UpdateAutoScalingGroupCommand).resolves({});
 
   successEventSingle.Records[0].Sns.Message = '{"AlarmName":"testAlarm","AlarmDescription":null,"NewStateValue":"ALARM","NewStateReason":"Threshold Crossed: 5 out of the last 5 datapoints were less than the threshold (65.0). The most recent datapoints which crossed the threshold: [0.0 (29/04/20 23:32:00), 0.0 (29/04/20 23:31:00), 0.0 (29/04/20 23:30:00), 0.0 (29/04/20 23:29:00), 0.0 (29/04/20 23:28:00)] (minimum 5 datapoints for OK -> ALARM transition).","StateChangeTime":"2020-04-29T23:33:34.876+0000","Region":"US West (Oregon)","AlarmArn":"test-arn","OldStateValue":"INSUFFICIENT_DATA","Trigger":{"Period":60,"EvaluationPeriods":5,"ComparisonOperator":"LessThanThreshold","Threshold":65.0,"TreatMissingData":"- TreatMissingData:                    missing","EvaluateLowSampleCountPercentile":"","Metrics":[{"Expression":"100*(healthyHostCount/fleetCapacity)","Id":"expr_1","ReturnData":true},{"Id":"healthyHostCount","Label":"HealthyHostCount","MetricStat":{"Metric":{"Dimensions":[{"value":"testTargetGroup","name":"TargetGroup"},{"value":"testLoadBalancer","name":"LoadBalancer"}],"MetricName":"HealthyHostCount","Namespace":"AWS/NetworkELB"},"Period":60,"Stat":"Average"},"ReturnData":false},{"Id":"fleetCapacity","Label":"GroupDesiredCapacity","MetricStat":{"Metric":{"Dimensions":[{"value":"testFleetId","name":"AutoScalingGroup"}],"MetricName":"GroupDesiredCapacity","Namespace":"AWS/AutoScaling"},"Period":60,"Stat":"Average"},"ReturnData":false}]}}';
   (await lambdaCode.handler(successEventSingle, context));
 
   // THEN
-  sinon.assert.notCalled(updateAutoScalingGroupFake);
+  expect(autoScalingMock).not.toHaveReceivedCommand(UpdateAutoScalingGroupCommand);
 
   // WHEN
   successEventSingle.Records[0].Sns.Message = '{"AlarmName":"testAlarm","AlarmDescription":null,"NewStateValue":"ALARM","NewStateReason":"Threshold Crossed: 5 out of the last 5 datapoints were less than the threshold (65.0). The most recent datapoints which crossed the threshold: [0.0 (29/04/20 23:32:00), 0.0 (29/04/20 23:31:00), 0.0 (29/04/20 23:30:00), 0.0 (29/04/20 23:29:00), 0.0 (29/04/20 23:28:00)] (minimum 5 datapoints for OK -> ALARM transition).","StateChangeTime":"2020-04-29T23:33:34.876+0000","Region":"US West (Oregon)","AlarmArn":"test-arn","OldStateValue":"INSUFFICIENT_DATA","Trigger":{"Period":60,"EvaluationPeriods":5,"ComparisonOperator":"LessThanThreshold","Threshold":65.0,"TreatMissingData":"- TreatMissingData:                    missing","EvaluateLowSampleCountPercentile":"","Metrics":[{"Expression":"100*(healthyHostCount/fleetCapacity)","Id":"expr_1","ReturnData":true},{"Id":"healthyHostCount","Label":"HealthyHostCount","MetricStat":{"Metric":{"Dimensions":[{"value":"testTargetGroup","name":"TargetGroup"},{"value":"testLoadBalancer","name":"LoadBalancer"}],"MetricName":"HealthyHostCount","Namespace":"AWS/NetworkELB"},"Period":60,"Stat":"Average"},"ReturnData":false},{"Id":"fleetCapacity","Label":"GroupDesiredCapacity","MetricStat":{"Metric":{"Dimen":[{"value":"testFleetId2","name":"AutoScalingGroupName"}],"MetricName":"GroupDesiredCapacity","Namespace":"AWS/AutoScaling"},"Period":60,"Stat":"Average"},"ReturnData":false}]}}';
@@ -155,21 +151,21 @@ test('failure scenario, incorrect dimension, metrics and message', async () => {
   (await lambdaCode.handler(successEventSingle, context));
 
   // THEN
-  sinon.assert.notCalled(updateAutoScalingGroupFake);
+  expect(autoScalingMock).not.toHaveReceivedCommand(UpdateAutoScalingGroupCommand);
 
   // WHEN
   successEventSingle.Records[0].Sns.Message = '{"AlarmName":"testAlarm","AlarmDescription":null,"NewStateValue":"ALARM","NewStateReason":"Threshold Crossed: 5 out of the last 5 datapoints were less than the threshold (65.0). The most recent datapoints which crossed the threshold: [0.0 (29/04/20 23:32:00), 0.0 (29/04/20 23:31:00), 0.0 (29/04/20 23:30:00), 0.0 (29/04/20 23:29:00), 0.0 (29/04/20 23:28:00)] (minimum 5 datapoints for OK -> ALARM transition).","StateChangeTime":"2020-04-29T23:33:34.876+0000","Region":"US West (Oregon)","AlarmArn":"test-arn","OldStateValue":"INSUFFICIENT_DATA","Trigger":{"Period":60,"EvaluationPeriods":5,"ComparisonOperator":"LessThanThreshold","Threshold":65.0,"TreatMissingData":"- TreatMissingData:                    missing","EvaluateLowSampleCountPercentile":"","M":[{"Expression":"100*(healthyHostCount/fleetCapacity)","Id":"expr_1","ReturnData":true},{"Id":"healthyHostCount","Label":"HealthyHostCount","MetricStat":{"Metric":{"Dimensions":[{"value":"testTargetGroup","name":"TargetGroup"},{"value":"testLoadBalancer","name":"LoadBalancer"}],"MetricName":"HealthyHostCount","Namespace":"AWS/NetworkELB"},"Period":60,"Stat":"Average"},"ReturnData":false},{"Id":"fleetCapacity","Label":"GroupDesiredCapacity","MetricStat":{"Metric":{"Dimen":[{"value":"testFleetId2","name":"AutoScalingGroupName"}],"MetricName":"GroupDesiredCapacity","Namespace":"AWS/AutoScaling"},"Period":60,"Stat":"Average"},"ReturnData":false}]}}';
   (await lambdaCode.handler(successEventSingle, context));
 
   // THEN
-  sinon.assert.notCalled(updateAutoScalingGroupFake);
+  expect(autoScalingMock).not.toHaveReceivedCommand(UpdateAutoScalingGroupCommand);
 
   // WHEN
   delete successEventSingle.Records[0].Sns.Message;
   (await lambdaCode.handler(successEventSingle, context));
 
   // THEN
-  sinon.assert.notCalled(updateAutoScalingGroupFake);
+  expect(autoScalingMock).not.toHaveReceivedCommand(UpdateAutoScalingGroupCommand);
 
   // WHEN
   successEventSingle.Records[0].Sns.Message = '{"AlarmName":"testAlarm","AlarmDescription":null,"NewStateValue":"ALARM","NewStateReason":"Threshold Crossed: 5 out of the last 5 datapoints were less than the threshold (65.0). The most recent datapoints which crossed the threshold: [0.0 (29/04/20 23:32:00), 0.0 (29/04/20 23:31:00), 0.0 (29/04/20 23:30:00), 0.0 (29/04/20 23:29:00), 0.0 (29/04/20 23:28:00)] (minimum 5 datapoints for OK -> ALARM transition).","StateChangeTime":"2020-04-29T23:33:34.876+0000","Region":"US West (Oregon)","AlarmArn":"test-arn","OldStateValue":"INSUFFICIENT_DATA","Trigger":{"Period":60,"EvaluationPeriods":5,"ComparisonOperator":"LessThanThreshold","Threshold":65.0,"TreatMissingData":"- TreatMissingData:                    missing","EvaluateLowSampleCountPercentile":"","Metrics":[{"Expression":"100*(healthyHostCount/fleetCapacity)","Id":"expr_1","ReturnData":true},{"Id":"healthyHostCount","Label":"HealthyHostCount","MetricStat":{"Metric":{"Dimensions":[{"value":"testTargetGroup","name":"TargetGroup"},{"value":"testLoadBalancer","name":"LoadBalancer"}],"MetricName":"HealthyHostCount","Namespace":"AWS/NetworkELB"},"Period":60,"Stat":"Average"},"ReturnData":false},{"Id":"eetCapacity","Label":"GroupDesiredCapacity","MetricStat":{"Metric":{"Dimensions":[{"value":"testFleetId","name":"AutoScalingGroupName"}],"MetricName":"GroupDesiredCapacity","Namespace":"AWS/AutoScaling"},"Period":60,"Stat":"Average"},"ReturnData":false}]}}';
@@ -177,5 +173,5 @@ test('failure scenario, incorrect dimension, metrics and message', async () => {
   (await lambdaCode.handler(successEventSingle, context));
 
   // THEN
-  sinon.assert.notCalled(updateAutoScalingGroupFake);
+  expect(autoScalingMock).not.toHaveReceivedCommand(UpdateAutoScalingGroupCommand);
 });

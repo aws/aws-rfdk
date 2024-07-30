@@ -6,8 +6,23 @@
 /* eslint-disable no-console */
 
 import { isUint8Array } from 'util/types';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { SecretsManager, AWSError } from 'aws-sdk';
+/* eslint-disable import/no-extraneous-dependencies */
+import {
+  CreateSecretCommand,
+  CreateSecretRequest,
+  CreateSecretResponse,
+  DeleteSecretCommand,
+  DeleteSecretRequest,
+  DeleteSecretResponse,
+  GetSecretValueCommand,
+  GetSecretValueRequest,
+  GetSecretValueResponse,
+  PutSecretValueCommand,
+  PutSecretValueRequest,
+  PutSecretValueResponse,
+  SecretsManagerClient,
+} from '@aws-sdk/client-secrets-manager';
+/* eslint-enable import/no-extraneous-dependencies */
 
 import { Key } from '../kms';
 import { isArn } from './validation';
@@ -20,7 +35,7 @@ export function sanitizeSecretName(name: string): string {
 export class Secret {
   public static readonly API_VERSION = '2017-10-17';
 
-  public static fromArn(arn: string, client: SecretsManager) {
+  public static fromArn(arn: string, client: SecretsManagerClient) {
     if (!isArn(arn)) {
       throw Error(`Not a Secret ARN: ${arn}`);
     }
@@ -36,14 +51,14 @@ export class Secret {
    */
   public static async create(args: {
     name: string,
-    client: SecretsManager,
+    client: SecretsManagerClient,
     encryptionKey?: Key,
     description?: string,
     data?: Buffer | string,
     tags?: Array<{ Key: string, Value: string }>
   }): Promise<Secret | undefined> {
     // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SecretsManager.html#createSecret-property
-    const request: SecretsManager.CreateSecretRequest = {
+    const request: CreateSecretRequest = {
       Name: args.name,
       Description: args.description,
       KmsKeyId: args.encryptionKey?.arn,
@@ -52,7 +67,7 @@ export class Secret {
       SecretBinary: Buffer.isBuffer(args.data) ? args.data : undefined,
     };
     try {
-      const response: SecretsManager.CreateSecretResponse = await args.client.createSecret(request).promise();
+      const response: CreateSecretResponse = await args.client.send(new CreateSecretCommand(request));
       console.debug(`CreateSecret response: ${JSON.stringify(response)}`);
       if (response.ARN) {
         return Secret.fromArn(response.ARN, args.client);
@@ -60,15 +75,15 @@ export class Secret {
       return undefined;
     } catch (e) {
       throw new Error(`CreateSecret '${args.name}' failed in region '${args.client.config.region}': ` +
-        `${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
+        `${(e as Error)?.name} -- ${(e as Error)?.message}`);
     }
   }
 
   // Undefined only if the Secret has been deleted.
   public arn: string | undefined;
-  protected readonly client: SecretsManager;
+  protected readonly client: SecretsManagerClient;
 
-  protected constructor(arn: string, client: SecretsManager) {
+  protected constructor(arn: string, client: SecretsManagerClient) {
     this.client = client;
     this.arn = arn;
   }
@@ -83,19 +98,19 @@ export class Secret {
     if (!this.arn) {
       throw Error('Secret has already been deleted');
     }
-    const request: SecretsManager.DeleteSecretRequest = {
+    const request: DeleteSecretRequest = {
       SecretId: this.arn,
       ForceDeleteWithoutRecovery: force,
     };
     try {
       console.debug(`Deleting Secret: ${this.arn}`);
-      const response: SecretsManager.DeleteSecretResponse =
-                await this.client.deleteSecret(request).promise();
+      const response: DeleteSecretResponse =
+                await this.client.send(new DeleteSecretCommand(request));
       console.debug(`DeleteSecret response: ${JSON.stringify(response)}`);
       this.arn = undefined;
     } catch (e) {
       throw new Error(`DeleteSecret '${this.arn}' failed in region '${this.client.config.region}':` +
-        `${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
+        `${(e as Error)?.name} -- ${(e as Error)?.message}`);
     }
   }
 
@@ -111,18 +126,18 @@ export class Secret {
       throw Error('Secret has been deleted');
     }
     // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SecretsManager.html#putSecretValue-property
-    const request: SecretsManager.PutSecretValueRequest = {
+    const request: PutSecretValueRequest = {
       SecretId: this.arn,
       SecretString: (typeof data === 'string') ? data : undefined,
       SecretBinary: Buffer.isBuffer(data) ? data : undefined,
     };
     try {
-      const response: SecretsManager.PutSecretValueResponse =
-                await this.client.putSecretValue(request).promise();
+      const response: PutSecretValueResponse =
+                await this.client.send(new PutSecretValueCommand(request));
       console.debug(`PutSecret response: ${JSON.stringify(response)}`);
     } catch (e) {
       throw new Error(`PutSecret '${this.arn}' failed in region '${this.client.config.region}':` +
-        `${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
+        `${(e as Error)?.name} -- ${(e as Error)?.message}`);
     }
   }
 
@@ -133,21 +148,17 @@ export class Secret {
     if (!this.arn) {
       throw Error('Secret has been deleted');
     }
-    // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SecretsManager.html#getSecretValue-property
-    const request: SecretsManager.GetSecretValueRequest = {
+    // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/secrets-manager/command/GetSecretValueCommand/
+    const request: GetSecretValueRequest = {
       SecretId: this.arn,
     };
     try {
-      const response: SecretsManager.GetSecretValueResponse =
-                await this.client.getSecretValue(request).promise();
+      const response: GetSecretValueResponse =
+                await this.client.send(new GetSecretValueCommand(request));
       if (response.SecretBinary) {
-        // SecretBinary can be: Buffer|Uint8Array|Blob|string
+        // SecretBinary is expected to be a Uint8Array
         const data = response.SecretBinary;
-        if (Buffer.isBuffer(data)) {
-          return data;
-        } else if (typeof data === 'string') {
-          return Buffer.from(data, 'binary');
-        } else if (isUint8Array(data)) {
+        if (isUint8Array(data)) {
           return Buffer.from(data);
         } else {
           throw new Error('Unknown type for SecretBinary data');
@@ -156,7 +167,7 @@ export class Secret {
       return response.SecretString;
     } catch (e) {
       throw new Error(`GetSecret '${this.arn}' failed in region '${this.client.config.region}':` +
-        `${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
+        `${(e as Error)?.name} -- ${(e as Error)?.message}`);
     }
   }
 }

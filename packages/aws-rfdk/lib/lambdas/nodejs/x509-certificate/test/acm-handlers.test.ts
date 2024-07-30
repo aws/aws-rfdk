@@ -3,8 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as AWS from 'aws-sdk';
-import * as AWSMock from 'aws-sdk-mock';
+import {
+  ACMClient,
+  AccessDeniedException,
+  DescribeCertificateCommand,
+  DeleteCertificateCommand,
+  GetCertificateCommand,
+  ImportCertificateCommand,
+  ResourceNotFoundException,
+  ThrottlingException,
+} from '@aws-sdk/client-acm';
+import {
+  DynamoDBClient,
+} from '@aws-sdk/client-dynamodb';
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from '@aws-sdk/client-secrets-manager';
+import { mockClient } from 'aws-sdk-client-mock';
+import 'aws-sdk-client-mock-jest';
 import * as sinon from 'sinon';
 import { BackoffGenerator } from '../../lib/backoff-generator';
 import { CompositeStringIndexTable } from '../../lib/dynamodb';
@@ -16,6 +33,8 @@ describe('AcmCertificateImporter', () => {
   const physicalId = 'physicalId';
   const certArn = 'certArn';
   const oldEnv = process.env;
+  const acmMock = mockClient(ACMClient);
+  const secretsManagerMock = mockClient(SecretsManagerClient);
   let consoleWarnSpy: jest.SpyInstance;
 
   beforeAll(() => {
@@ -30,13 +49,13 @@ describe('AcmCertificateImporter', () => {
 
   beforeEach(() => {
     process.env.DATABASE = 'database';
-    AWSMock.setSDKInstance(AWS);
   });
 
   afterEach(() => {
     process.env = oldEnv;
     sinon.restore();
-    AWSMock.restore();
+    acmMock.reset();
+    secretsManagerMock.reset();
   });
 
   describe('doCreate', () => {
@@ -54,18 +73,17 @@ describe('AcmCertificateImporter', () => {
       sinon.stub(Certificate, 'decryptKey').returns(Promise.resolve('key'));
 
       // Mock out the API call in getSecretString
-      AWSMock.mock('SecretsManager', 'getSecretValue', sinon.fake.resolves({ SecretString: 'secret' }));
+      secretsManagerMock.on(GetSecretValueCommand).resolves({ SecretString: 'secret' });
     });
 
     test('throws when a secret does not have SecretString', async () => {
       // GIVEN
-      const getSecretValueFake = sinon.fake.resolves({});
-      AWSMock.remock('SecretsManager', 'getSecretValue', getSecretValueFake);
+      secretsManagerMock.on(GetSecretValueCommand).resolves({});
 
       const importer = new TestAcmCertificateImporter({
-        acm: new AWS.ACM(),
-        dynamoDb: new AWS.DynamoDB(),
-        secretsManager: new AWS.SecretsManager(),
+        acm: new ACMClient(),
+        dynamoDb: new DynamoDBClient(),
+        secretsManager: new SecretsManagerClient(),
         resourceTableOverride: new MockCompositeStringIndexTable(),
       });
 
@@ -74,7 +92,7 @@ describe('AcmCertificateImporter', () => {
 
       // THEN
         .rejects.toThrow(/Secret .* did not contain a SecretString as expected/);
-      expect(getSecretValueFake.calledOnce).toBe(true);
+      expect(secretsManagerMock).toHaveReceivedCommandTimes(GetSecretValueCommand, 1);
     });
 
     test('retries importing certificate', async () => {
@@ -83,18 +101,17 @@ describe('AcmCertificateImporter', () => {
       const getItemStub = sinon.stub(resourceTable, 'getItem').resolves(undefined);
       const putItemStub = sinon.stub(resourceTable, 'putItem').resolves(true);
 
-      const importCertificateStub = sinon.stub()
-        .onFirstCall().rejects('Rate exceeded')
-        .onSecondCall().rejects('Rate exceeded')
-        .onThirdCall().resolves({ CertificateArn: certArn });
-      AWSMock.mock('ACM', 'importCertificate', importCertificateStub);
+      acmMock.on(ImportCertificateCommand)
+        .rejectsOnce(new ThrottlingException({message: 'test error', $metadata: {}}))
+        .rejectsOnce(new ThrottlingException({message: 'test error', $metadata: {}}))
+        .resolves({ CertificateArn: certArn });
 
       const backoffStub = sinon.stub(BackoffGenerator.prototype, 'backoff').resolves(true);
 
       const importer = new TestAcmCertificateImporter({
-        acm: new AWS.ACM(),
-        dynamoDb: new AWS.DynamoDB(),
-        secretsManager: new AWS.SecretsManager(),
+        acm: new ACMClient(),
+        dynamoDb: new DynamoDBClient(),
+        secretsManager: new SecretsManagerClient(),
         resourceTableOverride: resourceTable,
       });
 
@@ -105,7 +122,7 @@ describe('AcmCertificateImporter', () => {
         .resolves.toEqual({ CertificateArn: certArn });
       expect(getItemStub.calledOnce).toBe(true);
       expect(putItemStub.calledOnce).toBe(true);
-      expect(importCertificateStub.calledThrice).toBe(true);
+      expect(acmMock).toHaveReceivedCommandTimes(ImportCertificateCommand, 3);
       expect(backoffStub.callCount).toEqual(2);
     });
 
@@ -115,18 +132,17 @@ describe('AcmCertificateImporter', () => {
       const getItemStub = sinon.stub(resourceTable, 'getItem').resolves(undefined);
 
       const attempts = 10;
-      const importCertificateStub = sinon.stub();
+      const importCertificateBehavior = acmMock.on(ImportCertificateCommand);
       const backoffStub = sinon.stub(BackoffGenerator.prototype, 'backoff');
       for (let i = 0; i < attempts; i++) {
-        importCertificateStub.onCall(i).rejects('Rate exceeded');
+        importCertificateBehavior.rejectsOnce(new ThrottlingException({message: 'test error', $metadata: {}}));
         backoffStub.onCall(i).resolves(i < attempts - 1);
       }
-      AWSMock.mock('ACM', 'importCertificate', importCertificateStub);
 
       const importer = new TestAcmCertificateImporter({
-        acm: new AWS.ACM(),
-        dynamoDb: new AWS.DynamoDB(),
-        secretsManager: new AWS.SecretsManager(),
+        acm: new ACMClient(),
+        dynamoDb: new DynamoDBClient(),
+        secretsManager: new SecretsManagerClient(),
         resourceTableOverride: resourceTable,
       });
 
@@ -136,7 +152,7 @@ describe('AcmCertificateImporter', () => {
       // THEN
         .rejects.toThrow(/Failed to import certificate .* after [0-9]+ attempts\./);
       expect(getItemStub.calledOnce).toBe(true);
-      expect(importCertificateStub.callCount).toBe(attempts);
+      expect(acmMock).toHaveReceivedCommandTimes(ImportCertificateCommand, attempts);
       expect(backoffStub.callCount).toEqual(attempts);
     });
 
@@ -147,9 +163,9 @@ describe('AcmCertificateImporter', () => {
         const getItemStub = sinon.stub(resourceTable, 'getItem').resolves({});
 
         const importer = new TestAcmCertificateImporter({
-          acm: new AWS.ACM(),
-          dynamoDb: new AWS.DynamoDB(),
-          secretsManager: new AWS.SecretsManager(),
+          acm: new ACMClient(),
+          dynamoDb: new DynamoDBClient(),
+          secretsManager: new SecretsManagerClient(),
           resourceTableOverride: resourceTable,
         });
 
@@ -166,13 +182,13 @@ describe('AcmCertificateImporter', () => {
         const resourceTable = new MockCompositeStringIndexTable();
         const getItemStub = sinon.stub(resourceTable, 'getItem').resolves({ ARN: certArn });
 
-        const getCertificateFake = sinon.fake.rejects({});
-        AWSMock.mock('ACM', 'getCertificate', getCertificateFake);
+        acmMock.on(GetCertificateCommand)
+          .rejects(new ResourceNotFoundException({message: 'not found', $metadata: {}}));
 
         const importer = new TestAcmCertificateImporter({
-          acm: new AWS.ACM(),
-          dynamoDb: new AWS.DynamoDB(),
-          secretsManager: new AWS.SecretsManager(),
+          acm: new ACMClient(),
+          dynamoDb: new DynamoDBClient(),
+          secretsManager: new SecretsManagerClient(),
           resourceTableOverride: resourceTable,
         });
 
@@ -182,7 +198,7 @@ describe('AcmCertificateImporter', () => {
         // THEN
           .rejects.toThrow(new RegExp(`Database entry ${certArn} could not be found in ACM:`));
         expect(getItemStub.calledOnce).toBe(true);
-        expect(getCertificateFake.calledOnce).toBe(true);
+        expect(acmMock).toHaveReceivedCommandTimes(GetCertificateCommand, 1);
       });
 
       test('imports certificate', async () => {
@@ -190,16 +206,14 @@ describe('AcmCertificateImporter', () => {
         const resourceTable = new MockCompositeStringIndexTable();
         const getItemStub = sinon.stub(resourceTable, 'getItem').resolves({ ARN: certArn });
 
-        const getCertificateFake = sinon.fake.resolves({ Certificate: 'cert' });
-        AWSMock.mock('ACM', 'getCertificate', getCertificateFake);
+        acmMock.on(GetCertificateCommand).resolves({ Certificate: 'cert' });
 
-        const importCertificateFake = sinon.fake.resolves({});
-        AWSMock.mock('ACM', 'importCertificate', importCertificateFake);
+        acmMock.on(ImportCertificateCommand).resolves({});
 
         const importer = new TestAcmCertificateImporter({
-          acm: new AWS.ACM(),
-          dynamoDb: new AWS.DynamoDB(),
-          secretsManager: new AWS.SecretsManager(),
+          acm: new ACMClient(),
+          dynamoDb: new DynamoDBClient(),
+          secretsManager: new SecretsManagerClient(),
           resourceTableOverride: resourceTable,
         });
 
@@ -209,9 +223,9 @@ describe('AcmCertificateImporter', () => {
         // THEN
           .resolves.toEqual({ CertificateArn: certArn });
         expect(getItemStub.calledOnce).toBe(true);
-        expect(getCertificateFake.calledOnce).toBe(true);
+        expect(acmMock).toHaveReceivedCommandTimes(GetCertificateCommand, 1);
         // Verify that we import the existing certificate to support replacing/updating of it (e.g. to rotate certs)
-        expect(importCertificateFake.calledOnce).toBe(true);
+        expect(acmMock).toHaveReceivedCommandTimes(ImportCertificateCommand, 1);
       });
     });
 
@@ -221,13 +235,12 @@ describe('AcmCertificateImporter', () => {
         const resourceTable = new MockCompositeStringIndexTable();
         const getItemStub = sinon.stub(resourceTable, 'getItem').resolves(undefined);
 
-        const importCertificateFake = sinon.fake.resolves({});
-        AWSMock.mock('ACM', 'importCertificate', importCertificateFake);
+        acmMock.on(ImportCertificateCommand).resolves({});
 
         const importer = new TestAcmCertificateImporter({
-          acm: new AWS.ACM(),
-          dynamoDb: new AWS.DynamoDB(),
-          secretsManager: new AWS.SecretsManager(),
+          acm: new ACMClient(),
+          dynamoDb: new DynamoDBClient(),
+          secretsManager: new SecretsManagerClient(),
           resourceTableOverride: resourceTable,
         });
 
@@ -237,7 +250,7 @@ describe('AcmCertificateImporter', () => {
         // THEN
           .rejects.toThrow(/CertificateArn was not properly populated after attempt to import .*$/);
         expect(getItemStub.calledOnce).toBe(true);
-        expect(importCertificateFake.calledOnce).toBe(true);
+        expect(acmMock).toHaveReceivedCommandTimes(ImportCertificateCommand, 1);
       });
 
       test('imports certificate', async () => {
@@ -246,13 +259,12 @@ describe('AcmCertificateImporter', () => {
         const getItemStub = sinon.stub(resourceTable, 'getItem').resolves(undefined);
         const putItemStub = sinon.stub(resourceTable, 'putItem').resolves(true);
 
-        const importCertificateFake = sinon.fake.resolves({ CertificateArn: certArn });
-        AWSMock.mock('ACM', 'importCertificate', importCertificateFake);
+        acmMock.on(ImportCertificateCommand).resolves({ CertificateArn: certArn });
 
         const importer = new TestAcmCertificateImporter({
-          acm: new AWS.ACM(),
-          dynamoDb: new AWS.DynamoDB(),
-          secretsManager: new AWS.SecretsManager(),
+          acm: new ACMClient(),
+          dynamoDb: new DynamoDBClient(),
+          secretsManager: new SecretsManagerClient(),
           resourceTableOverride: resourceTable,
         });
 
@@ -263,7 +275,7 @@ describe('AcmCertificateImporter', () => {
           .resolves.toEqual({ CertificateArn: certArn });
         expect(getItemStub.calledOnce).toBe(true);
         expect(putItemStub.calledOnce).toBe(true);
-        expect(importCertificateFake.calledOnce).toBe(true);
+        expect(acmMock).toHaveReceivedCommandTimes(ImportCertificateCommand, 1);
       });
     });
   });
@@ -277,8 +289,7 @@ describe('AcmCertificateImporter', () => {
         key: { ARN: certArn },
       });
 
-      const describeCertificateFake = sinon.fake.resolves({ Certificate: { InUseBy: ['something'] } });
-      AWSMock.mock('ACM', 'describeCertificate', describeCertificateFake);
+      acmMock.on(DescribeCertificateCommand).resolves({ Certificate: { InUseBy: ['something'] } });
 
       // This is hardcoded in the code being tested
       const maxAttempts = 10;
@@ -288,9 +299,9 @@ describe('AcmCertificateImporter', () => {
         .onCall(maxAttempts - 1).returns(false);
 
       const importer = new TestAcmCertificateImporter({
-        acm: new AWS.ACM(),
-        dynamoDb: new AWS.DynamoDB(),
-        secretsManager: new AWS.SecretsManager(),
+        acm: new ACMClient(),
+        dynamoDb: new DynamoDBClient(),
+        secretsManager: new SecretsManagerClient(),
         resourceTableOverride: resourceTable,
       });
 
@@ -300,7 +311,7 @@ describe('AcmCertificateImporter', () => {
       // THEN
         .rejects.toEqual(new Error(`Response from describeCertificate did not contain an empty InUseBy list after ${maxAttempts} attempts.`));
       expect(queryStub.calledOnce).toBe(true);
-      expect(describeCertificateFake.callCount).toEqual(maxAttempts);
+      expect(acmMock).toHaveReceivedCommandTimes(DescribeCertificateCommand, maxAttempts);
       expect(backoffStub.callCount).toEqual(maxAttempts);
       expect(shouldContinueStub.callCount).toEqual(maxAttempts);
     });
@@ -312,17 +323,15 @@ describe('AcmCertificateImporter', () => {
         key: { ARN: certArn },
       });
 
-      const describeCertificateFake = sinon.fake.resolves({ Certificate: { InUseBy: [] }});
-      AWSMock.mock('ACM', 'describeCertificate', describeCertificateFake);
+      acmMock.on(DescribeCertificateCommand).resolves({ Certificate: { InUseBy: [] }});
 
       const error = new Error('error');
-      const deleteCertificateFake = sinon.fake.rejects(error);
-      AWSMock.mock('ACM', 'deleteCertificate', deleteCertificateFake);
+      acmMock.on(DeleteCertificateCommand).rejects(error);
 
       const importer = new TestAcmCertificateImporter({
-        acm: new AWS.ACM(),
-        dynamoDb: new AWS.DynamoDB(),
-        secretsManager: new AWS.SecretsManager(),
+        acm: new ACMClient(),
+        dynamoDb: new DynamoDBClient(),
+        secretsManager: new SecretsManagerClient(),
         resourceTableOverride: resourceTable,
       });
 
@@ -332,8 +341,8 @@ describe('AcmCertificateImporter', () => {
       // THEN
         .rejects.toEqual(error);
       expect(queryStub.calledOnce).toBe(true);
-      expect(describeCertificateFake.calledOnce).toBe(true);
-      expect(deleteCertificateFake.calledOnce).toBe(true);
+      expect(acmMock).toHaveReceivedCommandTimes(DescribeCertificateCommand, 1);
+      expect(acmMock).toHaveReceivedCommandTimes(DeleteCertificateCommand, 1);
     });
 
     test('warns when deleting certificate from ACM fails with AccessDeniedException', async () => {
@@ -343,17 +352,15 @@ describe('AcmCertificateImporter', () => {
         key: { ARN: certArn },
       });
 
-      const describeCertificateFake = sinon.fake.resolves({ Certificate: { InUseBy: [] }});
-      AWSMock.mock('ACM', 'describeCertificate', describeCertificateFake);
+      acmMock.on(DescribeCertificateCommand).resolves({ Certificate: { InUseBy: [] }});
 
-      const error = new Error('AccessDeniedException');
-      const deleteCertificateFake = sinon.fake.rejects(error);
-      AWSMock.mock('ACM', 'deleteCertificate', deleteCertificateFake);
+      const error = new AccessDeniedException({message: 'test access denied', $metadata: {}});
+      acmMock.on(DeleteCertificateCommand).rejects(error);
 
       const importer = new TestAcmCertificateImporter({
-        acm: new AWS.ACM(),
-        dynamoDb: new AWS.DynamoDB(),
-        secretsManager: new AWS.SecretsManager(),
+        acm: new ACMClient(),
+        dynamoDb: new DynamoDBClient(),
+        secretsManager: new SecretsManagerClient(),
         resourceTableOverride: resourceTable,
       });
 
@@ -363,8 +370,8 @@ describe('AcmCertificateImporter', () => {
       // THEN
         .rejects.toEqual(error);
       expect(queryStub.calledOnce).toBe(true);
-      expect(describeCertificateFake.calledOnce).toBe(true);
-      expect(deleteCertificateFake.calledOnce).toBe(true);
+      expect(acmMock).toHaveReceivedCommandTimes(DescribeCertificateCommand, 1);
+      expect(acmMock).toHaveReceivedCommandTimes(DeleteCertificateCommand, 1);
       expect(consoleWarnSpy.mock.calls.length).toBeGreaterThanOrEqual(1);
       expect(consoleWarnSpy.mock.calls.map(args => args[0]).join('\n')).toMatch(new RegExp(`Could not delete Certificate ${certArn}. Please ensure it has been deleted.`));
     });
@@ -375,16 +382,14 @@ describe('AcmCertificateImporter', () => {
       const queryStub = sinon.stub(resourceTable, 'query').resolves({ key: { ARN: certArn } });
       const deleteItemStub = sinon.stub(resourceTable, 'deleteItem').resolves(true);
 
-      const describeCertificateFake = sinon.fake.resolves({ Certificate: { InUseBy: [] }});
-      AWSMock.mock('ACM', 'describeCertificate', describeCertificateFake);
+      acmMock.on(DescribeCertificateCommand).resolves({ Certificate: { InUseBy: [] }});
 
-      const deleteCertificateFake = sinon.fake.resolves({});
-      AWSMock.mock('ACM', 'deleteCertificate', deleteCertificateFake);
+      acmMock.on(DeleteCertificateCommand).resolves({});
 
       const importer = new TestAcmCertificateImporter({
-        acm: new AWS.ACM(),
-        dynamoDb: new AWS.DynamoDB(),
-        secretsManager: new AWS.SecretsManager(),
+        acm: new ACMClient(),
+        dynamoDb: new DynamoDBClient(),
+        secretsManager: new SecretsManagerClient(),
         resourceTableOverride: resourceTable,
       });
 
@@ -394,8 +399,8 @@ describe('AcmCertificateImporter', () => {
       // THEN
         .resolves.not.toThrow();
       expect(queryStub.calledOnce).toBe(true);
-      expect(describeCertificateFake.calledOnce).toBe(true);
-      expect(deleteCertificateFake.calledOnce).toBe(true);
+      expect(acmMock).toHaveReceivedCommandTimes(DescribeCertificateCommand, 1);
+      expect(acmMock).toHaveReceivedCommandTimes(DeleteCertificateCommand, 1);
       expect(deleteItemStub.calledOnce).toBe(true);
     });
   });
@@ -412,9 +417,9 @@ class TestAcmCertificateImporter extends AcmCertificateImporter {
   private readonly resourceTableOverride: CompositeStringIndexTable;
 
   constructor(props: {
-    acm: AWS.ACM,
-    dynamoDb: AWS.DynamoDB,
-    secretsManager: AWS.SecretsManager,
+    acm: ACMClient,
+    dynamoDb: DynamoDBClient,
+    secretsManager: SecretsManagerClient,
     resourceTableOverride?: CompositeStringIndexTable
   }) {
     super(props.acm, props.dynamoDb, props.secretsManager);
@@ -439,7 +444,7 @@ class TestAcmCertificateImporter extends AcmCertificateImporter {
  */
 class MockCompositeStringIndexTable extends CompositeStringIndexTable {
   constructor() {
-    super(new AWS.DynamoDB(), '', '', '');
+    super(new DynamoDBClient(), '', '', '');
   }
 
   public async deleteTable(): Promise<void> {}

@@ -3,8 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as AWS from 'aws-sdk';
-import { mock, restore, setSDKInstance } from 'aws-sdk-mock';
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from '@aws-sdk/client-secrets-manager';
+import { mockClient } from 'aws-sdk-client-mock';
+import 'aws-sdk-client-mock-jest';
 import { readCertificateData } from '../read-certificate';
 
 const secretPartialArn: string = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/Cert';
@@ -15,12 +19,10 @@ async function successRequestMock(request: { [key: string]: string}, returnValue
 }
 
 describe('readCertificateData', () => {
-  beforeEach(() => {
-    setSDKInstance(AWS);
-  });
+  const secretsManagerMock = mockClient(SecretsManagerClient);
 
   afterEach(() => {
-    restore('SecretsManager');
+    secretsManagerMock.reset();
   });
 
   test('success', async () => {
@@ -29,9 +31,8 @@ describe('readCertificateData', () => {
     const secretContents = {
       SecretString: certData,
     };
-    const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
-    mock('SecretsManager', 'getSecretValue', mockGetSecret);
-    const client = new AWS.SecretsManager();
+    secretsManagerMock.on(GetSecretValueCommand).resolves(secretContents);
+    const client = new SecretsManagerClient();
 
     // WHEN
     const data = await readCertificateData(secretPartialArn, client);
@@ -46,9 +47,8 @@ describe('readCertificateData', () => {
     const secretContents = {
       SecretString: certData,
     };
-    const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
-    mock('SecretsManager', 'getSecretValue', mockGetSecret);
-    const client = new AWS.SecretsManager();
+    secretsManagerMock.on(GetSecretValueCommand).resolves(secretContents);
+    const client = new SecretsManagerClient();
 
     // WHEN
     const promise = readCertificateData(secretPartialArn, client);
@@ -63,9 +63,8 @@ describe('readCertificateData', () => {
     const secretContents = {
       SecretBinary: certData,
     };
-    const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
-    mock('SecretsManager', 'getSecretValue', mockGetSecret);
-    const client = new AWS.SecretsManager();
+    secretsManagerMock.on(GetSecretValueCommand).resolves(secretContents);
+    const client = new SecretsManagerClient();
 
     // WHEN
     const promise = readCertificateData(secretPartialArn, client);
