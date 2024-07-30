@@ -29,7 +29,7 @@ if [ -d "$CERT" ]; then
   # The domain zone for the mongo instance used is hard-coded during setup
   DB_ADDRESS="mongo.renderfarm.local:27017"
 else
-  CERT_CA="./testScripts/rds-combined-ca-bundle.pem"
+  CERT_CA="./testScripts/global-bundle.pem"
 
   # DocDB contains the endpoint address to use in its secret
   ENDPOINT=$(jq -r '.host' <<< "$DB_SECRET_STRING")

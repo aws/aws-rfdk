@@ -187,7 +187,7 @@ fi
 df -h
 free -m
 ls -l /mnt/efs/fs1
-sleep 120
+sleep 180
 #if [ "$IS_NFS_POLLING_ENABLED" = true ]; then
 
   echo "Polling NFS drive for connection..."

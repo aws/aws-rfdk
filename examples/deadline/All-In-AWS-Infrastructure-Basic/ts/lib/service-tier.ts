@@ -172,7 +172,7 @@ export class ServiceTier extends cdk.Stack {
       version: this.version,
       database: props.database,
       fileSystem: props.mountableFileSystem,
-      repositoryInstallationTimeout: cdk.Duration.minutes(20),
+      repositoryInstallationTimeout: cdk.Duration.minutes(30),
       repositoryInstallationPrefix: "/",
       secretsManagementSettings: {
         enabled: props.enableSecretsManagement,

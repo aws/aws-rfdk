@@ -346,7 +346,7 @@ export interface RepositoryProps {
    *
    * The maximum value is 43200 (12 hours).
    *
-   * @default Duration.minutes(15)
+   * @default Duration.minutes(30)
    */
   readonly repositoryInstallationTimeout?: Duration;
 
