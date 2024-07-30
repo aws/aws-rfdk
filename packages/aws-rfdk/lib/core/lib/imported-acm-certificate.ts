@@ -165,7 +165,7 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
       },
       layers: [ openSslLayer ],
       retryAttempts: 0,
-      runtime: Runtime.NODEJS_16_X,
+      runtime: Runtime.NODEJS_18_X,
       timeout: Duration.minutes(5),
     });
 

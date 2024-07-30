@@ -324,7 +324,7 @@ export class StaticPrivateIpServer extends Construct implements IConnectable, IG
       eventHandler = new LambdaFunction(stack, functionUniqueId, {
         code: handlerCode,
         handler: 'index.handler',
-        runtime: Runtime.NODEJS_16_X,
+        runtime: Runtime.NODEJS_18_X,
         description: `Created by RFDK StaticPrivateIpServer to process instance launch lifecycle events in stack '${stack.stackName}'. This lambda attaches an ENI to newly launched instances.`,
         logRetention: RetentionDays.THREE_DAYS,
       });
