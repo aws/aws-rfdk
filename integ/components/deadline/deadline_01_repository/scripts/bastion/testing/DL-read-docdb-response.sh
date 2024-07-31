@@ -39,6 +39,6 @@ else
 fi
 
 # Mongo command to query for "deadline10db" database
-mongo --quiet --ssl --host="$DB_ADDRESS" --sslCAFile="$CERT_CA" --username="$DB_USERNAME" --password="$DB_PASS" --eval='printjson( db.adminCommand( { listDatabases: 1, nameOnly: true, filter: { "name": "deadline10db" } } ) )'
-
+# mongo --quiet --ssl --host="$DB_ADDRESS" --sslCAFile="$CERT_CA" --username="$DB_USERNAME" --password="$DB_PASS" --eval='printjson( db.adminCommand( { listDatabases: 1, nameOnly: true, filter: { "name": "deadline10db" } } ) )'
+mongo --quiet --ssl --host="$DB_ADDRESS" --sslCAFile="$CERT_CA" --username="$DB_USERNAME" --password="$DB_PASS" --eval='(function(){var output=db.adminCommand({ listDatabases: 1, nameOnly: true, filter: { "name": "deadline10db" } } );delete output.onTime;delete output.operationTime;printjson(output)})()'
 exit 0
