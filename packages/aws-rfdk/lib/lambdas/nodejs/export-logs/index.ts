@@ -75,25 +75,32 @@ async function exportToS3Task(
   retentionInHours: number): Promise<void> {
   const cloudwatchlogs = new CloudWatchLogsClient();
 
+  const minuteInMilliseconds = 60 * 1000;
+  const hourInMilliseconds = 60 * minuteInMilliseconds;
+  const exportFrequencyInMilliseconds = exportFrequencyInHours * hourInMilliseconds;
+  const retentionInMilliseconds = retentionInHours * hourInMilliseconds;
+
+  const nowInMilliseconds = Date.now();
+
   // End time is now minus the retention period in CloudWatch plus one hour. This creates an extra hour buffer to
   // make sure no logs expire before they get exported.
-  const endTime = new Date();
-  endTime.setHours(endTime.getHours() - retentionInHours + 1);
+  const endTimeInMilliseconds = nowInMilliseconds - retentionInMilliseconds + hourInMilliseconds;
 
   // Start time is the end time minus the frequency that the Lambda is run, with an extra minute taken off to account
   // for any drift in Lambda execution times between runs.
-  const startTime = new Date();
-  startTime.setHours(endTime.getHours() - exportFrequencyInHours);
-  startTime.setMinutes(startTime.getMinutes() - 1);
+  const startTimeInMilliseconds = endTimeInMilliseconds - exportFrequencyInMilliseconds - minuteInMilliseconds;
+
+  const endTime = new Date(endTimeInMilliseconds);
+  const startTime = new Date(startTimeInMilliseconds);
 
   const destinationPrefix = `${logGroupName}/${getDatePath(new Date())}`;
 
   const params = {
     destination: bucketName,
     destinationPrefix,
-    from: startTime.getTime(),
+    from: startTimeInMilliseconds,
     logGroupName,
-    to: endTime.getTime(),
+    to: endTimeInMilliseconds,
   };
   const response = await cloudwatchlogs.send(new CreateExportTaskCommand(params));
   if (response.taskId) {
