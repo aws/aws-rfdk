@@ -346,7 +346,7 @@ export interface RepositoryProps {
    *
    * The maximum value is 43200 (12 hours).
    *
-   * @default Duration.minutes(15)
+   * @default Duration.minutes(30)
    */
   readonly repositoryInstallationTimeout?: Duration;
 
@@ -620,6 +620,7 @@ export class Repository extends Construct implements IRepository {
         }) : undefined),
     };
 
+
     this.fileSystem = props.fileSystem ?? (() => {
       const fs = new EfsFileSystem(this, 'FileSystem', {
         vpc: props.vpc,
@@ -677,7 +678,7 @@ export class Repository extends Construct implements IRepository {
        */
       const parameterGroup = databaseAuditLogging ? new ClusterParameterGroup(this, 'ParameterGroup', {
         description: 'DocDB cluster parameter group with enabled audit logs',
-        family: 'docdb3.6',
+        family: 'docdb5.0',
         parameters: {
           audit_logs: 'enabled',
         },
@@ -686,7 +687,7 @@ export class Repository extends Construct implements IRepository {
       const instances = props.documentDbInstanceCount ?? Repository.DEFAULT_NUM_DOCDB_INSTANCES;
       const dbCluster = new DatabaseCluster(this, 'DocumentDatabase', {
         masterUser: {username: 'DocDBUser'},
-        engineVersion: '3.6.0',
+        engineVersion: '5.0.0',
         instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
         vpc: props.vpc,
         vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_EGRESS, onePerAz: true },
@@ -741,7 +742,7 @@ export class Repository extends Construct implements IRepository {
       maxCapacity: 1,
       updatePolicy: UpdatePolicy.replacingUpdate(),
       signals: Signals.waitForAll({
-        timeout: (props.repositoryInstallationTimeout || Duration.minutes(15)),
+        timeout: (props.repositoryInstallationTimeout || Duration.minutes(30)),
       }),
       securityGroup: props.securityGroupsOptions?.installer,
     });

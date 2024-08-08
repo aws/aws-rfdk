@@ -115,7 +115,7 @@ export class RepositoryTestingTier extends TestingTier {
       'cd ~ec2-user',
       'mkdir -p testScripts',
       'cd testScripts',
-      'wget https://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem',
+      'wget https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem',
     );
   }
 }

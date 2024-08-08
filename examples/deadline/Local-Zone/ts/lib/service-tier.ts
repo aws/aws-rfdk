@@ -108,7 +108,7 @@ export class ServiceTier extends Stack {
         database: RemovalPolicy.DESTROY,
         filesystem: RemovalPolicy.DESTROY,
       },
-      repositoryInstallationTimeout: Duration.minutes(20),
+      repositoryInstallationTimeout: Duration.minutes(30),
       vpcSubnets: repositorySubnets,
     });
 
