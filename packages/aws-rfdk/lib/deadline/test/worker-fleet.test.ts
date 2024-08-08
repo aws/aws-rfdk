@@ -117,7 +117,7 @@ test('default worker fleet is created correctly', () => {
   // THEN
   Template.fromStack(wfstack).resourceCountIs('AWS::AutoScaling::AutoScalingGroup', 1);
   Template.fromStack(wfstack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
-    InstanceType: 't2.large',
+    InstanceType: 't3.large',
     IamInstanceProfile: {
       Ref: Match.stringLikeRegexp('^workerFleetInstanceProfile.*'),
     },
@@ -374,7 +374,7 @@ test('default worker fleet is created correctly with linux image', () => {
   // 3 = repository + renderqueue + worker fleet
   Template.fromStack(stack).resourceCountIs('AWS::AutoScaling::AutoScalingGroup', 3);
   Template.fromStack(stack).hasResourceProperties('AWS::AutoScaling::LaunchConfiguration', {
-    InstanceType: 't2.large',
+    InstanceType: 't3.large',
     IamInstanceProfile: {
       Ref: Match.stringLikeRegexp('^workerFleetInstanceProfile.*'),
     },

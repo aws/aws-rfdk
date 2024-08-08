@@ -54,7 +54,7 @@ export class SepWorkerStruct extends Construct {
         maxCapacity: 1,
         workerMachineImage: MachineImage.genericLinux({ [Stack.of(this).region]: linuxAmi }),
         deadlineGroups: ['sep_group'],
-        instanceTypes: [new InstanceType('t2.micro')],
+        instanceTypes: [new InstanceType('t3.micro')],
         logGroupProps: {
           logGroupPrefix: `/${Stack.of(this).stackName}-${id}/`,
           retention: RetentionDays.TWO_MONTHS,
