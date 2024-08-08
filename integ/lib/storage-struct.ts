@@ -229,7 +229,7 @@ export class StorageStruct extends Construct {
       database: databaseConnection,
       fileSystem: deadlineMountableEfs,
       version: props.version,
-      repositoryInstallationTimeout: Duration.minutes(20),
+      repositoryInstallationTimeout: Duration.minutes(30),
       logGroupProps: {
         logGroupPrefix: `/${Stack.of(this).stackName}-${id}/`,
         retention: RetentionDays.TWO_MONTHS,

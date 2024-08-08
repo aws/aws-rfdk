@@ -76,7 +76,7 @@ export class SEPStack extends Stack {
     const repository = new Repository(this, 'Repository', {
       vpc,
       version: recipes.version,
-      repositoryInstallationTimeout: Duration.minutes(20),
+      repositoryInstallationTimeout: Duration.minutes(30),
       // TODO - Evaluate deletion protection for your own needs. These properties are set to RemovalPolicy.DESTROY
       // to cleanly remove everything when this stack is destroyed. If you would like to ensure
       // that these resources are not accidentally deleted, you should set these properties to RemovalPolicy.RETAIN

@@ -183,7 +183,7 @@ fi
 # sets the "u" shell option above. This is a use of the ${parameter+word} shell expansion. If the value of "parameter" is unset, nothing will be
 # substituted in its place. If "parameter" is set, then the value of "word" is used, which is the expansion of the populated array.
 # Since bash treats the expansion of an empty array as an unset variable, we can use this pattern expand the array only if it is populated.
-$INSTALL_AS_NON_ROOT_CMD $REPO_INSTALLER --mode unattended --setpermissions false --prefix "$PREFIX" --installmongodb false --backuprepo false ${REPO_ARGS[@]+"${REPO_ARGS[@]}"}
+$INSTALL_AS_NON_ROOT_CMD $REPO_INSTALLER --mode unattended --setpermissions false --prefix "$PREFIX" --installmongodb false --backuprepo false --debuglevel 4 ${REPO_ARGS[@]+"${REPO_ARGS[@]}"}
 
 if [[ -z "$INSTALL_AS_NON_ROOT_CMD" ]] && [[ -n "${REPOSITORY_OWNER_UID+x}" ]]; then
   echo "Changing ownership of Deadline Repository files to UID=$REPOSITORY_OWNER_UID GID=$REPOSITORY_OWNER_GID"
