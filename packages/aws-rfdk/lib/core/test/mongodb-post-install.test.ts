@@ -117,7 +117,7 @@ describe('MongoDbPostInstall', () => {
           DEBUG: 'false',
         },
       },
-      Runtime: 'nodejs16.x',
+      Runtime: 'nodejs18.x',
       VpcConfig: {
         SecurityGroupIds: [
           {

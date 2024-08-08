@@ -5,14 +5,20 @@
 
 /* eslint-disable dot-notation */
 
-import * as AWS from 'aws-sdk';
-import { mock, restore, setSDKInstance } from 'aws-sdk-mock';
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from '@aws-sdk/client-secrets-manager';
+import { mockClient } from 'aws-sdk-client-mock';
+import 'aws-sdk-client-mock-jest';
 
 import { MongoDbConfigure } from '../handler';
 
 jest.mock('../../lib/secrets-manager/read-certificate');
 
 const secretPartialArn: string = 'arn:aws:secretsmanager:us-west-1:1234567890:secret:SecretPath/Cert';
+
+const secretsManagerMock = mockClient(SecretsManagerClient);
 
 // @ts-ignore
 async function successRequestMock(request: { [key: string]: string}, returnValue: any): Promise<{ [key: string]: any }> {
@@ -24,7 +30,7 @@ describe('readCertificateData', () => {
     // GIVEN
     const certData = 'BEGIN CERTIFICATE';
     jest.requireMock('../../lib/secrets-manager/read-certificate').readCertificateData.mockReturnValue(Promise.resolve(certData));
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
 
     // WHEN
     // tslint:disable-next-line: no-string-literal
@@ -39,7 +45,7 @@ describe('readCertificateData', () => {
     jest.requireMock('../../lib/secrets-manager/read-certificate').readCertificateData.mockImplementation(() => {
       throw new Error('must contain a Certificate in PEM format');
     });
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
 
     // THEN
     // tslint:disable-next-line: no-string-literal
@@ -48,12 +54,8 @@ describe('readCertificateData', () => {
 });
 
 describe('readLoginCredentials', () => {
-  beforeEach(() => {
-    setSDKInstance(AWS);
-  });
-
   afterEach(() => {
-    restore('SecretsManager');
+    secretsManagerMock.reset();
   });
 
   test('success', async () => {
@@ -65,9 +67,8 @@ describe('readLoginCredentials', () => {
     const secretContents = {
       SecretString: JSON.stringify(loginData),
     };
-    const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
-    mock('SecretsManager', 'getSecretValue', mockGetSecret);
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    secretsManagerMock.on(GetSecretValueCommand).resolves(secretContents);
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
 
     // WHEN
     // tslint:disable-next-line: no-string-literal
@@ -83,9 +84,8 @@ describe('readLoginCredentials', () => {
     const secretContents = {
       SecretBinary: loginData,
     };
-    const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
-    mock('SecretsManager', 'getSecretValue', mockGetSecret);
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    secretsManagerMock.on(GetSecretValueCommand).resolves(secretContents);
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
 
     // THEN
     // tslint:disable-next-line: no-string-literal
@@ -111,9 +111,8 @@ describe('readLoginCredentials', () => {
     const secretContents = {
       SecretString: data,
     };
-    const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
-    mock('SecretsManager', 'getSecretValue', mockGetSecret);
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    secretsManagerMock.on(GetSecretValueCommand).resolves(secretContents);
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
 
     // THEN
     // tslint:disable-next-line: no-string-literal
@@ -137,7 +136,7 @@ describe('mongoLogin', () => {
     }
     const mockReadCert = jest.fn( (request) => stringSuccessRequestMock(request) );
     const mockReadLogin = jest.fn( (request) => successRequestMock(request, { username: 'test', password: 'pass' }));
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
     // tslint:disable-next-line: no-string-literal
     handler['readCertificateData'] = mockReadCert;
     // tslint:disable-next-line: no-string-literal
@@ -179,12 +178,8 @@ describe('mongoLogin', () => {
 });
 
 describe('readPasswordAuthUserInfo', () => {
-  beforeEach(() => {
-    setSDKInstance(AWS);
-  });
-
   afterEach(() => {
-    restore('SecretsManager');
+    secretsManagerMock.reset();
   });
 
   test('success', async () => {
@@ -197,9 +192,8 @@ describe('readPasswordAuthUserInfo', () => {
     const secretContents = {
       SecretString: JSON.stringify(userData),
     };
-    const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
-    mock('SecretsManager', 'getSecretValue', mockGetSecret);
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    secretsManagerMock.on(GetSecretValueCommand).resolves(secretContents);
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
 
     // WHEN
     // tslint:disable-next-line: no-string-literal
@@ -215,9 +209,8 @@ describe('readPasswordAuthUserInfo', () => {
     const secretContents = {
       SecretBinary: loginData,
     };
-    const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
-    mock('SecretsManager', 'getSecretValue', mockGetSecret);
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    secretsManagerMock.on(GetSecretValueCommand).resolves(secretContents);
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
 
     // THEN
     // tslint:disable-next-line: no-string-literal
@@ -252,9 +245,8 @@ describe('readPasswordAuthUserInfo', () => {
     const secretContents = {
       SecretString: data,
     };
-    const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
-    mock('SecretsManager', 'getSecretValue', mockGetSecret);
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    secretsManagerMock.on(GetSecretValueCommand).resolves(secretContents);
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
 
     // THEN
     // tslint:disable-next-line: no-string-literal
@@ -278,7 +270,7 @@ describe('userExists', () => {
     const mockDb = {
       command: jest.fn( (request) => successRequestMock(request, mongoQueryResult) ),
     };
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
 
     // WHEN
     // tslint:disable-next-line: no-string-literal
@@ -301,7 +293,7 @@ describe('userExists', () => {
     const mockDb = {
       command: jest.fn( (request) => successRequestMock(request, mongoQueryResult) ),
     };
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
 
     // WHEN
     // tslint:disable-next-line: no-string-literal
@@ -320,7 +312,7 @@ describe('userExists', () => {
     const mockDb = {
       command: jest.fn( (request) => successRequestMock(request, mongoQueryResult) ),
     };
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
 
     // THEN
     // tslint:disable-next-line: no-string-literal
@@ -347,7 +339,7 @@ describe('createUser', () => {
     const mockDb = {
       command: jest.fn( (request) => successRequestMock(request, mongoQueryResult) ),
     };
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
     const credentials = {
       username: 'test',
       password: 'password',
@@ -377,7 +369,7 @@ describe('createUser', () => {
     const mockDb = {
       command: jest.fn( (request) => successRequestMock(request, mongoQueryResult) ),
     };
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
     const credentials = {
       username: 'test',
       roles: [ { role: 'readWrite', db: 'testdb' } ],
@@ -405,7 +397,7 @@ describe('createUser', () => {
     const mockDb = {
       command: jest.fn( (request) => successRequestMock(request, mongoQueryResult) ),
     };
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
     const credentials = {
       username: 'test',
       password: 'password',
@@ -436,15 +428,13 @@ describe('createPasswordAuthUser', () => {
 
   beforeEach(() => {
     // GIVEN
-    setSDKInstance(AWS);
     consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
 
-    const mockGetSecret = jest.fn( (request) => successRequestMock(request, secretContents) );
-    mock('SecretsManager', 'getSecretValue', mockGetSecret);
+    secretsManagerMock.on(GetSecretValueCommand).resolves(secretContents);
   });
 
   afterEach(() => {
-    restore('SecretsManager');
+    secretsManagerMock.reset();
     jest.clearAllMocks();
   });
 
@@ -466,7 +456,7 @@ describe('createPasswordAuthUser', () => {
     const mockDb = {
       command: jest.fn( (request) => commandMock(request) ),
     };
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
 
     // WHEN
     // tslint:disable-next-line: no-string-literal
@@ -513,7 +503,7 @@ describe('createPasswordAuthUser', () => {
     const mockDb = {
       command: jest.fn( (request) => commandMock(request) ),
     };
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
 
     // WHEN
     // tslint:disable-next-line: no-string-literal
@@ -533,14 +523,9 @@ describe('createX509AuthUser', () => {
   const username = 'CN=TestUser,O=TestOrg,OU=TestOrgUnit';
 
   beforeEach(() => {
-    setSDKInstance(AWS);
     consoleLogMock = jest.spyOn(console, 'log')
       .mockReset()
       .mockReturnValue(undefined);
-  });
-
-  afterEach(() => {
-    restore('SecretsManager');
   });
 
   describe.each([
@@ -591,7 +576,7 @@ describe('createX509AuthUser', () => {
       }
       const mockReadCert = jest.fn( (request) => stringSuccessRequestMock(request) );
       const mockRfc2253 = jest.fn( (arg) => rfc2253(arg) );
-      const handler = new MongoDbConfigure(new AWS.SecretsManager());
+      const handler = new MongoDbConfigure(new SecretsManagerClient());
       // tslint:disable-next-line: no-string-literal
       handler['readCertificateData'] = mockReadCert;
       // tslint:disable-next-line: no-string-literal
@@ -654,7 +639,7 @@ describe('doCreate', () => {
       close: jest.fn(),
     };
 
-    const handler = new MongoDbConfigure(new AWS.SecretsManager());
+    const handler = new MongoDbConfigure(new SecretsManagerClient());
     // tslint:disable-next-line: no-string-literal
     handler['installMongoDbDriver'] = jest.fn();
     async function returnMockMongoClient(_v1: any, _v2: any): Promise<any> {

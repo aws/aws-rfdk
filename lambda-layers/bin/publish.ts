@@ -11,7 +11,14 @@
  * The layer_name should map to a directory under the layers directory. Full instructions on how to build and publish
  * a Lambda Layer can be found in the README.
  */
-import { Lambda } from 'aws-sdk';
+
+
+import {
+  LambdaClient,
+  PublishLayerVersionCommand,
+  AddLayerVersionPermissionCommand,
+  Runtime,
+} from '@aws-sdk/client-lambda';
 import * as path from 'path';
 import * as fs from 'fs';
 import { getRegions } from '../lib/get-regions';
@@ -19,7 +26,7 @@ import { getMostRecentVersion } from '../lib/get-layer-version-info';
 
 async function isDescriptionUpdated(
   descriptionText: string,
-  lambda: Lambda,
+  lambda: LambdaClient,
   layerName: string,
 ): Promise<boolean> {
   const mostRecentVersion = await getMostRecentVersion(lambda, layerName);
@@ -32,16 +39,15 @@ async function publishLayerToRegion(
   layerName: string,
   licenseText: string,
   region: string,
-  runtimes: Array<string>,
+  runtimes: Array<Runtime>,
 ): Promise<void> {
-  const lambda = new Lambda({
-    apiVersion: '2015-03-31',
+  const lambda = new LambdaClient({
     region,
   })
   if (await isDescriptionUpdated(descriptionText, lambda, layerName)) {
     try {
       console.log(`Publishing to: ${region}`);
-      const publishResult = await lambda.publishLayerVersion({
+      const publishResult = await lambda.send(new PublishLayerVersionCommand({
         LayerName: layerName,
         Content: {
           ZipFile: layerFileBuffer,
@@ -49,28 +55,22 @@ async function publishLayerToRegion(
         Description: descriptionText,
         LicenseInfo: licenseText,
         CompatibleRuntimes: runtimes,
-      }).promise();
+      }));
 
-      if (publishResult.$response.error) {
-        console.error(publishResult.$response.error);
-        return;
-      }
       if (!publishResult.Version) {
         console.error(`No version was returned for region: ${region}`);
         return;
       }
-      lambda.addLayerVersionPermission({
+      lambda.send(new AddLayerVersionPermissionCommand({
         Action: 'lambda:GetLayerVersion',
         LayerName: layerName,
         Principal: '*',
         StatementId: 'PublicReadAccess',
         VersionNumber: publishResult.Version,
-      }, function(err, data) {
-        if (err) {
-          console.error(err);
-        } else {
-          console.log(`Set permissions for ${layerName} in ${region} with statement: ${data.Statement}`);
-        }
+      })).then(data => {
+        console.log(`Set permissions for ${layerName} in ${region} with statement: ${data.Statement}`);
+      }).catch(err => {
+        console.error(err);
       });
     } catch (e) {
       console.error(`Failed publishing in ${region} with error: ${e}`);
@@ -87,8 +87,16 @@ const layerName = process.argv[2];
 const layerFileBuffer = fs.readFileSync(path.join(__dirname, `../layers/${layerName}/layer.zip`));
 const descriptionText = fs.readFileSync(path.join(__dirname, `../layers/${layerName}/description.txt`)).toString().replace('\n', '');
 const licenseText = fs.readFileSync(path.join(__dirname, `../layers/${layerName}/license.txt`)).toString().replace('\n', '');
-const runtimesText = fs.readFileSync(path.join(__dirname, `../layers/${layerName}/runtimes.txt`)).toString().replace('\n', '');
-const runtimes = runtimesText.split(' ');
+const runtimesPath = path.join(__dirname, `../layers/${layerName}/runtimes.txt`);
+const runtimesText = fs.readFileSync(runtimesPath).toString().replace('\n', '');
+const runtimesTextArray = runtimesText.split(' ');
+const runtimes = runtimesTextArray.map(runtimeName => {
+  const runtime = runtimeName as Runtime;
+  if (!Object.values(Runtime).includes(runtime)) {
+    throw new Error(`Could not find Lambda Runtime in CDK matching "${runtimeName}" (loaded from "${runtimesPath})"`);
+  }
+  return runtime;
+});
 
 getRegions().then(regions => {
   for (const region of regions) {

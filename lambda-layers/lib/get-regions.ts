@@ -3,7 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SSM } from 'aws-sdk';
+
+
+import {
+  SSMClient,
+  GetParametersByPathCommand,
+} from '@aws-sdk/client-ssm';
 
 // These regions need to be enabled for the AWS account being used for publishing, so we skip them
 // See https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-regions.html
@@ -31,21 +36,17 @@ function isValidRegion(region: string): boolean {
 }
 
 export async function getRegions(): Promise<Array<string>> {
-  const ssm = new SSM({
-    apiVersion: '2014-11-06',
+  const ssm = new SSMClient({
     region: 'us-west-2',
   });
 
   let moreData = true;
-  let data = await ssm.getParametersByPath({
+  let data = await ssm.send(new GetParametersByPathCommand({
     Path: '/aws/service/global-infrastructure/services/lambda/regions',
-  }).promise();
+  }));
 
   const regions: Array<string> = []
   while(moreData) {
-    if (data.$response.error) {
-      throw data.$response.error;
-    }
     if (!data.Parameters) {
       throw new Error('Failed to get regions from SSM');
     }
@@ -64,10 +65,10 @@ export async function getRegions(): Promise<Array<string>> {
     }
 
     if (data.NextToken) {
-      data = await ssm.getParametersByPath({
+      data = await ssm.send(new GetParametersByPathCommand({
         Path: '/aws/service/global-infrastructure/services/lambda/regions',
         NextToken: data.NextToken,
-      }).promise();
+      }));
     } else {
       moreData = false;
     }

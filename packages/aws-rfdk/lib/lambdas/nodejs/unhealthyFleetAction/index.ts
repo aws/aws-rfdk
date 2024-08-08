@@ -6,8 +6,13 @@
 /* eslint-disable no-console */
 
 import { isNativeError } from 'util/types';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import {AutoScaling} from 'aws-sdk';
+
+/* eslint-disable import/no-extraneous-dependencies */
+import {
+  AutoScalingClient,
+  UpdateAutoScalingGroupCommand,
+} from '@aws-sdk/client-auto-scaling';
+/* eslint-enable import/no-extraneous-dependencies */
 
 // @ts-ignore
 export async function handler(event: AWSLambda.SNSEvent, context: AWSLambda.Context) {
@@ -63,13 +68,13 @@ export async function handler(event: AWSLambda.SNSEvent, context: AWSLambda.Cont
     console.info(`Found fleet: ${dimensionName} with fleetId: ${dimensionValue}`);
 
     // this is an ASG Target, we need to suspend its size
-    const autoScaling = new AutoScaling();
-    await autoScaling.updateAutoScalingGroup({
+    const autoScaling = new AutoScalingClient();
+    await autoScaling.send(new UpdateAutoScalingGroupCommand({
       AutoScalingGroupName: dimensionValue,
       MaxSize: 0,
       MinSize: 0,
       DesiredCapacity: 0,
-    }).promise().then((data: any) => {
+    })).then((data: any) => {
       // successful response
       console.log(`Successfully suspended the fleet ${dimensionValue}: ${data}`);
     }).catch((err: any) => {

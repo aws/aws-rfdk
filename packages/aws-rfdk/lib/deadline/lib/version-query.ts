@@ -168,7 +168,7 @@ export class VersionQuery extends VersionQueryBase {
       uuid: '2e19e243-16ee-4d1a-a3c9-18d35eddd446',
       description: 'Used by the Version construct to get installer locations for a specific Deadline version.',
       code: lambdaCode,
-      runtime: Runtime.NODEJS_16_X,
+      runtime: Runtime.NODEJS_18_X,
       handler: 'version-provider.handler',
       timeout: Duration.seconds(30),
       logRetention: RetentionDays.ONE_WEEK,

@@ -4,6 +4,9 @@
  */
 
 import {
+  SecretsManagerClient,
+} from '@aws-sdk/client-secrets-manager';
+import {
   App,
   Expiration,
   Stack,
@@ -11,7 +14,6 @@ import {
 import {
   LaunchTemplate,
 } from 'aws-cdk-lib/aws-ec2';
-import * as AWS from 'aws-sdk';
 import {
   SpotEventPluginDisplayInstanceStatus,
   SpotEventPluginLoggingLevel,
@@ -117,7 +119,7 @@ describe('SEPConfiguratorResource', () => {
         addPools: jest.fn( (_a) => Promise.resolve(true) ),
       };
 
-      handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      handler = new SEPConfiguratorResource(new SecretsManagerClient());
 
       jest.requireMock('../../lib/secrets-manager/read-certificate').readCertificateData.mockReturnValue(Promise.resolve('BEGIN CERTIFICATE'));
 
@@ -328,7 +330,7 @@ describe('SEPConfiguratorResource', () => {
 
   test('doDelete does not do anything', async () => {
     // GIVEN
-    const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+    const handler = new SEPConfiguratorResource(new SecretsManagerClient());
 
     // WHEN
     const promise = await handler.doDelete('physicalId', {
@@ -346,7 +348,7 @@ describe('SEPConfiguratorResource', () => {
         const input = validSepConfiguration;
 
         // WHEN
-        const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+        const handler = new SEPConfiguratorResource(new SecretsManagerClient());
         const returnValue = handler.validateInput(input);
 
         // THEN
@@ -361,7 +363,7 @@ describe('SEPConfiguratorResource', () => {
         };
 
         // WHEN
-        const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+        const handler = new SEPConfiguratorResource(new SecretsManagerClient());
         const returnValue = handler.validateInput(input);
 
         // THEN
@@ -376,7 +378,7 @@ describe('SEPConfiguratorResource', () => {
         };
 
         // WHEN
-        const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+        const handler = new SEPConfiguratorResource(new SecretsManagerClient());
         const returnValue = handler.validateInput(input);
 
         // THEN
@@ -390,7 +392,7 @@ describe('SEPConfiguratorResource', () => {
         };
 
         // WHEN
-        const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+        const handler = new SEPConfiguratorResource(new SecretsManagerClient());
         const returnValue = handler.validateInput(input);
 
         // THEN
@@ -478,7 +480,7 @@ describe('SEPConfiguratorResource', () => {
         };
 
         // WHEN
-        const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+        const handler = new SEPConfiguratorResource(new SecretsManagerClient());
         const returnValue = handler.validateInput(input);
 
         // THEN
@@ -491,7 +493,7 @@ describe('SEPConfiguratorResource', () => {
         '',
       ])('{input=%s}', (input) => {
         // WHEN
-        const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+        const handler = new SEPConfiguratorResource(new SecretsManagerClient());
         const returnValue = handler.validateInput(input);
 
         // THEN
@@ -507,7 +509,7 @@ describe('SEPConfiguratorResource', () => {
         undefined,
       ])('{input=%s}', async (input: string | undefined) => {
         // WHEN
-        const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+        const handler = new SEPConfiguratorResource(new SecretsManagerClient());
 
         // eslint-disable-next-line dot-notation
         const returnValue = handler['isSecretArnOrUndefined'](input);
@@ -522,7 +524,7 @@ describe('SEPConfiguratorResource', () => {
         [],
       ])('{input=%s}', async (input: any) => {
         // WHEN
-        const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+        const handler = new SEPConfiguratorResource(new SecretsManagerClient());
 
         // eslint-disable-next-line dot-notation
         const returnValue = handler['isSecretArnOrUndefined'](input);
@@ -541,7 +543,7 @@ describe('SEPConfiguratorResource', () => {
       };
 
       // WHEN
-      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const handler = new SEPConfiguratorResource(new SecretsManagerClient());
       // eslint-disable-next-line dot-notation
       const result = await handler['spotEventPluginClient'](validHTTPConnection);
 
@@ -558,7 +560,7 @@ describe('SEPConfiguratorResource', () => {
       };
 
       // WHEN
-      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const handler = new SEPConfiguratorResource(new SecretsManagerClient());
 
       jest.requireMock('../../lib/secrets-manager/read-certificate').readCertificateData.mockReturnValue(Promise.resolve('BEGIN CERTIFICATE'));
 
@@ -581,7 +583,7 @@ describe('SEPConfiguratorResource', () => {
       };
 
       // WHEN
-      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const handler = new SEPConfiguratorResource(new SecretsManagerClient());
       // eslint-disable-next-line dot-notation
       const returnValue = handler['toKeyValueArray'](pluginConfig as PluginSettings);
 
@@ -596,7 +598,7 @@ describe('SEPConfiguratorResource', () => {
       } as unknown;
 
       // WHEN
-      const handler = new SEPConfiguratorResource(new AWS.SecretsManager());
+      const handler = new SEPConfiguratorResource(new SecretsManagerClient());
       function toKeyValueArray() {
         // eslint-disable-next-line dot-notation
         handler['toKeyValueArray'](pluginConfig as PluginSettings);
