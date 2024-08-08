@@ -8,6 +8,7 @@
 node_modules/
 .tools/
 .BUILD_COMPLETED
+package-lock.json
 yarn-error.log
 
 #Defines license that must be present
