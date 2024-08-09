@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/aws/aws-rfdk/compare/v1.3.0...v1.4.0) (2024-08-09)
+
+
+### Supported CDK Version
+
+* [2.133.0](https://github.com/aws/aws-cdk/releases/tag/v2.133.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.3.2.1](https://docs.thinkboxsoftware.com/products/deadline/10.3/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **aws-rfdk:** update Lambda functions to use Node.js 18 ([#1224](https://github.com/aws/aws-rfdk/issues/1224)) ([f1002cb](https://github.com/aws/aws-rfdk/commit/f1002cbb414e81aef808aedfb42c0d629b347471))
+* **aws-rfdk**: update Lambda functions to use AWS SDK for JavaScript v3 ([#1224](https://github.com/aws/aws-rfdk/issues/1224)) ([f1002cb](https://github.com/aws/aws-rfdk/commit/f1002cbb414e81aef808aedfb42c0d629b347471))
+* **deadline:** upgraded default Worker instance type to t3.large ([#1225](https://github.com/aws/aws-rfdk/issues/1225)) ([dfb8536](https://github.com/aws/aws-rfdk/commit/dfb8536028b1e9e46e7f62d9dc44dd101a601a3c))
+
+
+### Bug Fixes
+
+* **aws-rfdk:** erroneous startTime in ExportingLogGroup Lambda ([#1224](https://github.com/aws/aws-rfdk/issues/1224)) ([f1002cb](https://github.com/aws/aws-rfdk/commit/f1002cbb414e81aef808aedfb42c0d629b347471))
+* **integ:** increased timeouts to fix test failures ([#1221](https://github.com/aws/aws-rfdk/issues/1221)) ([f9b989a](https://github.com/aws/aws-rfdk/commit/f9b989a96eb7c42615603252758d019cc3876fe0))
+* **integ:** use the newer rds-ca-rsa2048-g1 CA certs as the original rds-ca-2019 CA certs have expired ([#1221](https://github.com/aws/aws-rfdk/issues/1221)) ([f9b989a](https://github.com/aws/aws-rfdk/commit/f9b989a96eb7c42615603252758d019cc3876fe0))
+
 ## [1.3.0](https://github.com/aws/aws-rfdk/compare/v1.2.0...v1.3.0) (2023-12-22)
 
 Note: Node 14 is End of Life and RFDK >= 1.3.x no longer officially supports it. Node.js 18.0.0 is now
