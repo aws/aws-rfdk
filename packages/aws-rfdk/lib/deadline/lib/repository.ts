@@ -678,7 +678,7 @@ export class Repository extends Construct implements IRepository {
        */
       const parameterGroup = databaseAuditLogging ? new ClusterParameterGroup(this, 'ParameterGroup', {
         description: 'DocDB cluster parameter group with enabled audit logs',
-        family: 'docdb5.0',
+        family: 'docdb3.6',
         parameters: {
           audit_logs: 'enabled',
         },
@@ -687,7 +687,7 @@ export class Repository extends Construct implements IRepository {
       const instances = props.documentDbInstanceCount ?? Repository.DEFAULT_NUM_DOCDB_INSTANCES;
       const dbCluster = new DatabaseCluster(this, 'DocumentDatabase', {
         masterUser: {username: 'DocDBUser'},
-        engineVersion: '5.0.0',
+        engineVersion: '3.6.0',
         instanceType: InstanceType.of(InstanceClass.R5, InstanceSize.LARGE),
         vpc: props.vpc,
         vpcSubnets: props.vpcSubnets ?? { subnetType: SubnetType.PRIVATE_WITH_EGRESS, onePerAz: true },
