@@ -87,7 +87,7 @@ describe('WaitForStableService', () => {
           DEBUG: 'false',
         },
       },
-      Runtime: 'nodejs16.x',
+      Runtime: 'nodejs18.x',
       Timeout: 900,
     }, 1);
   });

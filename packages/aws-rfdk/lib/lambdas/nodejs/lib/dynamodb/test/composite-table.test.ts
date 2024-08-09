@@ -5,12 +5,23 @@
 
 /* eslint-disable no-console */
 
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { randomBytes } from 'crypto';
-import * as AWS from 'aws-sdk';
-import { mock, restore, setSDKInstance } from 'aws-sdk-mock';
+import {
+  CreateTableCommand,
+  CreateTableCommandOutput,
+  DescribeTableCommand,
+  DynamoDBClient,
+  ScalarAttributeType,
+  DeleteTableCommand,
+  PutItemCommand,
+  GetItemCommand,
+  DeleteItemCommand,
+  QueryCommand,
+  CreateTableInput,
+} from '@aws-sdk/client-dynamodb';
+import { mockClient, AwsClientStub } from 'aws-sdk-client-mock';
+import 'aws-sdk-client-mock-jest';
 import * as dynalite from 'dynalite';
-import { fake } from 'sinon';
 
 import { CompositeStringIndexTable } from '../composite-table';
 
@@ -25,7 +36,7 @@ class TestTable extends CompositeStringIndexTable {
   public tableName: string | undefined;
 
   public constructor(
-    client: AWS.DynamoDB,
+    client: DynamoDBClient,
     name: string,
     primaryKey: string,
     sortKey: string,
@@ -57,7 +68,7 @@ describe('Tests using dynalite', () => {
     deleteTableMs: 5,
     updateTableMs: 5,
   });
-  let dynamoClient: AWS.DynamoDB;
+  let dynamoClient: DynamoDBClient;
 
   beforeAll(async () => {
     const dynaPort = 43266;
@@ -65,17 +76,17 @@ describe('Tests using dynalite', () => {
       if (err) { throw err; }
     });
 
-    dynamoClient = new AWS.DynamoDB({
-      credentials: new AWS.Credentials({
+    dynamoClient = new DynamoDBClient({
+      credentials: {
         accessKeyId: '',
         secretAccessKey: '',
-      }),
+      },
       endpoint: `http://localhost:${dynaPort}`,
       region: 'us-west-2',
     });
 
-    function createTableRequest(tableName: string, primaryKeyType: string, sortKey?: { KeyType: string }): AWS.DynamoDB.CreateTableInput {
-      const request = {
+    function createTableRequest(tableName: string, primaryKeyType: ScalarAttributeType, sortKeyType?: ScalarAttributeType): CreateTableInput {
+      const request: CreateTableInput = {
         TableName: tableName,
         AttributeDefinitions: [
           {
@@ -97,12 +108,12 @@ describe('Tests using dynalite', () => {
           },
         ],
       };
-      if (sortKey) {
-        request.AttributeDefinitions.push({
+      if (sortKeyType) {
+        request.AttributeDefinitions!.push({
           AttributeName: 'SortKey',
-          AttributeType: sortKey.KeyType,
+          AttributeType: sortKeyType,
         });
-        request.KeySchema.push({
+        request.KeySchema!.push({
           AttributeName: 'SortKey',
           KeyType: 'RANGE',
         });
@@ -110,26 +121,26 @@ describe('Tests using dynalite', () => {
       return request;
     }
 
-    let request = createTableRequest(GOOD_TABLE_NAME, 'S', { KeyType: 'S' });
-    let response: AWS.DynamoDB.CreateTableOutput = await dynamoClient.createTable(request).promise();
+    let request = createTableRequest(GOOD_TABLE_NAME, 'S', 'S');
+    let response: CreateTableCommandOutput = await dynamoClient.send(new CreateTableCommand(request));
     let table = response.TableDescription;
     if (!table) { throw Error(`Could not create ${GOOD_TABLE_NAME}`); }
     console.debug(`Created DynamoDB table: '${table.TableName}'`);
 
     request = createTableRequest(BAD_TABLE1_NAME, 'S');
-    response = await dynamoClient.createTable(request).promise();
+    response = await dynamoClient.send(new CreateTableCommand(request));
     table = response.TableDescription;
     if (!table) { throw Error(`Could not create ${BAD_TABLE1_NAME}`); }
     console.debug(`Created DynamoDB table: '${table.TableName}'`);
 
-    request = createTableRequest(BAD_TABLE2_NAME, 'N', { KeyType: 'S' });
-    response = await dynamoClient.createTable(request).promise();
+    request = createTableRequest(BAD_TABLE2_NAME, 'N', 'S');
+    response = await dynamoClient.send(new CreateTableCommand(request));
     table = response.TableDescription;
     if (!table) { throw Error(`Could not create ${BAD_TABLE2_NAME}`); }
     console.debug(`Created DynamoDB table: '${table.TableName}'`);
 
-    request = createTableRequest(BAD_TABLE3_NAME, 'S', { KeyType: 'N' });
-    response = await dynamoClient.createTable(request).promise();
+    request = createTableRequest(BAD_TABLE3_NAME, 'S', 'N');
+    response = await dynamoClient.send(new CreateTableCommand(request));
     table = response.TableDescription;
     if (!table) { throw Error(`Could not create ${BAD_TABLE3_NAME}`); }
     console.debug(`Created DynamoDB table: '${table.TableName}'`);
@@ -138,9 +149,9 @@ describe('Tests using dynalite', () => {
     do {
       const promises = [];
       for (const name of [GOOD_TABLE_NAME, BAD_TABLE1_NAME, BAD_TABLE2_NAME, BAD_TABLE3_NAME]) {
-        promises.push(dynamoClient.describeTable({
+        promises.push(dynamoClient.send(new DescribeTableCommand({
           TableName: name,
-        }).promise());
+        })));
       }
       const responses = await Promise.all(promises);
       waiting = !responses.every(item => item.Table?.TableStatus === 'ACTIVE');
@@ -315,19 +326,24 @@ describe('Tests using dynalite', () => {
 });
 
 describe('Tests using aws-sdk-mock', () => {
-  beforeEach(() => {
-    setSDKInstance(AWS);
+  let ddbMock: AwsClientStub<DynamoDBClient>;
+
+  beforeAll(() => {
+    ddbMock = mockClient(DynamoDBClient);
   });
 
   afterEach(() => {
-    restore('DynamoDB');
+    ddbMock.reset();
+  });
+
+  afterAll(() => {
+    ddbMock.restore();
   });
 
   describe('fromExisting tests', () => {
     test('Table not found', async () => {
-      const callback = fake.resolves({ Table: undefined });
-      mock('DynamoDB', 'describeTable', callback);
-      const client = new AWS.DynamoDB();
+      ddbMock.on(DescribeTableCommand).resolves({ Table: undefined });
+      const client = new DynamoDBClient();
       const tableName = 'Nonexistant';
 
       await expect(CompositeStringIndexTable.fromExisting(client, tableName))
@@ -336,8 +352,8 @@ describe('Tests using aws-sdk-mock', () => {
     });
 
     test('KeySchema not found', async () => {
-      mock('DynamoDB', 'describeTable', fake.resolves({ Table: { KeySchema: undefined } }));
-      const client = new AWS.DynamoDB();
+      ddbMock.on(DescribeTableCommand).resolves({ Table: { KeySchema: undefined } });
+      const client = new DynamoDBClient();
       const tableName = 'TestTable';
 
       await expect(CompositeStringIndexTable.fromExisting(client, tableName))
@@ -346,13 +362,13 @@ describe('Tests using aws-sdk-mock', () => {
     });
 
     test('AttributeDefinitions not found', async () => {
-      mock('DynamoDB', 'describeTable', fake.resolves({
+      ddbMock.on(DescribeTableCommand).resolves({
         Table: {
           KeySchema: [],
           AttributeDefinitions: undefined,
         },
-      }));
-      const client = new AWS.DynamoDB();
+      });
+      const client = new DynamoDBClient();
       const tableName = 'TestTable';
 
       await expect(CompositeStringIndexTable.fromExisting(client, tableName))
@@ -361,7 +377,7 @@ describe('Tests using aws-sdk-mock', () => {
     });
 
     test('PrimaryKey not found', async () => {
-      mock('DynamoDB', 'describeTable', fake.resolves({
+      ddbMock.on(DescribeTableCommand).resolves({
         Table: {
           KeySchema: [
             {
@@ -369,10 +385,10 @@ describe('Tests using aws-sdk-mock', () => {
               KeyType: 'RANGE',
             },
           ],
-          AttributeDefinitions: {},
+          AttributeDefinitions: [],
         },
-      }));
-      const client = new AWS.DynamoDB();
+      });
+      const client = new DynamoDBClient();
       const tableName = 'TestTable';
 
       await expect(CompositeStringIndexTable.fromExisting(client, tableName))
@@ -381,7 +397,7 @@ describe('Tests using aws-sdk-mock', () => {
     });
 
     test('SortKey not found', async () => {
-      mock('DynamoDB', 'describeTable', fake.resolves({
+      ddbMock.on(DescribeTableCommand).resolves({
         Table: {
           KeySchema: [
             {
@@ -389,10 +405,10 @@ describe('Tests using aws-sdk-mock', () => {
               KeyType: 'HASH',
             },
           ],
-          AttributeDefinitions: {},
+          AttributeDefinitions: [],
         },
-      }));
-      const client = new AWS.DynamoDB();
+      });
+      const client = new DynamoDBClient();
       const tableName = 'TestTable';
 
       await expect(CompositeStringIndexTable.fromExisting(client, tableName))
@@ -401,7 +417,7 @@ describe('Tests using aws-sdk-mock', () => {
     });
 
     test('PrimaryKey AttributeDefinition not found', async () => {
-      mock('DynamoDB', 'describeTable', fake.resolves({
+      ddbMock.on(DescribeTableCommand).resolves({
         Table: {
           KeySchema: [
             {
@@ -420,8 +436,8 @@ describe('Tests using aws-sdk-mock', () => {
             },
           ],
         },
-      }));
-      const client = new AWS.DynamoDB();
+      });
+      const client = new DynamoDBClient();
       const tableName = 'TestTable';
 
       await expect(CompositeStringIndexTable.fromExisting(client, tableName))
@@ -430,7 +446,7 @@ describe('Tests using aws-sdk-mock', () => {
     });
 
     test('SortKey AttributeDefinition not found', async () => {
-      mock('DynamoDB', 'describeTable', fake.resolves({
+      ddbMock.on(DescribeTableCommand).resolves({
         Table: {
           KeySchema: [
             {
@@ -449,8 +465,8 @@ describe('Tests using aws-sdk-mock', () => {
             },
           ],
         },
-      }));
-      const client = new AWS.DynamoDB();
+      });
+      const client = new DynamoDBClient();
       const tableName = 'TestTable';
 
       await expect(CompositeStringIndexTable.fromExisting(client, tableName))
@@ -461,8 +477,8 @@ describe('Tests using aws-sdk-mock', () => {
 
   describe('createNew tests', () => {
     test('DynamoDB.createTable() failure throws Error', async () => {
-      mock('DynamoDB', 'createTable', fake.rejects({}));
-      const client = new AWS.DynamoDB();
+      ddbMock.on(CreateTableCommand).rejects({});
+      const client = new DynamoDBClient();
       const name = 'TestTable';
       const primaryKeyName = 'PrimaryKey';
       const sortKeyName = 'SortKey';
@@ -488,8 +504,8 @@ describe('Tests using aws-sdk-mock', () => {
         },
       ];
 
-      mock('DynamoDB', 'createTable', fake.resolves({}));
-      const client = new AWS.DynamoDB();
+      ddbMock.on(CreateTableCommand).resolves({});
+      const client = new DynamoDBClient();
       const table = await CompositeStringIndexTable.createNew({
         client,
         name: tableName,
@@ -508,9 +524,9 @@ describe('Tests using aws-sdk-mock', () => {
       const tableName: string = 'TestTable';
       const pk: string = 'PrimKey';
       const sk: string = 'SortKey';
-      mock('DynamoDB', 'deleteTable', fake.resolves({}));
+      ddbMock.on(DeleteTableCommand).resolves({});
 
-      const client = new AWS.DynamoDB();
+      const client = new DynamoDBClient();
       const table = new TestTable(
         client,
         tableName,
@@ -522,9 +538,8 @@ describe('Tests using aws-sdk-mock', () => {
     });
 
     test('Table already deleted', async () => {
-      const deleteFake = fake.resolves({});
-      mock('DynamoDB', 'deleteTable', deleteFake);
-      const client = new AWS.DynamoDB();
+      ddbMock.on(DeleteTableCommand).resolves({});
+      const client = new DynamoDBClient();
       const name = 'TestTable';
       const primaryKeyName = 'PrimaryKey';
       const sortKeyName = 'SortKey';
@@ -537,12 +552,12 @@ describe('Tests using aws-sdk-mock', () => {
       await subject.deleteTable();
 
       await expect(subject.deleteTable()).resolves.toBe(undefined);
-      expect(deleteFake.callCount).toEqual(1);
+      expect(ddbMock).toHaveReceivedCommandTimes(DeleteTableCommand, 1);
     });
 
     test('DynamoDB.deleteTable() failure', async () => {
-      mock('DynamoDB', 'deleteTable', fake.rejects(new Error()));
-      const client = new AWS.DynamoDB();
+      ddbMock.on(DeleteTableCommand).rejects(new Error());
+      const client = new DynamoDBClient();
       const name = 'TestTable';
       const primaryKeyName = 'PrimaryKey';
       const sortKeyName = 'SortKey';
@@ -558,12 +573,10 @@ describe('Tests using aws-sdk-mock', () => {
 
   describe('putItem tests', () => {
     test('Table already deleted', async () => {
-      const deleteFake = fake.resolves({});
-      mock('DynamoDB', 'deleteTable', deleteFake);
-      const putFake = fake.resolves({});
-      mock('DynamoDB', 'putItem', putFake);
+      ddbMock.on(DeleteTableCommand).resolves({});
+      ddbMock.on(PutItemCommand).resolves({});
 
-      const client = new AWS.DynamoDB();
+      const client = new DynamoDBClient();
       const name = 'TestTable';
       const primaryKeyName = 'PrimaryKey';
       const sortKeyName = 'SortKey';
@@ -578,13 +591,13 @@ describe('Tests using aws-sdk-mock', () => {
       await expect(subject.putItem({ primaryKeyValue: 'TestPrimVal', sortKeyValue: 'TestSortVal' }))
         .rejects
         .toThrow('Attempt to PutItem in deleted table');
-      expect(deleteFake.callCount).toEqual(1);
-      expect(putFake.notCalled).toBeTruthy();
+      expect(ddbMock).toHaveReceivedCommandTimes(DeleteTableCommand, 1);
+      expect(ddbMock).not.toHaveReceivedCommand(PutItemCommand);
     });
 
     test('DynamoDB.putItem() failure', async () => {
-      mock('DynamoDB', 'putItem', fake.rejects(new Error()));
-      const client = new AWS.DynamoDB();
+      ddbMock.on(PutItemCommand).rejects(new Error());
+      const client = new DynamoDBClient();
       const name = 'TestTable';
       const primaryKeyName = 'PrimaryKey';
       const sortKeyName = 'SortKey';
@@ -600,12 +613,10 @@ describe('Tests using aws-sdk-mock', () => {
 
   describe('getItem tests', () => {
     test('Table already deleted', async () => {
-      const deleteFake = fake.resolves({});
-      mock('DynamoDB', 'deleteTable', deleteFake);
-      const getFake = fake.resolves({});
-      mock('DynamoDB', 'getItem', getFake);
+      ddbMock.on(DeleteTableCommand).resolves({});
+      ddbMock.on(GetItemCommand).resolves({});
 
-      const client = new AWS.DynamoDB();
+      const client = new DynamoDBClient();
       const name = 'TestTable';
       const primaryKeyName = 'PrimaryKey';
       const sortKeyName = 'SortKey';
@@ -620,13 +631,13 @@ describe('Tests using aws-sdk-mock', () => {
       await expect(subject.getItem({ primaryKeyValue: 'TestPrimVal', sortKeyValue: 'TestSortVal' }))
         .rejects
         .toThrow('Attempt to GetItem from deleted table');
-      expect(deleteFake.callCount).toEqual(1);
-      expect(getFake.notCalled).toBeTruthy();
+      expect(ddbMock).toHaveReceivedCommandTimes(DeleteTableCommand, 1);
+      expect(ddbMock).not.toHaveReceivedCommand(GetItemCommand);
     });
 
     test('DynamoDB.getItem() failure', async () => {
-      mock('DynamoDB', 'getItem', fake.rejects(new Error()));
-      const client = new AWS.DynamoDB();
+      ddbMock.on(GetItemCommand).rejects(new Error());
+      const client = new DynamoDBClient();
       const name = 'TestTable';
       const primaryKeyName = 'PrimaryKey';
       const sortKeyName = 'SortKey';
@@ -642,12 +653,10 @@ describe('Tests using aws-sdk-mock', () => {
 
   describe('deleteItem tests', () => {
     test('Table already deleted', async () => {
-      const deleteTableFake = fake.resolves({});
-      mock('DynamoDB', 'deleteTable', deleteTableFake);
-      const deleteItemFake = fake.resolves({});
-      mock('DynamoDB', 'deleteItem', deleteItemFake);
+      ddbMock.on(DeleteTableCommand).resolves({});
+      ddbMock.on(DeleteItemCommand).resolves({});
 
-      const client = new AWS.DynamoDB();
+      const client = new DynamoDBClient();
       const name = 'TestTable';
       const primaryKeyName = 'PrimaryKey';
       const sortKeyName = 'SortKey';
@@ -662,13 +671,13 @@ describe('Tests using aws-sdk-mock', () => {
       await expect(subject.deleteItem({ primaryKeyValue: 'TestPrimVal', sortKeyValue: 'TestSortVal' }))
         .rejects
         .toThrow('Attempt to DeleteItem from deleted table');
-      expect(deleteTableFake.callCount).toEqual(1);
-      expect(deleteItemFake.notCalled).toBeTruthy();
+      expect(ddbMock).toHaveReceivedCommandTimes(DeleteTableCommand, 1);
+      expect(ddbMock).not.toHaveReceivedCommand(DeleteItemCommand);
     });
 
     test('DynamoDB.deleteItem() failure', async () => {
-      mock('DynamoDB', 'deleteItem', fake.rejects(new Error()));
-      const client = new AWS.DynamoDB();
+      ddbMock.on(DeleteItemCommand).rejects(new Error());
+      const client = new DynamoDBClient();
       const name = 'TestTable';
       const primaryKeyName = 'PrimaryKey';
       const sortKeyName = 'SortKey';
@@ -684,10 +693,9 @@ describe('Tests using aws-sdk-mock', () => {
 
   describe('query tests', () => {
     test('Returns empty', async () => {
-      const queryFake = fake.resolves({});
-      mock('DynamoDB', 'query', queryFake);
+      ddbMock.on(QueryCommand).resolves({});
 
-      const client = new AWS.DynamoDB();
+      const client = new DynamoDBClient();
       const name = 'TestTable';
       const primaryKeyName = 'PrimaryKey';
       const sortKeyName = 'SortKey';
@@ -701,16 +709,14 @@ describe('Tests using aws-sdk-mock', () => {
       await expect(subject.query('TestPrimVal'))
         .resolves
         .toEqual({});
-      expect(queryFake.callCount).toEqual(1);
+      expect(ddbMock).toHaveReceivedCommandTimes(QueryCommand, 1);
     });
 
     test('Table already deleted', async () => {
-      const deleteTableFake = fake.resolves({});
-      mock('DynamoDB', 'deleteTable', deleteTableFake);
-      const queryFake = fake.resolves({});
-      mock('DynamoDB', 'query', queryFake);
+      ddbMock.on(DeleteTableCommand).resolves({});
+      ddbMock.on(QueryCommand).resolves({});
 
-      const client = new AWS.DynamoDB();
+      const client = new DynamoDBClient();
       const name = 'TestTable';
       const primaryKeyName = 'PrimaryKey';
       const sortKeyName = 'SortKey';
@@ -725,13 +731,13 @@ describe('Tests using aws-sdk-mock', () => {
       await expect(subject.query('TestPrimVal'))
         .rejects
         .toThrow('Attempt to Query a deleted table');
-      expect(deleteTableFake.callCount).toEqual(1);
-      expect(queryFake.notCalled).toBeTruthy();
+      expect(ddbMock).toHaveReceivedCommandTimes(DeleteTableCommand, 1);
+      expect(ddbMock).not.toHaveReceivedCommand(QueryCommand);
     });
 
     test('DynamoDB.query() failure', async () => {
-      mock('DynamoDB', 'query', fake.rejects(new Error()));
-      const client = new AWS.DynamoDB();
+      ddbMock.on(QueryCommand).rejects(new Error());
+      const client = new DynamoDBClient();
       const name = 'TestTable';
       const primaryKeyName = 'PrimaryKey';
       const sortKeyName = 'SortKey';

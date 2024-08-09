@@ -5,8 +5,13 @@
 
 /* eslint-disable no-console */
 
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { ECS, AWSError } from 'aws-sdk';
+/* eslint-disable import/no-extraneous-dependencies */
+import {
+  ECSClient,
+  waitUntilServicesStable,
+} from '@aws-sdk/client-ecs';
+/* eslint-enable import/no-extraneous-dependencies */
+
 import { LambdaContext } from '../lib/aws-lambda';
 import {
   CfnRequestEvent,
@@ -33,9 +38,9 @@ export interface WaitForStableServiceResourceProps {
  * A custom resource used to save Spot Event Plugin server data and configurations.
  */
 export class WaitForStableServiceResource extends SimpleCustomResource {
-  protected readonly ecsClient: ECS;
+  protected readonly ecsClient: ECSClient;
 
-  constructor(ecsClient: ECS) {
+  constructor(ecsClient: ECSClient) {
     super();
     this.ecsClient = ecsClient;
   }
@@ -58,10 +63,10 @@ export class WaitForStableServiceResource extends SimpleCustomResource {
 
     try {
       console.log(`Waiting for ECS services to stabilize. Cluster: ${resourceProperties.cluster}. Services: ${resourceProperties.services}`);
-      await this.ecsClient.waitFor('servicesStable', options).promise();
+      await waitUntilServicesStable({client: this.ecsClient, maxWaitTime: 600}, options);
       console.log('Finished waiting. ECS services are stable.');
     } catch (e) {
-      throw new Error(`ECS services failed to stabilize in expected time: ${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
+      throw new Error(`ECS services failed to stabilize in expected time: ${(e as Error)?.name} -- ${(e as Error)?.message}`);
     }
 
     return undefined;
@@ -92,6 +97,6 @@ export class WaitForStableServiceResource extends SimpleCustomResource {
  */
 /* istanbul ignore next */
 export async function wait(event: CfnRequestEvent, context: LambdaContext): Promise<string> {
-  const handler = new WaitForStableServiceResource(new ECS());
+  const handler = new WaitForStableServiceResource(new ECSClient());
   return await handler.handler(event, context);
 }

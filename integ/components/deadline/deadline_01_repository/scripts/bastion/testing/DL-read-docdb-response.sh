@@ -29,7 +29,7 @@ if [ -d "$CERT" ]; then
   # The domain zone for the mongo instance used is hard-coded during setup
   DB_ADDRESS="mongo.renderfarm.local:27017"
 else
-  CERT_CA="./testScripts/rds-combined-ca-bundle.pem"
+  CERT_CA="./testScripts/global-bundle.pem"
 
   # DocDB contains the endpoint address to use in its secret
   ENDPOINT=$(jq -r '.host' <<< "$DB_SECRET_STRING")
@@ -38,7 +38,8 @@ else
 
 fi
 
-# Mongo command to query for "deadline10db" database
-mongo --quiet --ssl --host="$DB_ADDRESS" --sslCAFile="$CERT_CA" --username="$DB_USERNAME" --password="$DB_PASS" --eval='printjson( db.adminCommand( { listDatabases: 1, nameOnly: true, filter: { "name": "deadline10db" } } ) )'
-
+# Mongo command to query for "deadline10db" database.
+# We delete Timestamp fields from the EJSON result to avoid errors when parsing
+# them in Python.
+mongo --quiet --ssl --host="$DB_ADDRESS" --sslCAFile="$CERT_CA" --username="$DB_USERNAME" --password="$DB_PASS" --eval='(function(){var output=db.adminCommand({ listDatabases: 1, nameOnly: true, filter: { "name": "deadline10db" } } );delete output.onTime;delete output.operationTime;printjson(output)})()'
 exit 0

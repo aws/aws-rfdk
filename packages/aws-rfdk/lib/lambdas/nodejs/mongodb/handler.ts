@@ -7,8 +7,11 @@
 
 import { exec as execAsync, execSync } from 'child_process';
 import { promisify } from 'util';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { SecretsManager } from 'aws-sdk';
+/* eslint-disable import/no-extraneous-dependencies */
+import {
+  SecretsManagerClient,
+} from '@aws-sdk/client-secrets-manager';
+/* eslint-enable import/no-extraneous-dependencies */
 import { LambdaContext } from '../lib/aws-lambda';
 import { CfnRequestEvent, SimpleCustomResource } from '../lib/custom-resource';
 
@@ -29,9 +32,9 @@ import {
 const exec = promisify(execAsync);
 
 export class MongoDbConfigure extends SimpleCustomResource {
-  protected readonly secretsManagerClient: SecretsManager;
+  protected readonly secretsManagerClient: SecretsManagerClient;
 
-  constructor(secretsManagerClient: SecretsManager) {
+  constructor(secretsManagerClient: SecretsManagerClient) {
     super();
     this.secretsManagerClient = secretsManagerClient;
   }
@@ -270,6 +273,6 @@ export class MongoDbConfigure extends SimpleCustomResource {
  */
 /* istanbul ignore next */
 export async function configureMongo(event: CfnRequestEvent, context: LambdaContext): Promise<string> {
-  const handler = new MongoDbConfigure(new SecretsManager());
+  const handler = new MongoDbConfigure(new SecretsManagerClient());
   return await handler.handler(event, context);
 }

@@ -392,7 +392,7 @@ export class HealthMonitor extends HealthMonitorBase {
 
     this.unhealthyFleetActionLambda = new SingletonFunction(this, 'UnhealthyFleetAction', {
       code: Code.fromAsset(path.join(__dirname, '..', '..', 'lambdas', 'nodejs', 'unhealthyFleetAction')),
-      runtime: Runtime.NODEJS_16_X,
+      runtime: Runtime.NODEJS_18_X,
       handler: 'index.handler',
       lambdaPurpose: 'unhealthyFleetTermination',
       timeout: Duration.seconds(300),

@@ -5,18 +5,45 @@
 
 /* eslint-disable no-console */
 
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { DynamoDB, AWSError } from 'aws-sdk';
+/* eslint-disable import/no-extraneous-dependencies */
+import {
+  //BillingMode,
+  CreateTableCommand,
+  CreateTableCommandInput,
+  DeleteItemCommand,
+  DeleteItemCommandInput,
+  DeleteItemCommandOutput,
+  DeleteTableCommand,
+  DeleteTableCommandInput,
+  DynamoDBClient,
+  GetItemCommand,
+  GetItemCommandInput,
+  GetItemCommandOutput,
+  PutItemCommandInput,
+  QueryCommandInput,
+  QueryCommandOutput,
+  DescribeTableCommand,
+  ResourceNotFoundException,
+  ConditionalCheckFailedException,
+  PutItemCommand,
+  QueryCommand,
+} from '@aws-sdk/client-dynamodb';
+import {
+  marshall,
+  unmarshall,
+  convertToAttr,
+} from '@aws-sdk/util-dynamodb';
+/* eslint-enable import/no-extraneous-dependencies */
 
 export class CompositeStringIndexTable {
   public static readonly API_VERSION = '2012-08-10';
 
-  public static async fromExisting(client: DynamoDB, tableName: string): Promise<CompositeStringIndexTable> {
+  public static async fromExisting(client: DynamoDBClient, tableName: string): Promise<CompositeStringIndexTable> {
     // Determine the key schema of the table
     // We let this throw if the table does not exist.
 
     // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB.html#describeTable-property
-    const describeResponse = await client.describeTable({ TableName: tableName }).promise();
+    const describeResponse = await client.send(new DescribeTableCommand({ TableName: tableName }));
     if (!describeResponse.Table) {
       throw Error(`Could not describeTable for Table '${tableName}'`);
     }
@@ -55,8 +82,8 @@ export class CompositeStringIndexTable {
     return new CompositeStringIndexTable(
       client,
       tableName,
-      primaryKey,
-      sortKey,
+      primaryKey!,
+      sortKey!,
     );
   }
 
@@ -66,7 +93,7 @@ export class CompositeStringIndexTable {
    * @param args
    */
   public static async createNew(args: {
-    client: DynamoDB,
+    client: DynamoDBClient,
     name: string,
     primaryKeyName: string,
     sortKeyName: string,
@@ -74,7 +101,7 @@ export class CompositeStringIndexTable {
     tags?: Array<{ Key: string, Value: string }>
   }): Promise<CompositeStringIndexTable> {
     // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB.html#createTable-property
-    const request: DynamoDB.CreateTableInput = {
+    const request: CreateTableCommandInput = {
       TableName: args.name,
       AttributeDefinitions: [
         {
@@ -100,7 +127,7 @@ export class CompositeStringIndexTable {
       Tags: args.tags,
     };
     try {
-      await args.client.createTable(request).promise();
+      await args.client.send(new CreateTableCommand(request));
 
       const table: CompositeStringIndexTable = new CompositeStringIndexTable(
         args.client,
@@ -110,18 +137,18 @@ export class CompositeStringIndexTable {
       );
       return table;
     } catch (e) {
-      throw new Error(`CreateTable '${args.name}': ${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
+      throw new Error(`CreateTable '${args.name}': ${(e as Error)?.name} -- ${(e as Error)?.message}`);
     }
   }
 
   public readonly primaryKey: string;
   public readonly sortKey: string;
-  protected readonly client: DynamoDB;
+  protected readonly client: DynamoDBClient;
   // tableName will only be undefined if the Table has been deleted.
   protected tableName: string | undefined;
 
   protected constructor(
-    client: DynamoDB,
+    client: DynamoDBClient,
     name: string,
     primaryKey: string,
     sortKey: string,
@@ -140,20 +167,20 @@ export class CompositeStringIndexTable {
       return; // Already gone.
     }
     // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB.html#deleteTable-property
-    const request: DynamoDB.DeleteTableInput = {
+    const request: DeleteTableCommandInput = {
       TableName: this.tableName,
     };
 
     try {
-      await this.client.deleteTable(request).promise();
+      await this.client.send(new DeleteTableCommand(request));
       this.tableName = undefined;
 
     } catch (e) {
-      if ((e as AWSError)?.code === 'ResourceNotFoundException') {
+      if (e instanceof ResourceNotFoundException) {
         // Already gone. We're good.
         this.tableName = undefined;
       } else {
-        throw new Error(`DeleteTable '${this.tableName}': ${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
+        throw new Error(`DeleteTable '${this.tableName}': ${(e as Error)?.name} -- ${(e as Error)?.message}`);
       }
     }
   }
@@ -189,10 +216,10 @@ export class CompositeStringIndexTable {
     // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB.html#putItem-property
     //      https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/Converter.html
 
-    const item = DynamoDB.Converter.marshall(props.attributes ?? {});
-    item[this.primaryKey] = DynamoDB.Converter.input(props.primaryKeyValue);
-    item[this.sortKey] = DynamoDB.Converter.input(props.sortKeyValue);
-    const request: DynamoDB.PutItemInput = {
+    const item = marshall(props.attributes ?? {});
+    item[this.primaryKey] = convertToAttr(props.primaryKeyValue);
+    item[this.sortKey] = convertToAttr(props.sortKeyValue);
+    const request: PutItemCommandInput = {
       TableName: this.tableName,
       Item: item,
       ReturnConsumedCapacity: 'NONE',
@@ -204,14 +231,14 @@ export class CompositeStringIndexTable {
     }
     try {
       console.debug(`Dynamo.PutItem request: ${JSON.stringify(request)}`);
-      const response = await this.client.putItem(request).promise();
+      const response = await this.client.send(new PutItemCommand(request));
       console.debug(`PutItem response: ${JSON.stringify(response)}`);
     } catch (e) {
-      if ((e as AWSError)?.code === 'ConditionalCheckFailedException' && !props.allow_overwrite) {
+      if (e instanceof ConditionalCheckFailedException && !props.allow_overwrite) {
         return false;
       }
       throw new Error(`PutItem '${props.primaryKeyValue}' '${props.sortKeyValue}:" ` +
-        `${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
+        `${(e as Error)?.name} -- ${(e as Error)?.message}`);
     }
     return true;
   }
@@ -235,28 +262,28 @@ export class CompositeStringIndexTable {
     const key: { [key: string]: any } = {};
     key[this.primaryKey] = props.primaryKeyValue;
     key[this.sortKey] = props.sortKeyValue;
-    const request: DynamoDB.GetItemInput = {
+    const request: GetItemCommandInput = {
       TableName: this.tableName,
-      Key: DynamoDB.Converter.marshall(key),
+      Key: marshall(key),
       ConsistentRead: true,
       ReturnConsumedCapacity: 'NONE',
     };
     try {
       console.debug(`Dynamo.GetItem request: ${JSON.stringify(request)}`);
-      const response: DynamoDB.GetItemOutput = await this.client.getItem(request).promise();
+      const response: GetItemCommandOutput = await this.client.send(new GetItemCommand(request));
       console.debug(`GetItem response: ${JSON.stringify(response)}`);
 
       if (!response.Item) {
         // The item was not present in the DB
         return undefined;
       }
-      const item = DynamoDB.Converter.unmarshall(response.Item);
+      const item = unmarshall(response.Item);
       delete item[this.primaryKey];
       delete item[this.sortKey];
       return item;
     } catch (e) {
       throw new Error(`GetItem '${props.primaryKeyValue}' '${props.sortKeyValue}:" ` +
-        `${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
+        `${(e as Error)?.name} -- ${(e as Error)?.message}`);
     }
   }
 
@@ -277,16 +304,16 @@ export class CompositeStringIndexTable {
     const key: { [key: string]: any } = {};
     key[this.primaryKey] = props.primaryKeyValue;
     key[this.sortKey] = props.sortKeyValue;
-    const request: DynamoDB.DeleteItemInput = {
+    const request: DeleteItemCommandInput = {
       TableName: this.tableName,
-      Key: DynamoDB.Converter.marshall(key),
+      Key: marshall(key),
       ReturnValues: 'ALL_OLD',
       ReturnConsumedCapacity: 'NONE',
       ReturnItemCollectionMetrics: 'NONE',
     };
     try {
       console.debug(`Dynamo.DeleteItem request: ${JSON.stringify(request)}`);
-      const response: DynamoDB.DeleteItemOutput = await this.client.deleteItem(request).promise();
+      const response: DeleteItemCommandOutput = await this.client.send(new DeleteItemCommand(request));
       console.debug(`DeleteItem response: ${JSON.stringify(response)}`);
 
       if (response.Attributes) {
@@ -296,7 +323,7 @@ export class CompositeStringIndexTable {
       return false;
     } catch (e) {
       throw new Error(`DeleteItem '${props.primaryKeyValue}' '${props.sortKeyValue}:" ` +
-        `${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
+        `${(e as Error)?.name} -- ${(e as Error)?.message}`);
     }
   }
 
@@ -324,7 +351,7 @@ export class CompositeStringIndexTable {
       throw Error('Attempt to Query a deleted table');
     }
     // See: https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB.html#query-property
-    const request: DynamoDB.QueryInput = {
+    const request: QueryCommandInput = {
       TableName: this.tableName,
       Select: 'ALL_ATTRIBUTES',
       ConsistentRead: true,
@@ -333,7 +360,7 @@ export class CompositeStringIndexTable {
         '#PK': this.primaryKey,
       },
       ExpressionAttributeValues: {
-        ':PKV': DynamoDB.Converter.input(primaryKeyValue),
+        ':PKV': convertToAttr(primaryKeyValue),
       },
       KeyConditionExpression: '#PK = :PKV',
       Limit: pageLimit,
@@ -342,11 +369,11 @@ export class CompositeStringIndexTable {
     const items: { [key: string]: { [key: string]: any }} = {};
     try {
       do {
-        const response: DynamoDB.QueryOutput = await this.client.query(request).promise();
+        const response: QueryCommandOutput = await this.client.send(new QueryCommand(request));
         request.ExclusiveStartKey = response.LastEvaluatedKey;
         if (response.Items) {
           for (const item of response.Items) {
-            const unmarshalled = DynamoDB.Converter.unmarshall(item);
+            const unmarshalled = unmarshall(item);
             const sortValue: string = unmarshalled[this.sortKey];
             delete unmarshalled[this.primaryKey];
             delete unmarshalled[this.sortKey];
@@ -356,7 +383,7 @@ export class CompositeStringIndexTable {
       } while (request.ExclusiveStartKey);
       return items;
     } catch (e) {
-      throw new Error(`Query '${primaryKeyValue}':" ${(e as AWSError)?.code} -- ${(e as AWSError)?.message}`);
+      throw new Error(`Query '${primaryKeyValue}':" ${(e as Error)?.name} -- ${(e as Error)?.message}`);
     }
   }
 }

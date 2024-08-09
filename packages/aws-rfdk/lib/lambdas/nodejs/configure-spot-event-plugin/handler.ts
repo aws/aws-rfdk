@@ -4,7 +4,7 @@
  */
 
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { SecretsManager } from 'aws-sdk';
+import { SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
 import { LambdaContext } from '../lib/aws-lambda';
 import { SpotEventPluginClient } from '../lib/configure-spot-event-plugin';
 import { CfnRequestEvent, SimpleCustomResource } from '../lib/custom-resource';
@@ -27,9 +27,9 @@ import {
  * A custom resource used to save Spot Event Plugin server data and configurations.
  */
 export class SEPConfiguratorResource extends SimpleCustomResource {
-  protected readonly secretsManagerClient: SecretsManager;
+  protected readonly secretsManagerClient: SecretsManagerClient;
 
-  constructor(secretsManagerClient: SecretsManager) {
+  constructor(secretsManagerClient: SecretsManagerClient) {
     super();
     this.secretsManagerClient = secretsManagerClient;
   }
@@ -162,6 +162,6 @@ export class SEPConfiguratorResource extends SimpleCustomResource {
  */
 /* istanbul ignore next */
 export async function configureSEP(event: CfnRequestEvent, context: LambdaContext): Promise<string> {
-  const handler = new SEPConfiguratorResource(new SecretsManager());
+  const handler = new SEPConfiguratorResource(new SecretsManagerClient());
   return await handler.handler(event, context);
 }

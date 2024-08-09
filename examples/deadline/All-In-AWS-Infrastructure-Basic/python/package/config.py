@@ -39,10 +39,10 @@ class AppConfig:
         # to pin to. Some examples of pinned version values are "10", "10.1", or "10.1.12"
         self.deadline_version: Optional[str] = None
 
-        # A map of regions to Deadline Client Linux AMIs. As an example, the base Linux Deadline 10.3.1.3 AMI ID
+        # A map of regions to Deadline Client Linux AMIs. As an example, the base Linux Deadline 10.3.2.1 AMI ID
         # from us-west-2 is filled in. It can be used as-is, added to, or replaced. Ideally the version here should match the version of
         # Deadline used in any connected Deadline constructs.
-        self.deadline_client_linux_ami_map: Mapping[str, str] = {'us-west-2': 'ami-08a66350b8a662070'}
+        self.deadline_client_linux_ami_map: Mapping[str, str] = {'us-west-2': 'ami-0b2bbe30ea8642cdd'}
 
         # A secret (in binary form) in SecretsManager that stores the UBL certificates in a .zip file.
         # This must be in the format `arn:<partition>:secretsmanager:<region>:<accountId>:secret:<secretName>-<6RandomCharacters`

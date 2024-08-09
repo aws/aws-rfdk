@@ -5,36 +5,34 @@
 
 /* eslint-disable no-console */
 
-import * as AWS from 'aws-sdk';
-import { mock, restore, setSDKInstance } from 'aws-sdk-mock';
-// import { fake, spy } from 'sinon';
+import {
+  AutoScalingClient,
+  CompleteLifecycleActionCommand,
+} from '@aws-sdk/client-auto-scaling';
+import {
+  EC2Client,
+  AttachNetworkInterfaceCommand,
+} from '@aws-sdk/client-ec2';
+
+import { mockClient } from 'aws-sdk-client-mock';
+import 'aws-sdk-client-mock-jest';
 
 import { handler } from '../index';
 
-let attachSpy: jest.Mock;
-let completeSpy: jest.Mock;
+const ec2Mock = mockClient(EC2Client);
+const autoScalingMock = mockClient(AutoScalingClient);
+
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
 
-async function successRequestMock(request: { [key: string]: string}): Promise<{ [key: string]: string }> {
-  return { ...request };
-}
-
-async function errorRequestMock(): Promise<void> {
-  const error: AWS.AWSError = new Error('Mock error message') as AWS.AWSError;
-  error.code = 'MockRequestException';
-  throw error;
-}
-
 beforeEach(() => {
-  setSDKInstance(AWS);
   console.log = jest.fn( () => {} );
   console.error = jest.fn( () => {} );
 });
 
 afterEach(() => {
-  restore('EC2');
-  restore('AutoScaling');
+  ec2Mock.reset();
+  autoScalingMock.reset();
   console.log = originalConsoleLog;
   console.error = originalConsoleError;
 });
@@ -52,17 +50,15 @@ test('ignores test notification', async () => {
       },
     ],
   };
-  attachSpy = jest.fn( (request) => successRequestMock(request) );
-  completeSpy = jest.fn( (request) => successRequestMock(request) );
-  mock('EC2', 'attachNetworkInterface', attachSpy);
-  mock('AutoScaling', 'completeLifecycleAction', completeSpy);
+  ec2Mock.on(AttachNetworkInterfaceCommand).resolves({});
+  autoScalingMock.on(CompleteLifecycleActionCommand).resolves({});
 
   // WHEN
   await handler(event);
 
   // THEN
-  expect(attachSpy).not.toHaveBeenCalled();
-  expect(completeSpy).not.toHaveBeenCalled();
+  expect(ec2Mock).not.toHaveReceivedAnyCommand();
+  expect(autoScalingMock).not.toHaveReceivedAnyCommand();
 });
 
 test('processes all correct records', async () => {
@@ -99,35 +95,33 @@ test('processes all correct records', async () => {
       },
     ],
   };
-  attachSpy = jest.fn( (request) => successRequestMock(request) );
-  completeSpy = jest.fn( (request) => successRequestMock(request) );
-  mock('EC2', 'attachNetworkInterface', attachSpy);
-  mock('AutoScaling', 'completeLifecycleAction', completeSpy);
+  ec2Mock.on(AttachNetworkInterfaceCommand).resolves({});
+  autoScalingMock.on(CompleteLifecycleActionCommand).resolves({});
 
   // WHEN
   await handler(event);
 
   // THEN
-  expect(attachSpy).toHaveBeenCalledTimes(2);
-  expect(completeSpy).toHaveBeenCalledTimes(2);
-  expect(attachSpy.mock.calls[0][0]).toEqual({
+  expect(ec2Mock).toHaveReceivedCommandTimes(AttachNetworkInterfaceCommand, 2);
+  expect(autoScalingMock).toHaveReceivedCommandTimes(CompleteLifecycleActionCommand, 2);
+  expect(ec2Mock).toHaveReceivedNthCommandWith(1, AttachNetworkInterfaceCommand, {
     DeviceIndex: 1,
     InstanceId: 'i-0000000000',
     NetworkInterfaceId: 'eni-000000000',
   });
-  expect(attachSpy.mock.calls[1][0]).toEqual({
+  expect(ec2Mock).toHaveReceivedNthCommandWith(2, AttachNetworkInterfaceCommand, {
     DeviceIndex: 1,
     InstanceId: 'i-1111111111',
     NetworkInterfaceId: 'eni-1111111111',
   });
-  expect(completeSpy.mock.calls[0][0]).toEqual({
+  expect(autoScalingMock).toHaveReceivedNthCommandWith(1, CompleteLifecycleActionCommand, {
     AutoScalingGroupName: 'ASG-Name-1',
     LifecycleHookName: 'Hook-Name-1',
     InstanceId: 'i-0000000000',
     LifecycleActionToken: 'Action-Token-1',
     LifecycleActionResult: 'CONTINUE',
   });
-  expect(completeSpy.mock.calls[1][0]).toEqual({
+  expect(autoScalingMock).toHaveReceivedNthCommandWith(2, CompleteLifecycleActionCommand, {
     AutoScalingGroupName: 'ASG-Name-2',
     LifecycleHookName: 'Hook-Name-2',
     InstanceId: 'i-1111111111',
@@ -157,16 +151,15 @@ test('abandons launch when attach fails', async () => {
     ],
   };
 
-  attachSpy = jest.fn( () => errorRequestMock() );
-  completeSpy = jest.fn( (request) => successRequestMock(request) );
-  mock('EC2', 'attachNetworkInterface', attachSpy);
-  mock('AutoScaling', 'completeLifecycleAction', completeSpy);
+  ec2Mock.on(AttachNetworkInterfaceCommand).rejects({});
+  autoScalingMock.on(CompleteLifecycleActionCommand).resolves({});
 
   // WHEN
   await handler(event);
 
   // THEN
-  expect(completeSpy.mock.calls[0][0]).toEqual({
+  expect(autoScalingMock).toHaveReceivedCommandTimes(CompleteLifecycleActionCommand, 1);
+  expect(autoScalingMock).toHaveReceivedNthCommandWith(1, CompleteLifecycleActionCommand, {
     AutoScalingGroupName: 'ASG-Name-1',
     LifecycleHookName: 'Hook-Name-1',
     InstanceId: 'i-0000000000',
@@ -210,10 +203,8 @@ test('continues when complete lifecycle errors', async () => {
     ],
   };
 
-  attachSpy = jest.fn( (request) => successRequestMock(request) );
-  completeSpy = jest.fn( () => errorRequestMock() );
-  mock('EC2', 'attachNetworkInterface', attachSpy);
-  mock('AutoScaling', 'completeLifecycleAction', completeSpy);
+  ec2Mock.on(AttachNetworkInterfaceCommand).resolves({});
+  autoScalingMock.on(CompleteLifecycleActionCommand).rejects({});
 
   // THEN
   // eslint-disable-next-line: no-floating-promises
@@ -256,8 +247,7 @@ test('continues when complete lifecycle errors non-error thrown', async () => {
     ],
   };
 
-  attachSpy = jest.fn( (request) => successRequestMock(request) );
-  mock('EC2', 'attachNetworkInterface', attachSpy);
+  ec2Mock.on(AttachNetworkInterfaceCommand).resolves({});
 
   jest.spyOn(JSON, 'parse').mockImplementation(jest.fn( () => {throw 47;} ));
 

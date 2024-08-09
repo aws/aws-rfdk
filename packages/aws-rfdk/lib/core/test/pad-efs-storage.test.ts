@@ -78,7 +78,7 @@ describe('Test PadEfsStorage', () => {
           },
         ],
         Handler: 'pad-efs-storage.getDiskUsage',
-        Runtime: 'nodejs16.x',
+        Runtime: 'nodejs18.x',
         Timeout: 300,
         VpcConfig: {
           SecurityGroupIds: [ stack.resolve(sg.securityGroupId) ],
@@ -103,7 +103,7 @@ describe('Test PadEfsStorage', () => {
           },
         ],
         Handler: 'pad-efs-storage.padFilesystem',
-        Runtime: 'nodejs16.x',
+        Runtime: 'nodejs18.x',
         Timeout: 900,
         VpcConfig: {
           SecurityGroupIds: [ stack.resolve(sg.securityGroupId) ],
