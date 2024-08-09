@@ -8,6 +8,7 @@
 node_modules/
 .tools/
 .BUILD_COMPLETED
+lerna-debug.log
 package-lock.json
 yarn-error.log
 
