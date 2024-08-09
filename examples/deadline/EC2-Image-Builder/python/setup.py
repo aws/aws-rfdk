@@ -18,7 +18,7 @@ setuptools.setup(
 
     install_requires=[
         "aws-cdk-lib==2.133.0",
-        "aws-rfdk==1.3.0",
+        "aws-rfdk==1.4.0",
     ],
 
     python_requires=">=3.7",
