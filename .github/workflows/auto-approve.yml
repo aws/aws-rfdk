@@ -10,6 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: hmarr/auto-approve-action@v3.2.1
-      if: github.actor == 'dependabot[bot]' || github.actor == 'dependabot-preview[bot]'
+      if: github.event.base.repo.id == github.event.head.repo.id && (github.actor == 'dependabot[bot]' || github.actor == 'dependabot-preview[bot]')
       with:
         github-token: "${{ secrets.GITHUB_TOKEN }}"
