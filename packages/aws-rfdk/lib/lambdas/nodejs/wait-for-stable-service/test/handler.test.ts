@@ -5,8 +5,13 @@
 
 /* eslint-disable no-console */
 
-import * as AWS from 'aws-sdk';
-import { mock, restore, setSDKInstance } from 'aws-sdk-mock';
+import {
+  ECSClient,
+  DescribeServicesCommand,
+  DescribeServicesResponse,
+} from '@aws-sdk/client-ecs';
+import { mockClient } from 'aws-sdk-client-mock';
+import 'aws-sdk-client-mock-jest';
 import {
   WaitForStableServiceResource,
   WaitForStableServiceResourceProps,
@@ -15,16 +20,15 @@ import {
 describe('WaitForStableServiceResource', () => {
   describe('doCreate', () => {
     let consoleLogMock: jest.SpyInstance<any, any>;
+    const ecsMock = mockClient(ECSClient);
 
     beforeEach(() => {
-      setSDKInstance(AWS);
-      AWS.config.region = 'us-east-1';
       consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
     });
 
     afterEach(() => {
       jest.clearAllMocks();
-      restore('ECS');
+      ecsMock.reset();
     });
 
     test('success', async () => {
@@ -34,10 +38,18 @@ describe('WaitForStableServiceResource', () => {
         services: ['serviceArn'],
       };
 
-      mock('ECS', 'waitFor', (_state: 'servicesStable', _params: any, callback: Function) => {
-        callback(null, { status: 'ready' });
-      });
-      const handler = new WaitForStableServiceResource(new AWS.ECS());
+      // response for an "ACTIVE" service
+      const response: DescribeServicesResponse = {
+        services: [
+          {
+            deployments: [{}],
+            runningCount: 1,
+            desiredCount: 1,
+          },
+        ],
+      };
+      ecsMock.on(DescribeServicesCommand).resolves(response);
+      const handler = new WaitForStableServiceResource(new ECSClient());
 
       // WHEN
       const result = await handler.doCreate('physicalId', props);
@@ -56,10 +68,8 @@ describe('WaitForStableServiceResource', () => {
         services: ['serviceArn'],
       };
 
-      mock('ECS', 'waitFor', (_state: 'servicesStable', _params: any, callback: Function) => {
-        callback({ code: 'errorcode', message: 'not stable' }, null);
-      });
-      const handler = new WaitForStableServiceResource(new AWS.ECS());
+      ecsMock.on(DescribeServicesCommand).resolves({failures: [{reason: 'MISSING', detail: 'test failure'}]});
+      const handler = new WaitForStableServiceResource(new ECSClient());
 
       // WHEN
       const promise = handler.doCreate('physicalId', props);
@@ -75,7 +85,7 @@ describe('WaitForStableServiceResource', () => {
       cluster: 'clusterArn',
       services: ['serviceArn'],
     };
-    const handler = new WaitForStableServiceResource(new AWS.ECS());
+    const handler = new WaitForStableServiceResource(new ECSClient());
 
     // WHEN
     const promise = await handler.doDelete('physicalId', props);
@@ -93,7 +103,7 @@ describe('WaitForStableServiceResource', () => {
         forceRun: '',
       };
       // WHEN
-      const handler = new WaitForStableServiceResource(new AWS.ECS());
+      const handler = new WaitForStableServiceResource(new ECSClient());
       const returnValue = handler.validateInput(validInput);
 
       // THEN
@@ -135,7 +145,7 @@ describe('WaitForStableServiceResource', () => {
       forceRunNotString,
     ])('returns false with invalid input %p', async (invalidInput: any) => {
       // WHEN
-      const handler = new WaitForStableServiceResource(new AWS.ECS());
+      const handler = new WaitForStableServiceResource(new ECSClient());
       const returnValue = handler.validateInput(invalidInput);
 
       // THEN

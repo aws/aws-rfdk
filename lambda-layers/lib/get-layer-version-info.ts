@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Lambda } from 'aws-sdk';
+import {
+  LambdaClient,
+  ListLayerVersionsCommand,
+  LayerVersionsListItem,
+} from '@aws-sdk/client-lambda';
 
-export async function getMostRecentVersion(lambda: Lambda, layerName: string): Promise<Lambda.LayerVersionsListItem | undefined> {
-  const layerVersionsResult = await lambda.listLayerVersions({ LayerName: layerName }).promise();
-  if (layerVersionsResult.$response.error) {
-    throw layerVersionsResult.$response.error;
-  }
+export async function getMostRecentVersion(lambda: LambdaClient, layerName: string): Promise<LayerVersionsListItem | undefined> {
+  const layerVersionsResult = await lambda.send(new ListLayerVersionsCommand({ LayerName: layerName }));
   return layerVersionsResult.LayerVersions?.shift();
 }

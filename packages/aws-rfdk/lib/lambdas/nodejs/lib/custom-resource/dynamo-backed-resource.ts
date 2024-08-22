@@ -5,8 +5,11 @@
 
 /* eslint-disable no-console */
 
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { DynamoDB } from 'aws-sdk';
+/* eslint-disable import/no-extraneous-dependencies */
+import {
+  DynamoDBClient,
+} from '@aws-sdk/client-dynamodb';
+/* eslint-enable import/no-extraneous-dependencies */
 
 import { CompositeStringIndexTable } from '../dynamodb';
 import { SimpleCustomResource } from './simple-resource';
@@ -20,7 +23,7 @@ export abstract class DynamoBackedCustomResource extends SimpleCustomResource {
    * track the resources that get created, so they can be destroyed properly later.
    */
   private readonly tableName: string;
-  private readonly dynamoDbClient: DynamoDB;
+  private readonly dynamoDbClient: DynamoDBClient;
   /**
    * The resource table uses the databaseName and the dynamoDbClient to fetch the DynamoDB table that backs it.
    * Ideally it would be readonly and initialized in the constructor, but it can't because the call is asynchronous.
@@ -28,7 +31,7 @@ export abstract class DynamoBackedCustomResource extends SimpleCustomResource {
    */
   private resourceTable?: CompositeStringIndexTable;
 
-  constructor(dynamoDbClient: DynamoDB) {
+  constructor(dynamoDbClient: DynamoDBClient) {
     super();
     this.dynamoDbClient = dynamoDbClient;
 

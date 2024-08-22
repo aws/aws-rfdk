@@ -6,8 +6,25 @@
 /* eslint-disable no-console */
 
 import * as crypto from 'crypto';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { ACM, DynamoDB, SecretsManager, AWSError } from 'aws-sdk';
+
+/* eslint-disable import/no-extraneous-dependencies */
+import {
+  ACMClient,
+  AccessDeniedException,
+  DeleteCertificateCommand,
+  DescribeCertificateCommand,
+  GetCertificateCommand,
+  ImportCertificateRequest,
+  ImportCertificateCommand,
+} from '@aws-sdk/client-acm';
+import {
+  DynamoDBClient,
+} from '@aws-sdk/client-dynamodb';
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from '@aws-sdk/client-secrets-manager';
+/* eslint-enable import/no-extraneous-dependencies */
 
 import { LambdaContext } from '../lib/aws-lambda';
 import { BackoffGenerator } from '../lib/backoff-generator';
@@ -19,19 +36,14 @@ import {
   implementsIAcmImportCertProps,
 } from './types';
 
-
-const ACM_VERSION = '2015-12-08';
-const DYNAMODB_VERSION = '2012-08-10';
-const SECRETS_MANAGER_VERSION = '2017-10-17';
-
 export class AcmCertificateImporter extends DynamoBackedCustomResource {
-  protected readonly acmClient: ACM;
-  protected readonly secretsManagerClient: SecretsManager;
+  protected readonly acmClient: ACMClient;
+  protected readonly secretsManagerClient: SecretsManagerClient;
 
   constructor(
-    acmClient: ACM,
-    dynamoDbClient: DynamoDB,
-    secretsManagerClient: SecretsManager,
+    acmClient: ACMClient,
+    dynamoDbClient: DynamoDBClient,
+    secretsManagerClient: SecretsManagerClient,
   ) {
     super(dynamoDbClient);
 
@@ -91,9 +103,9 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
       });
 
       do {
-        const { Certificate: cert } = await this.acmClient.describeCertificate({
+        const { Certificate: cert } = await this.acmClient.send(new DescribeCertificateCommand({
           CertificateArn: arn,
-        }).promise();
+        }));
 
         inUseByResources = cert!.InUseBy || [];
 
@@ -110,12 +122,12 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
       }
       console.log(`Deleting resource for '${key}'`);
       try {
-        await this.acmClient.deleteCertificate({ CertificateArn: arn }).promise();
+        await this.acmClient.send(new DeleteCertificateCommand({ CertificateArn: arn }));
       } catch (e) {
         // AccessDeniedException can happen if either:
         //  a) We do not have the required permission to delete the Certificate (unlikely)
         //  b) The Certificate has already been deleted (more likely)
-        if ((e as AWSError)?.message.indexOf('AccessDeniedException')) {
+        if (e instanceof AccessDeniedException) {
           console.warn(`Could not delete Certificate ${arn}. Please ensure it has been deleted.`);
         }
         throw e; // Rethrow so the custom resource handler will error-out.
@@ -137,11 +149,16 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
   }): Promise<string> {
     let certificateArn: string;
 
+    const certificate = Buffer.from(args.cert);
+    const certificateChain = args.certChain ? Buffer.from(args.certChain) : undefined;
+    const privateKey = Buffer.from(args.key);
+
     const sortKey = crypto.createHash('md5').update(args.cert).digest('hex');
     const existingItem = await args.resourceTable.getItem({
       primaryKeyValue: args.physicalId,
       sortKeyValue: sortKey,
     });
+
     if (existingItem) {
       if (!existingItem.ARN) {
         throw Error("Database Item missing 'ARN' attribute");
@@ -150,25 +167,25 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
       // Verify that the cert is in ACM
       certificateArn = existingItem.ARN as string;
       try {
-        await this.acmClient.getCertificate({ CertificateArn: certificateArn }).promise();
+        await this.acmClient.send(new GetCertificateCommand({ CertificateArn: certificateArn }));
       } catch(e) {
         throw Error(`Database entry ${existingItem.ARN} could not be found in ACM: ${JSON.stringify(e)}`);
       }
 
       // Update the cert by performing an import again, with the new values.
-      const importCertRequest = {
+      const importCertRequest: ImportCertificateRequest = {
         CertificateArn: certificateArn,
-        Certificate: args.cert,
-        CertificateChain: args.certChain,
-        PrivateKey: args.key,
+        Certificate: certificate,
+        CertificateChain: certificateChain,
+        PrivateKey: privateKey,
         Tags: args.tags,
       };
       await this.importCertificate(importCertRequest);
     } else {
-      const importCertRequest = {
-        Certificate: args.cert,
-        CertificateChain: args.certChain,
-        PrivateKey: args.key,
+      const importCertRequest: ImportCertificateRequest = {
+        Certificate: certificate,
+        CertificateChain: certificateChain,
+        PrivateKey: privateKey,
         Tags: args.tags,
       };
 
@@ -192,7 +209,7 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
     return certificateArn;
   }
 
-  private async importCertificate(importCertRequest: ACM.ImportCertificateRequest) {
+  private async importCertificate(importCertRequest: ImportCertificateRequest) {
     // ACM cert imports are limited to 1 per second (see https://docs.aws.amazon.com/acm/latest/userguide/acm-limits.html#api-rate-limits)
     // We need to backoff & retry in the event that two imports happen in the same second
     const maxAttempts = 10;
@@ -205,7 +222,7 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
     let retry = false;
     do {
       try {
-        return await this.acmClient.importCertificate(importCertRequest).promise();
+        return await this.acmClient.send(new ImportCertificateCommand(importCertRequest));
       } catch (e) {
         console.warn(`Could not import certificate: ${e}`);
         retry = await backoffGenerator.backoff();
@@ -220,7 +237,7 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
 
   private async getSecretString(SecretId: string): Promise<string> {
     console.debug(`Retrieving secret: ${SecretId}`);
-    const resp = await this.secretsManagerClient.getSecretValue({ SecretId }).promise();
+    const resp = await this.secretsManagerClient.send(new GetSecretValueCommand({ SecretId }));
     if (!resp.SecretString) {
       throw new Error(`Secret ${SecretId} did not contain a SecretString as expected`);
     }
@@ -234,9 +251,9 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
 /* istanbul ignore next */
 export async function importCert(event: CfnRequestEvent, context: LambdaContext): Promise<string> {
   const handler = new AcmCertificateImporter(
-    new ACM({ apiVersion: ACM_VERSION }),
-    new DynamoDB({ apiVersion: DYNAMODB_VERSION }),
-    new SecretsManager({ apiVersion: SECRETS_MANAGER_VERSION }),
+    new ACMClient(),
+    new DynamoDBClient(),
+    new SecretsManagerClient(),
   );
   return await handler.handler(event, context);
 }

@@ -5,10 +5,15 @@
 
 /* eslint-disable no-console */
 
-// eslint-disable-next-line import/no-extraneous-dependencies
+/* eslint-disable import/no-extraneous-dependencies */
 import { randomBytes } from 'crypto';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { DynamoDB, SecretsManager, AWSError } from 'aws-sdk';
+import {
+  DynamoDBClient,
+} from '@aws-sdk/client-dynamodb';
+import {
+  SecretsManagerClient,
+} from '@aws-sdk/client-secrets-manager';
+/* eslint-enable import/no-extraneous-dependencies */
 
 
 import { LambdaContext } from '../lib/aws-lambda';
@@ -32,15 +37,12 @@ import {
 } from './types';
 
 
-const DYNAMODB_VERSION = '2012-08-10';
-const SECRETS_MANAGER_VERSION = '2017-10-17';
-
 abstract class X509Common extends DynamoBackedCustomResource {
-  protected readonly secretsManagerClient: SecretsManager;
+  protected readonly secretsManagerClient: SecretsManagerClient;
 
   constructor(
-    dynamoDbClient: DynamoDB,
-    secretsManagerClient: SecretsManager,
+    dynamoDbClient: DynamoDBClient,
+    secretsManagerClient: SecretsManagerClient,
   ) {
     super(dynamoDbClient);
 
@@ -64,7 +66,7 @@ abstract class X509Common extends DynamoBackedCustomResource {
         // AccessDeniedException can happen if either:
         //  a) We legit do not have the required permission to delete the secret (very unlikely)
         //  b) The Secret has already been deleted (much more likely; so we continue)
-        if ((e as AWSError)?.message.indexOf('AccessDeniedException')) {
+        if ((e as Error)?.message.indexOf('AccessDeniedException')) {
           console.warn(`Could not delete Secret ${arn}. Please ensure it has been deleted.`);
         }
         throw e; // Rethrow so the custom resource handler will error-out.
@@ -156,8 +158,8 @@ abstract class X509Common extends DynamoBackedCustomResource {
 
 export class X509CertificateGenerator extends X509Common {
   constructor(
-    dynamoDbClient: DynamoDB,
-    secretsManagerClient: SecretsManager,
+    dynamoDbClient: DynamoDBClient,
+    secretsManagerClient: SecretsManagerClient,
   ) {
     super(dynamoDbClient, secretsManagerClient);
   }
@@ -242,8 +244,8 @@ export class X509CertificateGenerator extends X509Common {
 
 export class X509CertificateConverter extends X509Common {
   constructor(
-    dynamoDbClient: DynamoDB,
-    secretsManagerClient: SecretsManager,
+    dynamoDbClient: DynamoDBClient,
+    secretsManagerClient: SecretsManagerClient,
   ) {
     super(dynamoDbClient, secretsManagerClient);
   }
@@ -301,8 +303,8 @@ export class X509CertificateConverter extends X509Common {
  */
 export async function generate(event: CfnRequestEvent, context: LambdaContext): Promise<string> {
   const handler = new X509CertificateGenerator(
-    new DynamoDB({ apiVersion: DYNAMODB_VERSION }),
-    new SecretsManager({ apiVersion: SECRETS_MANAGER_VERSION }),
+    new DynamoDBClient(),
+    new SecretsManagerClient(),
   );
   return await handler.handler(event, context);
 }
@@ -312,8 +314,8 @@ export async function generate(event: CfnRequestEvent, context: LambdaContext): 
  */
 export async function convert(event: CfnRequestEvent, context: LambdaContext): Promise<string> {
   const handler = new X509CertificateConverter(
-    new DynamoDB({ apiVersion: DYNAMODB_VERSION }),
-    new SecretsManager({ apiVersion: SECRETS_MANAGER_VERSION }),
+    new DynamoDBClient(),
+    new SecretsManagerClient(),
   );
   return await handler.handler(event, context);
 }

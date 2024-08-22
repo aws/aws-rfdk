@@ -136,9 +136,9 @@ export interface WorkerInstanceFleetProps extends WorkerSettings {
   readonly workerMachineImage: IMachineImage;
 
   /**
-   * Type of instance to launch for executing repository installer.
+   * Type of instance to launch for the Workers.
    *
-   * @default - a T2-Large type will be used.
+   * @default - a T3-Large type will be used.
    */
   readonly instanceType?: InstanceType;
 
@@ -450,7 +450,7 @@ export class WorkerInstanceFleet extends WorkerInstanceFleetBase {
     // Launching the fleet with deadline workers.
     this.fleet = new AutoScalingGroup(this, 'Default', {
       vpc: props.vpc,
-      instanceType: (props.instanceType ? props.instanceType : InstanceType.of(InstanceClass.T2, InstanceSize.LARGE)),
+      instanceType: (props.instanceType ? props.instanceType : InstanceType.of(InstanceClass.T3, InstanceSize.LARGE)),
       machineImage: props.workerMachineImage,
       keyName: props.keyName,
       vpcSubnets,

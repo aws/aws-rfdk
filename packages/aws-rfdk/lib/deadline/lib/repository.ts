@@ -346,7 +346,7 @@ export interface RepositoryProps {
    *
    * The maximum value is 43200 (12 hours).
    *
-   * @default Duration.minutes(15)
+   * @default Duration.minutes(30)
    */
   readonly repositoryInstallationTimeout?: Duration;
 
@@ -620,6 +620,7 @@ export class Repository extends Construct implements IRepository {
         }) : undefined),
     };
 
+
     this.fileSystem = props.fileSystem ?? (() => {
       const fs = new EfsFileSystem(this, 'FileSystem', {
         vpc: props.vpc,
@@ -741,7 +742,7 @@ export class Repository extends Construct implements IRepository {
       maxCapacity: 1,
       updatePolicy: UpdatePolicy.replacingUpdate(),
       signals: Signals.waitForAll({
-        timeout: (props.repositoryInstallationTimeout || Duration.minutes(15)),
+        timeout: (props.repositoryInstallationTimeout || Duration.minutes(30)),
       }),
       securityGroup: props.securityGroupsOptions?.installer,
     });

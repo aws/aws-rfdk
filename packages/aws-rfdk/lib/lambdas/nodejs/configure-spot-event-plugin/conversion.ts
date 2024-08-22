@@ -34,6 +34,7 @@ export function convertSpotFleetRequestConfiguration(spotFleetRequestConfigs: Sp
       Type: validateString(sfrConfigs.Type, `${group_name}.Type`),
       ValidUntil: validateStringOptional(sfrConfigs.ValidUntil, `${group_name}.ValidUntil`),
       TagSpecifications: convertTagSpecifications(sfrConfigs.TagSpecifications, `${group_name}.TagSpecifications`),
+      Context: validateStringOptional(sfrConfigs.Context, `${group_name}.Context`),
     };
     convertedSpotFleetRequestConfigs[group_name] = convertedSpotFleetRequestProps;
   }

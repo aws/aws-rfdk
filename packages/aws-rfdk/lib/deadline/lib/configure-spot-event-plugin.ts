@@ -448,7 +448,7 @@ export class ConfigureSpotEventPlugin extends Construct {
         DEBUG: 'false',
         LAMBDA_TIMEOUT_MINS: timeoutMins.toString(),
       },
-      runtime: Runtime.NODEJS_16_X,
+      runtime: Runtime.NODEJS_18_X,
       handler: 'configure-spot-event-plugin.configureSEP',
       timeout: Duration.minutes(timeoutMins),
       logRetention: RetentionDays.ONE_WEEK,
@@ -568,6 +568,7 @@ export class ConfigureSpotEventPlugin extends Construct {
       ValidUntil: fleet.validUntil?.date.toISOString(),
       // Need to convert from IResolvable to bypass TypeScript
       TagSpecifications: (spotFleetRequestTagsToken as unknown) as SpotFleetTagSpecification[],
+      Context: fleet.context,
     };
 
     const spotFleetRequestConfigurations = fleet.deadlineGroups.map(group => {

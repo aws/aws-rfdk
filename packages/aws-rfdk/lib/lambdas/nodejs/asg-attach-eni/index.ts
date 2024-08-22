@@ -6,8 +6,16 @@
 /* eslint-disable no-console */
 
 import { types } from 'util';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import {AutoScaling, EC2, AWSError} from 'aws-sdk';
+/* eslint-disable import/no-extraneous-dependencies */
+import {
+  AutoScalingClient,
+  CompleteLifecycleActionCommand,
+} from '@aws-sdk/client-auto-scaling';
+import {
+  EC2Client,
+  AttachNetworkInterfaceCommand,
+} from '@aws-sdk/client-ec2';
+/* eslint-enable import/no-extraneous-dependencies */
 
 /**
  * Contents of the Message sent from Sns in response to a lifecycle event.
@@ -33,7 +41,7 @@ async function completeLifecycle(success: boolean, message: SnsLaunchInstanceMes
   // References:
   //  - https://docs.aws.amazon.com/autoscaling/ec2/APIReference/API_CompleteLifecycleAction.html
   //  - https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/AutoScaling.html#completeLifecycleAction-property
-  const autoscaling = new AutoScaling();
+  const autoscaling = new AutoScalingClient();
   try {
     const request = {
       AutoScalingGroupName: message.AutoScalingGroupName,
@@ -43,10 +51,10 @@ async function completeLifecycle(success: boolean, message: SnsLaunchInstanceMes
       LifecycleActionToken: message.LifecycleActionToken,
     };
     console.log('Sending CompleteLifecycleAction request: ' + JSON.stringify(request));
-    const response = await autoscaling.completeLifecycleAction(request).promise();
+    const response = await autoscaling.send( new CompleteLifecycleActionCommand(request));
     console.log('Got response: ' + JSON.stringify(response));
   } catch (e) {
-    throw new Error(`Error sending completeLifecycleAction: ${(e as AWSError)?.code} -- ${(e as Error)?.message}`);
+    throw new Error(`Error sending completeLifecycleAction: ${(e as Error)?.name} -- ${(e as Error)?.message}`);
   }
 }
 
@@ -54,7 +62,7 @@ async function attachEniToInstance(instanceId: string, eniId: string): Promise<v
   // References:
   //  - https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_AttachNetworkInterface.html
   //  - https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/EC2.html#attachNetworkInterface-property
-  const ec2 = new EC2();
+  const ec2 = new EC2Client();
   try {
     const request = {
       DeviceIndex: 1,
@@ -62,10 +70,10 @@ async function attachEniToInstance(instanceId: string, eniId: string): Promise<v
       NetworkInterfaceId: eniId,
     };
     console.log('Sending AttachNetworkInterface request: ' + JSON.stringify(request));
-    const response = await ec2.attachNetworkInterface(request).promise();
+    const response = await ec2.send(new AttachNetworkInterfaceCommand(request));
     console.log('Got response: ' + JSON.stringify(response));
   } catch (e) {
-    throw new Error(`Error attaching network interface to instance: ${(e as AWSError)?.code} -- ${(e as Error)?.message}`);
+    throw new Error(`Error attaching network interface to instance: ${(e as Error)?.name} -- ${(e as Error)?.message}`);
   }
 }
 

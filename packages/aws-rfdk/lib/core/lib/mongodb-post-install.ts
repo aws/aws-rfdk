@@ -198,7 +198,7 @@ export class MongoDbPostInstallSetup extends Construct {
       environment: {
         DEBUG: 'false',
       },
-      runtime: Runtime.NODEJS_16_X,
+      runtime: Runtime.NODEJS_18_X,
       handler: 'mongodb.configureMongo',
       layers: [ openSslLayer ],
       timeout: Duration.minutes(2),

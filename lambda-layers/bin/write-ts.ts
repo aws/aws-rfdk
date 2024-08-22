@@ -11,7 +11,11 @@
  *   node write-ts.js <...layer_name>
  * Where `<...layer_name>` is a list of layer names that should be added to the file.
  */
-import { Lambda } from 'aws-sdk';
+
+
+import {
+  LambdaClient,
+} from '@aws-sdk/client-lambda';
 import * as path from 'path';
 import * as fs from 'fs';
 import { getRegions } from '../lib/get-regions';
@@ -31,9 +35,8 @@ async function writeTsFile(regions: Array<string>): Promise<void> {
 
       for (const region of regions) {
         try {
-          const lambda = new Lambda({
-              apiVersion: '2015-03-31',
-              region,
+          const lambda = new LambdaClient({
+            region,
           });
           const lambdaLayerVersion = await getMostRecentVersion(lambda, layerName);
           regionToLayerVersionArnMap[region] = lambdaLayerVersion?.LayerVersionArn;
