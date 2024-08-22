@@ -191,6 +191,13 @@ export interface SpotFleetRequestProps {
    * @default - the Spot Fleet request remains until you cancel it.
    */
   readonly ValidUntil?: string;
+
+  /**
+   * Reserved
+   *
+   * @default - No context string
+   */
+  readonly Context?: string;
 }
 
 /**

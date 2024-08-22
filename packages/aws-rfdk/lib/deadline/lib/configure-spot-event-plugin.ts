@@ -568,6 +568,7 @@ export class ConfigureSpotEventPlugin extends Construct {
       ValidUntil: fleet.validUntil?.date.toISOString(),
       // Need to convert from IResolvable to bypass TypeScript
       TagSpecifications: (spotFleetRequestTagsToken as unknown) as SpotFleetTagSpecification[],
+      Context: fleet.context,
     };
 
     const spotFleetRequestConfigurations = fleet.deadlineGroups.map(group => {

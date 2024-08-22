@@ -228,7 +228,7 @@ describe('ConfigureSpotEventPlugin', () => {
             LaunchTemplateConfigs: Match.arrayWith([
               Match.objectLike({
                 LaunchTemplateSpecification: {
-                  Version: '$Latest',
+                  Version: stack.resolve(fleet.launchTemplate.versionNumber),
                   LaunchTemplateId: stack.resolve(fleet.launchTemplate.launchTemplateId),
                 },
               }),
@@ -403,6 +403,42 @@ describe('ConfigureSpotEventPlugin', () => {
         spotFleetRequestConfigurations: Match.objectLike({
           [groupName]: Match.objectLike({
             ValidUntil: validUntil.date.toISOString(),
+          }),
+        }),
+      }));
+    });
+
+    test('fleet with context', () => {
+      // GIVEN
+      const context = 'context-abcdef';
+      const fleetWithCustomProps = new SpotEventPluginFleet(stack, 'SpotEventPluginFleet', {
+        vpc,
+        renderQueue,
+        deadlineGroups: [
+          groupName,
+        ],
+        instanceTypes: [
+          InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
+        ],
+        workerMachineImage,
+        maxCapacity: 1,
+        context,
+      });
+
+      // WHEN
+      new ConfigureSpotEventPlugin(stack, 'ConfigureSpotEventPlugin', {
+        vpc,
+        renderQueue: renderQueue,
+        spotFleets: [
+          fleetWithCustomProps,
+        ],
+      });
+
+      // THEN
+      Template.fromStack(stack).hasResourceProperties('Custom::RFDK_ConfigureSpotEventPlugin', Match.objectLike({
+        spotFleetRequestConfigurations: Match.objectLike({
+          [groupName]: Match.objectLike({
+            Context: context,
           }),
         }),
       }));
