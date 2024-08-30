@@ -72,7 +72,7 @@
     "@aws-sdk/client-ec2": "^3.537.0",
     "@aws-sdk/client-ecs": "^3.637.0",
     "@aws-sdk/client-secrets-manager": "^3.637.0",
-    "@types/aws-lambda": "^8.10.136",
+    "@types/aws-lambda": "^8.10.145",
     "@types/jest": "^29.5.12",
     "@types/sinon": "^17.0.3",
     "aws-cdk-lib": "2.133.0",
