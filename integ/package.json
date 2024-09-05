@@ -71,7 +71,7 @@
     "typescript": "~5.1.6"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudformation": "^3.537.0",
+    "@aws-sdk/client-cloudformation": "^3.645.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.637.0",
     "@aws-sdk/client-secrets-manager": "^3.637.0",
     "@aws-sdk/client-ssm": "^3.637.0",
