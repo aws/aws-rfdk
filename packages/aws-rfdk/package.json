@@ -93,7 +93,7 @@
     "jsii-pacmak": "1.95.0",
     "jsii-reflect": "1.95.0",
     "pkglint": "1.4.0",
-    "sinon": "^17.0.1",
+    "sinon": "^18.0.0",
     "ts-jest": "^29.2.5",
     "typescript": "~5.1.6"
   },
