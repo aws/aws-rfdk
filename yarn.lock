@@ -268,17 +268,17 @@
     tslib "^2.6.2"
     uuid "^9.0.1"
 
-"@aws-sdk/client-dynamodb@^3.650.0":
-  version "3.650.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-dynamodb/-/client-dynamodb-3.650.0.tgz#6945b85bffa92413a57186182586432ad111b02d"
-  integrity sha512-WdlBZsDJqufse4DcCeAwDV+kP/fh8QgVfH/IsUc0ST534inx9fiztr41/H2rE1qRf7t2iLtVkF5Jm1+Ew+GqPg==
+"@aws-sdk/client-dynamodb@^3.651.1":
+  version "3.651.1"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-dynamodb/-/client-dynamodb-3.651.1.tgz#41e892d91d33b6503f54c4753c537eb298deda68"
+  integrity sha512-HrZ01VVoJeL1Ye94xVA/LIL1aY+sSmoCshcYnY9Wl2Xgs/QDCA8y+Q+Yvcyoua949X32wXPAhmXRjeuIfY7MNg==
   dependencies:
     "@aws-crypto/sha256-browser" "5.2.0"
     "@aws-crypto/sha256-js" "5.2.0"
-    "@aws-sdk/client-sso-oidc" "3.650.0"
-    "@aws-sdk/client-sts" "3.650.0"
-    "@aws-sdk/core" "3.649.0"
-    "@aws-sdk/credential-provider-node" "3.650.0"
+    "@aws-sdk/client-sso-oidc" "3.651.1"
+    "@aws-sdk/client-sts" "3.651.1"
+    "@aws-sdk/core" "3.651.1"
+    "@aws-sdk/credential-provider-node" "3.651.1"
     "@aws-sdk/middleware-endpoint-discovery" "3.649.0"
     "@aws-sdk/middleware-host-header" "3.649.0"
     "@aws-sdk/middleware-logger" "3.649.0"
