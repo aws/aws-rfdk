@@ -517,10 +517,10 @@
     tslib "^2.6.2"
     uuid "^9.0.1"
 
-"@aws-sdk/client-ssm@3.651.1", "@aws-sdk/client-ssm@^3.651.1":
-  version "3.651.1"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-ssm/-/client-ssm-3.651.1.tgz#110a48338da9bb022f224980b0eec63e67bd0fa1"
-  integrity sha512-f3RganJCh/N9E28kw3VlAYdPIXUd52i8XFXWkws5Ltdoqu9accYvZxTi4d8Gy/0PAzFQyUciS7xpHIjbX8mvgg==
+"@aws-sdk/client-ssm@3.653.0", "@aws-sdk/client-ssm@^3.653.0":
+  version "3.653.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-ssm/-/client-ssm-3.653.0.tgz#7f13c1e2f39264100e96ac65a21834b449f529dd"
+  integrity sha512-1HFW2SEnI0vKB3B9v+4A5B/UchGhoG0nHRkq0Kpxn+E7xRN8TGIwT0TE+p+6qIVvpQynljcqkqO690SIC6vn9g==
   dependencies:
     "@aws-crypto/sha256-browser" "5.2.0"
     "@aws-crypto/sha256-js" "5.2.0"
