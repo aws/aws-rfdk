@@ -27,7 +27,7 @@
     }
   },
   "devDependencies": {
-    "@aws-sdk/client-acm": "^3.654.0",
+    "@aws-sdk/client-acm": "^3.664.0",
     "@aws-sdk/client-ssm": "^3.653.0",
     "@aws-sdk/client-cloudformation": "^3.654.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.658.1",
