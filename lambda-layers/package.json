@@ -33,7 +33,7 @@
     "typescript": "~5.1.6"
   },
   "dependencies": {
-    "@aws-sdk/client-lambda": "3.669.0",
+    "@aws-sdk/client-lambda": "3.670.0",
     "@aws-sdk/client-ssm": "3.670.0"
   }
 }
