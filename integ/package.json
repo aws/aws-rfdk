@@ -57,7 +57,7 @@
     "@types/node": "18.11.19",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
-    "aws-cdk": "2.133.0",
+    "aws-cdk": "2.163.0",
     "eslint": "^8.57.0",
     "eslint-import-resolver-node": "^0.3.9",
     "eslint-import-resolver-typescript": "^3.6.3",
@@ -68,19 +68,19 @@
     "jest": "^29.7.0",
     "pkglint": "1.4.0",
     "ts-jest": "^29.2.5",
-    "typescript": "~5.1.6"
+    "typescript": "~5.4.5"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudformation": "^3.654.0",
-    "@aws-sdk/client-cloudwatch-logs": "^3.658.1",
-    "@aws-sdk/client-secrets-manager": "^3.651.1",
-    "@aws-sdk/client-ssm": "^3.670.0",
-    "aws-cdk-lib": "2.133.0",
+    "@aws-sdk/client-cloudformation": "^3.675.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.675.0",
+    "@aws-sdk/client-secrets-manager": "^3.675.0",
+    "@aws-sdk/client-ssm": "^3.675.0",
+    "aws-cdk-lib": "2.163.0",
     "aws-rfdk": "1.4.0",
     "constructs": "^10.0.0"
   },
   "peerDependencies": {
-    "aws-cdk-lib": "2.133.0",
+    "aws-cdk-lib": "2.163.0",
     "aws-rfdk": "1.4.0",
     "constructs": "^10.0.0"
   },
