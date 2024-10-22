@@ -27,25 +27,25 @@
     }
   },
   "devDependencies": {
-    "@aws-sdk/client-acm": "^3.664.0",
-    "@aws-sdk/client-ssm": "^3.670.0",
-    "@aws-sdk/client-cloudformation": "^3.654.0",
-    "@aws-sdk/client-cloudwatch-logs": "^3.658.1",
-    "@aws-sdk/client-dynamodb": "^3.658.1",
-    "@aws-sdk/client-ecs": "^3.670.0",
-    "@aws-sdk/client-secrets-manager": "^3.651.1",
-    "@aws-sdk/util-dynamodb": "^3.658.1",
+    "@aws-sdk/client-acm": "^3.675.0",
+    "@aws-sdk/client-ssm": "^3.675.0",
+    "@aws-sdk/client-cloudformation": "^3.675.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.675.0",
+    "@aws-sdk/client-dynamodb": "^3.675.0",
+    "@aws-sdk/client-ecs": "^3.675.0",
+    "@aws-sdk/client-secrets-manager": "^3.675.0",
+    "@aws-sdk/util-dynamodb": "^3.675.0",
     "@types/jest": "^29.5.13",
     "@types/node": "18.11.19",
-    "aws-cdk-lib": "2.133.0",
+    "aws-cdk-lib": "2.163.0",
     "constructs": "^10.0.0",
     "fs-extra": "^11.2.0",
     "jest": "^29.7.0",
     "jest-junit": "^16.0.0",
-    "lerna": "^8.1.2",
+    "lerna": "^8.1.8",
     "standard-version": "^9.5.0",
     "ts-jest": "^29.2.5",
-    "typescript": "~5.1.6"
+    "typescript": "~5.4.5"
   },
   "workspaces": {
     "packages": [

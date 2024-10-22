@@ -66,18 +66,18 @@
     "deadline"
   ],
   "devDependencies": {
-    "@aws-sdk/client-acm": "^3.664.0",
-    "@aws-sdk/client-auto-scaling": "^3.670.0",
-    "@aws-sdk/client-dynamodb": "^3.658.1",
+    "@aws-sdk/client-acm": "^3.675.0",
+    "@aws-sdk/client-auto-scaling": "^3.676.0",
+    "@aws-sdk/client-dynamodb": "^3.675.0",
     "@aws-sdk/client-ec2": "^3.676.0",
-    "@aws-sdk/client-ecs": "^3.670.0",
-    "@aws-sdk/client-secrets-manager": "^3.651.1",
+    "@aws-sdk/client-ecs": "^3.675.0",
+    "@aws-sdk/client-secrets-manager": "^3.675.0",
     "@types/aws-lambda": "^8.10.145",
     "@types/jest": "^29.5.13",
     "@types/sinon": "^17.0.3",
-    "aws-cdk-lib": "2.133.0",
-    "aws-sdk-client-mock": "^4.0.1",
-    "aws-sdk-client-mock-jest": "^4.0.1",
+    "aws-cdk-lib": "2.163.0",
+    "aws-sdk-client-mock": "^4.1.0",
+    "aws-sdk-client-mock-jest": "^4.1.0",
     "awslint": "2.68.0",
     "constructs": "^10.0.0",
     "dynalite": "^3.2.2",
@@ -89,20 +89,21 @@
     "eslint-plugin-jest": "^28.8.3",
     "eslint-plugin-license-header": "^0.6.0",
     "jest": "^29.7.0",
-    "jsii": "~5.3.29",
-    "jsii-pacmak": "1.95.0",
-    "jsii-reflect": "1.95.0",
+    "jsii": "~5.4.35",
+    "jsii-rosetta": "~5.4.35",
+    "jsii-pacmak": "1.103.1",
+    "jsii-reflect": "1.103.1",
     "pkglint": "1.4.0",
     "sinon": "^19.0.2",
     "ts-jest": "^29.2.5",
-    "typescript": "~5.1.6"
+    "typescript": "~5.4.5"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.133.0",
+    "aws-cdk-lib": "2.163.0",
     "constructs": "^10.0.0"
   },
   "peerDependencies": {
-    "aws-cdk-lib": "2.133.0",
+    "aws-cdk-lib": "2.163.0",
     "constructs": "^10.0.0"
   },
   "engines": {
