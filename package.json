@@ -32,7 +32,7 @@
     "@aws-sdk/client-cloudformation": "^3.677.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.675.0",
     "@aws-sdk/client-dynamodb": "^3.675.0",
-    "@aws-sdk/client-ecs": "^3.675.0",
+    "@aws-sdk/client-ecs": "^3.677.0",
     "@aws-sdk/client-secrets-manager": "^3.675.0",
     "@aws-sdk/util-dynamodb": "^3.675.0",
     "@types/jest": "^29.5.13",
