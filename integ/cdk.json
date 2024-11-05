@@ -1,5 +1,6 @@
 {
   "context": {
-    "@aws-cdk/aws-ec2:uniqueImdsv2TemplateName": true
+    "@aws-cdk/aws-ec2:uniqueImdsv2TemplateName": true,
+    "@aws-cdk/aws-autoscaling:generateLaunchTemplateInsteadOfLaunchConfig": true
   }
 }

@@ -1,5 +1,6 @@
 {
   "app": "npx ts-node bin/app.ts",
   "context": {
+    "@aws-cdk/aws-autoscaling:generateLaunchTemplateInsteadOfLaunchConfig": true
   }
 }

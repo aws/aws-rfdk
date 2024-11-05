@@ -1,5 +1,6 @@
 {
   "app": "python -m package.app",
   "context": {
+    "@aws-cdk/aws-autoscaling:generateLaunchTemplateInsteadOfLaunchConfig": true
   }
 }
