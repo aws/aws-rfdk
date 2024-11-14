@@ -3681,21 +3681,7 @@
     "@smithy/types" "^3.6.0"
     tslib "^2.6.2"
 
-"@smithy/util-stream@^3.1.9":
-  version "3.1.9"
-  resolved "https://registry.yarnpkg.com/@smithy/util-stream/-/util-stream-3.1.9.tgz#d39656eae27696bdc5a3ec7c2f6b89c32dccd1ca"
-  integrity sha512-7YAR0Ub3MwTMjDfjnup4qa6W8gygZMxikBhFMPESi6ASsl/rZJhwLpF/0k9TuezScCojsM0FryGdz4LZtjKPPQ==
-  dependencies:
-    "@smithy/fetch-http-handler" "^3.2.9"
-    "@smithy/node-http-handler" "^3.2.4"
-    "@smithy/types" "^3.5.0"
-    "@smithy/util-base64" "^3.0.0"
-    "@smithy/util-buffer-from" "^3.0.0"
-    "@smithy/util-hex-encoding" "^3.0.0"
-    "@smithy/util-utf8" "^3.0.0"
-    tslib "^2.6.2"
-
-"@smithy/util-stream@^3.2.1":
+"@smithy/util-stream@^3.1.9", "@smithy/util-stream@^3.2.1":
   version "3.2.1"
   resolved "https://registry.yarnpkg.com/@smithy/util-stream/-/util-stream-3.2.1.tgz#f3055dc4c8caba8af4e47191ea7e773d0e5a429d"
   integrity sha512-R3ufuzJRxSJbE58K9AEnL/uSZyVdHzud9wLS8tIbXclxKzoe09CRohj2xV8wpx5tj7ZbiJaKYcutMm1eYgz/0A==
