@@ -48,12 +48,13 @@ PULL_AL_FROM_ECR_ARGS=(
     "${ECR_REGION}"
     # Image versions to pull
     "latest" # required for building and publishing lambda layers
-    "2"      # required for building Deadline docker images for running integration tests
+    "2"      # required for building Deadline docker images for running integration tests for old versions
+    "2023"   # required for building Deadline docker images for running integration tests
 )
 /bin/bash ${SCRIPT_DIR}/pull_amazonlinux_from_ecr.sh "${PULL_AL_FROM_ECR_ARGS[@]}"
 
 # Run integ tests
-(cd "${ROOT_DIR}" && yarn run build)
+(cd "${ROOT_DIR}" && yarn clean && yarn build)
 pushd $TESTS_DIR
 yarn run e2e-automated
 popd
