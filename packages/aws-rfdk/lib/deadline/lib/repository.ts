@@ -732,7 +732,7 @@ export class Repository extends Construct implements IRepository {
     this.installerGroup = new AutoScalingGroup(this, 'Installer', {
       instanceType: InstanceType.of(InstanceClass.T3, InstanceSize.LARGE),
       machineImage: new AmazonLinuxImage({
-        generation: AmazonLinuxGeneration.AMAZON_LINUX_2023,
+        generation: this.getAmazonLinuxGenerationForDeadlineVersion(this.version),
       }),
       vpc: props.vpc,
       vpcSubnets: props.vpcSubnets ?? {
@@ -1056,5 +1056,18 @@ export class Repository extends Construct implements IRepository {
       host: installerGroup,
       args: installerArgs,
     });
+  }
+
+  /**
+   * Return an AmazonLinuxGeneration that can run the specified version of Deadline.
+   */
+  private getAmazonLinuxGenerationForDeadlineVersion(deadlineVersion: IVersion): AmazonLinuxGeneration {
+    const REMOVED_SUPPORT_FOR_AMAZON_LINUX_2 = new Version([10, 4, 0, 0]);
+
+    if (deadlineVersion.isLessThan(REMOVED_SUPPORT_FOR_AMAZON_LINUX_2)) {
+      return AmazonLinuxGeneration.AMAZON_LINUX_2;
+    } else {
+      return AmazonLinuxGeneration.AMAZON_LINUX_2023;
+    }
   }
 }
