@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/aws/aws-rfdk/compare/v1.5.0...v1.6.0) (2025-01-09)
+
+
+### Supported CDK Version
+
+* [2.163.0](https://github.com/aws/aws-cdk/releases/tag/v2.163.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.4.0.10](https://docs.thinkboxsoftware.com/products/deadline/10.4/1_User%20Manual/manual/release-notes.html)
+
+
+### Bug Fixes
+
+* Set Amazon Linux version based on Deadline Repository version ([#1419](https://github.com/aws/aws-rfdk/issues/1419)) ([822ee19](https://github.com/aws/aws-rfdk/commit/822ee1931d5c82d3e91e9035bab783e4517515bd))
+* Switch lambda layers to use a region allow list for publishing ([#1422](https://github.com/aws/aws-rfdk/issues/1422)) ([f99f868](https://github.com/aws/aws-rfdk/commit/f99f86830959faadc917c16f1f941ded268dbdb6))
+
 ## [1.5.0](https://github.com/aws/aws-rfdk/compare/v1.4.0...v1.5.0) (2024-12-05)
 
 
