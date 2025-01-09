@@ -10,27 +10,31 @@ import {
   GetParametersByPathCommand,
 } from '@aws-sdk/client-ssm';
 
-// These regions need to be enabled for the AWS account being used for publishing, so we skip them
+// Regions introduced before March 20, 2019 are enabled by default, so we maintain this
+// allowlist to only publish to these regions since we can gurantee the account uses them.
 // See https://docs.aws.amazon.com/accounts/latest/reference/manage-acct-regions.html
-const REGION_DENY_LIST = [
-  'af-south-1',
-  'ap-east-1',
-  'ap-south-2',
-  'ap-southeast-3',
-  'ap-southeast-4',
-  'ap-southeast-5',
-  'ca-west-1',
-  'eu-south-1',
-  'eu-south-2',
-  'eu-central-2',
-  'il-central-1',
-  'me-south-1',
-  'me-central-1',
+const REGION_ALLOW_LIST = [
+  'ap-northeast-1',
+  'ap-northeast-2',
+  'ap-northeast-3',
+  'ap-southeast-1',
+  'ap-southeast-2',
+  'ca-central-1',
+  'eu-central-1',
+  'eu-north-1',
+  'eu-west-1',
+  'eu-west-2',
+  'eu-west-3',
+  'sa-east-1',
+  'us-east-1',
+  'us-east-2',
+  'us-west-1',
+  'us-west-2'
 ];
 
 function isValidRegion(region: string): boolean {
   return (
-    !REGION_DENY_LIST.includes(region)
+    REGION_ALLOW_LIST.includes(region)
     && !region.startsWith('cn-')
     && !region.startsWith('us-gov-')
   );

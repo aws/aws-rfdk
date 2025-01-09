@@ -108,7 +108,7 @@ getRegions().then(regions => {
       region,
       runtimes,
     ).catch(e => {
-      console.error(`Failed publishing in ${region}, which may be due to the REGION_DENY_LIST needing updating. Error: ${e}`);
+      console.error(`Failed publishing in ${region}, which may be due to the REGION_ALLOW_LIST needing updating. Error: ${e}`);
       throw e;
     });
   }
