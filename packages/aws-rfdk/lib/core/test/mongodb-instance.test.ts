@@ -459,6 +459,7 @@ describe('Test MongoDbInstance', () => {
               'bash ./setStoragePath.sh "/var/lib/mongo"\n' +
               'bash ./setMongoNoAuth.sh\n' +
               'sudo service mongod start\n' +
+              'sudo service mongod status\n' +
               'bash ./setAdminCredentials.sh \"',
               {
                 Ref: Match.stringLikeRegexp('^MongoDbInstanceAdminUser.*'),

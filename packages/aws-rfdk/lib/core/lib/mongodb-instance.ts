@@ -592,6 +592,8 @@ export class MongoDbInstance extends Construct implements IMongoDb, IGrantable {
       `bash ./setStoragePath.sh "${MongoDbInstance.MONGO_DEVICE_MOUNT_POINT}"`,
       'bash ./setMongoNoAuth.sh',
       'sudo service mongod start',
+      // Ensure the mongo service started
+      'sudo service mongod status',
       `bash ./setAdminCredentials.sh "${this.adminUser.secretArn}"`,
     );
     this.adminUser.grantRead(instance.grantPrincipal);
