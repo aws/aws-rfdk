@@ -69,7 +69,7 @@
     "@aws-sdk/client-acm": "^3.699.0",
     "@aws-sdk/client-auto-scaling": "^3.699.0",
     "@aws-sdk/client-dynamodb": "^3.679.0",
-    "@aws-sdk/client-ec2": "^3.676.0",
+    "@aws-sdk/client-ec2": "^3.738.0",
     "@aws-sdk/client-ecs": "^3.703.0",
     "@aws-sdk/client-secrets-manager": "^3.675.0",
     "@types/aws-lambda": "^8.10.147",
