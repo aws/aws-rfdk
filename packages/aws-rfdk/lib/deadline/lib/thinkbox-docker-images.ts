@@ -54,7 +54,7 @@ export enum AwsCustomerAgreementAndIpLicenseAcceptance {
 }
 
 /**
- * Interface to specify the properties when instantiating a {@link ThinkboxDockerImages} instnace.
+ * Interface to specify the properties when instantiating a {@link ThinkboxDockerImages} instance.
  */
 export interface ThinkboxDockerImagesProps {
   /**

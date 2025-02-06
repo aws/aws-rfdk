@@ -33,7 +33,7 @@ export enum ThinkboxManagedDeadlineDockerRecipes {
 }
 
 /**
- * Interface to specify the properties when instantiating a {@link ThinkboxDockerRecipes} instnace.
+ * Interface to specify the properties when instantiating a {@link ThinkboxDockerRecipes} instance.
  */
 export interface ThinkboxDockerRecipesProps {
   /**
