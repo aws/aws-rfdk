@@ -402,11 +402,12 @@ describe('DeploymentInstance', () => {
           PolicyDocument: {
             Statement: Match.arrayWith([
               {
-                Action: [
-                  's3:GetObject*',
-                  's3:GetBucket*',
-                  's3:List*',
-                ],
+                Action: 's3:GetObject',
+                Condition: {
+                  StringEquals: {
+                    's3:ResourceAccount': '224375009292',
+                  },
+                },
                 Effect: 'Allow',
                 Resource: stack.resolve([
                   rfdkExternalDepsBucket.bucketArn,

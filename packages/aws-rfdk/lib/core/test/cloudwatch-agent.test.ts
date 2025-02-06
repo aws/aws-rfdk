@@ -3,17 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {Stack} from 'aws-cdk-lib';
+import {App, Stack} from 'aws-cdk-lib';
 import {
   Template,
 } from 'aws-cdk-lib/assertions';
 import {
   AmazonLinuxGeneration,
   AmazonLinuxImage,
+  GenericWindowsImage,
   Instance,
   InstanceClass,
   InstanceSize,
   InstanceType,
+  OperatingSystemType,
   Vpc,
   WindowsImage,
   WindowsVersion,
@@ -171,11 +173,12 @@ describe('CloudWatchAgent', () => {
             ],
           },
           {
-            Action: [
-              's3:GetObject*',
-              's3:GetBucket*',
-              's3:List*',
-            ],
+            Action: 's3:GetObject',
+            Condition: {
+              StringEquals: {
+                's3:ResourceAccount': '224375009292',
+              },
+            },
             Effect: 'Allow',
             Resource: [
               {
@@ -251,34 +254,90 @@ describe('CloudWatchAgent', () => {
     ['', false],
   ])('adds user data commands to fetch and execute the script (windows). installFlag: %s shouldInstallAgent: %p', (installFlag: string, shouldInstallAgent?: boolean) => {
     // GIVEN
-    const host = new Instance(stack, 'Instance', {
+    const region = 'ap-southeast-1';
+    const app = new App();
+    const regionalStack = new Stack(app, 'stack', {env: {region}});
+    const regionalVpc = new Vpc(regionalStack, 'vpc');
+
+    const host = new Instance(regionalStack, 'Instance', {
       instanceType: InstanceType.of(InstanceClass.T2, InstanceSize.LARGE),
       machineImage: new WindowsImage(WindowsVersion.WINDOWS_SERVER_2019_ENGLISH_FULL_BASE),
-      vpc,
+      vpc: regionalVpc,
     });
 
     // WHEN
-    new CloudWatchAgent(stack, 'testResource', {
+    new CloudWatchAgent(regionalStack, 'testResource', {
       cloudWatchConfig,
       host,
       shouldInstallAgent,
     });
 
     // THEN
-    const userData = stack.resolve(host.userData.render());
+    const userData = regionalStack.resolve(host.userData.render());
     expect(userData).toStrictEqual({
       'Fn::Join': [
         '',
         [
           `<powershell>mkdir (Split-Path -Path 'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
-          { 'Fn::Sub': CWA_ASSET_WINDOWS.Bucket },
-          `' -key '${CWA_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n&'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1'${installFlag} `,
-          { Ref: 'AWS::Region' },
-          ' ',
+          { 'Fn::Sub': CWA_ASSET_WINDOWS.Bucket.replace('${AWS::Region}', region) },
+          `' -key '${CWA_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n&'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1'${installFlag} ${region} `,
           { Ref: 'StringParameter472EED0E' },
           `\nif (!$?) { Write-Error 'Failed to execute the file \"C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1\"' -ErrorAction Stop }</powershell>`,
         ],
       ],
     });
+  });
+});
+
+describe('CloudWatchAgentRegionSupport', () => {
+  const availableRegion = 'eu-north-1';
+  const optInRegion = 'ap-east-1';
+
+  // Generate CloudWatch Agent configuration JSON
+  const configBuilder = new CloudWatchConfigBuilder();
+  const cloudWatchConfig = configBuilder.generateCloudWatchConfiguration();
+
+  test.each([
+    ['Linux Available Region', OperatingSystemType.LINUX, availableRegion, true],
+    ['Linux Opt-In Region', OperatingSystemType.LINUX, optInRegion, true],
+    ['Windows Available Region', OperatingSystemType.WINDOWS, availableRegion, true ],
+    ['Windows Opt-In Region', OperatingSystemType.WINDOWS, optInRegion, false],
+  ])('CloudWatchAgent support for %s', (_scenarioName, osType, region, expectSuccess) => {
+    const app = new App();
+    const stack = new Stack(app, 'stack', {env: {region: region}});
+    const vpc = new Vpc(stack, 'vpc');
+
+    let machineImage;
+    if (osType == OperatingSystemType.LINUX) {
+      machineImage = new AmazonLinuxImage({
+        generation: AmazonLinuxGeneration.AMAZON_LINUX_2023,
+      });
+    } else {
+      machineImage = new GenericWindowsImage({
+        [availableRegion]: 'ami-aaaaaaaaaaaaaaaaa',
+        [optInRegion]: 'ami-bbbbbbbbbbbbbbbbb',
+      });
+    }
+
+    const host = new Instance(stack, 'instance', {
+      instanceType: InstanceType.of(InstanceClass.T2, InstanceSize.LARGE),
+      machineImage: machineImage,
+      vpc,
+    });
+
+    // WHEN
+    function createCloudWatchAgent() {
+      new CloudWatchAgent(stack, 'cloudWatchAgent', {
+        cloudWatchConfig,
+        host,
+      });
+    }
+
+    // THEN
+    if (expectSuccess) {
+      expect(createCloudWatchAgent).not.toThrow(); // eslint-disable-line jest/no-conditional-expect
+    } else {
+      expect(createCloudWatchAgent).toThrow('Cannot install CloudWatch Agent'); // eslint-disable-line jest/no-conditional-expect
+    }
   });
 });
