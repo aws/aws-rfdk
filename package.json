@@ -35,7 +35,7 @@
     "@aws-sdk/client-ecs": "^3.703.0",
     "@aws-sdk/client-secrets-manager": "^3.675.0",
     "@aws-sdk/util-dynamodb": "^3.675.0",
-    "@types/jest": "^29.5.13",
+    "@types/jest": "^29.5.14",
     "@types/node": "18.11.19",
     "aws-cdk-lib": "2.163.0",
     "constructs": "^10.0.0",
