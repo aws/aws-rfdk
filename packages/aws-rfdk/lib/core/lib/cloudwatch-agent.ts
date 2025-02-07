@@ -5,8 +5,9 @@
 
 import * as path from 'path';
 
-import { Stack } from 'aws-cdk-lib';
-import { IGrantable } from 'aws-cdk-lib/aws-iam';
+import { Stack, Token } from 'aws-cdk-lib';
+import { OperatingSystemType } from 'aws-cdk-lib/aws-ec2';
+import { IGrantable, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
@@ -129,6 +130,45 @@ export class CloudWatchAgent extends Construct {
   }
 
   /**
+   * Return true if the RFDK-hosted resources required to install the
+   * CloudWatch Agent are available for the specified osType and region.
+   */
+  private canInstallAgent(osType: OperatingSystemType, region: string) {
+    if (osType === OperatingSystemType.LINUX) {
+      // We don't use any RFDK-hosted dependencies on Linux.
+      return true;
+    } else {
+      // The RFDK service has an S3 bucket serving dependencies for Windows
+      // in these regions.
+      const REGION_ALLOW_LIST = [
+        'ap-northeast-1',
+        'ap-northeast-2',
+        'ap-northeast-3',
+        'ap-south-1',
+        'ap-southeast-1',
+        'ap-southeast-2',
+        'ca-central-1',
+        'eu-central-1',
+        'eu-north-1',
+        'eu-west-1',
+        'eu-west-2',
+        'eu-west-3',
+        'sa-east-1',
+        'us-east-1',
+        'us-east-2',
+        'us-west-1',
+        'us-west-2',
+      ];
+
+      if (Token.isUnresolved(region)) {
+        throw new Error('Region must be set at synth time');
+      }
+
+      return REGION_ALLOW_LIST.includes(region);
+    }
+  }
+
+  /**
    * Configures the CloudWatch Agent on the target host.
    *
    * This is done by adding UserData commands to the target host.
@@ -144,11 +184,26 @@ export class CloudWatchAgent extends Construct {
   ) {
     const region = Stack.of(this).region;
     if (shouldInstallAgent) {
+      if (!this.canInstallAgent(host.osType, region)) {
+        throw new Error(`Cannot install CloudWatch Agent in region "${region}" ` +
+                        `for OS "${OperatingSystemType[host.osType]}" ` +
+                        'because RFDK hosted files are not available in that region.');
+      }
+
       // Grant access to the required CloudWatch Agent and GPG installer files.
       const cloudWatchAgentBucket = Bucket.fromBucketArn(this, 'CloudWatchAgentBucket', `arn:aws:s3:::amazoncloudwatch-agent-${region}`);
       cloudWatchAgentBucket.grantRead(host);
       const gpgBucket = Bucket.fromBucketArn(this, 'GpgBucket', `arn:aws:s3:::rfdk-external-dependencies-${region}`);
-      gpgBucket.grantRead(host);
+      host.grantPrincipal.addToPrincipalPolicy(
+        new PolicyStatement({
+          actions: ['s3:GetObject'],
+          resources: [gpgBucket.bucketArn, gpgBucket.arnForObjects('*')],
+          conditions: { StringEquals: {
+            // Download from bucket in RFDK service account
+            's3:ResourceAccount': '224375009292',
+          } },
+        }),
+      );
     }
 
     const scriptArgs = [];

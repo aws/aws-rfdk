@@ -1273,12 +1273,14 @@ test('worker fleet does not signal when zero minCapacity', () => {
 });
 
 describe('secrets management enabled', () => {
+  let region: string;
   let props: WorkerInstanceFleetProps;
 
   // GIVEN
   beforeEach(() => {
+    region = 'ap-south-1';
     app = new App();
-    stack = new Stack(app, 'Stack');
+    stack = new Stack(app, 'Stack', {env: {region}});
     vpc = new Vpc(stack, 'VPC');
     rcsImage = ContainerImage.fromAsset(__dirname);
     const version = new VersionQuery(stack, 'VersionQuery');
@@ -1291,11 +1293,11 @@ describe('secrets management enabled', () => {
       }),
       version,
     });
-    wfstack = new Stack(app, 'workerFleetStack');
+    wfstack = new Stack(app, 'workerFleetStack', {env: {region}});
     props = {
       renderQueue,
       vpc,
-      workerMachineImage: new GenericWindowsImage({}),
+      workerMachineImage: new GenericWindowsImage({[region]: 'test'}),
     };
   });
 

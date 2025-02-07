@@ -12,7 +12,7 @@ export const CWA_ASSET_LINUX = {
 // ConfigureCloudWatchAgent.ps1
 export const CWA_ASSET_WINDOWS = {
   Bucket: 'cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}',
-  Key: 'b3a03a74afa8a045b35e08f11a719544622172869cc031787f580407d665ee36',
+  Key: 'ea268a603f4cce783c290fc755e99c9d8c127224c1be30d6158aed70e533c730',
 };
 
 // mountEbsBlockVolume.sh + metadataUtilities.sh + ec2-certificates.crt
