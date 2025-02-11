@@ -186,7 +186,9 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
         case '10.3.1.4':
           expectedVersion = '10.3.1.3';
           break;
-
+        case '10.4.0.13':
+          expectedVersion = '10.4.0.12';
+          break;
         default:
           expectedVersion = deadlineVersion!;
           break;
