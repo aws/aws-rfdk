@@ -13,6 +13,7 @@ module.exports = {
     node: true
   },
   plugins: [
+    '@stylistic',
     '@typescript-eslint',
     'import',
     'license-header',
@@ -41,16 +42,25 @@ module.exports = {
     }
   },
   ignorePatterns: [ '*.js', '*.d.ts', 'node_modules/', '*.generated.ts' ],
+  overrides: [
+    {
+      // File starts with: "#!/usr/bin/env node"
+      files: ["bin/stage-deadline.ts"],
+      rules: {
+        'license-header/header': 'off',
+      },
+    },
+  ],
   rules: {
     // Require use of the `import { foo } from 'bar';` form instead of `import foo = require('bar');`
     '@typescript-eslint/no-require-imports': [ 'error' ],
-    '@typescript-eslint/indent': [ 'error', 2 ],
+    '@stylistic/indent': [ 'error', 2 ],
     // Rule to lint white-space between the TyepScript type annotation syntax
     // e.g.
     //    const foo: number; // Good
     //    const foo :number; // Bad
     //    const foo:number;  // Bad
-    '@typescript-eslint/type-annotation-spacing': [
+    '@stylistic/type-annotation-spacing': [
       // Error level (fail the lint)
       'error',
       // Rule options
