@@ -368,10 +368,10 @@
     tslib "^2.6.2"
     uuid "^9.0.1"
 
-"@aws-sdk/client-ecs@^3.744.0":
-  version "3.744.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-ecs/-/client-ecs-3.744.0.tgz#6be5e791059b1ffedebcf0299f1855636b050293"
-  integrity sha512-ShBwfVcE3GXU/+dbQ4fnqYCCk/QuaQ1fyb7emO+HhR+8tP4YIvhN6V2KCbEhTSnQhQegidPkhlQL82RjOsy2Mw==
+"@aws-sdk/client-ecs@^3.748.0":
+  version "3.748.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-ecs/-/client-ecs-3.748.0.tgz#20bced29841eddb96ed4c8027e72bb3c20368032"
+  integrity sha512-G9MzmnzyOilFr9uy/qhhttDv2z8ddCMTiuNdUNvohpTYDMUEPQVLyRcC6JChWFxAvkRU2QD+nndb/vLDWoJzQw==
   dependencies:
     "@aws-crypto/sha256-browser" "5.2.0"
     "@aws-crypto/sha256-js" "5.2.0"
