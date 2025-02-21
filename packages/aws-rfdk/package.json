@@ -76,7 +76,7 @@
     "@types/aws-lambda": "^8.10.147",
     "@types/jest": "^29.5.14",
     "@types/sinon": "^17.0.3",
-    "aws-cdk-lib": "2.163.0",
+    "aws-cdk-lib": "2.177.0",
     "aws-sdk-client-mock": "^4.1.0",
     "aws-sdk-client-mock-jest": "^4.1.0",
     "awslint": "2.68.0",
@@ -100,11 +100,11 @@
     "typescript": "~5.4.5"
   },
   "dependencies": {
-    "aws-cdk-lib": "2.163.0",
+    "aws-cdk-lib": "2.177.0",
     "constructs": "^10.0.0"
   },
   "peerDependencies": {
-    "aws-cdk-lib": "2.163.0",
+    "aws-cdk-lib": "2.177.0",
     "constructs": "^10.0.0"
   },
   "engines": {
