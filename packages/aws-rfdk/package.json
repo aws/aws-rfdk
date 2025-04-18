@@ -66,7 +66,7 @@
     "deadline"
   ],
   "devDependencies": {
-    "@aws-sdk/client-acm": "^3.750.0",
+    "@aws-sdk/client-acm": "^3.787.0",
     "@aws-sdk/client-auto-scaling": "^3.744.0",
     "@aws-sdk/client-dynamodb": "^3.751.0",
     "@aws-sdk/client-ec2": "^3.787.0",
