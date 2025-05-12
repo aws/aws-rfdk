@@ -30,7 +30,7 @@
     "@aws-sdk/client-acm": "^3.799.0",
     "@aws-sdk/client-ssm": "^3.799.0",
     "@aws-sdk/client-cloudformation": "^3.806.0",
-    "@aws-sdk/client-cloudwatch-logs": "^3.800.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.807.0",
     "@aws-sdk/client-dynamodb": "^3.799.0",
     "@aws-sdk/client-ecs": "^3.752.0",
     "@aws-sdk/client-secrets-manager": "^3.787.0",
