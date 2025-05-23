@@ -74,7 +74,7 @@
     "@aws-sdk/client-cloudformation": "^3.806.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.800.0",
     "@aws-sdk/client-secrets-manager": "^3.787.0",
-    "@aws-sdk/client-ssm": "^3.799.0",
+    "@aws-sdk/client-ssm": "^3.816.0",
     "aws-cdk-lib": "2.163.0",
     "aws-rfdk": "1.6.0",
     "constructs": "^10.0.0"
