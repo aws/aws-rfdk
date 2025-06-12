@@ -44,7 +44,7 @@
     "jest-junit": "^16.0.0",
     "lerna": "^8.2.0",
     "standard-version": "^9.5.0",
-    "ts-jest": "^29.2.5",
+    "ts-jest": "^29.4.0",
     "typescript": "~5.4.5"
   },
   "workspaces": {
