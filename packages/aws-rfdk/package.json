@@ -96,7 +96,7 @@
     "jsii-rosetta": "~5.4.35",
     "pkglint": "1.6.0",
     "sinon": "^19.0.2",
-    "ts-jest": "^29.2.5",
+    "ts-jest": "^29.4.1",
     "typescript": "~5.4.5"
   },
   "dependencies": {
