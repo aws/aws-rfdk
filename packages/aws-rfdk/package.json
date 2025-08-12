@@ -73,7 +73,7 @@
     "@aws-sdk/client-ecs": "^3.752.0",
     "@aws-sdk/client-secrets-manager": "^3.863.0",
     "@stylistic/eslint-plugin": "^2",
-    "@types/aws-lambda": "^8.10.147",
+    "@types/aws-lambda": "^8.10.152",
     "@types/jest": "^29.5.14",
     "@types/sinon": "^17.0.3",
     "aws-cdk-lib": "2.163.0",
