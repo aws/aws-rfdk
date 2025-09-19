@@ -70,7 +70,7 @@
     "@aws-sdk/client-auto-scaling": "^3.863.0",
     "@aws-sdk/client-dynamodb": "^3.823.0",
     "@aws-sdk/client-ec2": "^3.846.0",
-    "@aws-sdk/client-ecs": "^3.752.0",
+    "@aws-sdk/client-ecs": "^3.891.0",
     "@aws-sdk/client-secrets-manager": "^3.863.0",
     "@stylistic/eslint-plugin": "^2",
     "@types/aws-lambda": "^8.10.147",
