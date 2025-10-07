@@ -1,5 +1,8 @@
 # Render Farm Deployment Kit on AWS (RFDK)
 
+> [!NOTE]
+> On November 7, 2025, AWS Thinkbox Deadline 10 will enter maintenance mode. We recommend exploring AWS Deadline Cloud for render management. For questions, contact [support@awsthinkbox.zendesk.com](mailto:support@awsthinkbox.zendesk.com) or refer to the [Maintenance Mode FAQ](https://docs.thinkboxsoftware.com/products/deadline/10.4/1_User%20Manual/manual/maintenance-mode-faq.html).
+
 The Render Farm Deployment Kit on AWS is an open-source library for use with the
 [AWS Cloud Development Kit](https://github.com/aws/aws-cdk) that is designed to help you
 deploy, configure, and maintain your render farm infrastructure in the cloud.
