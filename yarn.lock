@@ -220,24 +220,24 @@
     tslib "^2.6.2"
     uuid "^9.0.1"
 
-"@aws-sdk/client-cloudwatch-logs@^3.901.0":
-  version "3.901.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-cloudwatch-logs/-/client-cloudwatch-logs-3.901.0.tgz#96dfd5cdf14a151eb3a12ef5edcb8795dd642ee3"
-  integrity sha512-36T3Vev/StVPPkZG8zhs+Pzch4T1LtwGZgPluF5nyaRO+s/1KbzwUEaKV/6Ts3DvdA6bq8aNBQ0psss6+r0LDw==
+"@aws-sdk/client-cloudwatch-logs@^3.907.0":
+  version "3.907.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-cloudwatch-logs/-/client-cloudwatch-logs-3.907.0.tgz#a8b4af73229c0afce477c8795bc7c407fc1fc305"
+  integrity sha512-LCTOmErkju9Nj9Wb4WpkIwZjrGPEEQ+XOsNWeQ/BXV9GrLLouJsE+euQPiPOCksEWJ+T2uztdAdM3b6fSUcK4w==
   dependencies:
     "@aws-crypto/sha256-browser" "5.2.0"
     "@aws-crypto/sha256-js" "5.2.0"
-    "@aws-sdk/core" "3.901.0"
-    "@aws-sdk/credential-provider-node" "3.901.0"
+    "@aws-sdk/core" "3.907.0"
+    "@aws-sdk/credential-provider-node" "3.907.0"
     "@aws-sdk/middleware-host-header" "3.901.0"
     "@aws-sdk/middleware-logger" "3.901.0"
     "@aws-sdk/middleware-recursion-detection" "3.901.0"
-    "@aws-sdk/middleware-user-agent" "3.901.0"
+    "@aws-sdk/middleware-user-agent" "3.907.0"
     "@aws-sdk/region-config-resolver" "3.901.0"
     "@aws-sdk/types" "3.901.0"
     "@aws-sdk/util-endpoints" "3.901.0"
-    "@aws-sdk/util-user-agent-browser" "3.901.0"
-    "@aws-sdk/util-user-agent-node" "3.901.0"
+    "@aws-sdk/util-user-agent-browser" "3.907.0"
+    "@aws-sdk/util-user-agent-node" "3.907.0"
     "@smithy/config-resolver" "^4.3.0"
     "@smithy/core" "^3.14.0"
     "@smithy/eventstream-serde-browser" "^4.2.0"
