@@ -9,6 +9,9 @@ on:
   pull_request:
     branches: [ mainline, 'feature*' ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
 
