@@ -7,6 +7,10 @@ on:
     paths:
       - .github/config/labels.yml
 
+permissions:
+  issues: write
+  pull-requests: write
+
 jobs:
   modify-labels:
     runs-on: ubuntu-latest
