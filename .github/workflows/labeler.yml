@@ -7,13 +7,17 @@ on:
     paths:
       - .github/config/labels.yml
 
+permissions:
+  issues: write
+  pull-requests: write
+
 jobs:
   modify-labels:
     runs-on: ubuntu-latest
     steps:
       -
         name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       -
         name: Run Labeler
         if: success()
