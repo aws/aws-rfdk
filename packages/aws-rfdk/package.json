@@ -67,7 +67,7 @@
   ],
   "devDependencies": {
     "@aws-sdk/client-acm": "^3.940.0",
-    "@aws-sdk/client-auto-scaling": "^3.863.0",
+    "@aws-sdk/client-auto-scaling": "^3.946.0",
     "@aws-sdk/client-dynamodb": "^3.902.0",
     "@aws-sdk/client-ec2": "^3.846.0",
     "@aws-sdk/client-ecs": "^3.891.0",
