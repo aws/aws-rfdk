@@ -75,7 +75,7 @@
     "@stylistic/eslint-plugin": "^2",
     "@types/aws-lambda": "^8.10.155",
     "@types/jest": "^29.5.14",
-    "@types/sinon": "^17.0.3",
+    "@types/sinon": "^21.0.0",
     "aws-cdk-lib": "2.163.0",
     "aws-sdk-client-mock": "^4.1.0",
     "aws-sdk-client-mock-jest": "^4.1.0",
@@ -95,7 +95,7 @@
     "jsii-reflect": "1.103.1",
     "jsii-rosetta": "~5.4.35",
     "pkglint": "1.6.0",
-    "sinon": "^19.0.2",
+    "sinon": "^21.0.1",
     "ts-jest": "^29.4.1",
     "typescript": "~5.4.5"
   },
