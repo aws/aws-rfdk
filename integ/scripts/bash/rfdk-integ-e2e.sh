@@ -10,18 +10,20 @@
 set -euo pipefail
 shopt -s globstar
 
-USAGE="Usage: ./$0 [-d]
+USAGE="Usage: ./$0 [-d] [-s]
 
 Runs the RFDK integration tests.
 
 Options:
   -d Runs in development mode. CloudFormation stacks will not be torn down and temporary script output will not be deleted.
+  -s Skip the pre-flight sweep that force-deletes stale RFDK stacks from the account before deployment.
   -h Displays this help text.
 "
 
 export DEV_MODE=${DEV_MODE:-false}
+export SKIP_PREFLIGHT_SWEEP=${SKIP_PREFLIGHT_SWEEP:-false}
 
-while getopts "hd" opt; do
+while getopts "hds" opt; do
   case $opt in
     h)
         echo "${USAGE}"
@@ -30,6 +32,10 @@ while getopts "hd" opt; do
     d)
       export DEV_MODE=true
       echo "Running in development mode..."
+    ;;
+    s)
+      export SKIP_PREFLIGHT_SWEEP=true
+      echo "Skipping pre-flight sweep..."
     ;;
     \?)
         echo -e "\n${USAGE}" >&2
@@ -71,6 +77,19 @@ fi
 export INTEG_TEMP_DIR="$INTEG_ROOT/.e2etemp"
 rm -rf $INTEG_TEMP_DIR
 mkdir -p $INTEG_TEMP_DIR
+
+# Pre-flight sweep: force-delete stale RFDK stacks from the target account so a
+# fresh canary run starts clean. Stacks created within the last 24 hours are
+# left alone so parallel runs are not disturbed.
+if [ "${SKIP_PREFLIGHT_SWEEP}" != "true" ]; then
+  echo "$(date "+%Y-%m-%dT%H:%M:%S") [pre-flight] sweep started"
+  $BASH_SCRIPTS/pre-flight-sweep.sh &> "${INTEG_TEMP_DIR}/pre-flight-sweep.log" || (
+    echo "$(date "+%Y-%m-%dT%H:%M:%S") [pre-flight] sweep FAILED — see ${INTEG_TEMP_DIR}/pre-flight-sweep.log"
+    cat "${INTEG_TEMP_DIR}/pre-flight-sweep.log"
+    exit 1
+  )
+  echo "$(date "+%Y-%m-%dT%H:%M:%S") [pre-flight] sweep complete"
+fi
 
 # Stage deadline from script
 if [ ! -d "${DEADLINE_STAGING_PATH}" ]
