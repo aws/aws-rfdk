@@ -18,7 +18,7 @@ import {
 } from '../filesystem';
 import { DistinguishedName } from './distinguished-name';
 
-const exec = promisify(child_process.exec);
+const execFile = promisify(child_process.execFile);
 
 export interface ICertificate {
   readonly cert: string;
@@ -67,14 +67,15 @@ export class Certificate implements ICertificate {
       const encrypedKeyFile: string = path.join(tmpDir, 'encrypted.key');
       await writeAsciiFile(encrypedKeyFile, key);
       const decryptedKeyFile: string = path.join(tmpDir, 'decrypted.key');
-      const cmd =
-        'openssl rsa ' +
-        `-in ${encrypedKeyFile} ` +
-        '-passin env:CERT_PASSPHRASE ' +
-        `-out ${decryptedKeyFile}`;
+      const args = [
+        'rsa',
+        '-in', encrypedKeyFile,
+        '-passin', 'env:CERT_PASSPHRASE',
+        '-out', decryptedKeyFile,
+      ];
 
-      console.debug(`Running: ${cmd}`);
-      await exec(cmd, { env: { CERT_PASSPHRASE: passphrase, PATH: process.env.PATH } });
+      console.debug(`Running: openssl ${args.join(' ')}`);
+      await execFile('openssl', args, { env: { CERT_PASSPHRASE: passphrase, PATH: process.env.PATH } });
 
       const keyDecrypted = await readAsciiFile(decryptedKeyFile);
 
@@ -98,17 +99,19 @@ export class Certificate implements ICertificate {
   ): Promise<[string, string]> {
     const crtFile: string = path.join(tmpDir, 'crt');
     const keyFile: string = path.join(tmpDir, 'key');
-    const cmd: string =
-      'openssl req -x509 ' +
-      '-passout env:CERT_PASSPHRASE ' +
-      '-newkey rsa:2048 ' +
-      `-days ${certValidFor} ` +
-      '-extensions v3_ca ' +
-      `-keyout ${keyFile} -out ${crtFile} ` +
-      `-subj ${subject.toString()}`;
+    const args = [
+      'req', '-x509',
+      '-passout', 'env:CERT_PASSPHRASE',
+      '-newkey', 'rsa:2048',
+      '-days', certValidFor.toString(),
+      '-extensions', 'v3_ca',
+      '-keyout', keyFile,
+      '-out', crtFile,
+      '-subj', subject.toString(),
+    ];
 
-    console.debug(`Running: ${cmd}`);
-    await exec(cmd, { env: { CERT_PASSPHRASE: passphrase, PATH: process.env.PATH } });
+    console.debug(`Running: openssl ${args.join(' ')}`);
+    await execFile('openssl', args, { env: { CERT_PASSPHRASE: passphrase, PATH: process.env.PATH } });
 
     const cert: string = await readAsciiFile(crtFile);
     const key: string = await readAsciiFile(keyFile);
@@ -133,25 +136,30 @@ export class Certificate implements ICertificate {
     const crtFile: string = path.join(tmpDir, 'cert.crt');
     const keyFile: string = path.join(tmpDir, 'cert.key');
 
-    const certSigningRequest =
-            'openssl req ' +
-            '-passout env:CERT_PASSPHRASE ' +
-            '-newkey rsa:2048 ' +
-            `-days ${certValidFor} ` +
-            `-out ${csrFile} -keyout ${keyFile} ` +
-            `-subj ${subject.toString()}`;
-    const crtCreate =
-            'openssl x509 -sha256 -req ' +
-            '-passin env:SIGNING_PASSPHRASE ' +
-            `-days ${certValidFor} ` +
-            `-in ${csrFile} ` +
-            `-CA ${signingCertFile} -CAkey ${signingKeyFile} -CAcreateserial ` +
-            `-out ${crtFile}`;
+    const csrArgs = [
+      'req',
+      '-passout', 'env:CERT_PASSPHRASE',
+      '-newkey', 'rsa:2048',
+      '-days', certValidFor.toString(),
+      '-out', csrFile,
+      '-keyout', keyFile,
+      '-subj', subject.toString(),
+    ];
+    const crtArgs = [
+      'x509', '-sha256', '-req',
+      '-passin', 'env:SIGNING_PASSPHRASE',
+      '-days', certValidFor.toString(),
+      '-in', csrFile,
+      '-CA', signingCertFile,
+      '-CAkey', signingKeyFile,
+      '-CAcreateserial',
+      '-out', crtFile,
+    ];
 
-    console.debug(`Running: ${certSigningRequest}`);
-    await exec(certSigningRequest, { env: { CERT_PASSPHRASE: passphrase, PATH: process.env.PATH }});
-    console.debug(`Running: ${crtCreate}`);
-    await exec(crtCreate, { env: { PATH: process.env.PATH, SIGNING_PASSPHRASE: signingCertificate.passphrase }});
+    console.debug(`Running: openssl ${csrArgs.join(' ')}`);
+    await execFile('openssl', csrArgs, { env: { CERT_PASSPHRASE: passphrase, PATH: process.env.PATH }});
+    console.debug(`Running: openssl ${crtArgs.join(' ')}`);
+    await execFile('openssl', crtArgs, { env: { PATH: process.env.PATH, SIGNING_PASSPHRASE: signingCertificate.passphrase }});
 
     const cert: string = await readAsciiFile(crtFile);
     const key: string = await readAsciiFile(keyFile);
@@ -188,10 +196,17 @@ export class Certificate implements ICertificate {
       await writeAsciiFile(keyFileName, this.key);
 
       const pkcs12FileName: string = path.join(tmpDir, 'cert.p12');
-      const command: string = 'openssl pkcs12 -export -nodes -passin env:PASSIN -passout env:PASSOUT ' +
-        `-out ${pkcs12FileName} -inkey ${keyFileName} -in ${crtFileName}`;
-      await exec(
-        command,
+      const args = [
+        'pkcs12', '-export', '-nodes',
+        '-passin', 'env:PASSIN',
+        '-passout', 'env:PASSOUT',
+        '-out', pkcs12FileName,
+        '-inkey', keyFileName,
+        '-in', crtFileName,
+      ];
+      await execFile(
+        'openssl',
+        args,
         { env: {
           PASSIN: this.passphrase,
           PASSOUT: passphrase,
