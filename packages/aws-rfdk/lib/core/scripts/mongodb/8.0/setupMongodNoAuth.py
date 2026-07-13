@@ -78,7 +78,7 @@ def modify_network(mongod_conf):
     pass
 
 def main():
-  mongod_conf = yaml.load(sys.stdin)
+  mongod_conf = yaml.load(sys.stdin, Loader=yaml.SafeLoader)
   modify_security(mongod_conf)
   modify_network(mongod_conf)
   print(yaml.dump(mongod_conf, default_flow_style=False))

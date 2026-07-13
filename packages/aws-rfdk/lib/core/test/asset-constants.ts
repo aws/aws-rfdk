@@ -38,5 +38,5 @@ export const INSTALL_MONGODB_8_0_SCRIPT_LINUX = {
 
 export const MONGODB_8_0_CONFIGURATION_SCRIPTS = {
   Bucket: 'cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}',
-  Key: 'c1c40e6ac96769539de343b85ef12d12399dfedfdc4cb3129af6205d76953dfb',
+  Key: 'ea54c3ebdc417d7cc0fae38dd2c0693386a3121edea09ec7454a36e1f72d5ce2',
 };
