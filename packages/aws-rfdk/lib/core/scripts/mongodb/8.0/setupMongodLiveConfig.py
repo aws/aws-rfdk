@@ -95,7 +95,7 @@ def modify_net_options(mongod_conf):
   ssl_conf['PEMKeyFile'] = '/etc/mongod_certs/key.pem'
 
 def main():
-  mongod_conf = yaml.load(sys.stdin)
+  mongod_conf = yaml.load(sys.stdin, Loader=yaml.SafeLoader)
   modify_security(mongod_conf)
   modify_net_options(mongod_conf)
   print(yaml.dump(mongod_conf, default_flow_style=False))
