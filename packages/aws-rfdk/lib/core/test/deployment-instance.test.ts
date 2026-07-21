@@ -20,7 +20,7 @@ import {
 } from 'aws-cdk-lib/aws-ec2';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { ILogGroup } from 'aws-cdk-lib/aws-logs';
-import { Bucket } from 'aws-cdk-lib/aws-s3';
+import { Bucket, IBucket } from 'aws-cdk-lib/aws-s3';
 import { Asset } from 'aws-cdk-lib/aws-s3-assets';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import {Construct} from 'constructs';
@@ -57,6 +57,8 @@ describe('DeploymentInstance', () => {
     let vpc: Vpc;
     let stack: cdk.Stack;
     let target: DeploymentInstance;
+    let cloudWatchAgentInstallerBucket: IBucket;
+    let rfdkExternalDepsBucket: IBucket;
 
     beforeAll(() => {
       // GIVEN
@@ -67,6 +69,11 @@ describe('DeploymentInstance', () => {
       target = new DeploymentInstance(stack, DEFAULT_CONSTRUCT_ID, {
         vpc,
       });
+      // These imported buckets must be created before any test synthesizes the app. Newer versions
+      // of aws-cdk-lib forbid modifying the construct tree (even adding imports) after the first
+      // synthesis, and Template.fromStack() synthesizes the app.
+      cloudWatchAgentInstallerBucket = Bucket.fromBucketArn(depStack, 'CloudWatchAgentInstallerBucket', `arn:aws:s3:::amazoncloudwatch-agent-${stack.region}`);
+      rfdkExternalDepsBucket = Bucket.fromBucketArn(depStack, 'RfdkExternalDependenciesBucket', `arn:aws:s3:::rfdk-external-dependencies-${stack.region}`);
     });
 
     describe('Auto-Scaling Group', () => {
@@ -366,9 +373,6 @@ describe('DeploymentInstance', () => {
       });
 
       test('can fetch the CloudWatch Agent installer from S3', () => {
-        // GIVEN
-        const cloudWatchAgentInstallerBucket = Bucket.fromBucketArn(depStack, 'CloudWatchAgentInstallerBucket', `arn:aws:s3:::amazoncloudwatch-agent-${stack.region}` );
-
         // THEN
         Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
           PolicyDocument: {
@@ -394,9 +398,6 @@ describe('DeploymentInstance', () => {
       });
 
       test('can fetch GPG installer from RFDK dependencies S3 bucket', () => {
-        // GIVEN
-        const rfdkExternalDepsBucket = Bucket.fromBucketArn(depStack, 'RfdkExternalDependenciesBucket', `arn:aws:s3:::rfdk-external-dependencies-${stack.region}` );
-
         // THEN
         Template.fromStack(stack).hasResourceProperties('AWS::IAM::Policy', {
           PolicyDocument: {

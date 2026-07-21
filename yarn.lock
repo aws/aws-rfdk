@@ -2,17 +2,12 @@
 # yarn lockfile v1
 
 
-"@aws-cdk/asset-awscli-v1@^2.2.202":
-  version "2.2.223"
-  resolved "https://registry.yarnpkg.com/@aws-cdk/asset-awscli-v1/-/asset-awscli-v1-2.2.223.tgz#a7d4cb66fb64e5b8e5609591d2ff120898607595"
-  integrity sha512-a4eJHrzW0moUQR8wty2m0u93iabpQS3/8NviK6luaqYJ3Vog5LvSVJ4fGSGJD8B/7yQ7MlQWZ/DvFVFJz7nU4Q==
+"@aws-cdk/asset-awscli-v1@^2.2.202", "@aws-cdk/asset-awscli-v1@^2.2.208", "@aws-cdk/asset-awscli-v1@^2.2.229":
+  version "2.2.290"
+  resolved "https://registry.yarnpkg.com/@aws-cdk/asset-awscli-v1/-/asset-awscli-v1-2.2.290.tgz#8cd8b9d1c59a3327da3d89b6d15f5383543a2fef"
+  integrity sha512-YNJgFMoPY6PYf4y1zw0iT9S3r1aoCmF5/2/96kGUTmCX14QIHF4S4tQHG8v7MRHwypPcqqRYibXDYMLAilwWJQ==
 
-"@aws-cdk/asset-awscli-v1@^2.2.229":
-  version "2.2.257"
-  resolved "https://registry.yarnpkg.com/@aws-cdk/asset-awscli-v1/-/asset-awscli-v1-2.2.257.tgz#2c5bd5d3eba3463c6b4be6f40d96e45ab4d12ef5"
-  integrity sha512-8F3CfFWbaN1kgMpzCvqpLO948lEOvD5t++AGUnPNjNLPTkbdi1v8gY85HvrkXHvKkKjHrlo8u+twGmQb6le4FA==
-
-"@aws-cdk/asset-kubectl-v20@^2.1.2":
+"@aws-cdk/asset-kubectl-v20@^2.1.2", "@aws-cdk/asset-kubectl-v20@^2.1.3":
   version "2.1.4"
   resolved "https://registry.yarnpkg.com/@aws-cdk/asset-kubectl-v20/-/asset-kubectl-v20-2.1.4.tgz#5b76656f651a192e8d28766a5bdf04c444905363"
   integrity sha512-Ps2MkmjYgMyflagqQ4dgTElc7Vwpqj8spw8dQVFiSeaaMPsuDSNsPax3/HjuDuwqsmLdaCZc6umlxYLpL0kYDA==
@@ -22,7 +17,7 @@
   resolved "https://registry.yarnpkg.com/@aws-cdk/asset-node-proxy-agent-v6/-/asset-node-proxy-agent-v6-2.1.0.tgz#6d3c7860354d4856a7e75375f2f0ecab313b4989"
   integrity sha512-7bY3J8GCVxLupn/kNmpPc5VJz8grx+4RKfnnJiO1LG+uxkZfANZG3RMHhE+qQxxwkyQ9/MfPtTpf748UhR425A==
 
-"@aws-cdk/cloud-assembly-schema@^38.0.0":
+"@aws-cdk/cloud-assembly-schema@^38.0.0", "@aws-cdk/cloud-assembly-schema@^38.0.1":
   version "38.0.1"
   resolved "https://registry.yarnpkg.com/@aws-cdk/cloud-assembly-schema/-/cloud-assembly-schema-38.0.1.tgz#cdf4684ae8778459e039cd44082ea644a3504ca9"
   integrity sha512-KvPe+NMWAulfNVwY7jenFhzhuLhLqJ/OPy5jx7wUstbjnYnjRVLpUHPU3yCjXFE0J8cuJVdx95BJ4rOs66Pi9w==
@@ -6494,6 +6489,27 @@ aws-cdk-lib@2.163.0:
     table "^6.8.2"
     yaml "1.10.2"
 
+aws-cdk-lib@2.168.0:
+  version "2.168.0"
+  resolved "https://registry.yarnpkg.com/aws-cdk-lib/-/aws-cdk-lib-2.168.0.tgz#f24cc174b55dcae0c69716ff5882d1a70814859b"
+  integrity sha512-eZkXYJaCLKRY1XzFKWHPr/7vSMMRmhz8p2oZacfxzr6XrzWcD5xtoNx2qIf215jaAI5Hewg31AMGZvQRQVNajw==
+  dependencies:
+    "@aws-cdk/asset-awscli-v1" "^2.2.208"
+    "@aws-cdk/asset-kubectl-v20" "^2.1.3"
+    "@aws-cdk/asset-node-proxy-agent-v6" "^2.1.0"
+    "@aws-cdk/cloud-assembly-schema" "^38.0.1"
+    "@balena/dockerignore" "^1.0.2"
+    case "1.6.3"
+    fs-extra "^11.2.0"
+    ignore "^5.3.2"
+    jsonschema "^1.4.1"
+    mime-types "^2.1.35"
+    minimatch "^3.1.2"
+    punycode "^2.3.1"
+    semver "^7.6.3"
+    table "^6.8.2"
+    yaml "1.10.2"
+
 aws-cdk-lib@2.189.1:
   version "2.189.1"
   resolved "https://registry.yarnpkg.com/aws-cdk-lib/-/aws-cdk-lib-2.189.1.tgz#57681865d0ff138a26299066695c06c46329bcb7"
@@ -6513,6 +6529,11 @@ aws-cdk-lib@2.189.1:
     semver "^7.7.1"
     table "^6.9.0"
     yaml "1.10.2"
+
+aws-cdk@2.1132.0:
+  version "2.1132.0"
+  resolved "https://registry.yarnpkg.com/aws-cdk/-/aws-cdk-2.1132.0.tgz#d4fc844bf556f0da03f8048365cb2d77410f2f39"
+  integrity sha512-kcIzBZQO+2v+F97iaeI29fdOUQEx44wr0qDb9HXNqdU82V+1ZKI1KuFlHwH2nq7+6iNc1bu60se4hFf+2d7vXg==
 
 aws-cdk@2.163.0:
   version "2.163.0"
@@ -8379,10 +8400,19 @@ fs-extra@^10.1.0:
     jsonfile "^6.0.1"
     universalify "^2.0.0"
 
-fs-extra@^11.2.0, fs-extra@^11.3.0, fs-extra@^11.3.2:
+fs-extra@^11.2.0, fs-extra@^11.3.2:
   version "11.3.2"
   resolved "https://registry.yarnpkg.com/fs-extra/-/fs-extra-11.3.2.tgz#c838aeddc6f4a8c74dd15f85e11fe5511bfe02a4"
   integrity sha512-Xr9F6z6up6Ws+NjzMCZc6WXg2YFRlrLP9NQDO3VQrWrfiojdhS56TzueT88ze0uBdCTwEIhQ3ptnmKeWGFAe0A==
+  dependencies:
+    graceful-fs "^4.2.0"
+    jsonfile "^6.0.1"
+    universalify "^2.0.0"
+
+fs-extra@^11.3.0:
+  version "11.3.6"
+  resolved "https://registry.yarnpkg.com/fs-extra/-/fs-extra-11.3.6.tgz#f7cb80e9df550cd1db6f537fa5cdd568d3e70d10"
+  integrity sha512-w8ZNZr2mKIc7qeNaQ9AVPT1+iFaI+Avd4xudVOvdDJ8VytREi1Ft5Ih7hd9jjehod8vAM5GMsfQ/TpPf4EyoEA==
   dependencies:
     graceful-fs "^4.2.0"
     jsonfile "^6.0.1"

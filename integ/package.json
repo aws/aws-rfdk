@@ -57,7 +57,7 @@
     "@types/node": "18.11.19",
     "@typescript-eslint/eslint-plugin": "^8.24.0",
     "@typescript-eslint/parser": "^8.32.0",
-    "aws-cdk": "2.163.0",
+    "aws-cdk": "2.1132.0",
     "eslint": "^8.57.1",
     "eslint-import-resolver-node": "^0.3.9",
     "eslint-import-resolver-typescript": "^4.4.4",
@@ -75,12 +75,12 @@
     "@aws-sdk/client-cloudwatch-logs": "^3.940.0",
     "@aws-sdk/client-secrets-manager": "^3.946.0",
     "@aws-sdk/client-ssm": "^3.907.0",
-    "aws-cdk-lib": "2.163.0",
+    "aws-cdk-lib": "2.168.0",
     "aws-rfdk": "1.6.0",
     "constructs": "^10.0.0"
   },
   "peerDependencies": {
-    "aws-cdk-lib": "2.163.0",
+    "aws-cdk-lib": "2.168.0",
     "aws-rfdk": "1.6.0",
     "constructs": "^10.0.0"
   },
