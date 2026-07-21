@@ -5,3 +5,4 @@
 
 export * from './distinguished-name';
 export * from './certificate';
+export * from './openssl-env';
