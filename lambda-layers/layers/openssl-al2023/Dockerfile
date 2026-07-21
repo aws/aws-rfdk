@@ -9,11 +9,13 @@ RUN mkdir -p /tmp/layer
 # We are limited to 5 runtimes, as well. So limit to node.
 #
 # Unlike the previous openssl-al2 layer, we bundle the OpenSSL shared libraries
-# (libssl/libcrypto) alongside the binary. The Lambda runtime environment adds
-# /opt/lib to LD_LIBRARY_PATH, so the bundled binary always resolves the exact
-# libraries it was built against. Relying on the runtime's system libraries is
-# not safe: the AL2-built binary failed on the AL2023-based nodejs22.x runtime
-# with "symbol lookup error: SSL_get_srp_g, version OPENSSL_3.0.0".
+# (libssl/libcrypto) alongside the binary so the layer does not depend on the
+# runtime's system libraries. On the AL2023-based nodejs runtimes the system
+# openssl is unusable ("symbol lookup error: SSL_get_srp_g, version OPENSSL_3.0.0"),
+# and the runtime's default PATH/LD_LIBRARY_PATH put /usr/bin and /usr/lib64 ahead
+# of /opt/bin and /opt/lib. The Lambda handlers therefore prepend the layer's
+# directories when spawning openssl -- see opensslProcessEnv() in
+# packages/aws-rfdk/lib/lambdas/nodejs/lib/x509-certs/openssl-env.ts.
 CMD cd /tmp/layer && \
     mkdir -p bin lib && \
     cp /usr/bin/openssl bin && \
