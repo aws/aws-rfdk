@@ -39,6 +39,7 @@ import {
   SingletonFunction,
 } from 'aws-cdk-lib/aws-lambda';
 import { ISecret } from 'aws-cdk-lib/aws-secretsmanager';
+import { aws_certificatemanager as cm_interfaces } from 'aws-cdk-lib/interfaces';
 import { Construct } from 'constructs';
 
 import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
@@ -110,6 +111,16 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
    * The ARN for the Certificate that was imported into ACM
    */
   public readonly certificateArn: string;
+
+  /**
+   * A reference to this Certificate resource.
+   *
+   * Required by the {@link ICertificate} interface as of aws-cdk-lib 2.257.0
+   * (resource reference system).
+   */
+  public get certificateRef(): cm_interfaces.CertificateReference {
+    return { certificateId: this.certificateArn };
+  }
 
   /**
    * @inheritdoc

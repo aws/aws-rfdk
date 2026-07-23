@@ -144,7 +144,7 @@ async function getUsageBasedLicensingProperties(): Promise<RenderStructUsageBase
         // Secret exists but is marked for deletion, so we need to restore the secret then update its value
         putSecret = async data => {
           await secrets.restoreSecret({ SecretId: secretName });
-          const updateSecretResponse = await secrets.updateSecret({ SecretId: secretName, SecretBinary: data });
+          const updateSecretResponse = await secrets.updateSecret({ SecretId: secretName, SecretBinary: new Uint8Array(data) });
           return updateSecretResponse.ARN!;
         };
       }
@@ -158,7 +158,7 @@ async function getUsageBasedLicensingProperties(): Promise<RenderStructUsageBase
           const createSecretResponse = await secrets.createSecret({
             Name: secretName,
             Description: 'Dummy UBL certificate bundle for RFDK integration tests',
-            SecretBinary: data,
+            SecretBinary: new Uint8Array(data),
           });
           return createSecretResponse.ARN!;
         };

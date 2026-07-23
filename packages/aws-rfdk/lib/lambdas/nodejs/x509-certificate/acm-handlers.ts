@@ -175,17 +175,17 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
       // Update the cert by performing an import again, with the new values.
       const importCertRequest: ImportCertificateRequest = {
         CertificateArn: certificateArn,
-        Certificate: certificate,
-        CertificateChain: certificateChain,
-        PrivateKey: privateKey,
+        Certificate: new Uint8Array(certificate),
+        CertificateChain: certificateChain ? new Uint8Array(certificateChain) : undefined,
+        PrivateKey: new Uint8Array(privateKey),
         Tags: args.tags,
       };
       await this.importCertificate(importCertRequest);
     } else {
       const importCertRequest: ImportCertificateRequest = {
-        Certificate: certificate,
-        CertificateChain: certificateChain,
-        PrivateKey: privateKey,
+        Certificate: new Uint8Array(certificate),
+        CertificateChain: certificateChain ? new Uint8Array(certificateChain) : undefined,
+        PrivateKey: new Uint8Array(privateKey),
         Tags: args.tags,
       };
 

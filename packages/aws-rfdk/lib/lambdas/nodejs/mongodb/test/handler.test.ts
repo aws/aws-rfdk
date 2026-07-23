@@ -82,7 +82,7 @@ describe('readLoginCredentials', () => {
     // GIVEN
     const loginData = Buffer.from('some binary data', 'utf-8');
     const secretContents = {
-      SecretBinary: loginData,
+      SecretBinary: new Uint8Array(loginData),
     };
     secretsManagerMock.on(GetSecretValueCommand).resolves(secretContents);
     const handler = new MongoDbConfigure(new SecretsManagerClient());
@@ -207,7 +207,7 @@ describe('readPasswordAuthUserInfo', () => {
     // GIVEN
     const loginData = Buffer.from('Some binary data', 'utf-8');
     const secretContents = {
-      SecretBinary: loginData,
+      SecretBinary: new Uint8Array(loginData),
     };
     secretsManagerMock.on(GetSecretValueCommand).resolves(secretContents);
     const handler = new MongoDbConfigure(new SecretsManagerClient());

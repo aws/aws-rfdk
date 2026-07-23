@@ -1,10 +1,12 @@
 {
   "compilerOptions": {
-    "target": "ES2018",
+    "target": "ES2022",
     "module": "commonjs",
     "lib": [
-      "es2018"
+      "es2022",
+      "esnext.disposable"
     ],
+    "skipLibCheck": true,
     "strict": true,
     "alwaysStrict": true,
     "declaration": true,

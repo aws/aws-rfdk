@@ -61,7 +61,7 @@ describe('readCertificateData', () => {
     // GIVEN
     const certData = Buffer.from('BEGIN CERTIFICATE', 'utf-8');
     const secretContents = {
-      SecretBinary: certData,
+      SecretBinary: new Uint8Array(certData),
     };
     secretsManagerMock.on(GetSecretValueCommand).resolves(secretContents);
     const client = new SecretsManagerClient();

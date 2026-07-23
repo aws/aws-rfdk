@@ -270,6 +270,7 @@ describe('Test MountableBlockVolume', () => {
       public readonly userData = instance.userData;
       public readonly grantPrincipal = instance.grantPrincipal;
       public readonly node = instance.node;
+      public with = instance.with.bind(instance);
     }
     const fakeTarget = new FakeTarget();
 

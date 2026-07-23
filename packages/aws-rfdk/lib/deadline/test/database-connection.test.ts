@@ -6,7 +6,6 @@
 import {
   Duration,
   Resource,
-  ResourceEnvironment,
   Stack,
 } from 'aws-cdk-lib';
 import {
@@ -287,13 +286,12 @@ describe('DocumentDB', () => {
       public readonly securityGroupId: string = '';
       public readonly connections: Connections = new Connections();
 
-      public readonly stack: Stack;
-      public readonly env: ResourceEnvironment;
-
       constructor(scope: Construct, id: string) {
         super(scope, id);
-        this.stack = Stack.of(scope);
-        this.env = {account: this.stack.account, region: this.stack.region};
+      }
+
+      public get dbClusterRef() {
+        return { dbClusterId: this.clusterIdentifier };
       }
 
       asSecretAttachmentTarget(): SecretAttachmentTargetProps {

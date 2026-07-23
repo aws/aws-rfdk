@@ -162,6 +162,17 @@ describe('HealthMonitor', () => {
             },
             Resource: '*',
           },
+          {
+            Action: [
+              'kms:Decrypt',
+              'kms:GenerateDataKey*',
+            ],
+            Effect: 'Allow',
+            Principal: {
+              Service: 'cloudwatch.amazonaws.com',
+            },
+            Resource: '*',
+          },
         ],
       },
       Description: `This key is used to encrypt SNS messages for ${Names.uniqueId(healthMonitor)}.`,
