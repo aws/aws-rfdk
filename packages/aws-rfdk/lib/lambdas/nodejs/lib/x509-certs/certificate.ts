@@ -17,7 +17,6 @@ import {
   writeAsciiFile,
 } from '../filesystem';
 import { DistinguishedName } from './distinguished-name';
-import { opensslProcessEnv } from './openssl-env';
 
 const execFile = promisify(child_process.execFile);
 
@@ -76,7 +75,7 @@ export class Certificate implements ICertificate {
       ];
 
       console.debug(`Running: openssl ${args.join(' ')}`);
-      await execFile('openssl', args, { env: opensslProcessEnv({ CERT_PASSPHRASE: passphrase }) });
+      await execFile('openssl', args, { env: { CERT_PASSPHRASE: passphrase, PATH: process.env.PATH } });
 
       const keyDecrypted = await readAsciiFile(decryptedKeyFile);
 
@@ -112,7 +111,7 @@ export class Certificate implements ICertificate {
     ];
 
     console.debug(`Running: openssl ${args.join(' ')}`);
-    await execFile('openssl', args, { env: opensslProcessEnv({ CERT_PASSPHRASE: passphrase }) });
+    await execFile('openssl', args, { env: { CERT_PASSPHRASE: passphrase, PATH: process.env.PATH } });
 
     const cert: string = await readAsciiFile(crtFile);
     const key: string = await readAsciiFile(keyFile);
@@ -158,9 +157,9 @@ export class Certificate implements ICertificate {
     ];
 
     console.debug(`Running: openssl ${csrArgs.join(' ')}`);
-    await execFile('openssl', csrArgs, { env: opensslProcessEnv({ CERT_PASSPHRASE: passphrase }) });
+    await execFile('openssl', csrArgs, { env: { CERT_PASSPHRASE: passphrase, PATH: process.env.PATH }});
     console.debug(`Running: openssl ${crtArgs.join(' ')}`);
-    await execFile('openssl', crtArgs, { env: opensslProcessEnv({ SIGNING_PASSPHRASE: signingCertificate.passphrase }) });
+    await execFile('openssl', crtArgs, { env: { PATH: process.env.PATH, SIGNING_PASSPHRASE: signingCertificate.passphrase }});
 
     const cert: string = await readAsciiFile(crtFile);
     const key: string = await readAsciiFile(keyFile);
@@ -208,7 +207,11 @@ export class Certificate implements ICertificate {
       await execFile(
         'openssl',
         args,
-        { env: opensslProcessEnv({ PASSIN: this.passphrase, PASSOUT: passphrase }) },
+        { env: {
+          PASSIN: this.passphrase,
+          PASSOUT: passphrase,
+          PATH: process.env.PATH,
+        }},
       );
 
       const pkcs12Data: Buffer = await readBinaryFile(pkcs12FileName);

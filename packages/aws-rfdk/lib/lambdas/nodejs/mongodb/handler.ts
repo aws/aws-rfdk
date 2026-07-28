@@ -22,7 +22,6 @@ import {
   readCertificateData,
   Secret,
 } from '../lib/secrets-manager';
-import { opensslProcessEnv } from '../lib/x509-certs/openssl-env';
 import {
   IConnectionOptions,
   IMongoDbConfigureResource,
@@ -145,7 +144,7 @@ export class MongoDbConfigure extends SimpleCustomResource {
    */
   protected async retrieveRfc2253Subject(certificateData: string): Promise<string> {
     await writeAsciiFile('/tmp/client.crt', certificateData);
-    const subject = await exec('openssl x509 -in /tmp/client.crt -noout -subject -nameopt RFC2253', { env: opensslProcessEnv(process.env) });
+    const subject = await exec('openssl x509 -in /tmp/client.crt -noout -subject -nameopt RFC2253');
     return subject.stdout.replace(/subject= /, '').trim();
   }
 
