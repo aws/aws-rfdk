@@ -154,7 +154,7 @@ export class ExportingLogGroup extends Construct {
       handler: 'index.handler',
       lambdaPurpose: 'LogGroupExporter',
       logRetention: RetentionDays.ONE_DAY,
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_22_X,
       uuid: this.LOG_EXPORTER_UUID,
     });
 

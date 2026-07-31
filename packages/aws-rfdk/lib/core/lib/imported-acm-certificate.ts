@@ -150,7 +150,7 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
     });
 
     const region = Stack.of(this).region;
-    const openSslLayerName = 'openssl-al2';
+    const openSslLayerName = 'openssl-al2023';
     const openSslLayerArns: any = ARNS[openSslLayerName];
     const openSslLayerArn = openSslLayerArns[region];
     const openSslLayer = LayerVersion.fromLayerVersionArn(this, 'OpenSslLayer', openSslLayerArn);
@@ -165,7 +165,7 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
       },
       layers: [ openSslLayer ],
       retryAttempts: 0,
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_22_X,
       timeout: Duration.minutes(5),
     });
 

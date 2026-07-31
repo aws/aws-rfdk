@@ -183,7 +183,7 @@ abstract class X509CertificateBase extends Construct {
     });
 
     const region = Stack.of(this).region;
-    const openSslLayerName = 'openssl-al2';
+    const openSslLayerName = 'openssl-al2023';
     const openSslLayerArns: any = ARNS[openSslLayerName];
     const openSslLayerArn = openSslLayerArns[region];
     const openSslLayer = LayerVersion.fromLayerVersionArn(this, 'OpenSslLayer', openSslLayerArn);
@@ -199,7 +199,7 @@ abstract class X509CertificateBase extends Construct {
         DATABASE: this.database.tableName,
         DEBUG: 'false',
       },
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_22_X,
       layers: [ openSslLayer ],
       handler: props.lambdaHandler,
       timeout: Duration.seconds(90),

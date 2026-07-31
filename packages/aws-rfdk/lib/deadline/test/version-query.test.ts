@@ -62,7 +62,7 @@ test('VersionQuery constructor full version', () => {
         'Arn',
       ],
     },
-    Runtime: 'nodejs18.x',
+    Runtime: 'nodejs22.x',
   });
 });
 

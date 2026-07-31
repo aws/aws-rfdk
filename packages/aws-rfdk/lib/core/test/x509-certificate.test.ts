@@ -107,7 +107,7 @@ test('Generate cert', () => {
   Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
     Handler: 'x509-certificate.generate',
     Layers: Match.arrayWith([
-      Match.stringLikeRegexp('^arn:aws:lambda:us-west-2:224375009292:layer:openssl-al2:.*'),
+      Match.stringLikeRegexp('^arn:aws:lambda:us-west-2:224375009292:layer:openssl-al2023:.*'),
     ]),
     Environment: {
       Variables: {
