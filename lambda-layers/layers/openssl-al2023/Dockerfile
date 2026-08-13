@@ -24,4 +24,4 @@ CMD cd /tmp/layer && \
     rm -rf bin lib && \
     echo "OpenSSL $(openssl version | cut -d ' ' -f 2) for Amazon Linux 2023" > description.txt && \
     echo "OpenSSL ( https://spdx.org/licenses/Apache-2.0.html#licenseText )" > license.txt && \
-    echo "nodejs20.x nodejs22.x" > runtimes.txt
+    echo "nodejs20.x nodejs22.x nodejs24.x" > runtimes.txt

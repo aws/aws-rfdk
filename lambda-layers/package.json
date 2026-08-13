@@ -29,11 +29,11 @@
   "stability": "stable",
   "maturity": "stable",
   "devDependencies": {
-    "@types/node": "18.11.19",
+    "@types/node": "^22.10.2",
     "typescript": "~5.4.5"
   },
   "dependencies": {
-    "@aws-sdk/client-lambda": "3.777.0",
-    "@aws-sdk/client-ssm": "3.907.0"
+    "@aws-sdk/client-lambda": "3.1111.0",
+    "@aws-sdk/client-ssm": "3.1111.0"
   }
 }
