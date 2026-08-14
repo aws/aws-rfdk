@@ -194,8 +194,8 @@ USER_ACCEPTS_AWS_CUSTOMER_AGREEMENT_AND_IP_LICENSE to signify your acceptance of
       uuid: '08553416-1fc9-4be9-a818-609a31ae1b5b',
       description: 'Used by the ThinkboxDockerImages construct to look up the ECR repositories where AWS Thinkbox publishes Deadline container images.',
       code: lambdaCode,
-      runtime: Runtime.NODEJS_18_X,
-      handler: 'ecr-provider.handler',
+      runtime: Runtime.NODEJS_24_X,
+      handler: 'ecr-provider/index.handler',
       timeout: Duration.seconds(30),
       logRetention: RetentionDays.ONE_WEEK,
     });

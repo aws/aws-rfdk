@@ -81,13 +81,13 @@ describe('WaitForStableService', () => {
     });
 
     resourcePropertiesCountIs(isolatedStack, 'AWS::Lambda::Function', {
-      Handler: 'wait-for-stable-service.wait',
+      Handler: 'wait-for-stable-service/index.wait',
       Environment: {
         Variables: {
           DEBUG: 'false',
         },
       },
-      Runtime: 'nodejs18.x',
+      Runtime: 'nodejs24.x',
       Timeout: 900,
     }, 1);
   });

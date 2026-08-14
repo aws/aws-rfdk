@@ -183,7 +183,7 @@ abstract class X509CertificateBase extends Construct {
     });
 
     const region = Stack.of(this).region;
-    const openSslLayerName = 'openssl-al2';
+    const openSslLayerName = 'openssl-al2023';
     const openSslLayerArns: any = ARNS[openSslLayerName];
     const openSslLayerArn = openSslLayerArns[region];
     const openSslLayer = LayerVersion.fromLayerVersionArn(this, 'OpenSslLayer', openSslLayerArn);
@@ -199,7 +199,7 @@ abstract class X509CertificateBase extends Construct {
         DATABASE: this.database.tableName,
         DEBUG: 'false',
       },
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_24_X,
       layers: [ openSslLayer ],
       handler: props.lambdaHandler,
       timeout: Duration.seconds(90),
@@ -271,7 +271,7 @@ export class X509CertificatePem extends X509CertificateBase implements IX509Cert
   constructor(scope: Construct, id: string, props: X509CertificatePemProps) {
     super(scope, id, {
       lambdaCode: Code.fromAsset(join(__dirname, '..', '..', 'lambdas', 'nodejs')),
-      lambdaHandler: 'x509-certificate.generate',
+      lambdaHandler: 'x509-certificate/index.generate',
       encryptionKey: props.encryptionKey,
     });
 
@@ -429,7 +429,7 @@ export class X509CertificatePkcs12 extends X509CertificateBase implements IX509C
   constructor(scope: Construct, id: string, props: X509CertificatePkcs12Props) {
     super(scope, id, {
       lambdaCode: Code.fromAsset(join(__dirname, '..', '..', 'lambdas', 'nodejs')),
-      lambdaHandler: 'x509-certificate.convert',
+      lambdaHandler: 'x509-certificate/index.convert',
       encryptionKey: props.encryptionKey,
     });
 
