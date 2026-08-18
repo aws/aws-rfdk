@@ -22,6 +22,7 @@ import {
   readCertificateData,
   Secret,
 } from '../lib/secrets-manager';
+import { opensslProcessEnv } from '../lib/x509-certs/openssl-env';
 import {
   IConnectionOptions,
   IMongoDbConfigureResource,
@@ -140,12 +141,18 @@ export class MongoDbConfigure extends SimpleCustomResource {
 
   /**
    * Use openssl to retrieve the subject, in RFC2253 format, of the given certificate.
+   *
+   * Note: the prefix that openssl prints before the subject differs between versions.
+   * OpenSSL 1.x prints "subject= <subject>" (with a space), whereas OpenSSL 3.x prints
+   * "subject=<subject>" (without one). The subject is used as the MongoDB X.509 username,
+   * so failing to strip the prefix exactly creates a user that cannot authenticate.
+   * Accept both forms.
    * @param certificateData
    */
   protected async retrieveRfc2253Subject(certificateData: string): Promise<string> {
     await writeAsciiFile('/tmp/client.crt', certificateData);
-    const subject = await exec('openssl x509 -in /tmp/client.crt -noout -subject -nameopt RFC2253');
-    return subject.stdout.replace(/subject= /, '').trim();
+    const subject = await exec('openssl x509 -in /tmp/client.crt -noout -subject -nameopt RFC2253', { env: opensslProcessEnv(process.env) });
+    return subject.stdout.replace(/^subject=\s*/, '').trim();
   }
 
   /**

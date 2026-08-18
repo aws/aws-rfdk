@@ -5,6 +5,11 @@
 
 /* eslint-disable dot-notation */
 
+import { execFileSync } from 'child_process';
+import { mkdtempSync, readFileSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+
 import {
   SecretsManagerClient,
   GetSecretValueCommand,
@@ -774,5 +779,38 @@ describe('doCreate', () => {
     // THEN
     expect(consoleLogMock.mock.calls.length).toBe(2);
     expect(consoleLogMock.mock.calls[0][0]).toMatch(/No action performed for this user./);
+  });
+});
+
+describe('retrieveRfc2253Subject', () => {
+  // This exercises the real openssl binary rather than a mock, because the bug this guards
+  // against is a difference in openssl's output format: OpenSSL 1.x prints "subject= <subject>"
+  // while OpenSSL 3.x prints "subject=<subject>". The returned value is used verbatim as the
+  // MongoDB X.509 username, so a stale prefix silently creates a user that cannot authenticate.
+  test('strips the subject prefix regardless of openssl version', async () => {
+    // GIVEN
+    const tmpDir: string = mkdtempSync(join(tmpdir(), 'rfc2253-'));
+    const keyFile: string = join(tmpDir, 'test.key');
+    const certFile: string = join(tmpDir, 'test.crt');
+    try {
+      execFileSync('openssl', [
+        'req', '-x509', '-newkey', 'rsa:2048', '-nodes',
+        '-keyout', keyFile,
+        '-out', certFile,
+        '-days', '1',
+        '-subj', '/CN=MongoUser/O=RFDK/OU=MongoClient',
+      ], { stdio: 'ignore' });
+      const certificateData: string = readFileSync(certFile).toString();
+      const handler = new MongoDbConfigure(new SecretsManagerClient());
+
+      // WHEN
+      const subject: string = await handler['retrieveRfc2253Subject'](certificateData);
+
+      // THEN
+      expect(subject).not.toMatch(/^subject/);
+      expect(subject).toBe('OU=MongoClient,O=RFDK,CN=MongoUser');
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });

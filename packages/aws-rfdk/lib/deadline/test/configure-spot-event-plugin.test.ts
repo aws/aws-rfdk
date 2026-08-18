@@ -683,7 +683,7 @@ describe('ConfigureSpotEventPlugin', () => {
 
     // THEN
     Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
-      Handler: 'configure-spot-event-plugin.configureSEP',
+      Handler: 'configure-spot-event-plugin/index.configureSEP',
       VpcConfig: {
         SubnetIds: [
           stack.resolve(vpc.privateSubnets[0].subnetId),

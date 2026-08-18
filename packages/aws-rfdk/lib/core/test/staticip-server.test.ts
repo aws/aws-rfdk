@@ -93,7 +93,7 @@ describe('Test StaticIpServer', () => {
 
     Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
       Handler: 'index.handler',
-      Runtime: 'nodejs18.x',
+      Runtime: 'nodejs24.x',
       Description: 'Created by RFDK StaticPrivateIpServer to process instance launch lifecycle events in stack \'StackName\'. This lambda attaches an ENI to newly launched instances.',
     });
 
