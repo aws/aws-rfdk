@@ -105,9 +105,9 @@ test('Generate cert', () => {
   Template.fromStack(stack).resourceCountIs('AWS::KMS::Key', 0);
   // Expect Lambda for doing the cert generation to use the generate() handler and openssl layer
   Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
-    Handler: 'x509-certificate.generate',
+    Handler: 'x509-certificate/index.generate',
     Layers: Match.arrayWith([
-      Match.stringLikeRegexp('^arn:aws:lambda:us-west-2:224375009292:layer:openssl-al2:.*'),
+      Match.stringLikeRegexp('^arn:aws:lambda:us-west-2:224375009292:layer:openssl-al2023:.*'),
     ]),
     Environment: {
       Variables: {
@@ -314,7 +314,7 @@ test('Generate cert, all options set', () => {
   });
   // Expect Lambda for doing the cert generation to use the generate() handler
   Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
-    Handler: 'x509-certificate.generate',
+    Handler: 'x509-certificate/index.generate',
   });
 });
 
@@ -635,7 +635,7 @@ test('Convert to PKCS #12', () => {
   Template.fromStack(stack).resourceCountIs('AWS::KMS::Key', 0);
   // Expect the Lambda for converting the PEM to PKCS 12
   Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
-    Handler: 'x509-certificate.convert',
+    Handler: 'x509-certificate/index.convert',
   });
 });
 
@@ -701,6 +701,6 @@ test('Convert to PKCS #12, use KMS', () => {
   Template.fromStack(stack).resourceCountIs('AWS::KMS::Key', 1);
   // Expect the Lambda for converting the PEM to PKCS #12
   Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
-    Handler: 'x509-certificate.convert',
+    Handler: 'x509-certificate/index.convert',
   });
 });

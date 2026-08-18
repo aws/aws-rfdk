@@ -77,8 +77,8 @@ describe('Test PadEfsStorage', () => {
             LocalMountPath: '/mnt/efs',
           },
         ],
-        Handler: 'pad-efs-storage.getDiskUsage',
-        Runtime: 'nodejs18.x',
+        Handler: 'pad-efs-storage/index.getDiskUsage',
+        Runtime: 'nodejs24.x',
         Timeout: 300,
         VpcConfig: {
           SecurityGroupIds: [ stack.resolve(sg.securityGroupId) ],
@@ -102,8 +102,8 @@ describe('Test PadEfsStorage', () => {
             LocalMountPath: '/mnt/efs',
           },
         ],
-        Handler: 'pad-efs-storage.padFilesystem',
-        Runtime: 'nodejs18.x',
+        Handler: 'pad-efs-storage/index.padFilesystem',
+        Runtime: 'nodejs24.x',
         Timeout: 900,
         VpcConfig: {
           SecurityGroupIds: [ stack.resolve(sg.securityGroupId) ],
@@ -309,13 +309,13 @@ describe('Test PadEfsStorage', () => {
 
     // THEN
     Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
-      Handler: 'pad-efs-storage.getDiskUsage',
+      Handler: 'pad-efs-storage/index.getDiskUsage',
       VpcConfig: {
         SecurityGroupIds: [ stack.resolve(sg.securityGroupId) ],
       },
     });
     Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
-      Handler: 'pad-efs-storage.padFilesystem',
+      Handler: 'pad-efs-storage/index.padFilesystem',
       VpcConfig: {
         SecurityGroupIds: [ stack.resolve(sg.securityGroupId) ],
       },

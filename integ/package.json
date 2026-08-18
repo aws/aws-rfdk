@@ -40,7 +40,7 @@
     "build+test": "yarn run build",
     "build+test+package": "yarn run build+test",
     "watch": "tsc -w",
-    "test": "npx jest",
+    "test": "NODE_OPTIONS=\"${NODE_OPTIONS:-} --experimental-vm-modules\" npx jest",
     "cdk": "cdk",
     "e2e": "./scripts/bash/rfdk-integ-e2e.sh",
     "e2e-automated": "./scripts/bash/run-e2e-automated.sh",
@@ -75,12 +75,12 @@
     "@aws-sdk/client-cloudwatch-logs": "^3.940.0",
     "@aws-sdk/client-secrets-manager": "^3.946.0",
     "@aws-sdk/client-ssm": "^3.907.0",
-    "aws-cdk-lib": "2.168.0",
+    "aws-cdk-lib": "2.226.0",
     "aws-rfdk": "1.6.0",
     "constructs": "^10.0.0"
   },
   "peerDependencies": {
-    "aws-cdk-lib": "2.168.0",
+    "aws-cdk-lib": "2.226.0",
     "aws-rfdk": "1.6.0",
     "constructs": "^10.0.0"
   },
