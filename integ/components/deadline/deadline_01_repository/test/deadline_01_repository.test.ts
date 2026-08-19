@@ -259,7 +259,6 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
             ingestionTime: expect.anything(),
             message: expect.stringMatching( /Cloud-init v. / ),
             timestamp: expect.anything(),
-            eventId: expect.anything(),
           },
         );
       });
@@ -278,7 +277,6 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
             ingestionTime: expect.anything(),
             message: expect.not.stringMatching( /\w*(?<!declare -A )INSTALLER_DB_ARGS/ ),
             timestamp: expect.anything(),
-            eventId: expect.anything(),
           },
         );
       });
@@ -310,7 +308,6 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
             ingestionTime: expect.anything(),
             message: expect.stringMatching( /Executing \/tmp\/repoinstalltemp\/deadlinecommand.exe/ ),
             timestamp: expect.anything(),
-            eventId: expect.anything(),
           },
         );
       });

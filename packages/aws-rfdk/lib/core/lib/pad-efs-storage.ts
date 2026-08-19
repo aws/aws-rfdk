@@ -196,7 +196,7 @@ export class PadEfsStorage extends Construct {
 
     const lambdaProps: any = {
       code: Code.fromAsset(path.join(__dirname, '..', '..', 'lambdas', 'nodejs')),
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_24_X,
       logRetention: RetentionDays.ONE_WEEK,
       // Required for access point...
       vpc: props.vpc,
@@ -209,7 +209,7 @@ export class PadEfsStorage extends Construct {
 
     const diskUsage = new LambdaFunction(this, 'DiskUsage', {
       description: 'Used by RFDK PadEfsStorage to calculate disk usage of an EFS access point',
-      handler: 'pad-efs-storage.getDiskUsage',
+      handler: 'pad-efs-storage/index.getDiskUsage',
       timeout: diskUsageTimeout,
       memorySize: 128,
       ...lambdaProps,
@@ -221,7 +221,7 @@ export class PadEfsStorage extends Construct {
 
     const doPadding = new LambdaFunction(this, 'PadFilesystem', {
       description: 'Used by RFDK PadEfsStorage to add or remove numbered 1GB files in an EFS access point',
-      handler: 'pad-efs-storage.padFilesystem',
+      handler: 'pad-efs-storage/index.padFilesystem',
       timeout: paddingTimeout,
       // Execution requires about 70MB for just the lambda, but the filesystem driver will use every available byte.
       // Larger sizes do not seem to make a difference on filesystem write performance.

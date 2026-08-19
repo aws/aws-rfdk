@@ -111,13 +111,13 @@ describe('MongoDbPostInstall', () => {
 
     // THEN
     Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
-      Handler: 'mongodb.configureMongo',
+      Handler: 'mongodb/index.configureMongo',
       Environment: {
         Variables: {
           DEBUG: 'false',
         },
       },
-      Runtime: 'nodejs18.x',
+      Runtime: 'nodejs24.x',
       VpcConfig: {
         SecurityGroupIds: [
           {
@@ -363,7 +363,7 @@ describe('MongoDbPostInstall', () => {
 
     // THEN
     Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
-      Handler: 'mongodb.configureMongo',
+      Handler: 'mongodb/index.configureMongo',
       VpcConfig: {
         SubnetIds: [
           {
