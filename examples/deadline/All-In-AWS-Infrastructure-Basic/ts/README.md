@@ -105,7 +105,7 @@ These instructions assume that your working directory is `examples/deadline/All-
     // true = MongoDB, false = Amazon DocumentDB
     public readonly deployMongoDB: boolean = false;
     ```
-12. If you set `deployMongoDB` to `true`, then you must accept the [SSPL license](https://www.mongodb.com/licensing/server-side-public-license) to successfully deploy MongoDB. To do so, change the value of `acceptSsplLicense` in `bin/config.ts`:
+12. If you set `deployMongoDB` to `true`, then you must accept the [SSPL license](https://www.mongodb.com/legal/licensing/server-side-public-license) to successfully deploy MongoDB. To do so, change the value of `acceptSsplLicense` in `bin/config.ts`:
 
     ```ts
     // To accept the MongoDB SSPL, change from USER_REJECTS_SSPL to USER_ACCEPTS_SSPL

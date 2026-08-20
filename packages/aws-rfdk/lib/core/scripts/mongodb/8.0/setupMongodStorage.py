@@ -12,7 +12,7 @@
 # mongod.conf
 
 # for documentation of all options, see:
-#   http://docs.mongodb.org/manual/reference/configuration-options/
+#   https://www.mongodb.com/docs/manual/reference/configuration-options/
 
 # where to write logging data.
 systemLog:

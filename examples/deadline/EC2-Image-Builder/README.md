@@ -14,7 +14,7 @@ _**Note:** This application is an illustrative example to showcase some of the c
 
 ## Architecture
 
-This sample application uses an [EC2 ImageBuilder Image](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-imagebuilder-image.html) to create an AMI in the DeadlineMachineImage stack that is used by the WorkerInstanceFleet in the same stack.
+This sample application uses an [EC2 ImageBuilder Image](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-resource-imagebuilder-image.html) to create an AMI in the DeadlineMachineImage stack that is used by the WorkerInstanceFleet in the same stack.
 
 ### BaseFarmStack
 
@@ -28,7 +28,7 @@ The ComputeStack holds the images being created as well as the worker fleets the
 
 This construct creates all the infrastructure required by Image Builder to install Deadline onto an existing AMI and then create a WorkerInstanceFleet that uses it. The configuration for the image creation is as simple as providing the Deadline version, a parent AMI, the OS of the parent AMI, and a version number for your AMI. The parent AMI can be supplied by anything that supplied an `IMachineImage`, such as `MachineImage.genericLinux()` or `MachineImage.lookup()`. An image version also needs to be supplied. One strategy to use with versioning your image is to start with version `1.0.0` and bump the version if you need to change any of the input parameters, such as changing the parent AMI or Deadline version. Images for different OSes can be versioned separately.
 
-CDK does not have L2 constructs for Image Builder yet, so we are using the L1 constructs. An L1 construct is generated directly from the CloudFormation definition of the service, so referring to the [AWS CloudFormation user guide](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/AWS_ImageBuilder.html) will provide more details. You can read more about L1 vs L2 constructs in the [CDK Constructs user guide](https://docs.aws.amazon.com/cdk/latest/guide/constructs.html#constructs_lib).
+CDK does not have L2 constructs for Image Builder yet, so we are using the L1 constructs. An L1 construct is generated directly from the CloudFormation definition of the service, so referring to the [AWS CloudFormation user guide](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/AWS_ImageBuilder.html) will provide more details. You can read more about L1 vs L2 constructs in the [CDK Constructs user guide](https://docs.aws.amazon.com/cdk/v2/guide/constructs.html#constructs-lib-levels).
 
 #### Updates
 
@@ -47,7 +47,7 @@ An alternative to creating single images during the deployment of your render fa
 
 At this point in time, we do not provide Amazon-managed Deadline components for you to consume, so if you do choose to go this route, you would need to create a new version of your Deadline component for each release of Deadline, but you may decide this is worthwhile, depending on how many image variations you use for your workers. Due to the Image Builder pipeline still being an L1 construct in CDK, the AWS Console is recommended for building your pipeline.
 
-Once you have an image created from a pipeline, it can be consumed in your RFDK application using a [LookupMachineImage](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-ec2.LookupMachineImage.html). The result of this lookup will always pick the most recent image if there are multiple matches, so you can always be sure that when your pipeline creates a newer image, your RFDK app deployment will pick it up. Note that the lookup stores the selected image in the CDK context, so if you would like to try and pick up a new image on an update deployment, you'll have to [clear the context](https://docs.aws.amazon.com/cdk/latest/guide/context.html#context_viewing) to get it.
+Once you have an image created from a pipeline, it can be consumed in your RFDK application using a [LookupMachineImage](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ec2.LookupMachineImage.html). The result of this lookup will always pick the most recent image if there are multiple matches, so you can always be sure that when your pipeline creates a newer image, your RFDK app deployment will pick it up. Note that the lookup stores the selected image in the CDK context, so if you would like to try and pick up a new image on an update deployment, you'll have to [clear the context](https://docs.aws.amazon.com/cdk/v2/guide/context.html#context-viewing) to get it.
 
 ## Typescript
 

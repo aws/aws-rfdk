@@ -114,7 +114,7 @@ export class ComputeTier extends cdk.Stack {
       keyName: props.keyPairName,
       // Not all instance types will be available in local zones. For a list of the instance types
       // available in each local zone, you can refer to:
-      // https://aws.amazon.com/about-aws/global-infrastructure/localzones/features/#AWS_Services
+      // https://aws.amazon.com/about-aws/global-infrastructure/localzones/features/#aws-services
       // BURSTABLE3 is a T3; the third generation of burstable instances
       instanceType: InstanceType.of(InstanceClass.BURSTABLE3, InstanceSize.LARGE),
       userDataProvider: new UserDataProvider(this, 'UserDataProvider'),

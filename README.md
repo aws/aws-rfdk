@@ -12,7 +12,7 @@ using the power of Python and Typescript.
 
 The RFDK is available in:
 - Javascript, Typescript ([Node.js >= 18.0.0](https://nodejs.org/download/release/latest-v18.x/) officially supported, [Node.js >= 14.15.0](https://nodejs.org/download/release/latest-v14.x/) unofficially supported)
-  - We recommend using an [Active LTS Release](https://nodejs.org/en/about/releases/)
+  - We recommend using an [Active LTS Release](https://nodejs.org/en/about/previous-releases)
 - Python ([Python >= 3.6](https://www.python.org/downloads/))
 
 Note: Language version compatibility is the greater of those listed above and
@@ -40,7 +40,7 @@ reported the issue. Please try to include as much information as you can. Detail
 
 ## Security issue notifications
 
-If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
+If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](https://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
 
 ## Contributing
 
@@ -58,4 +58,4 @@ opensource-codeofconduct@amazon.com with any additional questions or comments.
 
 See the [LICENSE](LICENSE) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
 
-We may ask you to sign a [Contributor License Agreement (CLA)](http://en.wikipedia.org/wiki/Contributor_License_Agreement) for larger changes.
+We may ask you to sign a [Contributor License Agreement (CLA)](https://en.wikipedia.org/wiki/Contributor_License_Agreement) for larger changes.

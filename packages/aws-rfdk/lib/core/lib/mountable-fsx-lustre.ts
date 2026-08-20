@@ -32,7 +32,7 @@ import {
  */
 export interface MountableFsxLustreProps {
   /**
-   * The {@link https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-fsx.LustreFileSystem.html|FSx for Lustre}
+   * The {@link https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_fsx.LustreFileSystem.html|FSx for Lustre}
    * filesystem that will be mounted by the object.
    */
   readonly filesystem: LustreFileSystem;
@@ -46,7 +46,7 @@ export interface MountableFsxLustreProps {
 
   /**
    * Extra Lustre mount options that will be added to /etc/fstab for the file system.
-   * See: {@link http://manpages.ubuntu.com/manpages/precise/man8/mount.lustre.8.html}
+   * See: {@link https://doc.lustre.org/lustre_manual.xhtml}
    *
    * The given values will be joined together into a single string by commas.
    * ex: ['soft', 'rsize=4096'] will become 'soft,rsize=4096'
