@@ -12571,11 +12571,6 @@ typescript@next:
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.8.0-dev.20250212.tgz#b36b2f50e96cee77e4ee619769a741977aa4023f"
   integrity sha512-KuSQZsJS5e7rBVbj7QY72K4kievEtZgBYyYYaxp0a3YmBlG5bpbuKJO0ltyRGkFcBgOVw4McWjKeL5+6MqRWOw==
 
-typescript@~5.1.6:
-  version "5.1.6"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.1.6.tgz#02f8ac202b6dad2c0dd5e0913745b47a37998274"
-  integrity sha512-zaWCozRZ6DLEWAWFrVDz1H6FVXzUSfTy5FUMWsQlU8Ym5JP9eO4xkTIROFCQvhQf61z6O/G6ugw3SgAnvvm+HA==
-
 typescript@~5.4, typescript@~5.4.5:
   version "5.4.5"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.4.5.tgz#42ccef2c571fdbd0f6718b1d1f5e6e5ef006f611"
