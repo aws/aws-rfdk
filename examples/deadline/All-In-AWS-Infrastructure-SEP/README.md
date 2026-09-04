@@ -26,7 +26,7 @@ The Render Queue component contains the fleet of [Deadline Remote Connection Ser
 
 #### Spot Event Plugin Configurations
 
-Spot Event Plugin Configuration Setup component generates and saves the [Spot Fleet Request Configurations](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#spot-fleet-request-configurations). The Spot Workers that are created will be configured to connect to the Render Queue. The Spot Event Plugin requires additional Role for Deadline's Resource Tracker.
+Spot Event Plugin Configuration Setup component generates and saves the [Spot Fleet Request Configurations](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot-fleet-configurations.html#event-spot-fleet-configurations-ref-label). The Spot Workers that are created will be configured to connect to the Render Queue. The Spot Event Plugin requires additional Role for Deadline's Resource Tracker.
 
 ## Prerequisites
 

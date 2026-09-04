@@ -48,8 +48,8 @@ _**Note:** RFDK constructs currently support Deadline 10.1.9 and later, unless o
 The [Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html) can scale cloud-based EC2 Spot instances dynamically based on the queued Jobs and Tasks in the Deadline Database. It associates a Spot Fleet Request with named Deadline Worker Groups, allowing multiple Spot Fleets with different hardware and software specifications to be launched for different types of Jobs based on their Group assignment.
 
 The `ConfigureSpotEventPlugin` construct has two main responsibilities:
-- Construct a [Spot Fleet Request](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-fleet-requests.html) configuration from the list of [Spot Event Plugin Fleets](#spot-event-plugin-fleet).
-- Modify and save the options of the Spot Event Plugin itself. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options).
+- Construct a [Spot Fleet Request](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-request-type.html) configuration from the list of [Spot Event Plugin Fleets](#spot-event-plugin-fleet).
+- Modify and save the options of the Spot Event Plugin itself. See [Deadline Documentation](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#event-plugin-configuration).
 
 ---
 
@@ -175,7 +175,7 @@ IP address. Application Load Balancers can scale to use any available IP address
 exclusively for the Render Queue's ALB.
 1. The size of the subnet can be limited to only what is necessary for your workload, avoiding an overly permissive auto-registration rule.
 
-Please consult the [`All-In-AWS-Infrastructure-Basic` example CDK application](https://github.com/aws/aws-rfdk/blob/release/examples/deadline/All-In-AWS-Infrastructure-Basic) for a reference implementation that demonstrates dedicated subnets.
+Please consult the [`All-In-AWS-Infrastructure-Basic` example CDK application](https://github.com/aws/aws-rfdk/tree/release/examples/deadline/All-In-AWS-Infrastructure-Basic) for a reference implementation that demonstrates dedicated subnets.
 
 For more details on dedicated subnet placements, see:
 - [Render Queue Subnet Placement](#render-queue-subnet-placement)
@@ -239,7 +239,7 @@ The `RenderQueue` construct leverages the built-in health monitoring functionali
 
 ### Render Queue Deletion Protection
 
-By default, the Load Balancer in the `RenderQueue` has [deletion protection](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection) enabled to ensure that it does not get accidentally deleted. This also means that it cannot be automatically destroyed by CDK when you destroy your stack and must be done manually (see [here](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection)).
+By default, the Load Balancer in the `RenderQueue` has [deletion protection](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#load-balancer-attributes) enabled to ensure that it does not get accidentally deleted. This also means that it cannot be automatically destroyed by CDK when you destroy your stack and must be done manually (see [here](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#load-balancer-attributes)).
 
 You can specify deletion protection with a property in the `RenderQueue`:
 ```ts
@@ -326,7 +326,7 @@ Deadline Clients can be configured either in ECS or EC2.
 
 #### 1. Configure Deadline Client in ECS
 
-An ECS Container Instance and Task Definition for deploying Deadline Client can be configured to directly connect to the `Repository`. A mapping of environment variables and ECS [`MountPoint`](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-ecs.MountPoint.html)s are produced which can be used to configure a [`ContainerDefinition`](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-ecs.ContainerDefinition.html) to connect to the `Repository`.
+An ECS Container Instance and Task Definition for deploying Deadline Client can be configured to directly connect to the `Repository`. A mapping of environment variables and ECS [`MountPoint`](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ecs.MountPoint.html)s are produced which can be used to configure a [`ContainerDefinition`](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ecs.ContainerDefinition.html) to connect to the `Repository`.
 
 The example below demonstrates configuration of Deadline Client in ECS:
 ```ts
@@ -367,7 +367,7 @@ When using Deadline 10.1.19 or higher, RFDK enables [Deadline Secrets Management
 
 When RFDK generates the administrator credentials, it sets the Secret's removal policy to `RETAIN` so that you will not lose them if you destroy the CloudFormation Stack that they are in. If you do want to delete this Secret, you will have to destroy it manually or change the `credentialsRemovalPolicy` to `DESTROY`. If you destroy the Stack that contains your Secret and its policy set to `RETAIN`, your existing Secret will be orphaned from your RFDK application and re-deploying the Stack will generate a new one. To help prevent orphaning a Secret that contains administrator credentials that are still in use, RFDK places it in the Stack that contains your database, so that their lifecycles are in sync.
 
-If your database is imported into your RFDK app rather than being generated by it, RFDK will not generate credentials during deployment. You must create your own Secret with the credentials you'd like to use and [import it](https://docs.aws.amazon.com/cdk/api/latest/docs/aws-secretsmanager-readme.html#importing-secrets).
+If your database is imported into your RFDK app rather than being generated by it, RFDK will not generate credentials during deployment. You must create your own Secret with the credentials you'd like to use and [import it](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_secretsmanager-readme.html#importing-secrets).
 
 If you would like to use your own credentials for Deadline Secrets Management, you can do so by storing them in AWS Secrets Manager and providing them to the `Repository` construct. The Secret must be a JSON document with the following format:
 
@@ -414,7 +414,7 @@ For further details, please consult the RFDK developer guide topic on [using Dea
 
 ![architecture diagram](../../docs/diagrams/deadline/SpotEventPluginFleet.svg)
 
-This construct represents a Spot Fleet launched by the [Deadline's Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html) from the [Spot Fleet Request Configuration](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#spot-fleet-request-configurations). The construct itself doesn't create a Spot Fleet Request, but creates all the required resources to be used in the Spot Fleet Request Configuration.
+This construct represents a Spot Fleet launched by the [Deadline's Spot Event Plugin](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html) from the [Spot Fleet Request Configuration](https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot-fleet-configurations.html#event-spot-fleet-configurations-ref-label). The construct itself doesn't create a Spot Fleet Request, but creates all the required resources to be used in the Spot Fleet Request Configuration.
 
 This construct is expected to be used as an input to the [ConfigureSpotEventPlugin](#configure-spot-event-plugin) construct. `ConfigureSpotEventPlugin` construct will generate a Spot Fleet Request Configuration from each provided `SpotEventPluginFleet` and will set these configurations to the Spot Event Plugin.
 
@@ -509,7 +509,7 @@ Docker image recipes required by various constructs in Deadline (e.g. `RenderQue
 
 ---
 
-_**Note:** The `ThinkboxDockerRecipes` class requires a [multi-stage Dockerfile](https://docs.docker.com/develop/develop-images/multistage-build/), so your version of Docker must meet the minimum version that supports multi-stage builds (version 17.05)._
+_**Note:** The `ThinkboxDockerRecipes` class requires a [multi-stage Dockerfile](https://docs.docker.com/build/building/multi-stage/), so your version of Docker must meet the minimum version that supports multi-stage builds (version 17.05)._
 
 _**Note:** Regardless of what language is consuming `aws-rfdk`, the Node.js package is required since the `stage-deadline` script is used by `ThinkboxDockerRecipes` when running `cdk synth` or `cdk deploy`._
 
@@ -696,7 +696,7 @@ const version = new VersionQuery(stack, 'Version', {
 
 ![architecture diagram](../../docs/diagrams/deadline/WorkerInstanceFleet.svg)
 
-A `WorkerInstanceFleet` represents a fleet of instances that are the render nodes of your render farm. These instances are created in an [`AutoScalingGroup`](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-autoscaling.AutoScalingGroup.html) with a provided AMI that should have Deadline Client installed as well as any desired render applications. Each of the instances will configure itself to connect to the specified [`RenderQueue`](#renderqueue) so that they are able to communicate with Deadline to pick up render jobs. Any logs emitted by the workers are sent to CloudWatch via a CloudWatch agent.
+A `WorkerInstanceFleet` represents a fleet of instances that are the render nodes of your render farm. These instances are created in an [`AutoScalingGroup`](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_autoscaling.AutoScalingGroup.html) with a provided AMI that should have Deadline Client installed as well as any desired render applications. Each of the instances will configure itself to connect to the specified [`RenderQueue`](#renderqueue) so that they are able to communicate with Deadline to pick up render jobs. Any logs emitted by the workers are sent to CloudWatch via a CloudWatch agent.
 
 You can create a `WorkerInstanceFleet` like this:
 ```ts
@@ -712,7 +712,7 @@ const fleet = new WorkerInstanceFleet(stack, 'WorkerFleet', {
 The `WorkerInstanceFleet` uses Elastic Load Balancing (ELB) health checks with its `AutoScalingGroup` to ensure the fleet is operating as expected. ELB health checks have two components:
 
 1. **EC2 Status Checks** - Amazon EC2 identifies any hardware or software issues on instances. If a status check fails for an instance, it will be replaced. For more information, see [here](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-system-instance-status-check.html).
-2. **Load Balancer Health Checks** - Load balancers send periodic pings to instances in the `AutoScalingGroup`. If a ping to an instance fails, the instance is considered unhealthy. For more information, see [here](https://docs.aws.amazon.com/autoscaling/ec2/userguide/as-add-elb-healthcheck.html).
+2. **Load Balancer Health Checks** - Load balancers send periodic pings to instances in the `AutoScalingGroup`. If a ping to an instance fails, the instance is considered unhealthy. For more information, see [here](https://docs.aws.amazon.com/autoscaling/ec2/userguide/attach-load-balancer-asg.html).
 
 EC2 status checks are great for detecting lower level issues with instances and automatically replacing them. If you also want to detect any issues with Deadline on your instances, you can do this by configuring health monitoring options on the `WorkerInstanceFleet` along with a `HealthMonitor` (see [aws-rfdk](https://github.com/aws/aws-rfdk/blob/release/packages/aws-rfdk/lib/core/README.md)). The `HealthMonitor` will ensure that your `WorkerInstanceFleet` remains healthy by checking that a minimum number of hosts are healthy for a given grace period. If the fleet is found to be unhealthy, its capacity will set to 0, meaning that all instances will be terminated. This is a precaution to save on costs in the case of a misconfigured render farm.
 

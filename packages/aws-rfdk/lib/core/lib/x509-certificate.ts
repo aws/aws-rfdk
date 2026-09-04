@@ -43,7 +43,7 @@ import { IX509CertificateEncodePkcs12, IX509CertificateGenerate } from '../../la
 
 /**
  * The identification for a self-signed CA or Certificate.
- * These fields are industry standard, and can be found in rfc1779 (see: https://tools.ietf.org/html/rfc1779)
+ * These fields are industry standard, and can be found in rfc1779 (see: https://datatracker.ietf.org/doc/html/rfc1779)
  * or the X.520 specification (see: ITU-T Rec.X.520)
  */
 export interface DistinguishedName {

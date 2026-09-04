@@ -30,7 +30,7 @@ The service tier contains the repository and render queue, both of which are pro
 
 #### Compute Tier
 
-This tier holds the worker fleet and its health monitor. The health monitor contains a [Network Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) used to perform application-level health checks and the worker fleet contains an [Auto Scaling Group](https://docs.aws.amazon.com/autoscaling/ec2/userguide/AutoScalingGroup.html). Currently, these services are available in all launched local zones, so the construct can be placed in those zones.
+This tier holds the worker fleet and its health monitor. The health monitor contains a [Network Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) used to perform application-level health checks and the worker fleet contains an [Auto Scaling Group](https://docs.aws.amazon.com/autoscaling/ec2/userguide/auto-scaling-groups.html). Currently, these services are available in all launched local zones, so the construct can be placed in those zones.
 
 ## Typescript
 

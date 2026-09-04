@@ -55,7 +55,7 @@ export enum BlockVolumeFormat {
  */
 export interface MountableBlockVolumeProps {
   /**
-   * The {@link https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-ec2.Volume.html|EBS Block Volume}
+   * The {@link https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ec2.Volume.html|EBS Block Volume}
    * that will be mounted by this object.
    */
   readonly blockVolume: IVolume;

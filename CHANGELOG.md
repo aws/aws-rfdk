@@ -130,7 +130,7 @@ the minimum officially supported version that RFDK now supports. See our documen
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.2.0.10](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.2.0.10](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Features
@@ -164,7 +164,7 @@ GitHub release along with documentation and guidance on navigating the change.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.23.6](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.23.6](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### ⚠ BREAKING CHANGES
@@ -197,7 +197,7 @@ code change in your applications.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.21.4](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.21.4](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### ⚠ BREAKING CHANGES
@@ -219,7 +219,7 @@ changed to Node.js 14
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.20.3](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.20.3](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 ## [0.40.0](https://github.com/aws/aws-rfdk/compare/v0.39.0...v0.40.0) (2022-01-06)
 
@@ -231,7 +231,7 @@ changed to Node.js 14
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.20.2](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.20.2](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### ⚠ BREAKING CHANGES
@@ -261,7 +261,7 @@ on the HealthMonitor and WorkerInstanceFleet constructs were removed.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.19.4](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.19.4](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Bug Fixes
@@ -279,12 +279,12 @@ on the HealthMonitor and WorkerInstanceFleet constructs were removed.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.19.4](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.19.4](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### ⚠ BREAKING CHANGES
 
-RFDK will configure Deadline Secrets Management automatically when using Deadline 10.1.19.x or higher. If your CDK app uses the `Repository` construct with an un-pinned [`VersionQuery`](https://docs.aws.amazon.com/rfdk/api/latest/docs/aws-rfdk.deadline.VersionQuery.html), then upgrading RFDK will set up Deadline Secrets Management. Using Deadline Secrets Management is strongly encouraged for securing Deadline render farms, however it can potentially impact your workflows within Deadline. Please review the [Deadline Secrets Management documentation](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) to learn about the feature.
+RFDK will configure Deadline Secrets Management automatically when using Deadline 10.1.19.x or higher. If your CDK app uses the `Repository` construct with an un-pinned [`VersionQuery`](https://docs.aws.amazon.com/rfdk/api/latest/docs/aws-rfdk.deadline.VersionQuery.html), then upgrading RFDK will set up Deadline Secrets Management. Using Deadline Secrets Management is strongly encouraged for securing Deadline render farms, however it can potentially impact your workflows within Deadline. Please review the [Deadline Secrets Management documentation](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/secrets-management/deadline-secrets-management.html) to learn about the feature.
 
 See the [RFDK 0.38.x upgrade documentation](https://github.com/aws/aws-rfdk/blob/v0.38.0/packages/aws-rfdk/docs/upgrade/upgrading-0.38.md)
 for more details and guidance on how to upgrade.
@@ -316,7 +316,7 @@ for more details and guidance on how to upgrade.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.17.4](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.17.4](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### ⚠ BREAKING CHANGES
@@ -355,7 +355,7 @@ for more details and guidance on how to upgrade.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.17.4](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.17.4](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Features
@@ -378,7 +378,7 @@ for more details and guidance on how to upgrade.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.16.8](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.16.8](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Bug Fixes
@@ -396,7 +396,7 @@ for more details and guidance on how to upgrade.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.16.8](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.16.8](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Features
@@ -413,7 +413,7 @@ for more details and guidance on how to upgrade.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.15.2](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.15.2](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Bug Fixes
@@ -432,7 +432,7 @@ for more details and guidance on how to upgrade.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.15.2](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.15.2](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 ## [0.31.0](https://github.com/aws/aws-rfdk/compare/v0.30.0...v0.31.0) (2021-05-11)
 
@@ -444,7 +444,7 @@ for more details and guidance on how to upgrade.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.15.2](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.15.2](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Bug Fixes
@@ -461,7 +461,7 @@ for more details and guidance on how to upgrade.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.14.5](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.14.5](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Features
@@ -480,7 +480,7 @@ for more details and guidance on how to upgrade.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.14.5](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.14.5](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### ⚠ BREAKING CHANGES
@@ -518,7 +518,7 @@ our examples for an illustration of the code update required.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.14.5](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.14.5](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Features
@@ -540,14 +540,14 @@ our examples for an illustration of the code update required.
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.14.4](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.14.4](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Security Notice
 
 RFDK version 0.27.x and later include security enhancements.  We recommend you upgrade RFDK and Deadline to further restrict the permissions required for RFDK & Deadline to function. Please upgrade the version of RFDK used in your CDK application to 0.27.x, and configure your application to deploy Deadline 10.1.14.x or later to resolve the issue.
 
-If you have an existing deployment that was built with RFDK versions 0.26.x or earlier, you will need to upgrade to RFDK 0.27.x and Deadline 10.1.14.x or later before June 10, 2021 @ 1:00PM PST/ 3:00PM CST/ 4:00PM EST. Failure to upgrade by the above date may result in disruptions to your render farm. If you have any questions, please contact AWS Thinkbox Customer Support at https://support.thinkboxsoftware.com/.
+If you have an existing deployment that was built with RFDK versions 0.26.x or earlier, you will need to upgrade to RFDK 0.27.x and Deadline 10.1.14.x or later before June 10, 2021 @ 1:00PM PST/ 3:00PM CST/ 4:00PM EST. Failure to upgrade by the above date may result in disruptions to your render farm. If you have any questions, please contact AWS Thinkbox Customer Support at https://awsthinkbox.zendesk.com/hc/en-us.
 
 ### ⚠ BREAKING CHANGES
 
@@ -572,7 +572,7 @@ If you have an existing deployment that was built with RFDK versions 0.26.x or e
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.13.2](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.13.2](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Features
@@ -598,7 +598,7 @@ If you have an existing deployment that was built with RFDK versions 0.26.x or e
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.13.1](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.13.1](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Features
@@ -615,7 +615,7 @@ If you have an existing deployment that was built with RFDK versions 0.26.x or e
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.12.1](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.12.1](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Bug Fixes
@@ -632,7 +632,7 @@ If you have an existing deployment that was built with RFDK versions 0.26.x or e
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.12.1](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.12.1](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Features
@@ -650,7 +650,7 @@ If you have an existing deployment that was built with RFDK versions 0.26.x or e
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.12.1](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.12.1](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Features
@@ -672,7 +672,7 @@ If you have an existing deployment that was built with RFDK versions 0.26.x or e
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.11.5](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.11.5](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Features
@@ -700,7 +700,7 @@ If you have an existing deployment that was built with RFDK versions 0.26.x or e
 
 ### Officially Supported Deadline Versions
 
-* [10.1.9.2 to 10.1.11.5](https://docs.thinkboxsoftware.com/products/deadline/10.1/1_User%20Manual/manual/release-notes.html)
+* [10.1.9.2 to 10.1.11.5](https://docs.thinkboxsoftware.com/products/deadline/latest/1_User%20Manual/manual/release-notes.html)
 
 
 ### Features

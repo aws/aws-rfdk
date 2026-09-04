@@ -7,7 +7,7 @@
  * Check whether the given string matches the SecretsManager ARN format.
  * arn:aws:secretsmanager:<Region>:<AccountId>:secret:OptionalPath/SecretName-6RandomCharacters
  * Reference:
- *   https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#iam-resources
+ *   https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html#reference_iam-permissions
  * @param value
  */
 export function isArn(value: string): boolean {

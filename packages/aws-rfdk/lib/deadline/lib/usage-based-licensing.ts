@@ -607,7 +607,7 @@ export class UsageBasedLicensing extends Construct implements IGrantable {
     });
 
     // An explicit dependency is required from the service to the ASG providing its capacity.
-    // See: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-dependson.html
+    // See: https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-attribute-dependson.html
     this.service.node.addDependency(this.asg);
 
     this.node.defaultChild = this.service;
