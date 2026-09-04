@@ -41,7 +41,7 @@
     "constructs": "^10.0.0",
     "fs-extra": "^11.3.2",
     "jest": "^30.5.0",
-    "jest-junit": "^16.0.0",
+    "jest-junit": "^17.0.0",
     "lerna": "^8.2.0",
     "standard-version": "^9.5.0",
     "ts-jest": "^29.4.1",
