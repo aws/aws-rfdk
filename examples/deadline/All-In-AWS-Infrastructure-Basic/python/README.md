@@ -110,7 +110,7 @@ These instructions assume that your working directory is `examples/deadline/All-
     # True = MongoDB, False = Amazon DocumentDB
     self.deploy_mongo_db: bool = False
     ```
-13. If you set `deploy_mongo_db` to `True`, then you must accept the [SSPL license](https://www.mongodb.com/licensing/server-side-public-license) to successfully deploy MongoDB. To do so, change the value of `accept_sspl_license` in `package/config.py`:
+13. If you set `deploy_mongo_db` to `True`, then you must accept the [SSPL license](https://www.mongodb.com/legal/licensing/server-side-public-license) to successfully deploy MongoDB. To do so, change the value of `accept_sspl_license` in `package/config.py`:
 
     ```python
     # To accept the MongoDB SSPL, change from USER_REJECTS_SSPL to USER_ACCEPTS_SSPL

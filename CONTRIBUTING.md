@@ -254,7 +254,7 @@ We have two styles of test in the RFDK.
 
 Create a commit with the proposed changes:
 
-- Commit title and message (and PR title and description) must adhere to [conventionalcommits](https://www.conventionalcommits.org).
+- Commit title and message (and PR title and description) must adhere to [conventionalcommits](https://www.conventionalcommits.org/).
   - The title must begin with `feat(module): title`, `fix(module): title`, `refactor(module): title` or
     `chore(module): title`. Our module titles are:
     - `core` -- for code related to constructs under `packages/aws-rfdk/lib/core`.
@@ -314,7 +314,7 @@ errors. CDK is using fixed dependencies for all their packages so we have no
 reasonable way to allow nonfixed dependencies as well.
 
 If you want to learn more about dependencies you can read the
-[yarn docs](https://yarnpkg.com/lang/en/docs/dependency-types/).
+[yarn docs](https://classic.yarnpkg.com/en/docs/dependency-types/).
 
 ### A package's `package.json`
 

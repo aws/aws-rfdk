@@ -92,11 +92,11 @@ configBuilder.addLogsCollectList('logGroupName',
 
 ---
 
-_**Note:** `CloudWatchAgent` by default will validate the `CloudWatch Agent` installer. If your deployments are failing due to a validation failure, but you have verified that the failure is benign, then you can set a context variable ```SKIP_CWAGENT_VALIDATION_CTX_VAR = 'RFDK_SKIP_CWAGENT_VALIDATION'``` to skip the validation step. Read more how to [set and get a value from a context variable](https://docs.aws.amazon.com/cdk/latest/guide/get_context_var.html)._
+_**Note:** `CloudWatchAgent` by default will validate the `CloudWatch Agent` installer. If your deployments are failing due to a validation failure, but you have verified that the failure is benign, then you can set a context variable ```SKIP_CWAGENT_VALIDATION_CTX_VAR = 'RFDK_SKIP_CWAGENT_VALIDATION'``` to skip the validation step. Read more how to [set and get a value from a context variable](https://docs.aws.amazon.com/cdk/v2/guide/context.html#context-methods)._
 
 ---
 
-_**Note:** The `CloudWatch Agent` installer is downloaded via the Amazon S3 API, thus, this construct can be used on instances that have no access to the internet as long as the [VPC contains an VPC Gateway Endpoint for S3](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-endpoints-s3.html)._
+_**Note:** The `CloudWatch Agent` installer is downloaded via the Amazon S3 API, thus, this construct can be used on instances that have no access to the internet as long as the [VPC contains an VPC Gateway Endpoint for S3](https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html)._
 
 ---
 
@@ -229,7 +229,7 @@ const healthMonitor = new HealthMonitor(stack, 'HealthMonitor', {
 
 ### Deletion Protection
 
-To prevent the load balancer from being deleted accidentally, `HealthMonitor` enables deletion protection for the load balancer. Hence, you will first need to disable deletion protection using AWS Console or CLI before deleting the stack ( see [deletion protection](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection) to learn how to do it ).
+To prevent the load balancer from being deleted accidentally, `HealthMonitor` enables deletion protection for the load balancer. Hence, you will first need to disable deletion protection using AWS Console or CLI before deleting the stack ( see [deletion protection](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#load-balancer-attributes) to learn how to do it ).
 
 In order to disable deletion protection, you can use `deletionProtection` property:
 
@@ -252,7 +252,7 @@ MongoDB is installed from the official sources using the system package manger (
 
 Successful installation of MongoDB with this class requires:
 1) Explicit acceptance of the terms of the SSPL license, under which MongoDB is distributed
-2) The instance on which the installation is being performed is in a subnet that can access the official MongoDB sites: https://repo.mongodb.org/ and https://www.mongodb.org
+2) The instance on which the installation is being performed is in a subnet that can access the official MongoDB sites: https://repo.mongodb.org/ and https://www.mongodb.com/
 
 ```ts
 const installer = new MongoDbInstaller(stack, {
@@ -263,7 +263,7 @@ const installer = new MongoDbInstaller(stack, {
 
 ---
 
-_**Note:** MongoDB Community edition is licensed under the terms of the SSPL (see: https://www.mongodb.com/licensing/server-side-public-license ). Users of `MongoDbInstaller` must explicitly signify their acceptance of the terms of the SSPL through `userSsplAcceptance` property. By default, `userSsplAcceptance` is set to rejection._
+_**Note:** MongoDB Community edition is licensed under the terms of the SSPL (see: https://www.mongodb.com/legal/licensing/server-side-public-license ). Users of `MongoDbInstaller` must explicitly signify their acceptance of the terms of the SSPL through `userSsplAcceptance` property. By default, `userSsplAcceptance` is set to rejection._
 
 ---
 
@@ -313,7 +313,7 @@ const mongoDb = {
 
 ---
 
-_**Note:** MongoDB Community edition is licensed under the terms of the SSPL (see: https://www.mongodb.com/licensing/server-side-public-license ). Users of `MongoDbInstance` must explicitly signify their acceptance of the terms of the SSPL through `userSsplAcceptance` property. By default, `userSsplAcceptance` is set to rejection._
+_**Note:** MongoDB Community edition is licensed under the terms of the SSPL (see: https://www.mongodb.com/legal/licensing/server-side-public-license ). Users of `MongoDbInstance` must explicitly signify their acceptance of the terms of the SSPL through `userSsplAcceptance` property. By default, `userSsplAcceptance` is set to rejection._
 
 ---
 
@@ -329,7 +329,7 @@ const instance = new MongoDbInstance(stack, 'MongoDbInstance', {
 
 ### Changing Instance Type
 
-It is possible to change an instance type on which MongoDB is running. To learn more on instance types please visit https://aws.amazon.com/ec2/instance-types. By default, Amazon EC2 R5 Large instance will is used. You can change it through `instanceType` property:
+It is possible to change an instance type on which MongoDB is running. To learn more on instance types please visit https://aws.amazon.com/ec2/instance-types/. By default, Amazon EC2 R5 Large instance will is used. You can change it through `instanceType` property:
 
 ```ts
 const instance = new MongoDbInstance(stack, 'MongoDbInstance', {
@@ -506,7 +506,7 @@ Credentials and specifications for *password-authenticated users* should be stor
 }
 ```
 
-For examples of the roles list, see the MongoDB user creation documentation, like [Add Users](https://docs.mongodb.com/manual/tutorial/create-users/) tutorial.
+For examples of the roles list, see the MongoDB user creation documentation, like [Add Users](https://www.mongodb.com/docs/manual/tutorial/create-users/) tutorial.
 
 We will later create these these 2 *password-authenticated users* in the admin database:
 
@@ -534,7 +534,7 @@ The `certificate` must be a secret containing the plaintext string contents of t
 
 ---
 
-_**Note:** MongoDB **requires** that this username differ from the MongoDB server certificate in at least one of: Organization (O), Organizational Unit (OU), or Domain Component (DC). See: https://docs.mongodb.com/manual/tutorial/configure-x509-client-authentication/._
+_**Note:** MongoDB **requires** that this username differ from the MongoDB server certificate in at least one of: Organization (O), Organizational Unit (OU), or Domain Component (DC). See: <https://www.mongodb.com/docs/manual/tutorial/configure-x509-client-authentication/>._
 
 ---
 
@@ -566,7 +566,7 @@ const postInstallSetup = new MongoDbPostInstallSetup(stack, 'MongoPostInstall', 
 
 It is often useful to run commands on your instance at launch. This is done using scripts that are executed through instance [user data](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html).
 
-RFDK includes a `ScriptAsset` class that generalizes the concept of the script (bash or powershell) that executes on an instance. `ScriptAsset` is a wrapper around the [CDK's S3 Asset construct](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-s3-assets.Asset.html):
+RFDK includes a `ScriptAsset` class that generalizes the concept of the script (bash or powershell) that executes on an instance. `ScriptAsset` is a wrapper around the [CDK's S3 Asset construct](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_s3_assets.Asset.html):
 
 ```ts
 const scriptAsset = new ScriptAsset(stack, 'ScriptAsset', {
@@ -670,7 +670,7 @@ RFDK provides the following constructs for working with X509 certificates: `X509
 
 #### Self-Signed Certificate
 
-In order to generate a sef-signed certificate you need to provide an identification for a self-signed CA ( see [rfc1779](https://tools.ietf.org/html/rfc1779) or [the X.520 specification](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.520) ) using the `subject` property:
+In order to generate a sef-signed certificate you need to provide an identification for a self-signed CA ( see [rfc1779](https://datatracker.ietf.org/doc/html/rfc1779) or [the X.520 specification](https://www.itu.int/itu-t/recommendations/rec.aspx?rec=X.520) ) using the `subject` property:
 
 ```ts
 const cert = new X509CertificatePem(stack, 'X509CertificatePem', {
@@ -793,7 +793,7 @@ After deploying, you can follow the AWS System Manager user guide on how to [Sta
 
 ### SSH Access
 
-It is not possible to access the instance via SSH, by default. You need to allow ingress access on port 22 from the machine(s)/IP(s) that you want to ssh from ( see [Authorizing inbound traffic for your Linux instances](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html) ).
+It is not possible to access the instance via SSH, by default. You need to allow ingress access on port 22 from the machine(s)/IP(s) that you want to ssh from ( see [Authorizing inbound traffic for your Linux instances](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/connect-to-linux-instance.html) ).
 
 Also, you need to provide the name of the EC2 SSH keypair to grant access to the instance:
 
@@ -812,4 +812,4 @@ const server = new StaticPrivateIpServer(stack, 'StaticPrivateIpServer', {
 
 ### Amazon EC2 Instance Connect
 
-You can also use an [Amazon EC2 Instance Connect](https://aws.amazon.com/about-aws/whats-new/2019/06/introducing-amazon-ec2-instance-connect/). Please see [Connecting to your Linux instance using EC2 Instance Connect](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Connect-using-EC2-Instance-Connect.html) for more details.
+You can also use an [Amazon EC2 Instance Connect](https://aws.amazon.com/about-aws/whats-new/2019/06/introducing-amazon-ec2-instance-connect/). Please see [Connecting to your Linux instance using EC2 Instance Connect](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/connect-linux-inst-eic.html) for more details.
