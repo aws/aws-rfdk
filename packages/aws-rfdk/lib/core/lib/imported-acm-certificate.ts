@@ -18,6 +18,7 @@ import {
 } from 'aws-cdk-lib';
 import {
   Certificate,
+  CertificateReference,
   ICertificate,
 } from 'aws-cdk-lib/aws-certificatemanager';
 import {
@@ -110,6 +111,13 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
    * The ARN for the Certificate that was imported into ACM
    */
   public readonly certificateArn: string;
+
+  /**
+   * @inheritdoc
+   */
+  public get certificateRef(): CertificateReference {
+    return { certificateArn: this.certificateArn };
+  }
 
   /**
    * @inheritdoc

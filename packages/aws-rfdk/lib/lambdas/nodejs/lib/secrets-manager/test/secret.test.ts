@@ -72,7 +72,7 @@ describe('Secret class', () => {
         client,
         encryptionKey: { arn: 'testArn' },
         description: 'test desc',
-        data: Buffer.from(randomBytes(512)),
+        data: randomBytes(512),
         tags: [{ Key: 'key', Value: 'value' }],
       });
 
@@ -153,7 +153,7 @@ describe('Secret class', () => {
       const client = new SecretsManagerClient();
       const secret = Secret.fromArn(arn, client);
 
-      const value = Buffer.from(randomBytes(512));
+      const value = randomBytes(512);
       await secret.putValue(value);
       expect(secretsManagerMock).toHaveReceivedCommandTimes(PutSecretValueCommand, 1);
       expect(secretsManagerMock).toHaveReceivedCommandWith(PutSecretValueCommand, {

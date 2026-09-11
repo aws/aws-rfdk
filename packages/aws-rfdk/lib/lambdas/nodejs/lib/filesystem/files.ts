@@ -37,7 +37,7 @@ export const writeAsciiFile = async (filename: string, contents: string): Promis
 export const writeBinaryFile = async (filename: string, contents: Buffer): Promise<void> => {
   const file: fs.promises.FileHandle = await fs.promises.open(filename, 'w');
   try {
-    await file.writeFile(contents);
+    await file.writeFile(new Uint8Array(contents));
   } finally {
     await file.close();
   }

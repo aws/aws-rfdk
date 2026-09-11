@@ -64,7 +64,7 @@ export class Secret {
       KmsKeyId: args.encryptionKey?.arn,
       Tags: args.tags,
       SecretString: (typeof args.data === 'string') ? args.data : undefined,
-      SecretBinary: Buffer.isBuffer(args.data) ? args.data : undefined,
+      SecretBinary: Buffer.isBuffer(args.data) ? new Uint8Array(args.data) : undefined,
     };
     try {
       const response: CreateSecretResponse = await args.client.send(new CreateSecretCommand(request));
@@ -129,7 +129,7 @@ export class Secret {
     const request: PutSecretValueRequest = {
       SecretId: this.arn,
       SecretString: (typeof data === 'string') ? data : undefined,
-      SecretBinary: Buffer.isBuffer(data) ? data : undefined,
+      SecretBinary: Buffer.isBuffer(data) ? new Uint8Array(data) : undefined,
     };
     try {
       const response: PutSecretValueResponse =
