@@ -60,8 +60,6 @@ test('Generate cert', () => {
         Match.objectLike({
           Action: [
             'dynamodb:BatchGetItem',
-            'dynamodb:GetRecords',
-            'dynamodb:GetShardIterator',
             'dynamodb:Query',
             'dynamodb:GetItem',
             'dynamodb:Scan',
@@ -183,8 +181,6 @@ test('Generate cert, all options set', () => {
         Match.objectLike({
           Action: [
             'dynamodb:BatchGetItem',
-            'dynamodb:GetRecords',
-            'dynamodb:GetShardIterator',
             'dynamodb:Query',
             'dynamodb:GetItem',
             'dynamodb:Scan',
@@ -271,8 +267,6 @@ test('Generate cert, all options set', () => {
         Match.objectLike({
           Action: [
             'dynamodb:BatchGetItem',
-            'dynamodb:GetRecords',
-            'dynamodb:GetShardIterator',
             'dynamodb:Query',
             'dynamodb:GetItem',
             'dynamodb:Scan',
@@ -554,8 +548,6 @@ test('Convert to PKCS #12', () => {
         Match.objectLike({
           Action: [
             'dynamodb:BatchGetItem',
-            'dynamodb:GetRecords',
-            'dynamodb:GetShardIterator',
             'dynamodb:Query',
             'dynamodb:GetItem',
             'dynamodb:Scan',

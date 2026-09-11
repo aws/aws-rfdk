@@ -19,7 +19,8 @@ import 'aws-sdk-client-mock-jest';
 
 import { handler } from '../index';
 
-const ec2Mock = mockClient(EC2Client);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ec2Mock = mockClient(EC2Client as any);
 const autoScalingMock = mockClient(AutoScalingClient);
 
 const originalConsoleLog = console.log;

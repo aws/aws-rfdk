@@ -20,7 +20,8 @@ import {
 describe('WaitForStableServiceResource', () => {
   describe('doCreate', () => {
     let consoleLogMock: jest.SpyInstance<any, any>;
-    const ecsMock = mockClient(ECSClient);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ecsMock = mockClient(ECSClient as any);
 
     beforeEach(() => {
       consoleLogMock = jest.spyOn(console, 'log').mockReturnValue(undefined);
