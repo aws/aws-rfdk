@@ -59,7 +59,7 @@
     "@typescript-eslint/parser": "^8.69.0",
     "aws-cdk": "2.1132.0",
     "eslint": "^8.57.1",
-    "eslint-import-resolver-node": "^0.3.9",
+    "eslint-import-resolver-node": "^0.4.0",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-deprecation": "^3.0.0",
     "eslint-plugin-import": "^2.32.0",
@@ -74,7 +74,7 @@
     "@aws-sdk/client-cloudformation": "^3.1126.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.940.0",
     "@aws-sdk/client-secrets-manager": "^3.1130.0",
-    "@aws-sdk/client-ssm": "^3.907.0",
+    "@aws-sdk/client-ssm": "^3.1136.0",
     "aws-cdk-lib": "2.226.0",
     "aws-rfdk": "1.6.0",
     "constructs": "^10.0.0"

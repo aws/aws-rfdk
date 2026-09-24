@@ -67,7 +67,7 @@
   ],
   "devDependencies": {
     "@aws-sdk/client-acm": "^3.967.0",
-    "@aws-sdk/client-auto-scaling": "^3.946.0",
+    "@aws-sdk/client-auto-scaling": "^3.1137.0",
     "@aws-sdk/client-dynamodb": "^3.1126.0",
     "@aws-sdk/client-ec2": "^3.1127.0",
     "@aws-sdk/client-ecs": "^3.1122.0",
@@ -83,7 +83,7 @@
     "constructs": "^10.0.0",
     "dynalite": "^4.0.0",
     "eslint": "^8.57.1",
-    "eslint-import-resolver-node": "^0.3.9",
+    "eslint-import-resolver-node": "^0.4.0",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-deprecation": "^3.0.0",
     "eslint-plugin-import": "^2.32.0",
