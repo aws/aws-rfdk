@@ -4,7 +4,7 @@
  */
 
 import { CloudFormation } from '@aws-sdk/client-cloudformation';
-import { CloudWatchLogs } from '@aws-sdk/client-cloudwatch-logs';
+import { CloudWatchLogs, GetLogEventsCommandInput, OutputLogEvent } from '@aws-sdk/client-cloudwatch-logs';
 import { ssmCommand } from '../../common/functions/awaitSsmCommand';
 
 // Name of testing stack is derived from env variable to ensure uniqueness
@@ -13,6 +13,24 @@ const deadlineVersion = process.env.DEADLINE_VERSION?.toString();
 
 const cloudformation = new CloudFormation({});
 const logs = new CloudWatchLogs({});
+
+// CloudWatch Logs ingestion is eventually consistent, so a single getLogEvents read can race the
+// log agent's flush and return an empty array. Poll until the expected event is present (bounded to
+// ~4 min, within the 5 min jest testTimeout) to avoid intermittent DL-x-5/6/7 failures.
+async function getLogEventsWithRetry(
+  params: GetLogEventsCommandInput,
+  predicate: (events: OutputLogEvent[]) => boolean,
+  maxAttempts: number = 16,
+  delayMs: number = 15000,
+): Promise<OutputLogEvent[]> {
+  let events: OutputLogEvent[] = [];
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    events = (await logs.getLogEvents(params)).events ?? [];
+    if (predicate(events)) { break; }
+    if (attempt < maxAttempts) { await new Promise((resolve) => setTimeout(resolve, delayMs)); }
+  }
+  return events;
+}
 
 const bastionRegex = /bastionId/;
 const dbRegex = /DatabaseSecretARNDL(\d)/;
@@ -242,8 +260,11 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
           logGroupName: logGroupNames[id],
           logStreamName: cloudInitLogName,
         };
-        var data = await logs.getLogEvents(params);
-        logEvents = data.events!;
+        // CloudWatch ingestion is eventually consistent; poll until cloud-init output is present.
+        logEvents = await getLogEventsWithRetry(
+          params,
+          (events) => events.some((e) => e.message !== undefined && /Cloud-init v. /.test(e.message)),
+        );
       });
 
       test(`DL-${id}-5: cloud-init-output is initialized`, () => {
@@ -291,8 +312,12 @@ describe.each(testCases)('Deadline Repository tests (%s)', (_, id) => {
           logGroupName: logGroupNames[id],
           logStreamName: deadlineLogName,
         };
-        var data = await logs.getLogEvents(params);
-        logEvents = data.events!;
+        // CloudWatch ingestion is eventually consistent; poll until the installation log line
+        // is present rather than reading once and racing ingestion (see DL-x-7 flakiness).
+        logEvents = await getLogEventsWithRetry(
+          params,
+          (events) => events.some((e) => e.message !== undefined && /Executing \/tmp\/repoinstalltemp\/deadlinecommand.exe/.test(e.message)),
+        );
       });
 
       test(`DL-${id}-7: DeadlineRepositoryInstallationLogs is initialized`, () => {
