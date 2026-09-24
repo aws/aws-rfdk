@@ -83,7 +83,7 @@
     "constructs": "^10.0.0",
     "dynalite": "^4.0.0",
     "eslint": "^8.57.1",
-    "eslint-import-resolver-node": "^0.3.9",
+    "eslint-import-resolver-node": "^0.4.0",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-deprecation": "^3.0.0",
     "eslint-plugin-import": "^2.32.0",
