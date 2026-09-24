@@ -59,7 +59,7 @@ describe('readCertificateData', () => {
 
   test('binary data', async () => {
     // GIVEN
-    const certData = Buffer.from('BEGIN CERTIFICATE', 'utf-8');
+    const certData = new Uint8Array(Buffer.from('BEGIN CERTIFICATE', 'utf-8'));
     const secretContents = {
       SecretBinary: certData,
     };

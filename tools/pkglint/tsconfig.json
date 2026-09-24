@@ -5,6 +5,7 @@
     "lib": ["es2018"],
     "strict": true,
     "alwaysStrict": true,
+    "skipLibCheck": true,
     "declaration": true,
     "inlineSourceMap": true,
     "inlineSources": true,
