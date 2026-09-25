@@ -216,18 +216,18 @@
     "@smithy/types" "^4.16.1"
     tslib "^2.6.2"
 
-"@aws-sdk/client-secrets-manager@^3.1130.0":
-  version "3.1130.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-secrets-manager/-/client-secrets-manager-3.1130.0.tgz#7ef09eb2114aa2a6743455c8ab5cd9aa24186b94"
-  integrity sha512-RfD0RjuVZuakSByJfk8NmyW7lYYrV/SGkguZsfDmw52rTpkQRDOhjLkNcDLYyMQ3Eg1YU1wXBc7JxFmH0do/bA==
+"@aws-sdk/client-secrets-manager@^3.1138.0":
+  version "3.1138.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-secrets-manager/-/client-secrets-manager-3.1138.0.tgz#3b4d1b331d642888f424803cce0ca8734bd7f8d7"
+  integrity sha512-r9/hBI1B7RnDndlmJvvPXB8wVIKZoR9hBMcKbGPE74xhCaE5uE76TQN4AHf3vt1eXWwEEUsNa+XM7BPUmwxNNw==
   dependencies:
-    "@aws-sdk/core" "^3.978.0"
-    "@aws-sdk/credential-provider-node" "^3.972.83"
-    "@aws-sdk/types" "^3.974.5"
-    "@smithy/core" "^3.33.3"
-    "@smithy/fetch-http-handler" "^5.7.2"
-    "@smithy/node-http-handler" "^4.11.3"
-    "@smithy/types" "^4.17.2"
+    "@aws-sdk/core" "^3.978.1"
+    "@aws-sdk/credential-provider-node" "^3.972.84"
+    "@aws-sdk/types" "^3.974.6"
+    "@smithy/core" "^3.35.0"
+    "@smithy/fetch-http-handler" "^5.8.0"
+    "@smithy/node-http-handler" "^4.12.1"
+    "@smithy/types" "^4.19.0"
     tslib "^2.6.2"
 
 "@aws-sdk/client-ssm@3.1136.0", "@aws-sdk/client-ssm@^3.1136.0":
