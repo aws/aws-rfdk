@@ -161,7 +161,7 @@ export abstract class StorageTier extends cdk.Stack {
     // 2) Uses RFDK's PadEfsStorage construct to add data to the EFS for the purpose of increasing the amount
     // of stored data to increase the baseline throughput.
     //
-    // See: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html
+    // See: https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch_Alarms.html
     // for more information on AWS CloudWatch Alarms.
     // See: https://docs.aws.amazon.com/efs/latest/ug/performance.html#throughput-modes
     // for more information on Amazon EFS throughput modes.

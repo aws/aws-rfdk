@@ -27,14 +27,14 @@ import {
 export enum MongoDbVersion {
   /**
    * MongoDB 8.0 Community Edition.
-   * See: https://www.mongodb.com/docs/v8.0/introduction/
+   * See: https://www.mongodb.com/docs/v8.0
    */
   COMMUNITY_8_0 = '8.0',
 }
 
 /**
  * Choices for signifying the user's stance on the terms of the SSPL.
- * See: https://www.mongodb.com/licensing/server-side-public-license
+ * See: https://www.mongodb.com/legal/licensing/server-side-public-license
  */
 export enum MongoDbSsplLicenseAcceptance {
   /**
@@ -53,7 +53,7 @@ export enum MongoDbSsplLicenseAcceptance {
  */
 export interface MongoDbInstallerProps {
   /**
-   * MongoDB Community edition is licensed under the terms of the SSPL (see: https://www.mongodb.com/licensing/server-side-public-license ).
+   * MongoDB Community edition is licensed under the terms of the SSPL (see: https://www.mongodb.com/legal/licensing/server-side-public-license ).
    * Users of MongoDbInstaller must explicitly signify their acceptance of the terms of the SSPL through this
    * property before the {@link MongoDbInstaller} will be allowed to install MongoDB.
    *
@@ -80,7 +80,7 @@ export interface MongoDbInstallerProps {
  * Successful installation of MongoDB with this class requires:
  * 1) Explicit acceptance of the terms of the SSPL license, under which MongoDB is distributed; and
  * 2) The instance on which the installation is being performed is in a subnet that can access
- * the official MongoDB sites: https://repo.mongodb.org/ and https://www.mongodb.org
+ * the official MongoDB sites: https://repo.mongodb.org/ and https://www.mongodb.com/
  *
  * Resources Deployed
  * ------------------------
@@ -112,7 +112,7 @@ The MongoDbInstaller will install MongoDB Community Edition onto one or more EC2
 
 MongoDB is provided by MongoDB Inc. under the SSPL license. By installing MongoDB, you are agreeing to the terms of this license.
 Follow the link below to read the terms of the SSPL license.
-https://www.mongodb.com/licensing/server-side-public-license
+https://www.mongodb.com/legal/licensing/server-side-public-license
 
 By using the MongoDbInstaller to install MongoDB you agree to the terms of the SSPL license.
 
@@ -134,7 +134,7 @@ Please set the userSsplAcceptance property to USER_ACCEPTS_SSPL to signify your 
    *
    * Notes:
    * 1) The instance on which the installation is being performed must be in a subnet that can access
-   * the official MongoDB sites: https://repo.mongodb.org/ and https://www.mongodb.org; and
+   * the official MongoDB sites: https://repo.mongodb.org/ and https://www.mongodb.com/; and
    * 2) At this time, this method only supports installation onto instances that are running an operating system
    * that is compatible with x86-64 RedHat 7 -- this includes Amazon Linux 2, RedHat 7, and CentOS 7.
    *

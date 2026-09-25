@@ -1,7 +1,7 @@
 RFDK Architecture Diagrams
 ==========================
 
-RFDK uses https://app.diagrams.net for our diagrams. We use the `.svg` file format and embed the draw.io diagram inside.
+RFDK uses https://app.diagrams.net/ for our diagrams. We use the `.svg` file format and embed the draw.io diagram inside.
 
 ## Directory Structure
 The following directory structure convention is used to place the architecture diagrams:

@@ -100,7 +100,7 @@ class ComputeTier(Stack):
             render_queue=props.render_queue,
             # Not all instance types will be available in local zones. For a list of the instance types
             # available in each local zone, you can refer to:
-            # https://aws.amazon.com/about-aws/global-infrastructure/localzones/features/#AWS_Services
+            # https://aws.amazon.com/about-aws/global-infrastructure/localzones/features/#aws-services
             # BURSTABLE3 is a T3; the third generation of burstable instances
             instance_type=InstanceType.of(InstanceClass.BURSTABLE3, InstanceSize.LARGE),
             worker_machine_image=props.worker_machine_image,

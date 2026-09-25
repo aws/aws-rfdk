@@ -117,7 +117,7 @@ export enum SpotEventPluginPreJobTaskMode {
 /**
  * The Worker Extra Info column to be used to display AWS Instance Status
  * if the instance has been marked to be stopped or terminated by EC2 or Spot Event Plugin.
- * See "AWS Instance Status" option at https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
+ * See "AWS Instance Status" option at https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#event-plugin-configuration
  * and https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/worker-config.html#extra-info
  */
 export enum SpotEventPluginDisplayInstanceStatus {
@@ -136,7 +136,7 @@ export enum SpotEventPluginDisplayInstanceStatus {
 
 /**
  * The settings of the Spot Event Plugin.
- * For more details see https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
+ * For more details see https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#event-plugin-configuration
  */
 export interface SpotEventPluginSettings {
   /**
@@ -261,7 +261,7 @@ export interface ConfigureSpotEventPluginProps {
 
   /**
    * The Spot Event Plugin settings.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#event-plugin-configuration-options
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#event-plugin-configuration
    *
    * @default Default values of SpotEventPluginSettings will be set.
    */
