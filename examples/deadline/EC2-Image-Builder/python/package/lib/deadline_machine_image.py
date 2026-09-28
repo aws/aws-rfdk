@@ -39,7 +39,7 @@ class ImageBuilderProps():
     deadline_version: str
 
     # The parent image of the image recipe. Can use static methods on MachineImage to find your AMI. See
-    # https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-ec2.MachineImage.html for more details.
+    # https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ec2.MachineImage.html for more details.
     parent_ami: IMachineImage
 
     # The image version must be bumped any time the image or any components are modified, otherwise

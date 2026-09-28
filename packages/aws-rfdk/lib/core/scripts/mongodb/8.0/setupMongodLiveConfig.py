@@ -20,7 +20,7 @@ import yaml
 # mongod.conf
 
 # for documentation of all options, see:
-#   http://docs.mongodb.org/manual/reference/configuration-options/
+#   https://www.mongodb.com/docs/manual/reference/configuration-options/
 
 # where to write logging data.
 systemLog:
@@ -65,13 +65,13 @@ net:
 """
 
 def modify_security(mongod_conf):
-  # Reference: https://docs.mongodb.com/v3.6/reference/configuration-options/#security-options
+  # Reference: https://www.mongodb.com/docs/manual/reference/configuration-options/#security-options
   security_conf = mongod_conf.setdefault('security', {})
   security_conf['authorization'] = 'enabled'
 
 
 def modify_net_options(mongod_conf):
-  # Reference: https://docs.mongodb.com/v3.6/reference/configuration-options/#net-options
+  # Reference: https://www.mongodb.com/docs/manual/reference/configuration-options/#net-options
   net_conf = mongod_conf.setdefault('net', {})
 
   # Ensure the default port is in-use, or else our security groups

@@ -12,8 +12,8 @@ import { IScriptHost } from './script-assets';
 
 /**
  * An instance type that can mount an {@link IMountableFilesystem}. For example, this could be an
- * {@link https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-ec2.Instance.html|EC2 Instance}
- * or an {@link https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-autoscaling.AutoScalingGroup.html|EC2 Auto Scaling Group}
+ * {@link https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ec2.Instance.html|EC2 Instance}
+ * or an {@link https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_autoscaling.AutoScalingGroup.html|EC2 Auto Scaling Group}
  */
 export interface IMountingInstance extends IConnectable, IConstruct, IScriptHost {
 }
