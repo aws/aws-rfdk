@@ -72,6 +72,12 @@ test('Generate cert', () => {
           ],
         }),
         Match.objectLike({
+          Action: [
+            'dynamodb:GetRecords',
+            'dynamodb:GetShardIterator',
+          ],
+        }),
+        Match.objectLike({
           Action: 'dynamodb:DescribeTable',
         }),
         Match.objectLike({
@@ -193,6 +199,12 @@ test('Generate cert, all options set', () => {
           ],
         }),
         Match.objectLike({
+          Action: [
+            'dynamodb:GetRecords',
+            'dynamodb:GetShardIterator',
+          ],
+        }),
+        Match.objectLike({
           Action: 'dynamodb:DescribeTable',
         }),
         Match.objectLike({
@@ -276,6 +288,12 @@ test('Generate cert, all options set', () => {
             'dynamodb:UpdateItem',
             'dynamodb:DeleteItem',
             'dynamodb:DescribeTable',
+          ],
+        }),
+        Match.objectLike({
+          Action: [
+            'dynamodb:GetRecords',
+            'dynamodb:GetShardIterator',
           ],
         }),
         Match.objectLike({
@@ -557,6 +575,12 @@ test('Convert to PKCS #12', () => {
             'dynamodb:UpdateItem',
             'dynamodb:DeleteItem',
             'dynamodb:DescribeTable',
+          ],
+        }),
+        Match.objectLike({
+          Action: [
+            'dynamodb:GetRecords',
+            'dynamodb:GetShardIterator',
           ],
         }),
         Match.objectLike({

@@ -329,8 +329,7 @@ describe('Tests using aws-sdk-mock', () => {
   let ddbMock: AwsClientStub<DynamoDBClient>;
 
   beforeAll(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ddbMock = mockClient(DynamoDBClient as any);
+    ddbMock = mockClient(DynamoDBClient);
   });
 
   afterEach(() => {
