@@ -85,7 +85,7 @@ describe('readLoginCredentials', () => {
 
   test('binary data', async () => {
     // GIVEN
-    const loginData = Buffer.from('some binary data', 'utf-8');
+    const loginData = new Uint8Array(Buffer.from('some binary data', 'utf-8'));
     const secretContents = {
       SecretBinary: loginData,
     };
@@ -210,7 +210,7 @@ describe('readPasswordAuthUserInfo', () => {
 
   test('binary data', async () => {
     // GIVEN
-    const loginData = Buffer.from('Some binary data', 'utf-8');
+    const loginData = new Uint8Array(Buffer.from('Some binary data', 'utf-8'));
     const secretContents = {
       SecretBinary: loginData,
     };

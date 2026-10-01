@@ -122,8 +122,6 @@ describe('ImportedAcmCertificate', () => {
           Match.objectLike({
             Action: [
               'dynamodb:BatchGetItem',
-              'dynamodb:GetRecords',
-              'dynamodb:GetShardIterator',
               'dynamodb:Query',
               'dynamodb:GetItem',
               'dynamodb:Scan',
@@ -133,6 +131,12 @@ describe('ImportedAcmCertificate', () => {
               'dynamodb:UpdateItem',
               'dynamodb:DeleteItem',
               'dynamodb:DescribeTable',
+            ],
+          }),
+          Match.objectLike({
+            Action: [
+              'dynamodb:GetRecords',
+              'dynamodb:GetShardIterator',
             ],
           }),
           Match.objectLike({
