@@ -6,7 +6,6 @@
 import {
   Duration,
   Resource,
-  ResourceEnvironment,
   Stack,
 } from 'aws-cdk-lib';
 import {
@@ -18,6 +17,7 @@ import {
   DatabaseCluster,
   Endpoint,
   IDatabaseCluster,
+  DBClusterReference,
 } from 'aws-cdk-lib/aws-docdb';
 import {
   Connections,
@@ -44,7 +44,6 @@ import {
   Secret,
   SecretAttachmentTargetProps,
 } from 'aws-cdk-lib/aws-secretsmanager';
-import {Construct} from 'constructs';
 import * as sinon from 'sinon';
 
 import {
@@ -287,13 +286,8 @@ describe('DocumentDB', () => {
       public readonly securityGroupId: string = '';
       public readonly connections: Connections = new Connections();
 
-      public readonly stack: Stack;
-      public readonly env: ResourceEnvironment;
-
-      constructor(scope: Construct, id: string) {
-        super(scope, id);
-        this.stack = Stack.of(scope);
-        this.env = {account: this.stack.account, region: this.stack.region};
+      public get dbClusterRef(): DBClusterReference {
+        return { dbClusterId: this.clusterIdentifier };
       }
 
       asSecretAttachmentTarget(): SecretAttachmentTargetProps {
