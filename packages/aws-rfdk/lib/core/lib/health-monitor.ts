@@ -200,7 +200,7 @@ export interface HealthMonitorProps {
    *
    * Note: This value is true by default which means that the deletion protection is enabled for the
    * load balancer. Hence, user needs to disable it using AWS Console or CLI before deleting the stack.
-   * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection
+   * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#load-balancer-attributes
    */
   readonly deletionProtection?: boolean;
 
