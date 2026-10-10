@@ -50,9 +50,29 @@ function Install-CloudWatchAgent($region) {
     $gpg_keyring = "$env:temp\keyring.gpg"
 
     # Download GPG
+    $gpg_bucket_name = "rfdk-external-dependencies-$region"
+    $gpg_key = "gnupg-w32-2.2.27_20210111.exe"
+    $gpg_expected_bucket_owner = "224375009292"
     $gpg_installer = "$env:temp\gnupg-w32-2.2.27_20210111.exe"
     try {
-      Read-S3Object -BucketName rfdk-external-dependencies-$region -Key gnupg-w32-2.2.27_20210111.exe -File $gpg_installer -Region $region
+      # Check if the Read-S3Object call below will download from a bucket owned
+      # by the RFDK service.
+      # This is a separate call because Read-S3Object doesn't yet support the
+      # ExpectedBucketOwner parameter.
+      Get-S3ObjectMetadata -BucketName $gpg_bucket_name -Key $gpg_key -Region $region -ExpectedBucketOwner $gpg_expected_bucket_owner | Out-Null
+    } catch {
+      $ex = $PSItem.Exception.GetBaseException()
+      if ($ex.Response.StatusCode -eq 403) {
+        Write-Output ("Got Forbidden error when verifying owner of S3 bucket containing GPG installer. " +
+                      "This may be caused by attempting to access a bucket that is not owned by the RFDK service.")
+      } else {
+        Write-Output "Failed to verify owner of bucket containing GPG installer."
+      }
+      return
+    }
+
+    try {
+      Read-S3Object -BucketName $gpg_bucket_name -Key $gpg_key -File $gpg_installer -Region $region
     } catch {
       Write-Output "Failed downloading GPG to verify CloudWatch agent."
       Remove-Item -Path $cwa_installer -Force

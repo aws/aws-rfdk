@@ -1,6 +1,6 @@
 {
   "name": "pkglint",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "private": true,
   "description": "Validate and fix package.json files",
   "main": "lib/index.js",
@@ -36,16 +36,16 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/fs-extra": "^11.0.1",
-    "@types/glob": "^8.1.0",
-    "@types/jest": "^29.5.13",
-    "@types/semver": "^7.5.0",
-    "@types/yargs": "^17.0.24",
-    "eslint": "^8.55.0",
-    "eslint-import-resolver-node": "^0.3.9",
-    "eslint-import-resolver-typescript": "^3.7.0",
-    "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-jest": "^28.10.0",
-    "typescript": "~5.1.6"
+    "@types/glob": "^9.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/semver": "^7.8.0",
+    "@types/yargs": "^17.0.35",
+    "eslint": "^8.57.1",
+    "eslint-import-resolver-node": "^0.4.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jest": "^29.16.6",
+    "typescript": "~5.9.3"
   },
   "nozem": {
     "ostools": [
@@ -56,8 +56,8 @@
   "dependencies": {
     "case": "^1.6.3",
     "colors": "1.4.0",
-    "fs-extra": "^11.1.0",
-    "semver": "^7.5.4",
-    "yargs": "^17.7.2"
+    "fs-extra": "^11.4.0",
+    "semver": "^7.8.5",
+    "yargs": "^18.1.0"
   }
 }

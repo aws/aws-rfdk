@@ -10,7 +10,12 @@ declare global {
   interface ReadableStream {}
 }
 
-const ssm = new SSM({});
+// Adaptive retry (client-side rate limiting) + more attempts so the polling below rides
+// through SSM ThrottlingExceptions under parallel, long-running test load.
+const ssm = new SSM({
+  maxAttempts: 10,
+  retryMode: 'adaptive',
+});
 
 interface CommandResponse {
   output: string;
@@ -30,8 +35,8 @@ export async function ssmCommand(bastionId: string, params: SendCommandRequest):
       Details: true,
     };
     while (true) {
-      // Sleep for 1,000ms = 1s
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Poll every 5s to keep the SSM call rate down and avoid throttling.
+      await new Promise(resolve => setTimeout(resolve, 5000));
 
       const invocations = await ssm.listCommandInvocations(listParams);
       if (invocations.CommandInvocations![0]) {

@@ -176,6 +176,9 @@ export class X509CertificateGenerator extends X509Common {
     ]);
 
     const subject = new DistinguishedName(resourceProperties.DistinguishedName);
+    if (!subject.isValid()) {
+      throw new Error('Invalid characters in certificate subject fields. Distinguished name fields must not contain \'/\'.');
+    }
     const passphrase = await Secret.fromArn(resourceProperties.Passphrase, this.secretsManagerClient).getValue() as string;
     let certExpiry: number = resourceProperties.CertificateValidFor ? Number(resourceProperties.CertificateValidFor) : 1095;
     let signingCert: Certificate | undefined;

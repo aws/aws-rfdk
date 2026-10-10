@@ -172,7 +172,7 @@ export class MongoDbPostInstallSetup extends Construct {
     });
 
     const region = Stack.of(this).region;
-    const openSslLayerName = 'openssl-al2';
+    const openSslLayerName = 'openssl-al2023';
     const openSslLayerArns: any = ARNS[openSslLayerName];
     const openSslLayerArn = openSslLayerArns[region];
     const openSslLayer = LayerVersion.fromLayerVersionArn(this, 'OpenSslLayer', openSslLayerArn);
@@ -198,8 +198,8 @@ export class MongoDbPostInstallSetup extends Construct {
       environment: {
         DEBUG: 'false',
       },
-      runtime: Runtime.NODEJS_18_X,
-      handler: 'mongodb.configureMongo',
+      runtime: Runtime.NODEJS_24_X,
+      handler: 'mongodb/index.configureMongo',
       layers: [ openSslLayer ],
       timeout: Duration.minutes(2),
       logRetention: RetentionDays.ONE_WEEK,

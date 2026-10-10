@@ -6,6 +6,7 @@ module.exports = {
       node: true,
     },
     plugins: [
+      '@stylistic',
       '@typescript-eslint',
       'import',
       'jest',
@@ -35,7 +36,7 @@ module.exports = {
     rules: {
       // Require use of the `import { foo } from 'bar';` form instead of `import foo = require('bar');`
       '@typescript-eslint/no-require-imports': ['error'],
-      '@typescript-eslint/indent': ['error', 2],
+      '@stylistic/indent': ['error', 2],
       '@typescript-eslint/annotation-spacing': ['off', {}],
   
       // Style

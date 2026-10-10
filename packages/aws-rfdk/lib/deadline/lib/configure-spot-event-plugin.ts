@@ -448,8 +448,8 @@ export class ConfigureSpotEventPlugin extends Construct {
         DEBUG: 'false',
         LAMBDA_TIMEOUT_MINS: timeoutMins.toString(),
       },
-      runtime: Runtime.NODEJS_18_X,
-      handler: 'configure-spot-event-plugin.configureSEP',
+      runtime: Runtime.NODEJS_24_X,
+      handler: 'configure-spot-event-plugin/index.configureSEP',
       timeout: Duration.minutes(timeoutMins),
       logRetention: RetentionDays.ONE_WEEK,
     });
