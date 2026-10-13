@@ -38,7 +38,20 @@ do
     test -f "${LAYER_DIR}/${file}" && rm -f "${LAYER_DIR}/${file}"
 done
 
-docker build -t "${LAYER_NAME}" "${LAYER_DIR}/"
+# Pin the target platform for both the image build and the run that produces
+# the layer artifact. The layer ships a compiled `openssl` binary plus its
+# libssl/libcrypto shared objects, so the layer's architecture MUST match the
+# architecture of the Lambda functions that consume it. RFDK's Lambda functions
+# do not set `architecture`, so they default to x86_64. Without this pin, the
+# build inherits the Docker host's architecture -- e.g. on an Apple Silicon
+# (arm64) developer machine it would silently produce an arm64 openssl that
+# fails at runtime on the x86_64 functions with "cannot execute binary file".
+# Pinning makes the output deterministic regardless of where the build runs
+# (native on x86_64 CI, emulated on an arm64 laptop). Override via the PLATFORM
+# env var (e.g. PLATFORM=linux/arm64) if building a Graviton/arm64 layer.
+PLATFORM="${PLATFORM:-linux/amd64}"
+
+docker build --platform "${PLATFORM}" -t "${LAYER_NAME}" "${LAYER_DIR}/"
 
 # Run the docker container as the current user.
 # For this to work we need to mount this machine's credentials files
@@ -46,7 +59,7 @@ docker build -t "${LAYER_NAME}" "${LAYER_DIR}/"
 
 USER_OPT="-u $(id -u):$(id -g)"
 USERFILE_MOUNTS="-v /etc/passwd:/etc/passwd:ro -v /etc/shadow:/etc/shadow:ro -v /etc/group:/etc/group:ro"
-docker run --rm \
+docker run --rm --platform "${PLATFORM}" \
     -v "${LAYER_DIR}":/tmp/layer ${USERFILE_MOUNTS} \
     ${USER_OPT} \
     "${LAYER_NAME}"

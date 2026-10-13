@@ -149,9 +149,9 @@ export class AcmCertificateImporter extends DynamoBackedCustomResource {
   }): Promise<string> {
     let certificateArn: string;
 
-    const certificate = Buffer.from(args.cert);
-    const certificateChain = args.certChain ? Buffer.from(args.certChain) : undefined;
-    const privateKey = Buffer.from(args.key);
+    const certificate = new Uint8Array(Buffer.from(args.cert));
+    const certificateChain = args.certChain ? new Uint8Array(Buffer.from(args.certChain)) : undefined;
+    const privateKey = new Uint8Array(Buffer.from(args.key));
 
     const sortKey = crypto.createHash('md5').update(args.cert).digest('hex');
     const existingItem = await args.resourceTable.getItem({

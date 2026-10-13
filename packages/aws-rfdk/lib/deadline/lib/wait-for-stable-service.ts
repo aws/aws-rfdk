@@ -74,8 +74,8 @@ export class WaitForStableService extends Construct {
       environment: {
         DEBUG: 'false',
       },
-      runtime: Runtime.NODEJS_18_X,
-      handler: 'wait-for-stable-service.wait',
+      runtime: Runtime.NODEJS_24_X,
+      handler: 'wait-for-stable-service/index.wait',
       timeout: Duration.minutes(15),
       logRetention: RetentionDays.ONE_WEEK,
     });

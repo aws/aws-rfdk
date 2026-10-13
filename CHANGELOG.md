@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/aws/aws-rfdk/compare/v1.6.0...v1.7.0) (2026-10-10)
+
+
+### Supported CDK Version
+
+* [2.269.0](https://github.com/aws/aws-cdk/releases/tag/v2.269.0)
+
+
+### Officially Supported Deadline Versions
+
+* [10.1.9.2 to 10.4.3.4](https://docs.thinkboxsoftware.com/products/deadline/10.4/1_User%20Manual/manual/release-notes.html)
+
+
+### Features
+
+* **aws-rfdk:** update lambda to Node24.js ([#1722](https://github.com/aws/aws-rfdk/issues/1722)) ([8282406](https://github.com/aws/aws-rfdk/commit/8282406d9456f4969fdaa727a51094c54a9489cf))
+* **lambda-layers:** add openssl-al2023 layer definition ([#1715](https://github.com/aws/aws-rfdk/issues/1715)) ([632c3eb](https://github.com/aws/aws-rfdk/commit/632c3eb43140973545d729e88cd34ac3f1b5cd48))
+* **lambda-layers:** support nodejs24.x for openssl-al2023 layer ([#1721](https://github.com/aws/aws-rfdk/issues/1721)) ([3bd2b43](https://github.com/aws/aws-rfdk/commit/3bd2b439490df54effea75b319008e36c88eab92))
+
+
+### Bug Fixes
+
+* **core:** prevent OS command injection in X509CertificatePem Lambda ([#1707](https://github.com/aws/aws-rfdk/issues/1707)) ([c11688e](https://github.com/aws/aws-rfdk/commit/c11688ee294b7f4ef7c929db9e2a5a43740a96e2))
+* **examples:** add skipLibCheck to the TypeScript example apps for TS 5.9 ([#1774](https://github.com/aws/aws-rfdk/issues/1774)) ([4f2ef96](https://github.com/aws/aws-rfdk/commit/4f2ef9615aa24f3f16144b1976bb9440318fb7e3)), closes [#1745](https://github.com/aws/aws-rfdk/issues/1745) [#1770](https://github.com/aws/aws-rfdk/issues/1770)
+* **integ:** avoid SSM throttling in canary test polling ([#1723](https://github.com/aws/aws-rfdk/issues/1723)) ([178ff9c](https://github.com/aws/aws-rfdk/commit/178ff9c0319eb98c916eeeaf805f45574b22393e))
+* **integ:** special case for version 10.4.0.13 Repository installer ([#1464](https://github.com/aws/aws-rfdk/issues/1464)) ([b837588](https://github.com/aws/aws-rfdk/commit/b837588cd91cf5ee9b39e7d602d3578f0eb5ce23))
+* **lambda-layers:** enable skipLibCheck ([#1770](https://github.com/aws/aws-rfdk/issues/1770)) ([d3b0c33](https://github.com/aws/aws-rfdk/commit/d3b0c33934a42a88cb463e40bc26f905dd3065c9)), closes [#1745](https://github.com/aws/aws-rfdk/issues/1745)
+* **lambda-layers:** remove the unused openssl-al2 layer ([#1773](https://github.com/aws/aws-rfdk/issues/1773)) ([c00703a](https://github.com/aws/aws-rfdk/commit/c00703a6ebfcc44723eb36009767c18e376642a3)), closes [#1715](https://github.com/aws/aws-rfdk/issues/1715) [#1722](https://github.com/aws/aws-rfdk/issues/1722)
+* use SafeLoader for yaml.load to prevent unsafe deserialization ([#1709](https://github.com/aws/aws-rfdk/issues/1709)) ([5908e26](https://github.com/aws/aws-rfdk/commit/5908e26f02453abbd0ad0c9bfd00a61906c9fcd1))
+
 ## [1.6.0](https://github.com/aws/aws-rfdk/compare/v1.5.0...v1.6.0) (2025-01-09)
 
 

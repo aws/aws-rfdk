@@ -18,6 +18,7 @@ import {
 } from 'aws-cdk-lib';
 import {
   Certificate,
+  CertificateReference,
   ICertificate,
 } from 'aws-cdk-lib/aws-certificatemanager';
 import {
@@ -114,6 +115,13 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
   /**
    * @inheritdoc
    */
+  public get certificateRef(): CertificateReference {
+    return { certificateArn: this.certificateArn };
+  }
+
+  /**
+   * @inheritdoc
+   */
   public readonly stack: Stack;
 
   /**
@@ -150,7 +158,7 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
     });
 
     const region = Stack.of(this).region;
-    const openSslLayerName = 'openssl-al2';
+    const openSslLayerName = 'openssl-al2023';
     const openSslLayerArns: any = ARNS[openSslLayerName];
     const openSslLayerArn = openSslLayerArns[region];
     const openSslLayer = LayerVersion.fromLayerVersionArn(this, 'OpenSslLayer', openSslLayerArn);
@@ -158,14 +166,14 @@ export class ImportedAcmCertificate extends Construct implements ICertificate {
     const lambda = new SingletonFunction(this, 'AcmImporter', {
       uuid: ImportedAcmCertificate.IMPORTER_UUID,
       code: Code.fromAsset(join(__dirname, '..', '..', 'lambdas', 'nodejs')),
-      handler: 'x509-certificate.importCert',
+      handler: 'x509-certificate/index.importCert',
       environment: {
         DATABASE: this.database.tableName,
         DEBUG: 'false',
       },
       layers: [ openSslLayer ],
       retryAttempts: 0,
-      runtime: Runtime.NODEJS_18_X,
+      runtime: Runtime.NODEJS_24_X,
       timeout: Duration.minutes(5),
     });
 

@@ -277,3 +277,26 @@ test('decrypt private key', async () => {
   // OpenSSL 1.1.x: -----BEGIN PRIVATE KEY-----
   expect(decryptedKey).toMatch(/-----BEGIN (?:RSA )?PRIVATE KEY-----/);
 });
+
+test('generate self-signed does not execute shell metacharacters in CN', async () => {
+  // GIVEN - a CN with shell metacharacters that would execute a command if passed through a shell
+  const markerFile = path.join(tmpDir, 'injection_marker');
+  const name: DistinguishedName = new DistinguishedName({
+    CN: `test$(touch ${markerFile})`,
+    O: 'TestO',
+    OU: 'TestOU',
+  });
+  const passphrase = 'test_passphrase';
+
+  // WHEN - generating a certificate (this may fail due to invalid CN characters, which is acceptable)
+  try {
+    await Certificate.fromGenerated(name, passphrase);
+  } catch (e) {
+    // It's acceptable for certificate generation to fail with invalid characters.
+    // The important thing is that the shell command was NOT executed.
+  }
+
+  // THEN - the marker file must NOT exist, proving shell injection did not occur
+  const markerExists = fs.existsSync(markerFile);
+  expect(markerExists).toBe(false);
+});

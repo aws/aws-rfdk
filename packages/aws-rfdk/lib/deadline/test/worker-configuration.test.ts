@@ -6,6 +6,7 @@
 /* eslint-disable dot-notation */
 
 import {
+  App,
   Stack,
 } from 'aws-cdk-lib';
 import {
@@ -247,12 +248,16 @@ describe('Test WorkerInstanceConfiguration for Linux', () => {
 });
 
 describe('Test WorkerInstanceConfiguration for Windows', () => {
+  let region: string;
+  let app: App;
   let stack: Stack;
   let vpc: IVpc;
   let instance: Instance;
 
   beforeEach(() => {
-    stack = new Stack();
+    region = 'sa-east-1';
+    app = new App();
+    stack = new Stack(app, 'Stack', {env: {region}});
     vpc = new Vpc(stack, 'Vpc');
     instance = new Instance(stack, 'Instance', {
       vpc,
@@ -276,12 +281,12 @@ describe('Test WorkerInstanceConfiguration for Windows', () => {
             [
               `<powershell>mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' ) -ea 0\nRead-S3Object -BucketName '`,
               {
-                'Fn::Sub': CONFIG_WORKER_ASSET_WINDOWS.Bucket,
+                'Fn::Sub': CONFIG_WORKER_ASSET_WINDOWS.Bucket.replace('${AWS::Region}', region),
               },
               `' -key '${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -file 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -ErrorAction Stop\n` +
               `mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
               {
-                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_WINDOWS.Bucket,
+                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_WINDOWS.Bucket.replace('${AWS::Region}', region),
               },
               `' -key '${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n` +
               `&'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py\n` +
@@ -313,12 +318,12 @@ describe('Test WorkerInstanceConfiguration for Windows', () => {
             [
               `<powershell>mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' ) -ea 0\nRead-S3Object -BucketName '`,
               {
-                'Fn::Sub': CONFIG_WORKER_ASSET_WINDOWS.Bucket,
+                'Fn::Sub': CONFIG_WORKER_ASSET_WINDOWS.Bucket.replace('${AWS::Region}', region),
               },
               `' -key '${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -file 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -ErrorAction Stop\n` +
               `mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
               {
-                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_WINDOWS.Bucket,
+                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_WINDOWS.Bucket.replace('${AWS::Region}', region),
               },
               `' -key '${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n` +
               `&'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' 'g1,g2' 'p1,p2' 'r1' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py\n` +
@@ -349,12 +354,12 @@ describe('Test WorkerInstanceConfiguration for Windows', () => {
             [
               `<powershell>mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' ) -ea 0\nRead-S3Object -BucketName '`,
               {
-                'Fn::Sub': CONFIG_WORKER_ASSET_WINDOWS.Bucket,
+                'Fn::Sub': CONFIG_WORKER_ASSET_WINDOWS.Bucket.replace('${AWS::Region}', region),
               },
               `' -key '${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -file 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -ErrorAction Stop\n` +
               `mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
               {
-                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_WINDOWS.Bucket,
+                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_WINDOWS.Bucket.replace('${AWS::Region}', region),
               },
               `' -key '${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n` +
               `&'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${otherListenerPort} C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py\n` +
@@ -389,25 +394,21 @@ describe('Test WorkerInstanceConfiguration for Windows', () => {
             [
               `<powershell>mkdir (Split-Path -Path 'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
               {
-                'Fn::Sub': CWA_ASSET_WINDOWS.Bucket,
+                'Fn::Sub': CWA_ASSET_WINDOWS.Bucket.replace('${AWS::Region}', region),
               },
-              `' -key '${CWA_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n&'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' -i `,
-              {
-                Ref: 'AWS::Region',
-              },
-              ' ',
+              `' -key '${CWA_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n&'C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1' -i ${region} `,
               {
                 Ref: Match.stringLikeRegexp('^ConfigStringParameter.*'),
               },
               `\nif (!$?) { Write-Error 'Failed to execute the file \"C:/temp/${CWA_ASSET_WINDOWS.Key}.ps1\"' -ErrorAction Stop }\n` +
               `mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' ) -ea 0\nRead-S3Object -BucketName '`,
               {
-                'Fn::Sub': CONFIG_WORKER_ASSET_WINDOWS.Bucket,
+                'Fn::Sub': CONFIG_WORKER_ASSET_WINDOWS.Bucket.replace('${AWS::Region}', region),
               },
               `' -key '${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -file 'C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py' -ErrorAction Stop\n` +
               `mkdir (Split-Path -Path 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' ) -ea 0\nRead-S3Object -BucketName '`,
               {
-                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_WINDOWS.Bucket,
+                'Fn::Sub': CONFIG_WORKER_PORT_ASSET_WINDOWS.Bucket.replace('${AWS::Region}', region),
               },
               `' -key '${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -file 'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' -ErrorAction Stop\n` +
               `&'C:/temp/${CONFIG_WORKER_PORT_ASSET_WINDOWS.Key}.ps1' '' '' '' '${Version.MINIMUM_SUPPORTED_DEADLINE_VERSION.toString()}' ${WorkerInstanceConfiguration['DEFAULT_LISTENER_PORT']} C:/temp/${CONFIG_WORKER_ASSET_WINDOWS.Key}.py\n` +

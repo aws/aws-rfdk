@@ -122,8 +122,6 @@ describe('ImportedAcmCertificate', () => {
           Match.objectLike({
             Action: [
               'dynamodb:BatchGetItem',
-              'dynamodb:GetRecords',
-              'dynamodb:GetShardIterator',
               'dynamodb:Query',
               'dynamodb:GetItem',
               'dynamodb:Scan',
@@ -133,6 +131,12 @@ describe('ImportedAcmCertificate', () => {
               'dynamodb:UpdateItem',
               'dynamodb:DeleteItem',
               'dynamodb:DescribeTable',
+            ],
+          }),
+          Match.objectLike({
+            Action: [
+              'dynamodb:GetRecords',
+              'dynamodb:GetShardIterator',
             ],
           }),
           Match.objectLike({
@@ -200,7 +204,7 @@ describe('ImportedAcmCertificate', () => {
     test('uses correct handler', () => {
       // THEN
       Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
-        Handler: 'x509-certificate.importCert',
+        Handler: 'x509-certificate/index.importCert',
       });
     });
 
@@ -208,7 +212,7 @@ describe('ImportedAcmCertificate', () => {
       // THEN
       Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
         Layers: Match.arrayWith([
-          Match.stringLikeRegexp('arn:aws:lambda:us-west-2:224375009292:layer:openssl-al2:.*'),
+          Match.stringLikeRegexp('arn:aws:lambda:us-west-2:224375009292:layer:openssl-al2023:.*'),
         ]),
       });
     });

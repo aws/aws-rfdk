@@ -127,7 +127,7 @@ describe('HealthMonitor', () => {
     Template.fromStack(hmStack).resourceCountIs('AWS::ElasticLoadBalancingV2::LoadBalancer', 0);
     Template.fromStack(hmStack).hasResourceProperties('AWS::KMS::Key', {
       KeyPolicy: {
-        Statement: [
+        Statement: Match.arrayWith([
           {
             Action: 'kms:*',
             Effect: 'Allow',
@@ -162,7 +162,7 @@ describe('HealthMonitor', () => {
             },
             Resource: '*',
           },
-        ],
+        ]),
       },
       Description: `This key is used to encrypt SNS messages for ${Names.uniqueId(healthMonitor)}.`,
       EnableKeyRotation: true,

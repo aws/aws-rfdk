@@ -55,14 +55,14 @@ test('VersionQuery constructor full version', () => {
     ],
   });
   Template.fromStack(stack).hasResourceProperties('AWS::Lambda::Function', {
-    Handler: 'version-provider.handler',
+    Handler: 'version-provider/index.handler',
     Role: {
       'Fn::GetAtt': [
         Match.stringLikeRegexp('SingletonLambda.*ServiceRole.*'),
         'Arn',
       ],
     },
-    Runtime: 'nodejs18.x',
+    Runtime: 'nodejs24.x',
   });
 });
 

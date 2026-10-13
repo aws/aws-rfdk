@@ -9,21 +9,24 @@ on:
   pull_request:
     branches: [ mainline, 'feature*' ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
 
     runs-on: ubuntu-latest
     container:
-      image: jsii/superchain:1-buster-slim-node14
+      image: jsii/superchain:1-bookworm-slim-node22
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [20.x, 22.x, 24.x]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: ${{ matrix.node-version }}
     - run: npm install --global yarn

@@ -12,7 +12,7 @@ export const CWA_ASSET_LINUX = {
 // ConfigureCloudWatchAgent.ps1
 export const CWA_ASSET_WINDOWS = {
   Bucket: 'cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}',
-  Key: 'b3a03a74afa8a045b35e08f11a719544622172869cc031787f580407d665ee36',
+  Key: 'ea268a603f4cce783c290fc755e99c9d8c127224c1be30d6158aed70e533c730',
 };
 
 // mountEbsBlockVolume.sh + metadataUtilities.sh + ec2-certificates.crt
@@ -38,5 +38,5 @@ export const INSTALL_MONGODB_8_0_SCRIPT_LINUX = {
 
 export const MONGODB_8_0_CONFIGURATION_SCRIPTS = {
   Bucket: 'cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}',
-  Key: 'c1c40e6ac96769539de343b85ef12d12399dfedfdc4cb3129af6205d76953dfb',
+  Key: 'ea54c3ebdc417d7cc0fae38dd2c0693386a3121edea09ec7454a36e1f72d5ce2',
 };
