@@ -548,7 +548,7 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     }
 
     // An explicit dependency is required from the service to the ASG providing its capacity.
-    // See: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-attribute-dependson.html
+    // See: https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/aws-attribute-dependson.html
     this.pattern.service.node.addDependency(this.asg);
 
     this.loadBalancer = this.pattern.loadBalancer;

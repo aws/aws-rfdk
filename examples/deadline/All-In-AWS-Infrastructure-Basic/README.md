@@ -111,7 +111,7 @@ The Health Monitor component contains a [Network Load Balancer](https://docs.aws
 
 #### Bastion Host
 
-The Bastion Host is a `BastionHostLinux` construct that allows you to connect to the Render Queue and Worker Fleet if you would like to take a look at the state of these components. It is not an essential component to the render farm, so it can be omitted without side effects, if desired. To connect to it, please refer to [Bastion Hosts CDK documentation](https://docs.aws.amazon.com/cdk/api/latest/docs/aws-ec2-readme.html#bastion-hosts).
+The Bastion Host is a `BastionHostLinux` construct that allows you to connect to the Render Queue and Worker Fleet if you would like to take a look at the state of these components. It is not an essential component to the render farm, so it can be omitted without side effects, if desired. To connect to it, please refer to [Bastion Hosts CDK documentation](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ec2-readme.html#bastion-hosts).
 
 ## Best Practices
 

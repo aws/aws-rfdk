@@ -83,7 +83,7 @@ export interface SpotEventPluginFleetProps {
 
   /**
    * The  the maximum capacity that the Spot Fleet can grow to.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#spot-fleet-requests
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot-fleet-request.html#event-spot-fleet-requests-ref-label
    */
   readonly maxCapacity: number;
 
@@ -96,7 +96,7 @@ export interface SpotEventPluginFleetProps {
    * Deadline groups these workers need to be assigned to.
    *
    * Also, note that the Spot Fleet configuration does not allow using wildcards as part of the Group name
-   * as described here https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#wildcards
+   * as described here https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot-fleet-configurations.html#wildcards-in-group-names
    */
   readonly deadlineGroups: string[];
 
@@ -402,7 +402,7 @@ export class SpotEventPluginFleet extends Construct implements ISpotEventPluginF
 
   /**
    * The  the maximum capacity that the Spot Fleet can grow to.
-   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot.html#spot-fleet-requests
+   * See https://docs.thinkboxsoftware.com/products/deadline/10.2/1_User%20Manual/manual/event-spot-fleet-request.html#event-spot-fleet-requests-ref-label
    */
   public readonly maxCapacity: number;
 

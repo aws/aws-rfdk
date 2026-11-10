@@ -16,7 +16,7 @@ This repository's issues are intended for feature requests and bug reports.
 Ask your question here. Include any details relevant. Make sure you are not
 falling prey to the [X/Y problem][2]!
 
-[2]: http://xyproblem.info
+[2]: https://xyproblem.info/
 -->
 
 ### Environment

@@ -125,7 +125,7 @@ export interface MongoDbInstanceVolumeProps {
  */
 export interface MongoDbApplicationProps {
   /**
-   * MongoDB Community edition is licensed under the terms of the SSPL (see: https://www.mongodb.com/licensing/server-side-public-license ).
+   * MongoDB Community edition is licensed under the terms of the SSPL (see: https://www.mongodb.com/legal/licensing/server-side-public-license ).
    * Users of MongoDbInstance must explicitly signify their acceptance of the terms of the SSPL through this
    * property before the {@link MongoDbInstance} will be allowed to install MongoDB.
    *

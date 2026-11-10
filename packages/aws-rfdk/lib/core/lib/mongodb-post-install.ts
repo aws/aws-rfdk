@@ -43,7 +43,7 @@ import {
 
 /**
  * User added to the $external admin database.
- * Referencing: https://docs.mongodb.com/v3.6/core/security-x.509/#member-certificate-requirements
+ * Referencing: https://www.mongodb.com/docs/manual/core/security-x.509#member-certificate-requirements
  */
 export interface MongoDbX509User {
   /**
@@ -54,7 +54,7 @@ export interface MongoDbX509User {
    * Some important notes:
    * 1. MongoDB **requires** that this username differ from the MongoDB server certificate
    * in at least one of: Organization (O), Organizational Unit (OU), or Domain Component (DC).
-   * See: https://docs.mongodb.com/manual/tutorial/configure-x509-client-authentication/
+   * See: https://www.mongodb.com/docs/manual/tutorial/configure-x509-client-authentication/
    *
    * 2. The client certificate must be signed by the same Certificate Authority (CA) as the
    * server certificate that is being used by the MongoDB application.
@@ -74,7 +74,7 @@ export interface MongoDbX509User {
 export interface MongoDbUsers {
   /**
    * Zero or more secrets containing credentials, and specification for users to be created in the
-   * admin database for authentication using SCRAM. See: https://docs.mongodb.com/v3.6/core/security-scram/
+   * admin database for authentication using SCRAM. See: https://www.mongodb.com/docs/manual/core/security-scram/
    *
    * Each secret must be a JSON document with the following structure:
    *     {
@@ -84,7 +84,7 @@ export interface MongoDbUsers {
    *     }
    *
    * For examples of the roles list, see the MongoDB user creation documentation. For example,
-   * https://docs.mongodb.com/manual/tutorial/create-users/
+   * https://www.mongodb.com/docs/manual/tutorial/create-users/
    *
    * @default No password-authenticated users are created.
    */
@@ -92,7 +92,7 @@ export interface MongoDbUsers {
 
   /**
    * Information on the X.509-authenticated users that should be created.
-   * See: https://docs.mongodb.com/v3.6/core/security-x.509/
+   * See: https://www.mongodb.com/docs/manual/core/security-x.509
    *
    * @default No x.509 authenticated users are created.
    */

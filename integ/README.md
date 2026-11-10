@@ -22,7 +22,7 @@ To run all test suites:
 
           Should be set to `true` to accept the MongoDB SSPL. Setting this variable is
           considered acceptance of the terms of the
-          [SSPL license](https://www.mongodb.com/licensing/server-side-public-license).
+          [SSPL license](https://www.mongodb.com/legal/licensing/server-side-public-license).
     * *[Optional]* configuration for **all** Deadline test components:
       *   `DEADLINE_VERSION`  
 

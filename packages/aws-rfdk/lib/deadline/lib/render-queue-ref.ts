@@ -346,7 +346,7 @@ export interface RenderQueueProps {
    *
    * Note: This value is true by default which means that the deletion protection is enabled for the
    * load balancer. Hence, user needs to disable it using AWS Console or CLI before deleting the stack.
-   * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#deletion-protection
+   * @see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/application-load-balancers.html#load-balancer-attributes
    */
   readonly deletionProtection?: boolean;
 
@@ -362,7 +362,7 @@ export interface RenderQueueProps {
    * ECS container host for the Deadline Remote Connection Server. This can reduce
    * the amount of read throughput required for the Repository Filesystem.
    *
-   * For more information, please see: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/storage_administration_guide/ch-fscache
+   * For more information, please see: https://docs.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/storage_administration_guide/ch-fscache
    *
    * Note: If enabling this, then your Repository filesystem may require additional
    * mount options to take advantage. Not every filesystem's driver supports integration

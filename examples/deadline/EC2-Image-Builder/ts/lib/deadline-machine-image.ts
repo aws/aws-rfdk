@@ -39,7 +39,7 @@ export interface DeadlineMachineImageProps {
 
   /**
    * The parent image of the image recipe. Can use static methods on MachineImage to find your AMI. See
-   * https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-ec2.MachineImage.html for more details.
+   * https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ec2.MachineImage.html for more details.
    */
   readonly parentAmi: IMachineImage,
 
