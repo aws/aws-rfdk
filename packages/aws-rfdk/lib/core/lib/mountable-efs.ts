@@ -37,7 +37,7 @@ import {
  */
 export interface MountableEfsProps {
   /**
-   * The {@link https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-efs.FileSystem.html|EFS}
+   * The {@link https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_efs.FileSystem.html|EFS}
    * filesystem that will be mounted by the object.
    */
   readonly filesystem: efs.IFileSystem;

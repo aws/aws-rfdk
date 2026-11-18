@@ -122,7 +122,7 @@ export interface ScriptAssetProps extends AssetProps {}
  * This is used by other constructs to generalize the concept of a script
  * (bash or powershell) that executes on an instance.
  * It provides a wrapper around the CDK’s S3 Asset construct
- * ( https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-s3-assets.Asset.html )
+ * ( https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_s3_assets.Asset.html )
  *
  * The script asset is placed into and fetched from the CDK bootstrap S3 bucket.
  *

@@ -4,7 +4,7 @@
 
 Please backup your existing database before upgrading to RFDK 1.5.x.
 
-In RFDK versions >= 1.5.x, we upgraded the default DocumentDB engine version to 5.0.0. Note that you may lose data and your deployment may fail if you have existing stacks with previous DocumentDB versions. You will need to manually upgrade your existing DocumentDB cluster by following the documentation: https://docs.aws.amazon.com/documentdb/latest/developerguide/docdb-mvu.html
+In RFDK versions >= 1.5.x, we upgraded the default DocumentDB engine version to 5.0.0. Note that you may lose data and your deployment may fail if you have existing stacks with previous DocumentDB versions. You will need to manually upgrade your existing DocumentDB cluster by following the documentation: https://docs.aws.amazon.com/documentdb/latest/devguide/docdb-mvu.html
 
 ## Updating MongoDB
 

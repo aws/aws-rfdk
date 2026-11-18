@@ -674,7 +674,7 @@ export class Repository extends Construct implements IRepository {
       /**
        * This option is part of enabling audit logging for DocumentDB; the other required part is the enabling of the CloudWatch exports below.
        *
-       * For more information about audit logging in DocumentDB, see:  https://docs.aws.amazon.com/documentdb/latest/developerguide/event-auditing.html
+       * For more information about audit logging in DocumentDB, see:  https://docs.aws.amazon.com/documentdb/latest/devguide/event-auditing.html
        */
       const parameterGroup = databaseAuditLogging ? new ClusterParameterGroup(this, 'ParameterGroup', {
         description: 'DocDB cluster parameter group with enabled audit logs',

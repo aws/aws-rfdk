@@ -48,7 +48,7 @@ export interface CloudWatchAgentProps {
  * optionally verify the installer, and finally install the CloudWatch Agent.
  * The installer is downloaded via the Amazon S3 API, thus, this construct can be used
  * on instances that have no access to the internet as long as the VPC contains
- * an VPC Gateway Endpoint for S3 ( https://docs.aws.amazon.com/vpc/latest/userguide/vpc-endpoints-s3.html ).
+ * an VPC Gateway Endpoint for S3 ( https://docs.aws.amazon.com/vpc/latest/privatelink/vpc-endpoints-s3.html ).
  *
  * {@link CloudWatchAgent.SKIP_CWAGENT_VALIDATION_CTX_VAR} - Context variable to skip validation
  * of the downloaded CloudWatch Agent installer if set to 'TRUE'.

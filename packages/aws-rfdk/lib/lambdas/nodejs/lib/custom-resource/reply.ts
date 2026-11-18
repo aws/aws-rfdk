@@ -32,7 +32,7 @@ export async function sendCfnResponse(args: {
 }): Promise<void> {
 
   // Construct the CustomResource response.
-  // See: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref-responses.html
+  // See: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref.html
   const responseObject = {
     Status: args.status,
     Reason: args.reason ?? `See CloudWatch Logs -- Group: '${args.context.logGroupName}'  Stream: '${args.context.logStreamName}'`,

@@ -233,7 +233,7 @@ function validateBucketName(s3BucketName: string): boolean {
   if (!regExpForS3Bucket.test(s3BucketName)) {
     console.error(`S3 bucket name '${s3BucketName}' has invalid format.\
     Please follow S3 bucket naming requirements:\
-    https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html`);
+    https://docs.aws.amazon.com/AmazonS3/latest/userguide/BucketRestrictions.html`);
     return false;
   }
   return true;

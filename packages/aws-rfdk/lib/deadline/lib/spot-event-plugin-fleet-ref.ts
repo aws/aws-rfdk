@@ -7,7 +7,7 @@
  * The allocation strategy for the Spot Instances in your Spot Fleet
  * determines how it fulfills your Spot Fleet request from the possible
  * Spot Instance pools represented by its launch specifications.
- * See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-configuration-strategies.html#ec2-fleet-allocation-strategy
+ * See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-allocation-strategy.html
  */
 export enum SpotFleetAllocationStrategy {
   /**

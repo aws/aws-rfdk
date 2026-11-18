@@ -8,7 +8,7 @@ A stage directory must contain a `Dockerfile` and a manifest file at the root of
 
 **Dockerfile** - The Dockerfile that Docker uses to assemble container images from Docker recipes.
 
-**Manifest File** - This file contains meta-data about each recipe and is used by RFDK to build up the corresponding [DockerImageAsset](https://docs.aws.amazon.com/cdk/api/latest/docs/@aws-cdk_aws-ecr-assets.DockerImageAsset.html) objects. In addition to the recipe meta-data, it also includes other useful information, such as the schema version. For more information, see [Manifest File Schema](#manifest-file-schema).
+**Manifest File** - This file contains meta-data about each recipe and is used by RFDK to build up the corresponding [DockerImageAsset](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ecr_assets.DockerImageAsset.html) objects. In addition to the recipe meta-data, it also includes other useful information, such as the schema version. For more information, see [Manifest File Schema](#manifest-file-schema).
 
 ## Docker Image Recipe Composition
 
@@ -31,7 +31,7 @@ The **recipe** contains instructions that use the items in the **context directo
 When using a recipe, RFDK runs the Dockerfile with the build arguments for that recipe from the manifest file. The Dockerfile will then use the configuration scripts and Deadline Client installer to build the Docker image that will be deployed.
 
 The Dockerfile can either be:
-- A Dockerfile that supports [multi-stage builds](https://docs.docker.com/develop/develop-images/multistage-build/), containing branches for each recipe
+- A Dockerfile that supports [multi-stage builds](https://docs.docker.com/build/building/multi-stage/), containing branches for each recipe
 - A common Dockerfile that is used by all recipes
 
 ## Manifest File Schema

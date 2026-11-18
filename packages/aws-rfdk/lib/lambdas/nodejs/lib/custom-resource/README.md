@@ -38,17 +38,17 @@ the form of an environment variable.
 ## Information on CfnCustomResources
 
 Custom Resource Request fields:
-  https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref-requests.html
+  https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref.html
 
 Custom Resource Response fields:
-  https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref-responses.html
+  https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/crpg-ref.html
 
 Custom Resource Best Practices:
-  https://aws.amazon.com/premiumsupport/knowledge-center/best-practices-custom-cf-lambda/
+  https://repost.aws/knowledge-center/best-practices-custom-cf-lambda
 
 ## CfnCustomResource Resource Replacement
 
-From: https://aws.amazon.com/premiumsupport/knowledge-center/best-practices-custom-cf-lambda/
+From: https://repost.aws/knowledge-center/best-practices-custom-cf-lambda
 
 When an update triggers replacement of a physical resource, AWS CloudFormation compares the PhysicalResourceId returned by your Lambda function to the previous PhysicalResourceId. If the IDs differ, AWS CloudFormation assumes the resource has been replaced with a new physical resource.
 
@@ -58,7 +58,7 @@ Carefully consider when you return a new PhysicalResourceId. Use PhysicalResourc
 
 ## CfnCustomResource Idempotency
 
-From: https://aws.amazon.com/premiumsupport/knowledge-center/best-practices-custom-cf-lambda/
+From: https://repost.aws/knowledge-center/best-practices-custom-cf-lambda
 
 An idempotent function can be repeated any number of times with the same inputs, and the result will be the same as if it had been done only once. Idempotency is valuable when working with AWS CloudFormation to ensure that retries, updates, and rollbacks don't create duplicate resources or introduce errors.
 

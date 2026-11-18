@@ -141,7 +141,7 @@ export class AuthorAWS extends ValidationRule {
 
   public validate(pkg: PackageJson): void {
     expectJSON(this.name, pkg, 'author.name', 'Amazon Web Services');
-    expectJSON(this.name, pkg, 'author.url', 'https://aws.amazon.com');
+    expectJSON(this.name, pkg, 'author.url', 'https://aws.amazon.com/');
     expectJSON(this.name, pkg, 'author.organization', true);
   }
 }

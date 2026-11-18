@@ -44,7 +44,7 @@ The MongoDbInstaller will install MongoDB Community Edition onto one or more EC2
 
 MongoDB is provided by MongoDB Inc. under the SSPL license. By installing MongoDB, you are agreeing to the terms of this license.
 Follow the link below to read the terms of the SSPL license.
-https://www.mongodb.com/licensing/server-side-public-license
+https://www.mongodb.com/legal/licensing/server-side-public-license
 
 By using the MongoDbInstaller to install MongoDB you agree to the terms of the SSPL license.
 
