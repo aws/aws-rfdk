@@ -27,7 +27,7 @@ and let us know if it's not up-to-date (even better, submit a PR with your  corr
 The RFDK is written in Typescript and converted, using [jsii](https://github.com/aws/jsii), into Python. Thus, the
 minimal development environment must include:
 
-- Node.js >= 18.0.0
+- Node.js >= 20.0.0
 - docker >= 18
 
 We also recommend developing on a Linux system.
@@ -39,10 +39,10 @@ the [instructions](https://github.com/nvm-sh/nvm#installing-and-updating) to ins
 then you can install a version of Node.js and set your shell to make it available when you login:
 
 ```bash
-# For example, the latest version of Node.js 18.x
+# For example, the latest version of Node.js 22.x
 
 # Find out the version number for latest
-LATEST_VERSION=$(nvm ls-remote | grep v18 | grep 'Latest' | awk '{print $1}')
+LATEST_VERSION=$(nvm ls-remote | grep v22 | grep 'Latest' | awk '{print $1}')
 
 # Install it
 nvm install ${LATEST_VERSION}
