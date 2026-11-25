@@ -131,6 +131,25 @@ Network ACLs act as a firewall for controlling traffic in or out of your VPC sub
 - You must have Docker installed on your system
 - You must have Python 3.7+ installed on your system (Python app only)
 
+## Using Windows Workers
+
+The sample application deploys Linux Workers by default, but `WorkerInstanceFleet` also supports Windows Workers. To
+deploy a Windows Worker Fleet instead, make the following changes in the Compute Tier:
+
+1. Add a map of regions to AMI IDs of Windows-based Deadline Worker images to the application configuration, next to
+   the existing Linux map (`deadline_client_linux_ami_map` in `python/package/config.py`, `deadlineClientLinuxAmiMap`
+   in `ts/bin/config.ts`). AWS Thinkbox publishes Windows AWS Portal AMIs that can be found with the same steps used
+   for the Linux AMIs above.
+1. Pass a Windows machine image to the `WorkerInstanceFleet`, instead of the Linux one, where the application creates
+   the `workerMachineImage`: `MachineImage.generic_windows(...)` in `python/package/app.py` and
+   `MachineImage.genericWindows(...)` in `ts/bin/app.ts`.
+1. The sample `UserDataProvider` in the Compute Tier downloads and runs `scripts/configure_worker.sh`, which is a shell
+   script and cannot run on Windows. Remove the `userDataProvider` from the `WorkerInstanceFleet`, or replace the
+   commands in it with ones that work on Windows (for example, a PowerShell script).
+
+To run Linux and Windows Workers side by side, add a second `WorkerInstanceFleet` with the Windows machine image and
+its own construct ID to the Compute Tier, and keep the existing fleet for Linux.
+
 ## Typescript
 
 [Continue to Typescript specific documentation.](ts/README.md)
