@@ -504,6 +504,68 @@ test('Validating expiry with token', () => {
   Annotations.fromStack(stack).hasNoError(`/${cert.node.path}`, Match.anyValue());
 });
 
+describe('Validating subject length', () => {
+  const tooLong = 'a'.repeat(65);
+  const longest = 'a'.repeat(64);
+
+  test.each(['cn', 'o', 'ou'])('%s longer than 64 characters', (field) => {
+    // GIVEN
+    const stack = new Stack(undefined, 'Stack', { env: { region: 'us-west-2' } });
+    const subject = { cn: 'testCN', [field]: tooLong };
+
+    // WHEN
+    const cert = new X509CertificatePem(stack, 'Cert', { subject });
+
+    // THEN
+    Annotations.fromStack(stack).hasError(
+      `/${cert.node.path}`,
+      `The subject '${field}' must be at most 64 characters long, but it is 65 characters.`,
+    );
+  });
+
+  test('64 characters is accepted', () => {
+    // GIVEN
+    const stack = new Stack(undefined, 'Stack', { env: { region: 'us-west-2' } });
+    const subject = { cn: longest, o: longest, ou: longest };
+
+    // WHEN
+    const cert = new X509CertificatePem(stack, 'Cert', { subject });
+
+    // THEN
+    Annotations.fromStack(stack).hasNoError(`/${cert.node.path}`, Match.anyValue());
+  });
+
+  test('characters outside the BMP count once', () => {
+    // GIVEN
+    const stack = new Stack(undefined, 'Stack', { env: { region: 'us-west-2' } });
+    const subject = { cn: '\u{1F600}'.repeat(64) };
+
+    // WHEN
+    const cert = new X509CertificatePem(stack, 'Cert', { subject });
+
+    // THEN
+    Annotations.fromStack(stack).hasNoError(`/${cert.node.path}`, Match.anyValue());
+  });
+
+  test('token is not checked', () => {
+    // GIVEN
+    const stack = new Stack(undefined, 'Stack', { env: { region: 'us-west-2' } });
+    const subject = {
+      cn: Lazy.string({
+        produce() {
+          return tooLong;
+        },
+      }),
+    };
+
+    // WHEN
+    const cert = new X509CertificatePem(stack, 'Cert', { subject });
+
+    // THEN
+    Annotations.fromStack(stack).hasNoError(`/${cert.node.path}`, Match.anyValue());
+  });
+});
+
 test('Convert to PKCS #12', () => {
   const stack = new Stack();
   const subject = { cn: 'testCN' };

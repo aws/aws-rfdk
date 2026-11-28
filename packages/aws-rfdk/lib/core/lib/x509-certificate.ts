@@ -42,6 +42,12 @@ import { ARNS } from '../../lambdas/lambdaLayerVersionArns';
 import { IX509CertificateEncodePkcs12, IX509CertificateGenerate } from '../../lambdas/nodejs/x509-certificate';
 
 /**
+ * The longest value OpenSSL accepts for each of the common name, organization and organizational unit
+ * of a certificate subject.
+ */
+const MAX_DISTINGUISHED_NAME_FIELD_LENGTH = 64;
+
+/**
  * The identification for a self-signed CA or Certificate.
  * These fields are industry standard, and can be found in rfc1779 (see: https://tools.ietf.org/html/rfc1779)
  * or the X.520 specification (see: ITU-T Rec.X.520)
@@ -277,6 +283,28 @@ export class X509CertificatePem extends X509CertificateBase implements IX509Cert
 
     if ((props.validFor ?? 1) < 1 && !Token.isUnresolved(props.validFor)) {
       Annotations.of(this).addError('Certificates must be valid for at least one day.');
+    }
+
+    // OpenSSL rejects subject fields longer than 64 characters when it builds the certificate request,
+    // which only shows up as a failed custom resource at deploy time.
+    // See: https://datatracker.ietf.org/doc/html/rfc5280#appendix-A (ub-common-name, ub-organization-name, ...)
+    const subjectFields: [string, string | undefined][] = [
+      ['cn', props.subject.cn],
+      ['o', props.subject.o],
+      ['ou', props.subject.ou],
+    ];
+    for (const [field, value] of subjectFields) {
+      if (value === undefined || Token.isUnresolved(value)) {
+        continue;
+      }
+      // OpenSSL counts characters, not UTF-16 code units.
+      const length = Array.from(value).length;
+      if (length > MAX_DISTINGUISHED_NAME_FIELD_LENGTH) {
+        Annotations.of(this).addError(
+          `The subject '${field}' must be at most ${MAX_DISTINGUISHED_NAME_FIELD_LENGTH} characters long, ` +
+          `but it is ${length} characters.`,
+        );
+      }
     }
 
     props.signingCertificate?.cert.grantRead(this.lambdaFunc);
