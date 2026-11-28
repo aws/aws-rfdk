@@ -7,6 +7,7 @@ import {
   join,
 } from 'path';
 import {
+  Duration,
   Stack,
 } from 'aws-cdk-lib';
 import {
@@ -594,6 +595,11 @@ export class RenderQueue extends RenderQueueBase implements IGrantable {
     const targetGroupResource = targetGroup.node.defaultChild as CfnTargetGroup;
     targetGroupResource.protocol = ApplicationProtocol[internalProtocol];
     targetGroupResource.port = internalPortNumber;
+
+    // Deadline clients page through results (for example the job list) with a transaction ID that only the RCS instance
+    // that started the request knows. Without stickiness the ALB can send the next page to a different instance, which
+    // answers with "the server don't have this transaction ID in the cache" and the client has to start over.
+    targetGroup.enableCookieStickiness(Duration.days(1));
 
     this.grantPrincipal = taskDefinition.taskRole;
 

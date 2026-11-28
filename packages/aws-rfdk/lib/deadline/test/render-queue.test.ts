@@ -170,6 +170,17 @@ describe('RenderQueue', () => {
       }, 1);
     });
 
+    test('enables load balancer cookie stickiness on the target group', () => {
+      // THEN
+      Template.fromStack(stack).hasResourceProperties('AWS::ElasticLoadBalancingV2::TargetGroup', {
+        TargetGroupAttributes: Match.arrayWith([
+          { Key: 'stickiness.enabled', Value: 'true' },
+          { Key: 'stickiness.type', Value: 'lb_cookie' },
+          { Key: 'stickiness.lb_cookie.duration_seconds', Value: '86400' },
+        ]),
+      });
+    });
+
     test('creates a log group with default prefix of "/renderfarm/"', () => {
       // THEN
       Template.fromStack(stack).hasResourceProperties('Custom::LogRetention', {
